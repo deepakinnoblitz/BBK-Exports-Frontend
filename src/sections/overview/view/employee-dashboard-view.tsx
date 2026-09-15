@@ -122,7 +122,7 @@ export function EmployeeDashboardView() {
                 spacing={{ xs: 1.5, md: 2 }}
                 sx={{ display: { xs: 'flex', md: 'none' }, mb: 2 }}
             >
-                <UserStatusBar />
+                <UserStatusBar disableAutoCheckIn />
             </Stack>
             <Typography variant="h4" sx={{ mb: { xs: 3, md: 2 } }}>
                 Hi, {data.employee_name || user?.full_name || 'Employee'}, Welcome back 👋
