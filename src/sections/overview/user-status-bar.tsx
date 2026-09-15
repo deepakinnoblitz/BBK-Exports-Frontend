@@ -41,9 +41,18 @@ import { useAuth } from 'src/auth/auth-context';
 import { ReminderDialog } from './reminder-dialog';
 import { MyRemindersDialog } from './my-reminders-dialog';
 
-// ----------------------------------------------------------------------
+// ── Module-level singleton for Auto Check-In Dialog ──
+let autoCheckedCheckInGlobal = false;
 
-export function UserStatusBar() {
+export function resetAutoCheckInState() {
+    autoCheckedCheckInGlobal = false;
+}
+
+interface UserStatusBarProps {
+    disableAutoCheckIn?: boolean;
+}
+
+export function UserStatusBar({ disableAutoCheckIn = false }: UserStatusBarProps = {}) {
     const theme = useTheme();
     const { user } = useAuth();
     const {
@@ -97,21 +106,19 @@ export function UserStatusBar() {
         severity: 'success',
     });
 
-    const hasAutoChecked = useRef(false);
-
     const open = Boolean(anchorEl);
 
     // Auto-show check-in dialog on load when Offline (one-time only)
     useEffect(() => {
-        if (!loading && !hasAutoChecked.current) {
-            hasAutoChecked.current = true;
+        if (!disableAutoCheckIn && !loading && !autoCheckedCheckInGlobal) {
+            autoCheckedCheckInGlobal = true;
             if (statusName === 'Offline') {
                 const timer = setTimeout(() => setCheckInDialogOpen(true), 800);
                 return () => clearTimeout(timer);
             }
         }
         return undefined;
-    }, [loading, statusName]);
+    }, [loading, statusName, disableAutoCheckIn]);
 
     // Dynamic message rotator for the location logging overlay
     useEffect(() => {
