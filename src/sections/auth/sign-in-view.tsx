@@ -16,6 +16,7 @@ import { useRouter } from 'src/routes/hooks';
 import { CONFIG } from 'src/config-global';
 import { login, getCurrentUserInfo } from 'src/api/auth';
 
+import { Logo } from 'src/components/logo';
 import { Iconify } from 'src/components/iconify';
 
 import { useAuth } from 'src/auth/auth-context';
@@ -158,24 +159,12 @@ export function SignInView() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          mb: 5,
+          mb: 4,
         }}
       >
-        <Box
-          component="img"
-          src={`${CONFIG.assetsDir}/logo/Innoblitz%20Logo%20Full.png`}
-          alt="Innoblitz Logo"
-          sx={{
-            width: 180,
-            maxHeight: 180,
-            objectFit: 'contain',
-            display: 'block',
-            mb: 0.5,
-            mt: -4,
-          }}
-        />
+        <Logo disabled sx={{ mb: 1 }} />
 
-        <Typography variant="h5" sx={{ mt: -3 }}>Sign in</Typography>
+        <Typography variant="h5">Sign in</Typography>
 
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Don’t have an account?

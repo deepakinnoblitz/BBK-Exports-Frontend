@@ -55,6 +55,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (window.location.pathname.includes('/sign-in')) {
+      setLoading(false);
+      return;
+    }
+
     getCurrentUserInfo()
       .then(setUser)
       .finally(() => setLoading(false));

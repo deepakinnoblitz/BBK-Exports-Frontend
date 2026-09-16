@@ -30,14 +30,14 @@ export function Logo({
   ...other
 }: LogoProps) {
   const { settings } = useHRMSSettings();
-  const logoUrl = settings?.app_logo;
+  const logoUrl = `${CONFIG.assetsDir}/logo/Innoblitz%20Logo%20Full.png`;
 
   const singleLogo = (
     <Box
       component="img"
       src={logoUrl}
       alt="Single logo"
-      sx={{ width: 1, height: 120, objectFit: 'contain', mt: 2 }}
+      sx={{ width: 1, height: 100, objectFit: 'contain', mt: 2 }}
     />
   );
 
@@ -46,7 +46,7 @@ export function Logo({
       component="img"
       src={logoUrl}
       alt="Full logo"
-      sx={{ width: 1, height: 120, objectFit: 'contain' }}
+      sx={{ width: 1, height: 100, objectFit: 'contain' }}
     />
   );
 
@@ -66,7 +66,7 @@ export function Logo({
           justifyContent: 'center',
           marginLeft: 0,
           marginTop: 0,
-          marginBottom: 3.5,
+          marginBottom: 2.5,
           ...(disabled && { pointerEvents: 'none' }),
         },
         ...(Array.isArray(sx) ? sx : [sx]),

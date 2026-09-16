@@ -12,7 +12,10 @@ export function useHRMSSettings() {
     const [loading, setLoading] = useState(!settings);
 
     const fetchSettings = useCallback(async () => {
-        // Initial fetch only if not already loaded (or if forced)
+        if (window.location.pathname.includes('/sign-in')) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const result = await getHRMSSettings();

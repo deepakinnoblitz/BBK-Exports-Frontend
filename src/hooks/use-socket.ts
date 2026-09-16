@@ -7,21 +7,12 @@ export function useSocket(userEmail?: string) {
 
     useEffect(() => {
         if (userEmail) {
-            // Using port 9025 from common_site_config.json
+            // Using port 9006 from common_site_config.json
             // Dynamic site detection for Frappe namespaces
             // Priority: Explicit host mapping -> Window hostname -> Default development site
-            const getSiteName = () => {
-                const host = window.location.hostname;
-                if (host === 'localhost' || host === '127.0.0.1' || host.startsWith('erp.localhost')) {
-                    return 'erp.localhost.innoblitz';
-                }
-                return host; // In production, usually the hostname is the site name
-            };
-
-            const siteName = getSiteName();
-            const socketHost = window.location.hostname === 'localhost'
-                ? `http://localhost:9025/${siteName}`
-                : `${window.location.protocol}//${window.location.hostname}:9025/${siteName}`;
+            const siteName = window.location.hostname;
+            const socketPort = import.meta.env.VITE_SOCKETIO_PORT || 9006;
+            const socketHost = `${window.location.protocol}//${window.location.hostname}:${socketPort}`;
 
             const socket = io(socketHost, {
                 path: '/socket.io',

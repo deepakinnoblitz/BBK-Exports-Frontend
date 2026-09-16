@@ -22,6 +22,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(!settings);
 
   const fetchSettings = useCallback(async () => {
+    if (window.location.pathname.includes('/sign-in')) {
+      setLoading(false);
+      return null;
+    }
     try {
       const result = await getHRMSSettings();
       if (result) {
