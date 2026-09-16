@@ -59,6 +59,13 @@ export interface BloodGroup {
     modified?: string;
 }
 
+export interface Qualification {
+    name: string;
+    qualification: string;
+    creation?: string;
+    modified?: string;
+}
+
 export interface AssetCategory {
     name: string;
     category_name: string;
@@ -1985,6 +1992,64 @@ export async function deleteHRDocumentCategoryMaster(name: string) {
 export async function getHRDocumentCategoryMaster(name: string): Promise<HRDocumentCategoryMaster> {
     const res = await frappeRequest(`/api/method/frappe.client.get?doctype=HR Document Category&name=${encodeURIComponent(name)}`);
     if (!res.ok) throw new Error("Failed to fetch HR document category details");
+    return (await res.json()).message;
+}
+
+// Qualification Master APIs
+export const fetchQualifications = (params: any) => {
+    const { search, ...restParams } = params;
+
+    const or_filters = search ? [
+        ["Qualification", "qualification", "like", `%${search}%`],
+        ["Qualification", "name", "like", `%${search}%`],
+    ] : undefined;
+
+    return fetchFrappeList("Qualification", {
+        ...restParams,
+        search: undefined,
+        or_filters
+    });
+};
+
+export async function createQualification(data: Partial<Qualification>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.insert", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doc: { doctype: "Qualification", ...data } })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to create qualification"));
+    return json.message;
+}
+
+export async function updateQualification(name: string, data: Partial<Qualification>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.set_value", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Qualification", name, fieldname: data })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update qualification"));
+    return json.message;
+}
+
+export async function deleteQualification(name: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.delete", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Qualification", name })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to delete qualification"));
+    return true;
+}
+
+export async function getQualification(name: string) {
+    const res = await frappeRequest(`/api/method/frappe.client.get?doctype=Qualification&name=${encodeURIComponent(name)}`);
+    if (!res.ok) throw new Error("Failed to fetch qualification details");
     return (await res.json()).message;
 }
 
