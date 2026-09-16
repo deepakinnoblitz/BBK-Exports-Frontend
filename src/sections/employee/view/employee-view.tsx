@@ -3,7 +3,7 @@ import { MuiTelInput } from 'mui-tel-input';
 import { LuUserCheck } from 'react-icons/lu';
 import { TbMoneybagPlus } from "react-icons/tb";
 import { GrDocumentLocked } from "react-icons/gr";
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
@@ -15,7 +15,6 @@ import Table from '@mui/material/Table';
 import { LoadingButton } from '@mui/lab';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
 import Checkbox from '@mui/material/Checkbox';
 import Snackbar from '@mui/material/Snackbar';
@@ -43,14 +42,14 @@ import { useRouter } from 'src/routes/hooks';
 
 import { useEmployees } from 'src/hooks/useEmployees';
 
-import { fNumber, fCurrency } from 'src/utils/format-number';
+import { fNumber } from 'src/utils/format-number';
 
 import { getDoctypeList } from 'src/api/leads';
 import { uploadFile } from 'src/api/data-import';
 import { getStates, getCities } from 'src/api/location';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { createEmployee, updateEmployee, deleteEmployee, getEmployee } from 'src/api/employees';
-import { getHRPermissions, getDocTypeMetadata, fetchSalaryComponents, getHRSettings } from 'src/api/hr-management';
+import { getEmployee, createEmployee, updateEmployee, deleteEmployee } from 'src/api/employees';
+import { getHRSettings, getHRPermissions, getDocTypeMetadata, fetchSalaryComponents } from 'src/api/hr-management';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -61,10 +60,16 @@ import { useAuth } from 'src/auth/auth-context';
 
 import { TableNoData } from '../../lead/table-no-data';
 import { EmployeeTableRow } from '../employee-table-row';
+import { ShiftCreateDialog } from '../shift-create-dialog';
 import { TableEmptyRows } from '../../lead/table-empty-rows';
+import { BusRouteCreateDialog } from '../bus-route-create-dialog';
+import { LineOrderCreateDialog } from '../line-order-create-dialog';
 import { DepartmentCreateDialog } from '../department-create-dialog';
 import { BloodGroupCreateDialog } from '../blood-group-create-dialog';
+import { DesignationCreateDialog } from '../designation-create-dialog';
 import EmployeeTableFiltersDrawer from '../employee-table-filters-drawer';
+import { QualificationCreateDialog } from '../qualification-create-dialog';
+import { BankAccountDialog } from '../../master/bank-account/bank-account-dialog';
 // ----------------------------------------------------------------------
 
 const filter = createFilterOptions<any>();
@@ -188,6 +193,29 @@ export function EmployeeView() {
     // Blood Group Create Dialog State
     const [openBloodGroupCreate, setOpenBloodGroupCreate] = useState(false);
     const [bloodGroupSearch, setBloodGroupSearch] = useState('');
+
+    // Qualification Create Dialog State
+    const [openQualificationCreate, setOpenQualificationCreate] = useState(false);
+    const [qualificationSearch, setQualificationSearch] = useState('');
+
+    // Designation Create Dialog State
+    const [openDesignationCreate, setOpenDesignationCreate] = useState(false);
+    const [designationSearch, setDesignationSearch] = useState('');
+
+    // Line Order Create Dialog State
+    const [openLineOrderCreate, setOpenLineOrderCreate] = useState(false);
+    const [lineOrderSearch, setLineOrderSearch] = useState('');
+
+    // Shift Create Dialog State
+    const [openShiftCreate, setOpenShiftCreate] = useState(false);
+    const [shiftSearch, setShiftSearch] = useState('');
+
+    // Bus Route Create Dialog State
+    const [openBusRouteCreate, setOpenBusRouteCreate] = useState(false);
+    const [busRouteSearch, setBusRouteSearch] = useState('');
+
+    // Bank Account Create Dialog State
+    const [openBankAccountCreate, setOpenBankAccountCreate] = useState(false);
 
     const [openCreate, setOpenCreate] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -316,14 +344,40 @@ export function EmployeeView() {
                 })
                 .catch(console.error);
 
-            // Fallback for designation if metadata hasn't synced yet
-            if (!meta.fields.find((f: any) => f.fieldname === 'designation' && f.fieldtype === 'Link')) {
-                getDoctypeList('Designation', ['name'])
-                    .then((options) => {
-                        setFieldOptions(prev => ({ ...prev, 'designation': options }));
-                    })
-                    .catch(console.error);
-            }
+            // Explicitly fetch options for qualification
+            getDoctypeList('Qualification', ['name', 'qualification'])
+                .then((options) => {
+                    setFieldOptions(prev => ({ ...prev, 'qualification': options }));
+                })
+                .catch(console.error);
+
+            // Explicitly fetch options for designation
+            getDoctypeList('Designation', ['name', 'designation_name'])
+                .then((options) => {
+                    setFieldOptions(prev => ({ ...prev, 'designation': options }));
+                })
+                .catch(console.error);
+
+            // Explicitly fetch options for line_order
+            getDoctypeList('Line Order', ['name', 'line_name'])
+                .then((options) => {
+                    setFieldOptions(prev => ({ ...prev, 'line_order': options }));
+                })
+                .catch(console.error);
+
+            // Explicitly fetch options for shift
+            getDoctypeList('Shift', ['name', 'shift_name'])
+                .then((options) => {
+                    setFieldOptions(prev => ({ ...prev, 'shift': options }));
+                })
+                .catch(console.error);
+
+            // Explicitly fetch options for bus_travel_route
+            getDoctypeList('Bus Travel Route', ['name', 'route_name'])
+                .then((options) => {
+                    setFieldOptions(prev => ({ ...prev, 'bus_travel_route': options }));
+                })
+                .catch(console.error);
         }).catch(console.error);
     }, []);
 
@@ -704,7 +758,6 @@ export function EmployeeView() {
             { name: 'employee_name', label: 'Employee Name' },
             { name: 'email', label: 'Email' },
             { name: 'date_of_joining', label: 'Joining Date' },
-            { name: 'user', label: 'User Login (Email)' },
             { name: 'status', label: 'Status' }
         ];
 
@@ -884,9 +937,14 @@ export function EmployeeView() {
     const renderField = (fieldname: string, label: string, type: string = 'text', options: any[] = [], extraProps: any = {}, required: boolean = false) => {
         if (!evaluateVisibility(fieldname)) return null;
 
+        const defaultPlaceholder = (type === 'select' || type === 'link')
+            ? `Select ${label}`
+            : `Enter ${label}`;
+
         const commonProps = {
             fullWidth: true,
             label,
+            placeholder: extraProps.placeholder !== undefined ? extraProps.placeholder : defaultPlaceholder,
             name: fieldname, // Add name attribute for scroll-to-error functionality
             value: formData[fieldname] || '',
             onChange: (e: any) => handleInputChange(fieldname, e.target.value),
@@ -920,47 +978,99 @@ export function EmployeeView() {
 
 
         if (fieldname === 'bank_account') {
+            const selectedAccount = options.find((opt: any) => {
+                const optVal = typeof opt === 'string' ? opt : opt?.name;
+                return optVal === formData[fieldname];
+            });
+
             return (
                 <Autocomplete
                     fullWidth
                     options={options}
-                    value={formData[fieldname] || ''}
-                    onChange={(event, newValue) => {
-                        const value = typeof newValue === 'object' && newValue?.name ? newValue.name : newValue;
-                        handleInputChange(fieldname, value || '');
+                    value={selectedAccount || formData[fieldname] || null}
+                    onChange={(event, newValue: any) => {
+                        if (newValue?.isNew || newValue === 'Create Bank Account' || newValue?.name === 'Create Bank Account' || newValue?.bank_account_name === 'Create Bank Account') {
+                            setOpenBankAccountCreate(true);
+                        } else {
+                            const value = typeof newValue === 'object' && newValue?.name ? newValue.name : newValue;
+                            handleInputChange(fieldname, value || '');
+                        }
                     }}
-                    getOptionLabel={(option) => {
+                    getOptionLabel={(option: any) => {
                         if (typeof option === 'string') return option;
+                        if (option?.bank_account_name && option?.account_number) {
+                            return `${option.bank_account_name} (${option.account_number})`;
+                        }
+                        if (option?.bank_account_name) return option.bank_account_name;
                         if (option?.name) return option.name;
                         return '';
                     }}
                     filterOptions={(listOptions, params) => {
                         const { inputValue } = params;
-                        return listOptions.filter((option: any) => {
+                        const filtered = listOptions.filter((option: any) => {
                             const searchStr = (typeof option === 'string'
                                 ? option
-                                : `${option.bank_account_name} ${option.account_number} ${option.name}`
+                                : `${option.bank_account_name || ''} ${option.account_number || ''} ${option.name || ''}`
                             ).toLowerCase();
                             return searchStr.includes(inputValue.toLowerCase());
                         });
+
+                        const hasCreateOption = filtered.some((option: any) =>
+                            (typeof option === 'string' ? option : (option.bank_account_name || option.name)) === 'Create Bank Account' || option.isNew
+                        );
+                        if (!hasCreateOption) {
+                            filtered.push({
+                                inputValue: inputValue || '',
+                                name: 'Create Bank Account',
+                                bank_account_name: 'Create Bank Account',
+                                isNew: true,
+                            });
+                        }
+                        return filtered;
                     }}
                     renderOption={(props, option: any) => (
-                        <Box component="li" {...props} sx={{ py: '6px !important' }}>
-                            <Stack spacing={0.5}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                                    {typeof option === 'string' ? option : (option.bank_account_name || option.name)}
-                                </Typography>
-                                {typeof option === 'object' && option.account_number && (
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        Account: {option.account_number}
+                        <Box
+                            component="li"
+                            {...props}
+                            sx={{
+                                py: '6px !important',
+                                ...(option.isNew && {
+                                    color: 'primary.main',
+                                    fontWeight: 600,
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                    borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                    mt: 0.5,
+                                    py: 3,
+                                    minHeight: '56px',
+                                    '&:hover': {
+                                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                    }
+                                })
+                            }}
+                        >
+                            {option.isNew ? (
+                                <Stack direction="row" alignItems="center" spacing={1.5}>
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Bank Account</Typography>
+                                </Stack>
+                            ) : (
+                                <Stack spacing={0.5}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                        {typeof option === 'string' ? option : (option.bank_account_name || option.name)}
                                     </Typography>
-                                )}
-                            </Stack>
+                                    {typeof option === 'object' && option.account_number && (
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                            Account: {option.account_number}
+                                        </Typography>
+                                    )}
+                                </Stack>
+                            )}
                         </Box>
                     )}
-                    isOptionEqualToValue={(option, value) => {
+                    isOptionEqualToValue={(option: any, value: any) => {
                         const optionValue = typeof option === 'string' ? option : option?.name;
-                        return optionValue === value;
+                        const testValue = typeof value === 'string' ? value : value?.name;
+                        return optionValue === testValue;
                     }}
                     renderInput={(params) => (
                         <TextField
@@ -1222,13 +1332,504 @@ export function EmployeeView() {
             );
         }
 
-        if (type === 'select' || type === 'link') {
+        if (fieldname === 'qualification') {
             return (
-                <TextField {...commonProps} select>
-                    <MenuItem value="" disabled>Select {label}</MenuItem>
-                    {options.map((opt: any) => (
-                        <MenuItem key={opt.name || opt} value={opt.name || opt}>{opt.name || opt}</MenuItem>
-                    ))}
+                <Autocomplete
+                    fullWidth
+                    options={options}
+                    value={formData[fieldname] || ''}
+                    onChange={(event, newValue: any) => {
+                        if (newValue?.isNew || newValue === 'Create Qualification' || newValue?.name === 'Create Qualification' || newValue?.qualification === 'Create Qualification') {
+                            setOpenQualificationCreate(true);
+                            setQualificationSearch(newValue?.inputValue || '');
+                        } else {
+                            const value = typeof newValue === 'object' ? (newValue.qualification || newValue.name) : newValue;
+                            handleInputChange(fieldname, value || '');
+                        }
+                    }}
+                    filterOptions={(currentOptions, params) => {
+                        const filtered = filter(currentOptions, params);
+                        const { inputValue } = params;
+                        const hasCreateOption = filtered.some((option: any) =>
+                            (typeof option === 'string' ? option : (option.qualification || option.name)) === 'Create Qualification' || option.isNew
+                        );
+                        if (!hasCreateOption) {
+                            filtered.push({
+                                inputValue: inputValue || '',
+                                name: 'Create Qualification',
+                                qualification: 'Create Qualification',
+                                isNew: true,
+                            });
+                        }
+                        return filtered;
+                    }}
+                    renderOption={(props, option: any) => (
+                        <Box component="li" {...props} sx={{
+                            typography: 'body2',
+                            ...(option.isNew && {
+                                color: 'primary.main',
+                                fontWeight: 600,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                mt: 0.5,
+                                py: 3, minHeight: '56px',
+                                '&:hover': {
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                }
+                            })
+                        }}>
+                            {option.isNew ? (
+                                <Stack direction="row" alignItems="center" spacing={1.5}>
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Qualification</Typography>
+                                </Stack>
+                            ) : (
+                                typeof option === 'string' ? option : (option.qualification || option.name)
+                            )}
+                        </Box>
+                    )}
+                    getOptionLabel={(option: any) => {
+                        if (typeof option === 'string') return option;
+                        if (option?.qualification) return option.qualification;
+                        if (option?.name) return option.name;
+                        return '';
+                    }}
+                    isOptionEqualToValue={(option: any, value: any) => {
+                        const optionValue = typeof option === 'string' ? option : (option.qualification || option.name);
+                        return optionValue === value || option?.name === value;
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label={label}
+                            placeholder={`Select ${label}`}
+                            required={required}
+                            error={!!formErrors[fieldname]}
+                            helperText={formErrors[fieldname]}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiFormLabel-asterisk': {
+                                    color: 'red',
+                                },
+                                ...extraProps.sx
+                            }}
+                        />
+                    )}
+                    freeSolo
+                    selectOnFocus
+                    clearOnBlur
+                    handleHomeEndKeys
+                />
+            );
+        }
+
+        if (fieldname === 'designation') {
+            return (
+                <Autocomplete
+                    fullWidth
+                    options={options}
+                    value={formData[fieldname] || ''}
+                    onChange={(event, newValue: any) => {
+                        if (newValue?.isNew || newValue === 'Create Designation' || newValue?.name === 'Create Designation' || newValue?.designation_name === 'Create Designation') {
+                            setOpenDesignationCreate(true);
+                            setDesignationSearch(newValue?.inputValue || '');
+                        } else {
+                            const value = typeof newValue === 'object' ? (newValue.designation_name || newValue.name) : newValue;
+                            handleInputChange(fieldname, value || '');
+                        }
+                    }}
+                    filterOptions={(currentOptions, params) => {
+                        const filtered = filter(currentOptions, params);
+                        const { inputValue } = params;
+                        const hasCreateOption = filtered.some((option: any) =>
+                            (typeof option === 'string' ? option : (option.designation_name || option.name)) === 'Create Designation' || option.isNew
+                        );
+                        if (!hasCreateOption) {
+                            filtered.push({
+                                inputValue: inputValue || '',
+                                name: 'Create Designation',
+                                designation_name: 'Create Designation',
+                                isNew: true,
+                            });
+                        }
+                        return filtered;
+                    }}
+                    renderOption={(props, option: any) => (
+                        <Box component="li" {...props} sx={{
+                            typography: 'body2',
+                            ...(option.isNew && {
+                                color: 'primary.main',
+                                fontWeight: 600,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                mt: 0.5,
+                                py: 3, minHeight: '56px',
+                                '&:hover': {
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                }
+                            })
+                        }}>
+                            {option.isNew ? (
+                                <Stack direction="row" alignItems="center" spacing={1.5}>
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Designation</Typography>
+                                </Stack>
+                            ) : (
+                                typeof option === 'string' ? option : (option.designation_name || option.name)
+                            )}
+                        </Box>
+                    )}
+                    getOptionLabel={(option: any) => {
+                        if (typeof option === 'string') return option;
+                        if (option?.designation_name) return option.designation_name;
+                        if (option?.name) return option.name;
+                        return '';
+                    }}
+                    isOptionEqualToValue={(option: any, value: any) => {
+                        const optionValue = typeof option === 'string' ? option : (option.designation_name || option.name);
+                        return optionValue === value || option?.name === value;
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label={label}
+                            placeholder={`Select ${label}`}
+                            required={required}
+                            error={!!formErrors[fieldname]}
+                            helperText={formErrors[fieldname]}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiFormLabel-asterisk': {
+                                    color: 'red',
+                                },
+                                ...extraProps.sx
+                            }}
+                        />
+                    )}
+                    freeSolo
+                    selectOnFocus
+                    clearOnBlur
+                    handleHomeEndKeys
+                />
+            );
+        }
+
+        if (fieldname === 'line_order') {
+            return (
+                <Autocomplete
+                    fullWidth
+                    options={options}
+                    value={formData[fieldname] || ''}
+                    onChange={(event, newValue: any) => {
+                        if (newValue?.isNew || newValue === 'Create Line Order' || newValue?.name === 'Create Line Order' || newValue?.line_name === 'Create Line Order') {
+                            setOpenLineOrderCreate(true);
+                            setLineOrderSearch(newValue?.inputValue || '');
+                        } else {
+                            const value = typeof newValue === 'object' ? (newValue.line_name || newValue.name) : newValue;
+                            handleInputChange(fieldname, value || '');
+                        }
+                    }}
+                    filterOptions={(currentOptions, params) => {
+                        const filtered = filter(currentOptions, params);
+                        const { inputValue } = params;
+                        const hasCreateOption = filtered.some((option: any) =>
+                            (typeof option === 'string' ? option : (option.line_name || option.name)) === 'Create Line Order' || option.isNew
+                        );
+                        if (!hasCreateOption) {
+                            filtered.push({
+                                inputValue: inputValue || '',
+                                name: 'Create Line Order',
+                                line_name: 'Create Line Order',
+                                isNew: true,
+                            });
+                        }
+                        return filtered;
+                    }}
+                    renderOption={(props, option: any) => (
+                        <Box component="li" {...props} sx={{
+                            typography: 'body2',
+                            ...(option.isNew && {
+                                color: 'primary.main',
+                                fontWeight: 600,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                mt: 0.5,
+                                py: 3, minHeight: '56px',
+                                '&:hover': {
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                }
+                            })
+                        }}>
+                            {option.isNew ? (
+                                <Stack direction="row" alignItems="center" spacing={1.5}>
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Line Order</Typography>
+                                </Stack>
+                            ) : (
+                                typeof option === 'string' ? option : (option.line_name || option.name)
+                            )}
+                        </Box>
+                    )}
+                    getOptionLabel={(option: any) => {
+                        if (typeof option === 'string') return option;
+                        if (option?.line_name) return option.line_name;
+                        if (option?.name) return option.name;
+                        return '';
+                    }}
+                    isOptionEqualToValue={(option: any, value: any) => {
+                        const optionValue = typeof option === 'string' ? option : (option.line_name || option.name);
+                        return optionValue === value || option?.name === value;
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label={label}
+                            placeholder={`Select ${label}`}
+                            required={required}
+                            error={!!formErrors[fieldname]}
+                            helperText={formErrors[fieldname]}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiFormLabel-asterisk': {
+                                    color: 'red',
+                                },
+                                ...extraProps.sx
+                            }}
+                        />
+                    )}
+                    freeSolo
+                    selectOnFocus
+                    clearOnBlur
+                    handleHomeEndKeys
+                />
+            );
+        }
+
+        if (fieldname === 'shift') {
+            return (
+                <Autocomplete
+                    fullWidth
+                    options={options}
+                    value={formData[fieldname] || ''}
+                    onChange={(event, newValue: any) => {
+                        if (newValue?.isNew || newValue === 'Create Shift' || newValue?.name === 'Create Shift' || newValue?.shift_name === 'Create Shift') {
+                            setOpenShiftCreate(true);
+                            setShiftSearch(newValue?.inputValue || '');
+                        } else {
+                            const value = typeof newValue === 'object' ? (newValue.shift_name || newValue.name) : newValue;
+                            handleInputChange(fieldname, value || '');
+                        }
+                    }}
+                    filterOptions={(currentOptions, params) => {
+                        const filtered = filter(currentOptions, params);
+                        const { inputValue } = params;
+                        const hasCreateOption = filtered.some((option: any) =>
+                            (typeof option === 'string' ? option : (option.shift_name || option.name)) === 'Create Shift' || option.isNew
+                        );
+                        if (!hasCreateOption) {
+                            filtered.push({
+                                inputValue: inputValue || '',
+                                name: 'Create Shift',
+                                shift_name: 'Create Shift',
+                                isNew: true,
+                            });
+                        }
+                        return filtered;
+                    }}
+                    renderOption={(props, option: any) => (
+                        <Box component="li" {...props} sx={{
+                            typography: 'body2',
+                            ...(option.isNew && {
+                                color: 'primary.main',
+                                fontWeight: 600,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                mt: 0.5,
+                                py: 3, minHeight: '56px',
+                                '&:hover': {
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                }
+                            })
+                        }}>
+                            {option.isNew ? (
+                                <Stack direction="row" alignItems="center" spacing={1.5}>
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Shift</Typography>
+                                </Stack>
+                            ) : (
+                                typeof option === 'string' ? option : (option.shift_name || option.name)
+                            )}
+                        </Box>
+                    )}
+                    getOptionLabel={(option: any) => {
+                        if (typeof option === 'string') return option;
+                        if (option?.shift_name) return option.shift_name;
+                        if (option?.name) return option.name;
+                        return '';
+                    }}
+                    isOptionEqualToValue={(option: any, value: any) => {
+                        const optionValue = typeof option === 'string' ? option : (option.shift_name || option.name);
+                        return optionValue === value || option?.name === value;
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label={label}
+                            placeholder={`Select ${label}`}
+                            required={required}
+                            error={!!formErrors[fieldname]}
+                            helperText={formErrors[fieldname]}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiFormLabel-asterisk': {
+                                    color: 'red',
+                                },
+                                ...extraProps.sx
+                            }}
+                        />
+                    )}
+                    freeSolo
+                    selectOnFocus
+                    clearOnBlur
+                    handleHomeEndKeys
+                />
+            );
+        }
+
+        if (fieldname === 'bus_travel_route') {
+            return (
+                <Autocomplete
+                    fullWidth
+                    options={options}
+                    value={formData[fieldname] || ''}
+                    onChange={(event, newValue: any) => {
+                        if (newValue?.isNew || newValue === 'Create Route' || newValue?.name === 'Create Route' || newValue?.route_name === 'Create Route') {
+                            setOpenBusRouteCreate(true);
+                            setBusRouteSearch(newValue?.inputValue || '');
+                        } else {
+                            const value = typeof newValue === 'object' ? (newValue.route_name || newValue.name) : newValue;
+                            handleInputChange(fieldname, value || '');
+                        }
+                    }}
+                    filterOptions={(currentOptions, params) => {
+                        const filtered = filter(currentOptions, params);
+                        const { inputValue } = params;
+                        const hasCreateOption = filtered.some((option: any) =>
+                            (typeof option === 'string' ? option : (option.route_name || option.name)) === 'Create Route' || option.isNew
+                        );
+                        if (!hasCreateOption) {
+                            filtered.push({
+                                inputValue: inputValue || '',
+                                name: 'Create Route',
+                                route_name: 'Create Route',
+                                isNew: true,
+                            });
+                        }
+                        return filtered;
+                    }}
+                    renderOption={(props, option: any) => (
+                        <Box component="li" {...props} sx={{
+                            typography: 'body2',
+                            ...(option.isNew && {
+                                color: 'primary.main',
+                                fontWeight: 600,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                mt: 0.5,
+                                py: 3, minHeight: '56px',
+                                '&:hover': {
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                }
+                            })
+                        }}>
+                            {option.isNew ? (
+                                <Stack direction="row" alignItems="center" spacing={1.5}>
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Bus - Travel Route</Typography>
+                                </Stack>
+                            ) : (
+                                typeof option === 'string' ? option : (option.route_name || option.name)
+                            )}
+                        </Box>
+                    )}
+                    getOptionLabel={(option: any) => {
+                        if (typeof option === 'string') return option;
+                        if (option?.route_name) return option.route_name;
+                        if (option?.name) return option.name;
+                        return '';
+                    }}
+                    isOptionEqualToValue={(option: any, value: any) => {
+                        const optionValue = typeof option === 'string' ? option : (option.route_name || option.name);
+                        return optionValue === value || option?.name === value;
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label={label}
+                            placeholder={`Select ${label}`}
+                            required={required}
+                            error={!!formErrors[fieldname]}
+                            helperText={formErrors[fieldname]}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiFormLabel-asterisk': {
+                                    color: 'red',
+                                },
+                                ...extraProps.sx
+                            }}
+                        />
+                    )}
+                    freeSolo
+                    selectOnFocus
+                    clearOnBlur
+                    handleHomeEndKeys
+                />
+            );
+        }
+
+        if (type === 'select' || type === 'link') {
+            const selectPlaceholder = extraProps.placeholder || `Select ${label}`;
+            return (
+                <TextField
+                    {...commonProps}
+                    select
+                    SelectProps={{
+                        displayEmpty: true,
+                        renderValue: (selectedVal: any) => {
+                            if (!selectedVal || selectedVal === '') {
+                                return (
+                                    <Box
+                                        component="span"
+                                        sx={{
+                                            color: 'text.disabled',
+                                        }}
+                                    >
+                                        {selectPlaceholder}
+                                    </Box>
+                                );
+                            }
+                            const match = options.find((opt: any) => {
+                                const val = typeof opt === 'object' ? (opt.name || opt.qualification || opt.blood_group) : opt;
+                                return val === selectedVal;
+                            });
+                            if (match && typeof match === 'object') {
+                                return match.qualification || match.blood_group || match.name || selectedVal;
+                            }
+                            return selectedVal;
+                        },
+                        ...extraProps.SelectProps,
+                    }}
+                >
+                    <MenuItem value="" disabled sx={{ color: 'text.disabled' }}>
+                        {selectPlaceholder}
+                    </MenuItem>
+                    {options.map((opt: any) => {
+                        const val = typeof opt === 'object' ? (opt.name || opt.qualification || opt.blood_group) : opt;
+                        const display = typeof opt === 'object' ? (opt.qualification || opt.blood_group || opt.name) : opt;
+                        return (
+                            <MenuItem key={val} value={val}>{display}</MenuItem>
+                        );
+                    })}
                 </TextField>
             );
         }
@@ -1790,7 +2391,10 @@ export function EmployeeView() {
                                             {renderField('office_phone_number', 'Office Phone', 'phone')}
                                             {renderField('dob', 'Date of Birth', 'date')}
                                             {renderField('blood_group', 'Blood Group', 'link', fieldOptions['blood_group'] || [])}
-                                            {renderField('sex', 'Sex', 'select', ['Male', 'Female', 'Other'])}
+                                            {renderField('sex', 'Gender', 'select', ['Male', 'Female', 'Other'])}
+                                            {renderField('marital_status', 'Marital Status', 'select', ['Single', 'Married', 'Divorced', 'Widowed'])}
+                                            {renderField('qualification', 'Qualification', 'link', fieldOptions['qualification'] || [])}
+                                            {renderField('aadhar_number', 'Aadhar Number')}
                                             {renderField('country', 'Country', 'autocomplete', fieldOptions['country'] || [])}
                                             {renderField('state', 'State', 'autocomplete', stateOptions)}
                                             {renderField('city', 'City', 'autocomplete', cityOptions)}
@@ -1803,9 +2407,22 @@ export function EmployeeView() {
                                         <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>Employment Details</Typography>
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
                                             {renderField('department', 'Department', 'link', fieldOptions['department'] || [])}
-                                            {renderField('designation', 'Designation', 'text')}
+                                            {renderField('designation', 'Designation', 'link', fieldOptions['designation'] || [])}
+                                            {renderField('employee_type', 'Employee Type', 'select', [
+                                                'Staff',
+                                                'North Indian Staff',
+                                                'Workers',
+                                                'Drivers',
+                                                'Contractor',
+                                                'House Keeping',
+                                                'Security',
+                                                'STP Employees'
+                                            ])}
+                                            {renderField('line_order', 'Line Order', 'link', fieldOptions['line_order'] || [])}
+                                            {renderField('shift', 'Shift', 'link', fieldOptions['shift'] || [])}
+                                            {renderField('bus_travel_route', 'Bus - Travel Route', 'link', fieldOptions['bus_travel_route'] || [])}
                                             {renderField('date_of_joining', 'Joining Date', 'date', [], {}, true)}
-                                            {renderField('user', 'User Login (Email)', 'autocomplete', fieldOptions['user'] || [], {}, true)}
+                                            {renderField('user', 'User Login (Email)', 'autocomplete', fieldOptions['user'] || [], {}, false)}
                                             {renderField('status', 'Status', 'select', ['Active', 'Inactive'], {}, true)}
                                             {renderField('skip_probation', 'Skip Probation', 'checkbox')}
                                         </Box>
@@ -1817,6 +2434,7 @@ export function EmployeeView() {
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
                                             {renderField('bank_account', 'Bank Account', 'autocomplete', fieldOptions['bank_account'] || [])}
                                             {renderField('pf_number', 'PF Number')}
+                                            {renderField('uan_number', 'UAN Number')}
                                             {renderField('esi_no', 'ESI No')}
                                         </Box>
                                     </>
@@ -2032,6 +2650,185 @@ export function EmployeeView() {
                     }
 
                     setSnackbar({ open: true, message: 'Blood Group created successfully', severity: 'success' });
+                }}
+            />
+
+            <QualificationCreateDialog
+                open={openQualificationCreate}
+                onClose={() => setOpenQualificationCreate(false)}
+                currentQualificationName={qualificationSearch}
+                onCreate={async (newQualification) => {
+                    // Optimistically add to options and set value
+                    setFieldOptions(prev => {
+                        const existing = prev['qualification'] || [];
+                        const exists = existing.some((opt: any) => (typeof opt === 'string' ? opt : (opt.qualification || opt.name)) === newQualification);
+                        if (exists) return prev;
+                        return {
+                            ...prev,
+                            qualification: [...existing, { name: newQualification, qualification: newQualification }]
+                        };
+                    });
+
+                    // Update form data with newly created qualification
+                    handleInputChange('qualification', newQualification);
+
+                    // Re-fetch Qualification options from backend
+                    try {
+                        const freshOptions = await getDoctypeList('Qualification', ['name', 'qualification']);
+                        setFieldOptions(prev => ({
+                            ...prev,
+                            qualification: freshOptions
+                        }));
+                    } catch (err) {
+                        console.error('Failed to re-fetch qualification options:', err);
+                    }
+
+                    setSnackbar({ open: true, message: 'Qualification created successfully', severity: 'success' });
+                }}
+            />
+
+            <DesignationCreateDialog
+                open={openDesignationCreate}
+                onClose={() => setOpenDesignationCreate(false)}
+                currentDesignationName={designationSearch}
+                defaultDepartment={formData.department}
+                onCreate={async (newDesignation) => {
+                    // Optimistically add to options and set value
+                    setFieldOptions(prev => {
+                        const existing = prev['designation'] || [];
+                        const exists = existing.some((opt: any) => (typeof opt === 'string' ? opt : (opt.designation_name || opt.name)) === newDesignation);
+                        if (exists) return prev;
+                        return {
+                            ...prev,
+                            designation: [...existing, { name: newDesignation, designation_name: newDesignation }]
+                        };
+                    });
+
+                    // Update form data with newly created designation
+                    handleInputChange('designation', newDesignation);
+
+                    // Re-fetch Designation options from backend
+                    try {
+                        const freshOptions = await getDoctypeList('Designation', ['name', 'designation_name']);
+                        setFieldOptions(prev => ({
+                            ...prev,
+                            designation: freshOptions
+                        }));
+                    } catch (err) {
+                        console.error('Failed to re-fetch designation options:', err);
+                    }
+
+                    setSnackbar({ open: true, message: 'Designation created successfully', severity: 'success' });
+                }}
+            />
+
+            <LineOrderCreateDialog
+                open={openLineOrderCreate}
+                onClose={() => setOpenLineOrderCreate(false)}
+                currentLineName={lineOrderSearch}
+                onCreate={async (newLineOrder) => {
+                    setFieldOptions(prev => {
+                        const existing = prev['line_order'] || [];
+                        const exists = existing.some((opt: any) => (typeof opt === 'string' ? opt : (opt.line_name || opt.name)) === newLineOrder);
+                        if (exists) return prev;
+                        return {
+                            ...prev,
+                            line_order: [...existing, { name: newLineOrder, line_name: newLineOrder }]
+                        };
+                    });
+                    handleInputChange('line_order', newLineOrder);
+                    try {
+                        const freshOptions = await getDoctypeList('Line Order', ['name', 'line_name']);
+                        setFieldOptions(prev => ({
+                            ...prev,
+                            line_order: freshOptions
+                        }));
+                    } catch (err) {
+                        console.error('Failed to re-fetch line order options:', err);
+                    }
+                    setSnackbar({ open: true, message: 'Line Order created successfully', severity: 'success' });
+                }}
+            />
+
+            <ShiftCreateDialog
+                open={openShiftCreate}
+                onClose={() => setOpenShiftCreate(false)}
+                currentShiftName={shiftSearch}
+                onCreate={async (newShift) => {
+                    setFieldOptions(prev => {
+                        const existing = prev['shift'] || [];
+                        const exists = existing.some((opt: any) => (typeof opt === 'string' ? opt : (opt.shift_name || opt.name)) === newShift);
+                        if (exists) return prev;
+                        return {
+                            ...prev,
+                            shift: [...existing, { name: newShift, shift_name: newShift }]
+                        };
+                    });
+                    handleInputChange('shift', newShift);
+                    try {
+                        const freshOptions = await getDoctypeList('Shift', ['name', 'shift_name']);
+                        setFieldOptions(prev => ({
+                            ...prev,
+                            shift: freshOptions
+                        }));
+                    } catch (err) {
+                        console.error('Failed to re-fetch shift options:', err);
+                    }
+                    setSnackbar({ open: true, message: 'Shift created successfully', severity: 'success' });
+                }}
+            />
+
+            <BusRouteCreateDialog
+                open={openBusRouteCreate}
+                onClose={() => setOpenBusRouteCreate(false)}
+                currentRouteName={busRouteSearch}
+                onCreate={async (newRoute) => {
+                    setFieldOptions(prev => {
+                        const existing = prev['bus_travel_route'] || [];
+                        const exists = existing.some((opt: any) => (typeof opt === 'string' ? opt : (opt.route_name || opt.name)) === newRoute);
+                        if (exists) return prev;
+                        return {
+                            ...prev,
+                            bus_travel_route: [...existing, { name: newRoute, route_name: newRoute }]
+                        };
+                    });
+                    handleInputChange('bus_travel_route', newRoute);
+                    try {
+                        const freshOptions = await getDoctypeList('Bus Travel Route', ['name', 'route_name']);
+                        setFieldOptions(prev => ({
+                            ...prev,
+                            bus_travel_route: freshOptions
+                        }));
+                    } catch (err) {
+                        console.error('Failed to re-fetch bus travel route options:', err);
+                    }
+                    setSnackbar({ open: true, message: 'Bus Travel Route created successfully', severity: 'success' });
+                }}
+            />
+
+            <BankAccountDialog
+                open={openBankAccountCreate}
+                onClose={() => setOpenBankAccountCreate(false)}
+                onSuccess={async (newAccount?: any) => {
+                    const accountName = typeof newAccount === 'object' && newAccount?.name 
+                        ? newAccount.name 
+                        : (typeof newAccount === 'string' ? newAccount : '');
+
+                    try {
+                        const freshOptions = await getDoctypeList('Bank Account', ['name', 'bank_account_name', 'account_number']);
+                        setFieldOptions(prev => ({
+                            ...prev,
+                            'bank_account': freshOptions
+                        }));
+                    } catch (err) {
+                        console.error('Failed to re-fetch bank account options:', err);
+                    }
+
+                    if (accountName) {
+                        handleInputChange('bank_account', accountName);
+                    }
+
+                    setSnackbar({ open: true, message: 'Bank Account created successfully', severity: 'success' });
                 }}
             />
         </DashboardContent>

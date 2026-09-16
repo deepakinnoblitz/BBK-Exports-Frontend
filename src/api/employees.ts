@@ -17,6 +17,11 @@ export interface Employee {
     dob?: string;
     blood_group?: string;
     sex?: string;
+    employee_type?: string;
+    uan_number?: string;
+    marital_status?: string;
+    qualification?: string;
+    aadhar_number?: string;
 }
 
 // Employee APIs

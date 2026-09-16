@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { LuUserCheck } from 'react-icons/lu';
-import { BsInfoCircle } from 'react-icons/bs';
 import { TbMoneybagPlus } from "react-icons/tb";
 import { GrDocumentLocked } from "react-icons/gr";
 
@@ -15,28 +14,16 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
-import { ClickAwayListener, Tooltip as MuiTooltip, keyframes } from '@mui/material';
 
 import { fDate } from 'src/utils/format-time';
 import { fNumber } from 'src/utils/format-number';
 
 import { getHRDoc, getHRSettings } from 'src/api/hr-management';
-import { fetchPersonalityDashboardData, type PersonalityDashboardData } from 'src/api/dashboard';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
-import PersonalityGauge from 'src/sections/employee-evaluation/component/personality-gauge';
-
-import { ProfileBadges } from '../../employee/profile-badges';
-
 // ----------------------------------------------------------------------
-
-const pulse = keyframes`
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.05); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 1; }
-`;
 
 type Props = {
     open: boolean;
@@ -49,17 +36,6 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
     const [employee, setEmployee] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [bankDetails, setBankDetails] = useState<any>(null);
-
-    const [stats, setStats] = useState<PersonalityDashboardData | null>(null);
-    const [isHovered, setIsHovered] = useState(false);
-    const [isPinned, setIsPinned] = useState(false);
-
-    const improvementsList = Array.isArray(stats?.howToImprove)
-        ? stats.howToImprove.filter(Boolean)
-        : stats?.howToImprove
-            ? [stats.howToImprove]
-            : [];
-    const hasImprovements = improvementsList.length > 0;
 
     const [hrSettings, setHRSettings] = useState<{ default_currency: string; currency_symbol: string; default_locale: string }>({
         default_currency: 'INR',
@@ -75,13 +51,9 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
     useEffect(() => {
         if (open && employeeId) {
             setLoading(true);
-            Promise.all([
-                getHRDoc('Employee', employeeId),
-                fetchPersonalityDashboardData(employeeId)
-            ])
-                .then(([empData, statsData]) => {
+            getHRDoc('Employee', employeeId)
+                .then((empData) => {
                     setEmployee(empData);
-                    setStats(statsData);
 
                     if (empData.bank_account) {
                         getHRDoc('Bank Account', empData.bank_account)
@@ -182,24 +154,25 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                             </Box>
 
                             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-                                    <Typography variant="h5" sx={{ fontWeight: 800 }}>{employee.employee_name}</Typography>
-                                    {renderStatus(employee.status)}
-                                </Box>
+                                <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>{employee.employee_name}</Typography>
                                 {(() => {
-                                    const des = (employee.designation || '').trim();
-                                    const dep = (employee.department || '').trim();
-                                    const validDes = des && des !== '-';
-                                    const validDep = dep && dep !== '-';
-                                    
-                                    if (!validDes && !validDep) return null;
-                                    
-                                    const text = validDes && validDep ? `${des} at ${dep}` : (validDes ? des : dep);
-                                    return <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{text}</Typography>;
+                                     const des = (employee.designation || '').trim();
+                                     const dep = (employee.department || '').trim();
+                                     const validDes = des && des !== '-';
+                                     const validDep = dep && dep !== '-';
+                                     
+                                     if (!validDes && !validDep) return null;
+                                     
+                                     const text = validDes && validDep ? `${des} at ${dep}` : (validDes ? des : dep);
+                                     return <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{text}</Typography>;
                                 })()}
                                 <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.disabled', fontWeight: 700 }}>
                                     ID: {employee.name}
                                 </Typography>
+                            </Box>
+
+                            <Box sx={{ alignSelf: 'center' }}>
+                                {renderStatus(employee.status)}
                             </Box>
                         </Box>
 
@@ -222,18 +195,18 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                             }}
                         >
                             <Tab label="Employee Info" icon={<LuUserCheck size={20} />} iconPosition="start" />
-                            <Tab label="Performance" icon={<Iconify icon={"solar:chart-bold" as any} width={20} />} iconPosition="start" />
+                            {/* <Tab label="Performance" icon={<Iconify icon={"solar:chart-bold" as any} width={20} />} iconPosition="start" /> */}
                             <Tab label="Salary Info" icon={<TbMoneybagPlus size={20} />} iconPosition="start" />
                             <Tab label="Documents" icon={<GrDocumentLocked size={20} />} iconPosition="start" />
                         </Tabs>
 
-                        <Box sx={{ px: 2, pb: 2 }}>
+                        <Box sx={{ px: { xs: 2, md: 3 }, pb: 3, pt: 1 }}>
                             {currentTab === 0 && (
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {/* Contact Information */}
                                     <Box>
                                         <SectionHeader title="Contact Information" icon="solar:phone-calling-bold" />
-                                        <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
+                                        <Box sx={{ display: 'grid', columnGap: 4, rowGap: 3.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
                                             <DetailItem label="Official Email" value={employee.email} icon="solar:letter-bold" />
                                             <DetailItem label="Personal Email" value={employee.personal_email} icon="solar:letter-bold" />
                                             <DetailItem label="Personal Phone" value={employee.phone} icon="solar:phone-bold" />
@@ -248,11 +221,20 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                                     {/* Employment Details */}
                                     <Box>
                                         <SectionHeader title="Employment Details" icon="solar:case-bold" />
-                                        <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
+                                        <Box sx={{ display: 'grid', columnGap: 4, rowGap: 3.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
                                             <DetailItem label="Department" value={employee.department} icon="solar:buildings-bold" />
                                             <DetailItem label="Designation" value={employee.designation} icon="solar:medal-star-bold" />
-                                            <DetailItem label="Joining Date" value={fDate(employee.date_of_joining, 'DD-MM-YYYY')} icon="solar:calendar-bold" />
-                                            <DetailItem label="Date of Birth" value={fDate(employee.dob, 'DD-MM-YYYY')} icon="solar:calendar-bold" />
+                                            <DetailItem label="Employee Type" value={employee.employee_type} icon="solar:user-id-bold" />
+                                            <DetailItem label="Joining Date" value={employee.date_of_joining ? fDate(employee.date_of_joining, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
+                                            <DetailItem label="Date of Birth" value={employee.dob ? fDate(employee.dob, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
+                                            <DetailItem label="Blood Group" value={employee.blood_group} icon="solar:drop-bold" />
+                                            <DetailItem label="Gender" value={employee.sex} icon="solar:user-bold" />
+                                            <DetailItem label="Marital Status" value={employee.marital_status} icon="solar:heart-bold" />
+                                            <DetailItem label="Qualification" value={employee.qualification} icon="solar:diploma-bold" />
+                                            <DetailItem label="Aadhar Number" value={employee.aadhar_number} icon="solar:card-bold" />
+                                            <DetailItem label="Line Order" value={employee.line_order} icon="solar:settings-minimalistic-bold" />
+                                            <DetailItem label="Shift" value={employee.shift} icon="solar:clock-circle-bold" />
+                                            <DetailItem label="Bus - Travel Route" value={employee.bus_travel_route} icon="solar:bus-bold" />
                                         </Box>
                                     </Box>
 
@@ -261,7 +243,7 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                                     {/* Location Details */}
                                     <Box>
                                         <SectionHeader title="Location Details" icon="solar:earth-bold" />
-                                        <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
+                                        <Box sx={{ display: 'grid', columnGap: 4, rowGap: 3.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
                                             <DetailItem label="Country" value={employee.country} icon="solar:earth-bold" />
                                             <DetailItem label="State" value={employee.state} icon="solar:map-point-bold" />
                                             <DetailItem label="City" value={employee.city} icon="solar:map-point-bold" />
@@ -270,204 +252,7 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                                 </Box>
                             )}
 
-                             {currentTab === 1 && (
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, overflowX: 'hidden' }}>
-                                    {/* Evaluation Dashboard */}
-                                    <Box>
-                                        <SectionHeader title="Evaluation Overview" icon="solar:ranking-bold" />
-                                        <Box
-                                            sx={{
-                                                display: 'flex',
-                                                flexDirection: { xs: 'column', md: 'row' },
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                gap: 4,
-                                                p: 3,
-                                                borderRadius: 2,
-                                                bgcolor: (theme) => alpha(theme.palette.background.neutral, 0.5),
-                                                border: (theme) => `1px solid ${theme.palette.divider}`,
-                                            }}
-                                        >
-                                            {/* Gauge Section */}
-                                            <Box
-                                                sx={{
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    alignItems: 'center',
-                                                    flex: 1,
-                                                }}
-                                            >
-                                                <PersonalityGauge value={stats?.totalScore ?? 100} width={280} height={280} />
-
-                                                <Stack spacing={0.5} sx={{ mb: 2, textAlign: 'center', mt: -3 }}>
-                                                    <ClickAwayListener onClickAway={() => setIsPinned(false)}>
-                                                        <Box sx={{ display: 'inline-block' }}>
-                                                            <MuiTooltip
-                                                                title={
-                                                                    hasImprovements ? (
-                                                                        <Box sx={{ p: 0.5 }}>
-                                                                            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 800, color: '#0e7490', borderBottom: '1px solid rgba(6, 182, 212, 0.3)', pb: 1, fontSize: '0.95rem' }}>
-                                                                                Recommended Improvements
-                                                                            </Typography>
-                                                                            <Stack spacing={2}>
-                                                                                {improvementsList.map((item, i) => {
-                                                                                    const [advice, details] = item.split(' - ');
-                                                                                    return (
-                                                                                        <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                                                                                            <Box sx={{ minWidth: 8, height: 8, borderRadius: '50%', bgcolor: '#06b6d4', mt: 0.7, boxShadow: '0 0 8px rgba(6, 182, 212, 0.4)' }} />
-                                                                                            <Stack spacing={0.3}>
-                                                                                                <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: '#117eb2', lineHeight: 1.4, textAlign: 'left' }}>
-                                                                                                    {advice}
-                                                                                                </Typography>
-                                                                                                {details && (
-                                                                                                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#0e7490', opacity: 0.8, textAlign: 'left', fontStyle: 'italic' }}>
-                                                                                                        {details}
-                                                                                                    </Typography>
-                                                                                                )}
-                                                                                            </Stack>
-                                                                                        </Box>
-                                                                                    );
-                                                                                })}
-                                                                            </Stack>
-                                                                        </Box>
-                                                                    ) : (
-                                                                        <Box sx={{ p: 0.5 }}>
-                                                                            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 800, color: '#166534', borderBottom: '1px solid rgba(34, 197, 94, 0.3)', pb: 1, fontSize: '0.95rem' }}>
-                                                                                Recommended Improvements
-                                                                            </Typography>
-                                                                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                                                                                <Iconify icon={"eva:checkmark-circle-2-fill" as any} width={18} sx={{ color: '#22c55e', mt: 0.2 }} />
-                                                                                <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: '#15803d', lineHeight: 1.4, textAlign: 'left' }}>
-                                                                                    No improvement suggestions at the moment. Keep up the excellent performance!
-                                                                                </Typography>
-                                                                            </Box>
-                                                                        </Box>
-                                                                    )
-                                                                }
-                                                                arrow
-                                                                placement="top"
-                                                                disableFocusListener
-                                                                disableTouchListener
-                                                                open={isHovered || isPinned}
-                                                                onOpen={() => setIsHovered(true)}
-                                                                onClose={() => setIsHovered(false)}
-                                                                slotProps={{
-                                                                    tooltip: {
-                                                                        sx: {
-                                                                            background: hasImprovements
-                                                                                ? 'linear-gradient(135deg, #f0f9ff 0%, #ecfeff 50%, #f0fdf4 100%)'
-                                                                                : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                                                                            color: hasImprovements ? '#117eb2' : '#15803d',
-                                                                            fontSize: '0.875rem',
-                                                                            padding: '16px 24px',
-                                                                            borderRadius: '16px',
-                                                                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                                                                            maxWidth: 420,
-                                                                            fontWeight: 700,
-                                                                            lineHeight: 1.6,
-                                                                            textAlign: 'left',
-                                                                            border: hasImprovements ? '1px solid #06b6d4' : '1px solid #22c55e',
-                                                                            backdropFilter: 'blur(10px)',
-                                                                        },
-                                                                    },
-                                                                    arrow: {
-                                                                        sx: {
-                                                                            color: hasImprovements ? '#f0f9ff' : '#f0fdf4',
-                                                                        },
-                                                                    },
-                                                                }}
-                                                            >
-                                                                <Typography
-                                                                    variant="body2"
-                                                                    onClick={() => setIsPinned(!isPinned)}
-                                                                    sx={{
-                                                                        color: 'info.main',
-                                                                        fontWeight: 700,
-                                                                        display: 'flex',
-                                                                        alignItems: 'center',
-                                                                        justifyContent: 'center',
-                                                                        gap: 0.8,
-                                                                        animation: `${pulse} 3s infinite ease-in-out`,
-                                                                        pb: 2,
-                                                                        cursor: 'help'
-                                                                    }}
-                                                                >
-                                                                    <BsInfoCircle style={{ fontSize: '1.1rem' }} />
-                                                                    What Needs Improvement?
-                                                                </Typography>
-                                                            </MuiTooltip>
-                                                        </Box>
-                                                    </ClickAwayListener>
-                                                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                                                        Status:{' '}
-                                                        <Box
-                                                            component="span"
-                                                            sx={{
-                                                                fontWeight: 800,
-                                                                color: stats?.status === 'Excellent' ? 'success.main'
-                                                                    : stats?.status === 'Good' ? 'info.main'
-                                                                        : stats?.status === 'Average' ? 'warning.main'
-                                                                            : 'error.main',
-                                                            }}
-                                                        >
-                                                            {stats?.status || 'Excellent'}
-                                                        </Box>
-                                                    </Typography>
-                                                </Stack>
-                                            </Box>
-
-                                            {/* List Section */}
-                                            <Box sx={{ flex: 1, width: '100%' }}>
-                                                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, textTransform: 'uppercase', color: 'text.disabled' }}>
-                                                    Recent Traits Impact
-                                                </Typography>
-
-                                                {(stats?.traits ?? []).length === 0 ? (
-                                                    <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled', bgcolor: 'background.neutral', borderRadius: 1.5 }}>
-                                                        <Typography variant="caption" sx={{ fontWeight: 700 }}>No recent evaluations</Typography>
-                                                    </Box>
-                                                ) : (
-                                                    <Stack spacing={1.5}>
-                                                        {stats?.traits.map((item, index) => (
-                                                            <Box
-                                                                key={`${item.trait}-${index}`}
-                                                                sx={{
-                                                                    display: 'flex',
-                                                                    justifyContent: 'space-between',
-                                                                    alignItems: 'center',
-                                                                    p: 1.5,
-                                                                    borderRadius: 1.5,
-                                                                    bgcolor: item.score > 0 ? alpha('#22c55e', 0.08) : item.score < 0 ? alpha('#ef4444', 0.08) : 'background.neutral',
-                                                                    border: (theme) => `1px solid ${item.score > 0 ? alpha('#22c55e', 0.2) : item.score < 0 ? alpha('#ef4444', 0.2) : theme.palette.divider}`,
-                                                                }}
-                                                            >
-                                                                <Typography variant="body2" sx={{ fontWeight: 700 }}>{item.trait}</Typography>
-                                                                <Typography
-                                                                    variant="subtitle2"
-                                                                    fontWeight={900}
-                                                                    sx={{ color: item.score > 0 ? 'success.main' : item.score < 0 ? 'error.main' : 'text.secondary' }}
-                                                                >
-                                                                    {item.score > 0 ? `+${item.score}` : item.score}
-                                                                </Typography>
-                                                            </Box>
-                                                        ))}
-                                                    </Stack>
-                                                )}
-                                            </Box>
-                                        </Box>
-                                    </Box>
-
-                                    <Divider sx={{ borderStyle: 'dashed' }} />
-
-                                    {/* Badges Section */}
-                                    <Box>
-                                        <SectionHeader title="Badges & Achievements" icon="solar:medal-star-bold" />
-                                        <ProfileBadges employeeId={employeeId!} />
-                                    </Box>
-                                </Box>
-                            )}
-
-                            {currentTab === 2 && (
+                            {currentTab === 1 && (
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {/* Bank & Identification */}
                                     <Box>
@@ -481,6 +266,7 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
 
 
                                             <DetailItem label="PF Number" value={employee.pf_number} icon="solar:document-bold" />
+                                            <DetailItem label="UAN Number" value={employee.uan_number} icon="solar:card-2-bold" />
                                             <DetailItem label="ESI No" value={employee.esi_no} icon="solar:health-bold" />
                                         </Box>
                                     </Box>
@@ -606,7 +392,7 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                                 </Box>
                             )}
 
-                            {currentTab === 3 && (
+                            {currentTab === 2 && (
                                 <Box>
                                     <SectionHeader title="Documents" icon="solar:document-bold" />
                                     <Box display="grid" gap={2}>
@@ -665,28 +451,27 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
 
 function SectionHeader({ title, icon, noMargin = false }: { title: string; icon: string, noMargin?: boolean }) {
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: noMargin ? 0 : 2.5 }}>
-            <Iconify icon={icon as any} width={20} sx={{ color: 'primary.main' }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '14px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: noMargin ? 0 : 3 }}>
+            <Iconify icon={icon as any} width={22} sx={{ color: 'primary.main' }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '15.5px', letterSpacing: 0.5 }}>
                 {title}
             </Typography>
         </Box>
     );
 }
 
-function DetailItem({ label, value, icon, color = 'text.primary', labelColor = 'text.disabled' }: { label: string; value?: string | null; icon: string; color?: string; labelColor?: string }) {
+function DetailItem({ label, value, icon, color = 'text.primary', labelColor = 'text.secondary' }: { label: string; value?: string | null; icon: string; color?: string; labelColor?: string }) {
     return (
-        <Box>
-            <Typography variant="caption" sx={{ color: labelColor, fontWeight: 700, textTransform: 'uppercase', mb: 0.5, display: 'block' }}>
+        <Box sx={{ py: 0.5 }}>
+            <Typography variant="caption" sx={{ color: labelColor, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: 0.4, mb: 0.75, display: 'block' }}>
                 {label}
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                <Iconify icon={icon as any} width={16} sx={{ color: 'text.disabled', mt: 0.5 }} />
-                <Typography variant="body2" sx={{ fontWeight: 700, color, whiteSpace: 'pre-line' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                <Iconify icon={icon as any} width={20} sx={{ color: 'text.secondary', flexShrink: 0 }} />
+                <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '0.975rem', color, whiteSpace: 'pre-line' }}>
                     {value || '-'}
                 </Typography>
             </Box>
-
         </Box>
     );
 }
