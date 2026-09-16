@@ -36,8 +36,8 @@ import { SettingsNotifications } from '../settings-notifications';
 
 const TABS = [
   { value: 'logo', label: 'Logo', icon: <RiImageLine size={22} /> },
-  { value: 'sidebar', label: 'Sidebar', icon: <RiLayoutMasonryLine size={22} /> },
-  { value: 'dashboard', label: 'Dashboard', icon: <RiDashboardLine size={22} /> },
+  // { value: 'sidebar', label: 'Sidebar', icon: <RiLayoutMasonryLine size={22} /> },
+  // { value: 'dashboard', label: 'Dashboard', icon: <RiDashboardLine size={22} /> },
   { value: 'currency', label: 'Currency & Locale', icon: <RiGlobalLine size={22} /> },
   { value: 'notifications', label: 'Notifications', icon: <RiNotification3Line size={22} /> },
   { value: 'salary', label: 'Salary Slip', icon: <PiMoneyWavy size={22} /> },
@@ -222,19 +222,19 @@ export function SettingsView() {
           />
         )}
 
-        {currentTab === 'sidebar' && (
+        {/* {currentTab === 'sidebar' && (
           <SettingsSidebar
             data={formData}
             onChange={handleUpdateField}
           />
-        )}
+        )} */}
 
-        {currentTab === 'dashboard' && (
+        {/* {currentTab === 'dashboard' && (
           <SettingsDashboard
             data={formData}
             onChange={handleUpdateField}
           />
-        )}
+        )} */}
 
         {currentTab === 'currency' && (
           <SettingsCurrency

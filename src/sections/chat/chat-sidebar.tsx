@@ -5,6 +5,7 @@ import List from '@mui/material/List';
 import Badge from '@mui/material/Badge';
 import Stack from '@mui/material/Stack';
 import Avatar from '@mui/material/Avatar';
+import Button from '@mui/material/Button';
 import { alpha } from '@mui/material/styles';
 import Skeleton from '@mui/material/Skeleton';
 import TextField from '@mui/material/TextField';
@@ -119,7 +120,62 @@ export default function ChatSidebar({ user, channels, presences, selectedChannel
                 msOverflowStyle: 'none',
                 scrollbarWidth: 'none',
             }}>
-                {loading ? renderLoading : (
+                {loading ? (
+                    renderLoading
+                ) : filteredChannels.length === 0 ? (
+                    <Stack
+                        alignItems="center"
+                        justifyContent="center"
+                        sx={{
+                            py: 6,
+                            px: 2.5,
+                            textAlign: 'center',
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                width: 56,
+                                height: 56,
+                                borderRadius: '50%',
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                color: 'primary.main',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                mb: 2,
+                            }}
+                        >
+                            <Iconify icon="solar:chat-round-dots-bold-duotone" width={32} />
+                        </Box>
+
+                        <Typography variant="subtitle2" sx={{ fontWeight: 'fontWeightBold', mb: 0.5 }}>
+                            {searchQuery ? 'No conversations found' : 'No conversations yet'}
+                        </Typography>
+
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5, fontSize: '13px' }}>
+                            {searchQuery
+                                ? 'Try searching with a different name'
+                                : 'Start a chat with any of your team members'}
+                        </Typography>
+
+                        <Button
+                            variant="contained"
+                            color="inherit"
+                            startIcon={<Iconify icon="mingcute:add-line" />}
+                            onClick={() => onOpenContacts()}
+                            sx={{
+                                borderRadius: 1,
+                                textTransform: 'none',
+                                fontWeight: 'fontWeightBold',
+                                fontSize: '13px',
+                                px: 2,
+                                py: 0.8,
+                            }}
+                        >
+                            New Conversation
+                        </Button>
+                    </Stack>
+                ) : (
                     <List disablePadding>
                         {filteredChannels.map((channel) => (
                             <ListItemButton
