@@ -6,13 +6,11 @@ import Dialog from '@mui/material/Dialog';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
-import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { getDoctypeList } from 'src/api/leads';
-import { createDesignation } from 'src/api/masters';
+import { createBusTravelRoute } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -21,60 +19,49 @@ import { Iconify } from 'src/components/iconify';
 type Props = {
     open: boolean;
     onClose: () => void;
-    onCreate: (newDesignation: string) => void;
-    currentDesignationName?: string;
-    defaultDepartment?: string;
+    onCreate: (newRoute: string) => void;
+    currentRouteName?: string;
 };
 
-export function DesignationCreateDialog({
-    open,
-    onClose,
-    onCreate,
-    currentDesignationName = '',
-    defaultDepartment = ''
-}: Props) {
-    const [designationName, setDesignationName] = useState(currentDesignationName);
-    const [department, setDepartment] = useState<any>(defaultDepartment || null);
+export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName = '' }: Props) {
+    const [routeName, setRouteName] = useState(currentRouteName);
+    const [busNumber, setBusNumber] = useState('');
+    const [driverContact, setDriverContact] = useState('');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [departmentOptions, setDepartmentOptions] = useState<any[]>([]);
 
     useEffect(() => {
         if (open) {
-            setDesignationName(currentDesignationName);
-            setDepartment(defaultDepartment || null);
+            setRouteName(currentRouteName);
+            setBusNumber('');
+            setDriverContact('');
             setDescription('');
             setError('');
-
-            // Fetch departments
-            getDoctypeList('Department', ['name', 'department_name'])
-                .then(setDepartmentOptions)
-                .catch(console.error);
         }
-    }, [open, currentDesignationName, defaultDepartment]);
+    }, [open, currentRouteName]);
 
     const handleSubmit = async () => {
-        if (!designationName.trim()) {
-            setError('Designation Name is required');
+        if (!routeName.trim()) {
+            setError('Route Name is required');
             return;
         }
 
         try {
             setLoading(true);
             setError('');
-            const deptName = typeof department === 'object' && department ? (department.department_name || department.name) : department;
-            await createDesignation({
-                designation_name: designationName.trim(),
-                department: deptName || undefined,
+            await createBusTravelRoute({
+                route_name: routeName.trim(),
+                bus_number: busNumber.trim() || undefined,
+                driver_contact: driverContact.trim() || undefined,
                 description: description.trim() || undefined,
                 status: 'Active'
             });
-            onCreate(designationName.trim());
+            onCreate(routeName.trim());
             onClose();
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Failed to create designation');
+            setError(err.message || 'Failed to create bus travel route');
         } finally {
             setLoading(false);
         }
@@ -84,7 +71,7 @@ export function DesignationCreateDialog({
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
             <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="h6">New Designation</Typography>
+                    <Typography variant="h6">New Bus - Travel Route</Typography>
                 </Box>
                 <Iconify
                     icon="mingcute:close-line"
@@ -98,11 +85,11 @@ export function DesignationCreateDialog({
                     <TextField
                         required
                         fullWidth
-                        label="Designation Name"
-                        placeholder="e.g. Senior Merchandiser, Quality Checker, Tailor"
-                        value={designationName}
+                        label="Route Name"
+                        placeholder="e.g. Route 1 - Avadi, Route 2 - Tambaram"
+                        value={routeName}
                         onChange={(e) => {
-                            setDesignationName(e.target.value);
+                            setRouteName(e.target.value);
                             if (error) setError('');
                         }}
                         error={!!error}
@@ -112,30 +99,27 @@ export function DesignationCreateDialog({
                         sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
                     />
 
-                    <Autocomplete
-                        fullWidth
-                        options={departmentOptions}
-                        value={department}
-                        onChange={(_, newValue) => setDepartment(newValue)}
-                        getOptionLabel={(option) => {
-                            if (typeof option === 'string') return option;
-                            return option.department_name || option.name || '';
-                        }}
-                        isOptionEqualToValue={(option, val) => {
-                            const optVal = typeof option === 'string' ? option : (option.department_name || option.name);
-                            const currentVal = typeof val === 'string' ? val : (val?.department_name || val?.name);
-                            return optVal === currentVal;
-                        }}
-                        renderInput={(params) => (
-                            <TextField
-                                {...params}
-                                label="Department"
-                                placeholder="Select Department (Optional)"
-                                InputLabelProps={{ shrink: true }}
-                            />
-                        )}
-                        disabled={loading}
-                    />
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                        <TextField
+                            fullWidth
+                            label="Bus / Vehicle Number"
+                            placeholder="e.g. TN-05-AB-1234"
+                            value={busNumber}
+                            onChange={(e) => setBusNumber(e.target.value)}
+                            disabled={loading}
+                            InputLabelProps={{ shrink: true }}
+                        />
+
+                        <TextField
+                            fullWidth
+                            label="Driver Contact"
+                            placeholder="e.g. 9876543210"
+                            value={driverContact}
+                            onChange={(e) => setDriverContact(e.target.value)}
+                            disabled={loading}
+                            InputLabelProps={{ shrink: true }}
+                        />
+                    </Box>
 
                     <TextField
                         fullWidth

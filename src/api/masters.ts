@@ -2053,5 +2053,69 @@ export async function getQualification(name: string) {
     return (await res.json()).message;
 }
 
+// Line Order APIs
+export interface LineOrder {
+    name: string;
+    line_name: string;
+    status?: string;
+    description?: string;
+}
+
+export async function createLineOrder(data: Partial<LineOrder>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.insert", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doc: { doctype: "Line Order", ...data } })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to create line order"));
+    return json.message;
+}
+
+// Shift APIs
+export interface Shift {
+    name: string;
+    shift_name: string;
+    start_time?: string;
+    end_time?: string;
+    status?: string;
+    description?: string;
+}
+
+export async function createShift(data: Partial<Shift>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.insert", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doc: { doctype: "Shift", ...data } })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to create shift"));
+    return json.message;
+}
+
+// Bus Travel Route APIs
+export interface BusTravelRoute {
+    name: string;
+    route_name: string;
+    bus_number?: string;
+    driver_contact?: string;
+    status?: string;
+    description?: string;
+}
+
+export async function createBusTravelRoute(data: Partial<BusTravelRoute>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.insert", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doc: { doctype: "Bus Travel Route", ...data } })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to create bus travel route"));
+    return json.message;
+}
+
 
 

@@ -1,3 +1,5 @@
+import type { Dayjs } from 'dayjs';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -6,13 +8,14 @@ import Dialog from '@mui/material/Dialog';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
-import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import CircularProgress from '@mui/material/CircularProgress';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
-import { getDoctypeList } from 'src/api/leads';
-import { createDesignation } from 'src/api/masters';
+import { createShift } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -21,60 +24,49 @@ import { Iconify } from 'src/components/iconify';
 type Props = {
     open: boolean;
     onClose: () => void;
-    onCreate: (newDesignation: string) => void;
-    currentDesignationName?: string;
-    defaultDepartment?: string;
+    onCreate: (newShift: string) => void;
+    currentShiftName?: string;
 };
 
-export function DesignationCreateDialog({
-    open,
-    onClose,
-    onCreate,
-    currentDesignationName = '',
-    defaultDepartment = ''
-}: Props) {
-    const [designationName, setDesignationName] = useState(currentDesignationName);
-    const [department, setDepartment] = useState<any>(defaultDepartment || null);
+export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = '' }: Props) {
+    const [shiftName, setShiftName] = useState(currentShiftName);
+    const [startTime, setStartTime] = useState<Dayjs | null>(null);
+    const [endTime, setEndTime] = useState<Dayjs | null>(null);
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [departmentOptions, setDepartmentOptions] = useState<any[]>([]);
 
     useEffect(() => {
         if (open) {
-            setDesignationName(currentDesignationName);
-            setDepartment(defaultDepartment || null);
+            setShiftName(currentShiftName);
+            setStartTime(null);
+            setEndTime(null);
             setDescription('');
             setError('');
-
-            // Fetch departments
-            getDoctypeList('Department', ['name', 'department_name'])
-                .then(setDepartmentOptions)
-                .catch(console.error);
         }
-    }, [open, currentDesignationName, defaultDepartment]);
+    }, [open, currentShiftName]);
 
     const handleSubmit = async () => {
-        if (!designationName.trim()) {
-            setError('Designation Name is required');
+        if (!shiftName.trim()) {
+            setError('Shift Name is required');
             return;
         }
 
         try {
             setLoading(true);
             setError('');
-            const deptName = typeof department === 'object' && department ? (department.department_name || department.name) : department;
-            await createDesignation({
-                designation_name: designationName.trim(),
-                department: deptName || undefined,
+            await createShift({
+                shift_name: shiftName.trim(),
+                start_time: startTime ? startTime.format('HH:mm:ss') : undefined,
+                end_time: endTime ? endTime.format('HH:mm:ss') : undefined,
                 description: description.trim() || undefined,
                 status: 'Active'
             });
-            onCreate(designationName.trim());
+            onCreate(shiftName.trim());
             onClose();
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Failed to create designation');
+            setError(err.message || 'Failed to create shift');
         } finally {
             setLoading(false);
         }
@@ -84,7 +76,7 @@ export function DesignationCreateDialog({
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
             <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="h6">New Designation</Typography>
+                    <Typography variant="h6">New Shift</Typography>
                 </Box>
                 <Iconify
                     icon="mingcute:close-line"
@@ -98,11 +90,11 @@ export function DesignationCreateDialog({
                     <TextField
                         required
                         fullWidth
-                        label="Designation Name"
-                        placeholder="e.g. Senior Merchandiser, Quality Checker, Tailor"
-                        value={designationName}
+                        label="Shift Name"
+                        placeholder="e.g. General Shift, Morning Shift, Night Shift"
+                        value={shiftName}
                         onChange={(e) => {
-                            setDesignationName(e.target.value);
+                            setShiftName(e.target.value);
                             if (error) setError('');
                         }}
                         error={!!error}
@@ -112,30 +104,35 @@ export function DesignationCreateDialog({
                         sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
                     />
 
-                    <Autocomplete
-                        fullWidth
-                        options={departmentOptions}
-                        value={department}
-                        onChange={(_, newValue) => setDepartment(newValue)}
-                        getOptionLabel={(option) => {
-                            if (typeof option === 'string') return option;
-                            return option.department_name || option.name || '';
-                        }}
-                        isOptionEqualToValue={(option, val) => {
-                            const optVal = typeof option === 'string' ? option : (option.department_name || option.name);
-                            const currentVal = typeof val === 'string' ? val : (val?.department_name || val?.name);
-                            return optVal === currentVal;
-                        }}
-                        renderInput={(params) => (
-                            <TextField
-                                {...params}
-                                label="Department"
-                                placeholder="Select Department (Optional)"
-                                InputLabelProps={{ shrink: true }}
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                            <TimePicker
+                                label="Start Time"
+                                value={startTime}
+                                onChange={(newValue) => setStartTime(newValue)}
+                                disabled={loading}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        InputLabelProps: { shrink: true }
+                                    }
+                                }}
                             />
-                        )}
-                        disabled={loading}
-                    />
+
+                            <TimePicker
+                                label="End Time"
+                                value={endTime}
+                                onChange={(newValue) => setEndTime(newValue)}
+                                disabled={loading}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        InputLabelProps: { shrink: true }
+                                    }
+                                }}
+                            />
+                        </Box>
+                    </LocalizationProvider>
 
                     <TextField
                         fullWidth

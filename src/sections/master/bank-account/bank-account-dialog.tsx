@@ -30,7 +30,7 @@ const ACCOUNT_TYPES = [
 type Props = {
     open: boolean;
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: (data?: any) => void;
     id?: string | null;
 };
 
@@ -113,13 +113,14 @@ export function BankAccountDialog({ open, onClose, onSuccess, id }: Props) {
                 account_type: accountType,
             };
 
+            let res: any = null;
             if (id) {
-                await updateBankAccount(id, data);
+                res = await updateBankAccount(id, data);
             } else {
-                await createBankAccount(data);
+                res = await createBankAccount(data);
             }
 
-            onSuccess();
+            onSuccess(res || data);
             onClose();
         } catch (err: any) {
             console.error(err);

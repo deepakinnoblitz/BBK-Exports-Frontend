@@ -153,10 +153,7 @@ export function EmployeeDetailsView() {
                             </Box>
 
                             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-                                    <Typography variant="h5" sx={{ fontWeight: 800 }}>{employee.employee_name}</Typography>
-                                    {renderStatus(employee.status)}
-                                </Box>
+                                <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>{employee.employee_name}</Typography>
                                 {(() => {
                                     const des = (employee.designation || '').trim();
                                     const dep = (employee.department || '').trim();
@@ -171,6 +168,10 @@ export function EmployeeDetailsView() {
                                 <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.disabled', fontWeight: 700 }}>
                                     ID: {employee.name}
                                 </Typography>
+                            </Box>
+
+                            <Box sx={{ alignSelf: 'center' }}>
+                                {renderStatus(employee.status)}
                             </Box>
                         </Box>
 
@@ -198,13 +199,13 @@ export function EmployeeDetailsView() {
                             <Tab label="Documents" icon={<GrDocumentLocked size={20} />} iconPosition="start" />
                         </Tabs>
 
-                        <Box sx={{ px: 2, pb: 2 }}>
+                        <Box sx={{ px: { xs: 2, md: 3 }, pb: 3, pt: 1 }}>
                             {currentTab === 0 && (
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {/* Contact Information */}
                                     <Box>
                                         <SectionHeader title="Contact Information" icon="solar:phone-calling-bold" />
-                                        <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
+                                        <Box sx={{ display: 'grid', columnGap: 4, rowGap: 3.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
                                             <DetailItem label="Official Email" value={employee.email} icon="solar:letter-bold" />
                                             <DetailItem label="Personal Email" value={employee.personal_email} icon="solar:letter-bold" />
                                             <DetailItem label="Personal Phone" value={employee.phone} icon="solar:phone-bold" />
@@ -219,17 +220,20 @@ export function EmployeeDetailsView() {
                                     {/* Employment Details */}
                                     <Box>
                                         <SectionHeader title="Employment Details" icon="solar:case-bold" />
-                                        <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
+                                        <Box sx={{ display: 'grid', columnGap: 4, rowGap: 3.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
                                             <DetailItem label="Department" value={employee.department} icon="solar:buildings-bold" />
                                             <DetailItem label="Designation" value={employee.designation} icon="solar:medal-star-bold" />
                                             <DetailItem label="Employee Type" value={employee.employee_type} icon="solar:user-id-bold" />
                                             <DetailItem label="Joining Date" value={employee.date_of_joining ? fDate(employee.date_of_joining, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
                                             <DetailItem label="Date of Birth" value={employee.dob ? fDate(employee.dob, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
                                             <DetailItem label="Blood Group" value={employee.blood_group} icon="solar:drop-bold" />
-                                            <DetailItem label="Sex" value={employee.sex} icon="solar:user-bold" />
+                                            <DetailItem label="Gender" value={employee.sex} icon="solar:user-bold" />
                                             <DetailItem label="Marital Status" value={employee.marital_status} icon="solar:heart-bold" />
                                             <DetailItem label="Qualification" value={employee.qualification} icon="solar:diploma-bold" />
                                             <DetailItem label="Aadhar Number" value={employee.aadhar_number} icon="solar:card-bold" />
+                                            <DetailItem label="Line Order" value={employee.line_order} icon="solar:settings-minimalistic-bold" />
+                                            <DetailItem label="Shift" value={employee.shift} icon="solar:clock-circle-bold" />
+                                            <DetailItem label="Bus - Travel Route" value={employee.bus_travel_route} icon="solar:bus-bold" />
                                         </Box>
                                     </Box>
 
@@ -238,7 +242,7 @@ export function EmployeeDetailsView() {
                                     {/* Location Details */}
                                     <Box>
                                         <SectionHeader title="Location Details" icon="solar:earth-bold" />
-                                        <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
+                                        <Box sx={{ display: 'grid', columnGap: 4, rowGap: 3.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
                                             <DetailItem label="Country" value={employee.country} icon="solar:earth-bold" />
                                             <DetailItem label="State" value={employee.state} icon="solar:map-point-bold" />
                                             <DetailItem label="City" value={employee.city} icon="solar:map-point-bold" />
@@ -451,28 +455,27 @@ export function EmployeeDetailsView() {
 
 function SectionHeader({ title, icon, noMargin = false }: { title: string; icon: string, noMargin?: boolean }) {
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: noMargin ? 0 : 2.5 }}>
-            <Iconify icon={icon as any} width={20} sx={{ color: 'primary.main' }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '14px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: noMargin ? 0 : 3 }}>
+            <Iconify icon={icon as any} width={22} sx={{ color: 'primary.main' }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '15.5px', letterSpacing: 0.5 }}>
                 {title}
             </Typography>
         </Box>
     );
 }
 
-function DetailItem({ label, value, icon, color = 'text.primary', labelColor = 'text.disabled' }: { label: string; value?: string | null; icon: string; color?: string; labelColor?: string }) {
+function DetailItem({ label, value, icon, color = 'text.primary', labelColor = 'text.secondary' }: { label: string; value?: string | null; icon: string; color?: string; labelColor?: string }) {
     return (
-        <Box>
-            <Typography variant="caption" sx={{ color: labelColor, fontWeight: 700, textTransform: 'uppercase', mb: 0.5, display: 'block' }}>
+        <Box sx={{ py: 0.5 }}>
+            <Typography variant="caption" sx={{ color: labelColor, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: 0.4, mb: 0.75, display: 'block' }}>
                 {label}
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                <Iconify icon={icon as any} width={16} sx={{ color: 'text.disabled', mt: 0.5 }} />
-                <Typography variant="body2" sx={{ fontWeight: 700, color, whiteSpace: 'pre-line' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                <Iconify icon={icon as any} width={20} sx={{ color: 'text.secondary', flexShrink: 0 }} />
+                <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '0.975rem', color, whiteSpace: 'pre-line' }}>
                     {value || '-'}
                 </Typography>
             </Box>
-
         </Box>
     );
 }
