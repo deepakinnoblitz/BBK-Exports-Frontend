@@ -48,11 +48,13 @@ export const hrNavData = [
     path: '/',
     icon: <IoHomeOutline size={18} />,
   },
+  /*
   {
     title: 'Task Manager',
     path: '/task-manager?view=all',
     icon: <FaTasks size={18} />,
   },
+  */
   {
     title: 'Employee Records',
     path: '/employee',
@@ -68,8 +70,8 @@ export const hrNavData = [
     icon: <RxCalendar size={18} />,
     children: [
       { title: 'Attendance List', path: '/attendance' },
-      { title: 'Daily Log', path: '/daily-log' },
-      { title: 'WFH Attendance', path: '/wfh-attendance' }
+      // { title: 'Daily Log', path: '/daily-log' },
+      // { title: 'WFH Attendance', path: '/wfh-attendance' }
     ],
   },
   {
@@ -81,36 +83,44 @@ export const hrNavData = [
       { title: 'Leave Allocate', path: '/leave-allocations' },
     ],
   },
+  /*
   {
     title: 'Request List',
     path: '/requests',
     icon: <FiList size={18} />,
   },
+  */
+  /*
   {
     title: 'Timesheets',
     path: '/timesheets',
     icon: <LuFileSpreadsheet size={18} />,
   },
+  */
   {
     title: 'Salary Slips',
     path: '/salary-slips',
     icon: <PiMoneyWavy size={18} />,
   },
+  /*
   {
     title: 'Timesheets',
     path: '/timesheets',
     icon: <TbReport size={18} />,
   },
+  */
   {
     title: 'Holidays List',
     path: '/holidays',
     icon: <GoTasklist size={22} />,
   },
+  /*
   {
     title: 'Announcements',
     path: '/announcements',
     icon: <HiOutlineSpeakerphone size={18} />,
   },
+  */
   {
     title: 'Asset Records',
     path: '/asset',
@@ -130,6 +140,7 @@ export const hrNavData = [
       { title: 'Reimbursement Claim List', path: '/reimbursement-claims' },
     ],
   },
+  /*
   {
     title: 'Employee Performance',
     path: '/employee-evaluation',
@@ -140,6 +151,7 @@ export const hrNavData = [
       { title: 'Employee Monthly Award', path: '/employee-monthly-award' },
     ],
   },
+  */
   {
     title: 'Recruitment',
     path: '/job-openings',
@@ -147,7 +159,7 @@ export const hrNavData = [
     children: [
       { title: 'Job Opening List', path: '/job-openings' },
       { title: 'Job Applicant List', path: '/job-applicants' },
-      { title: 'Interview List', path: '/interviews' },
+      // { title: 'Interview List', path: '/interviews' },
       { title: 'Employee Referral List', path: '/employee-referrals?view=hr' },
     ],
   },
@@ -166,9 +178,9 @@ export const hrNavData = [
     icon: <CgNotes size={20} />,
     children: [
       { title: 'Attendance Report', path: '/reports/attendance' },
-      { title: 'Daily Log Report', path: '/reports/daily-log' },
-      { title: 'Task Report', path: '/reports/task-manager' },
-      { title: 'Timesheet Report', path: '/timesheet-reports' },
+      // { title: 'Daily Log Report', path: '/reports/daily-log' },
+      // { title: 'Task Report', path: '/reports/task-manager' },
+      // { title: 'Timesheet Report', path: '/timesheet-reports' },
       { title: 'Leave Allocation Report', path: '/reports/leave-allocation' },
       { title: 'Employee Overall Report', path: '/employee-overall-report' },
       { title: 'Salary Slip Report', path: '/reports/salary-slip' },
@@ -193,11 +205,13 @@ export const hrNavData = [
       { title: 'HR Document Category', path: '/hr-document-category' },
     ],
   },
+  /*
   {
     title: 'Reminders',
     path: '/reminders',
     icon: <BsFillBellFill size={18} />,
   }
+  */
 ];
 
 
@@ -213,41 +227,51 @@ export const employeeNavData = [
     path: '/my-profile',
     icon: <LuUsersRound size={18} />,
   },
+  /*
   {
     title: 'My Tasks',
     path: '/task-manager?view=mine',
     icon: <GoTasklist size={22} />,
   },
+  */
   {
     title: 'My Attendance',
     path: '/attendance',
     icon: <RiCalendarScheduleLine size={18} />,
   },
+  /*
   {
     title: 'My Daily Log',
     path: '/daily-log',
     icon: <RxCalendar size={18} />
   },
+  */
   {
     title: 'My Leave Application',
     path: '/leaves',
     icon: <RiAppsLine size={18} />,
   },
+  /*
   {
     title: 'My Request List',
     path: '/requests',
     icon: <FiList size={18} />,
   },
+  */
+  /*
   {
     title: 'My Timesheet',
     path: '/timesheets',
     icon: <LuFileSpreadsheet size={18} />,
   },
+  */
+  /*
   {
     title: 'My WFH Attendance',
     path: '/wfh-attendance',
     icon: <LuCalendarCheck2 size={18} />,
   },
+  */
   {
     title: 'My Salary Slip',
     path: '/salary-slips',
@@ -278,8 +302,8 @@ export const employeeNavData = [
     icon: <CgNotes size={20} />,
     children: [
       { title: 'My Attendance Report', path: '/reports/attendance' },
-      { title: 'My Daily Log Report', path: '/reports/daily-log' },
-      { title: 'My Timesheet Report', path: '/timesheet-reports' },
+      // { title: 'My Daily Log Report', path: '/reports/daily-log' },
+      // { title: 'My Timesheet Report', path: '/timesheet-reports' },
     ],
   },
 ];

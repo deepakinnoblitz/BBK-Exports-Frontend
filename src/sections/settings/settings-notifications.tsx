@@ -24,6 +24,7 @@ export function SettingsNotifications({ data, onChange }: Props) {
       icon: 'solar:calendar-date-bold-duotone',
       color: '#FFAB00',
     },
+    /*
     {
       label: 'WFH Attendance Mail',
       fieldname: 'wfh_notification',
@@ -38,6 +39,7 @@ export function SettingsNotifications({ data, onChange }: Props) {
       icon: 'solar:clipboard-list-bold-duotone',
       color: '#36B37E',
     },
+    */
     {
       label: 'Reimbursement List Mail',
       fieldname: 'reimbursement_notification',
@@ -45,6 +47,7 @@ export function SettingsNotifications({ data, onChange }: Props) {
       icon: 'solar:bill-list-bold-duotone',
       color: '#FF5630',
     },
+    /*
     {
       label: 'Task Manager Mail',
       fieldname: 'task_notification',
@@ -52,6 +55,7 @@ export function SettingsNotifications({ data, onChange }: Props) {
       icon: 'solar:checklist-minimalistic-bold-duotone',
       color: '#08a3cd',
     },
+    */
     {
       label: 'Job Application Mail',
       fieldname: 'job_notification',

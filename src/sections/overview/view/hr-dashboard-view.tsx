@@ -28,7 +28,7 @@ import { HRCalendar } from '../hr-calendar';
 import { HRAnnouncements } from '../hr-announcements';
 import { HRSummaryWidget } from '../hr-summary-widget';
 import { HRDashboardTable } from '../hr-dashboard-table';
-import { DashboardEomCard } from '../dashboard-eom-card';
+// import { DashboardEomCard } from '../dashboard-eom-card';
 import { WeeklyPresentChart } from '../weekly-present-chart';
 import { HRTaskSummaryCards } from '../hr-task-summary-cards';
 import { MissingAttendanceChart } from '../missing-attendance-chart';
@@ -167,9 +167,9 @@ export function HRDashboardView() {
                 Hi, {user?.full_name || 'HR User'}, Welcome back 👋
             </Typography>
 
-            <DashboardEomCard />
+            {/* <DashboardEomCard /> */}
 
-            <Grid container spacing={3} sx={{ mt: 2 }}>
+            <Grid container spacing={3}>
                 {/* Announcements */}
                 <Grid size={{ xs: 12 }}>
                     <HRAnnouncements
@@ -179,11 +179,11 @@ export function HRDashboardView() {
                 </Grid>
 
                 {/* Task Dashboard for CRM/Sales Roles */}
-                {hasCrmOrSalesRole && (
+                {/* {hasCrmOrSalesRole && (
                     <Grid size={{ xs: 12 }}>
                         <HRTaskSummaryCards />
                     </Grid>
-                )}
+                )} */}
 
                 {/* Summary Widgets */}
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -254,11 +254,11 @@ export function HRDashboardView() {
                 </Grid> */}
 
                 {/* Task Dashboard for HR Only Role */}
-                {isHrOnlyWithTaskAccess && (
+                {/* {isHrOnlyWithTaskAccess && (
                     <Grid size={{ xs: 12 }}>
                         <HRTaskSummaryCards />
                     </Grid>
-                )}
+                )} */}
 
 
                 {/* Today's Leaves */}

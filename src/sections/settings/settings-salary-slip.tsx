@@ -44,7 +44,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   }
                 >
                   <MenuItem value="Attendance">Attendance (Standard Records)</MenuItem>
-                  <MenuItem value="Daily Log">Daily Log (Dynamic Sessions)</MenuItem>
+                  {/* <MenuItem value="Daily Log">Daily Log (Dynamic Sessions)</MenuItem> */}
                 </Select>
                 <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <Iconify icon={"solar:info-circle-bold" as any} width={16} />
@@ -79,7 +79,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             </Grid>
           </Grid>
           
-          {data.salary_calculation_source === 'Daily Log' && (
+          {/* {data.salary_calculation_source === 'Daily Log' && (
             <Box sx={{ mt: 4 }}>
               <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Daily Log Thresholds</Typography>
@@ -159,7 +159,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                 </Stack>
               </Box>
             </Box>
-          )}
+          )} */}
         </Box>
 
         <Divider sx={{ borderStyle: 'dashed' }} />
