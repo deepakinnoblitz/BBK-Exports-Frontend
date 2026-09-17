@@ -156,7 +156,7 @@ export function ShiftView() {
 
         <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
           <Scrollbar>
-            <Table size="medium" sx={{ minWidth: 600, borderCollapse: 'collapse' }}>
+            <Table size="medium" sx={{ minWidth: 800, borderCollapse: 'collapse' }}>
               <LeadTableHead
                 order={order}
                 orderBy={orderBy}
@@ -164,11 +164,6 @@ export function ShiftView() {
                 rowCount={total}
                 numSelected={0}
                 onSelectAllRows={() => {}}
-                onSort={(id) => {
-                  const isAsc = orderBy === id && order === 'asc';
-                  setOrder(isAsc ? 'desc' : 'asc');
-                  setOrderBy(id);
-                }}
                 showIndex
                 hideCheckbox
               />

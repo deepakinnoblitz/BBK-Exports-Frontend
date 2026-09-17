@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 import Box from '@mui/material/Box';
 import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
@@ -35,12 +37,19 @@ export function ShiftTableRow({
   const displayName = shift_name || name;
 
   const formatTime = (time?: string) => {
-    if (!time) return '-';
-    // If format is HH:mm:ss, show readable
+    if (!time) return '';
+    const normalizedTime = time.includes(':') && time.split(':')[0].length === 1 ? `0${time}` : time;
+    const parsed = dayjs(`2000-01-01T${normalizedTime}`);
+    if (parsed.isValid()) {
+      return parsed.format('hh:mm A');
+    }
     return time;
   };
 
-  const timingDisplay = start_time || end_time ? `${formatTime(start_time)} - ${formatTime(end_time)}` : '-';
+  const timingDisplay =
+    start_time && end_time
+      ? `${formatTime(start_time)} - ${formatTime(end_time)}`
+      : formatTime(start_time) || formatTime(end_time) || '-';
 
   return (
     <TableRow
