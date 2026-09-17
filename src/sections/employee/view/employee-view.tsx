@@ -755,6 +755,7 @@ export function EmployeeView() {
         let errorTab = 0;
 
         const requiredFields = [
+            { name: 'employee_id', label: 'Employee ID' },
             { name: 'employee_name', label: 'Employee Name' },
             { name: 'email', label: 'Email' },
             { name: 'date_of_joining', label: 'Joining Date' },
@@ -880,7 +881,12 @@ export function EmployeeView() {
 
         } catch (err: any) {
             console.error(err);
-            setServerAlert({ message: err.message || 'Error saving employee', severity: 'error' });
+            const msg = err.message || 'Error saving employee';
+            if (msg.toLowerCase().includes('employee_id') || msg.toLowerCase().includes('employee id') || msg.toLowerCase().includes('duplicate entry')) {
+                setCurrentTab(0);
+                setFormErrors(prev => ({ ...prev, employee_id: 'This Employee ID already exists' }));
+            }
+            setServerAlert({ message: msg, severity: 'error' });
         } finally {
             setCreating(false);
         }
@@ -2383,7 +2389,7 @@ export function EmployeeView() {
                                     <>
                                         <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>Personal Information</Typography>
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
-                                            {renderField('employee_id', 'Employee ID', 'text', [], {}, false)}
+                                            {renderField('employee_id', 'Employee ID', 'text', [], {}, true)}
                                             {renderField('employee_name', 'Employee Name', 'text', [], {}, true)}
                                             {renderField('email', 'Email', 'text', [], {}, true)}
                                             {renderField('personal_email', 'Personal Email')}
