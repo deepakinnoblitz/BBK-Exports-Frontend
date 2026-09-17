@@ -2,18 +2,27 @@ import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
 import { Avatar } from '@mui/material';
+import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
+import TableRow from '@mui/material/TableRow';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
+import TableContainer from '@mui/material/TableContainer';
+import TablePagination from '@mui/material/TablePagination';
 
 import { getEmployee } from 'src/api/employees';
 import { getHRDoc } from 'src/api/hr-management';
+import { fetchBiometricDevices } from 'src/api/biometric';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -31,9 +40,28 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
     const [employeeDetails, setEmployeeDetails] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(false);
+    const [punchPage, setPunchPage] = useState(0);
+    const [punchRowsPerPage, setPunchRowsPerPage] = useState(5);
+    const [devicesMap, setDevicesMap] = useState<Record<string, any>>({});
+
+    useEffect(() => {
+        fetchBiometricDevices({ page: 1, page_size: 100 })
+            .then((res: any) => {
+                const list = res?.data || [];
+                const map: Record<string, any> = {};
+                list.forEach((d: any) => {
+                    if (d.name) map[d.name] = d;
+                    if (d.device_code) map[d.device_code] = d;
+                    if (d.serial_number) map[d.serial_number] = d;
+                });
+                setDevicesMap(map);
+            })
+            .catch(() => {});
+    }, []);
 
     useEffect(() => {
         if (open && attendanceId) {
+            setPunchPage(0);
             setLoading(true);
             setFetching(true);
             getHRDoc('Attendance', attendanceId)
@@ -195,19 +223,174 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                             <Box
                                 sx={{
                                     display: 'grid',
-                                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(4, 1fr)' },
+                                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
                                     gap: 2,
                                     p: 3
                                 }}
                             >
-                                <DetailRow label="In Time" value={attendance.in_time} icon="solar:clock-circle-bold" />
-                                <DetailRow label="Out Time" value={attendance.out_time} icon="solar:clock-circle-bold" />
+                                <DetailRow
+                                    label="In Time"
+                                    value={attendance.in_time ? (dayjs(attendance.in_time.includes(':') && !attendance.in_time.includes('-') ? `2000-01-01 ${attendance.in_time}` : attendance.in_time).isValid() ? dayjs(attendance.in_time.includes(':') && !attendance.in_time.includes('-') ? `2000-01-01 ${attendance.in_time}` : attendance.in_time).format('hh:mm A') : attendance.in_time) : '-'}
+                                    icon={"solar:clock-circle-bold" as any}
+                                />
+                                <DetailRow
+                                    label="Out Time"
+                                    value={attendance.out_time ? (dayjs(attendance.out_time.includes(':') && !attendance.out_time.includes('-') ? `2000-01-01 ${attendance.out_time}` : attendance.out_time).isValid() ? dayjs(attendance.out_time.includes(':') && !attendance.out_time.includes('-') ? `2000-01-01 ${attendance.out_time}` : attendance.out_time).format('hh:mm A') : attendance.out_time) : '-'}
+                                    icon={"solar:clock-circle-bold" as any}
+                                />
+                                <DetailRow label="Working Hours" value={attendance.working_hours_display || '00:00'} icon="solar:stopwatch-bold" />
                                 <DetailRow label="Overtime" value={attendance.overtime_display || '00:00'} icon="solar:stopwatch-bold" />
-                                <DetailRow label="Manual Entry" value={attendance.manual ? 'Yes' : 'No'} icon="solar:pen-new-square-bold" />
+                                <DetailRow label="Attendance Source" value={attendance.attendance_source || (attendance.manual ? 'Manual' : 'Biometric')} icon="solar:user-id-bold" />
+                                <DetailRow label="Manual Override" value={attendance.manual ? 'Yes (Protected)' : 'No'} icon="solar:pen-new-square-bold" />
                             </Box>
 
                             {attendance.leave_type && (
-                                <DetailRow label="Leave Type" value={attendance.leave_type} icon="solar:leaf-bold" />
+                                <Box sx={{ px: 3 }}>
+                                    <DetailRow label="Leave Type" value={attendance.leave_type} icon="solar:leaf-bold" />
+                                </Box>
+                            )}
+
+                            {/* Biometric Punch History */}
+                            {attendance.attendance_punches && attendance.attendance_punches.length > 0 && (
+                                <Box sx={{ px: 1, pb: 2 }}>
+                                    <Card
+                                        sx={{
+                                            borderRadius: 2,
+                                            border: (theme: any) => `1px solid ${alpha(theme.palette.grey[500], 0.2)}`,
+                                            boxShadow: (theme: any) => theme.customShadows?.z4 || '0 8px 16px 0 rgba(0, 0, 0, 0.08)',
+                                            overflow: 'hidden',
+                                        }}
+                                    >
+                                        <Box sx={{ px: 2, py: 2 }}>
+                                            <Stack direction="row" alignItems="center" spacing={1}>
+                                                <Iconify icon={"solar:fingerprint-bold" as any} sx={{ color: 'primary.main', width: 18, height: 18 }} />
+                                                <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '1.115rem' }}>
+                                                    Biometric Punches ({attendance.attendance_punches.length})
+                                                </Typography>
+                                            </Stack>
+                                        </Box>
+
+                                        <TableContainer sx={{ overflow: 'unset' }}>
+                                            <Table size="small">
+                                                <TableHead
+                                                    sx={{
+                                                        bgcolor: (theme) => alpha(theme.palette.grey[500], 0.08),
+                                                        '& th': {
+                                                            color: 'text.secondary',
+                                                            fontWeight: 700,
+                                                            fontSize: '0.825rem',
+                                                            py: 1.5,
+                                                            borderBottom: (theme) => `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+                                                        },
+                                                    }}
+                                                >
+                                                    <TableRow>
+                                                        <TableCell sx={{ minWidth: 160 }}>Punch Time</TableCell>
+                                                        <TableCell align="center" sx={{ width: 100 }}>Direction</TableCell>
+                                                        <TableCell sx={{ minWidth: 150 }}>Terminal / Serial</TableCell>
+                                                        <TableCell align="right" sx={{ width: 110, pr: 2.5 }}>Source</TableCell>
+                                                    </TableRow>
+                                                </TableHead>
+                                                <TableBody>
+                                                    {attendance.attendance_punches
+                                                        .slice(punchPage * punchRowsPerPage, punchPage * punchRowsPerPage + punchRowsPerPage)
+                                                        .map((p: any, idx: number) => {
+                                                            const isIn = p.punch_type === 'IN';
+                                                            return (
+                                                                <TableRow
+                                                                    key={idx}
+                                                                    hover
+                                                                    sx={{
+                                                                        '& td': {
+                                                                            py: 1.25,
+                                                                            borderBottom: (theme) => `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                                                                        },
+                                                                        '&:last-of-type td': {
+                                                                            borderBottom: 'none',
+                                                                        },
+                                                                    }}
+                                                                >
+                                                                    <TableCell>
+                                                                        <Stack direction="row" alignItems="center" spacing={1.25}>
+                                                                            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>
+                                                                                {dayjs(p.punch_time).format('DD-MM-YYYY hh:mm:ss A')}
+                                                                            </Typography>
+                                                                        </Stack>
+                                                                    </TableCell>
+                                                                    <TableCell align="center">
+                                                                        <Label
+                                                                            variant="soft"
+                                                                            color={isIn ? 'success' : 'error'}
+                                                                            sx={{
+                                                                                fontWeight: 700,
+                                                                                minWidth: 56,
+                                                                                height: 24,
+                                                                                fontSize: '0.7125rem',
+                                                                            }}
+                                                                        >
+                                                                            {p.punch_type}
+                                                                        </Label>
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        {(() => {
+                                                                            const deviceObj = (p.device && devicesMap[p.device]) || (p.serial_number && devicesMap[p.serial_number]);
+                                                                            const deviceName = p.device_name || deviceObj?.device_name;
+                                                                            const deviceId = p.device || deviceObj?.device_code || p.serial_number;
+
+                                                                            return (
+                                                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                                                    <Iconify icon={"solar:devices-bold" as any} sx={{ width: 18, height: 18, color: 'text.disabled', flexShrink: 0 }} />
+                                                                                    <Box sx={{ minWidth: 0 }}>
+                                                                                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.825rem', color: 'text.primary', lineHeight: 1.25 }}>
+                                                                                            {deviceName || deviceId || '—'}
+                                                                                        </Typography>
+                                                                                        {deviceId && deviceName && deviceName !== deviceId && (
+                                                                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7125rem', fontWeight: 500, display: 'block', lineHeight: 1.2 }}>
+                                                                                                {deviceId}
+                                                                                            </Typography>
+                                                                                        )}
+                                                                                    </Box>
+                                                                                </Stack>
+                                                                            );
+                                                                        })()}
+                                                                    </TableCell>
+                                                                    <TableCell align="right" sx={{ pr: 2.5 }}>
+                                                                        <Label
+                                                                            variant="soft"
+                                                                            color="info"
+                                                                            sx={{
+                                                                                fontWeight: 700,
+                                                                                height: 24,
+                                                                                fontSize: '0.65rem',
+                                                                                letterSpacing: 0.5,
+                                                                                textTransform: 'uppercase',
+                                                                            }}
+                                                                        >
+                                                                            {p.source || 'Biometric'}
+                                                                        </Label>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            );
+                                                        })}
+                                                </TableBody>
+                                            </Table>
+                                        </TableContainer>
+
+                                        <TablePagination
+                                            rowsPerPageOptions={[5, 10, 25]}
+                                            component="div"
+                                            count={attendance.attendance_punches.length}
+                                            rowsPerPage={punchRowsPerPage}
+                                            page={punchPage}
+                                            onPageChange={(e, newPage) => setPunchPage(newPage)}
+                                            onRowsPerPageChange={(e) => {
+                                                setPunchRowsPerPage(parseInt(e.target.value, 10));
+                                                setPunchPage(0);
+                                            }}
+                                            sx={{ borderTop: (theme) => `1px solid ${alpha(theme.palette.divider, 0.6)}` }}
+                                        />
+                                    </Card>
+                                </Box>
                             )}
                         </Stack>
                     </Stack>

@@ -26,6 +26,8 @@ type Props = {
         inTime?: string;
         out_time?: string;
         working_hours_display?: string;
+        attendance_source?: string;
+        manual?: number | boolean;
         modified: string;
     };
     selected: boolean;
@@ -134,14 +136,34 @@ export function AttendanceTableRow({
                 <Label color={getStatusColor(row.status)}>{row.status}</Label>
             </TableCell>
 
+            <TableCell>
+                {row.manual ? (
+                    <Label variant="soft" color="warning">
+                        Manual
+                    </Label>
+                ) : row.attendance_source === 'Biometric' ? (
+                    <Label variant="soft" color="info">
+                        Biometric
+                    </Label>
+                ) : row.attendance_source ? (
+                    <Label variant="soft" color="default">
+                        {row.attendance_source}
+                    </Label>
+                ) : (
+                    <Label variant="soft" color="default">
+                        Manual
+                    </Label>
+                )}
+            </TableCell>
+
             <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                 <Typography variant="body2" noWrap>
-                    {row.inTime || '-'}
+                    {row.inTime ? (dayjs(row.inTime.includes(':') && !row.inTime.includes('-') ? `2000-01-01 ${row.inTime}` : row.inTime).isValid() ? dayjs(row.inTime.includes(':') && !row.inTime.includes('-') ? `2000-01-01 ${row.inTime}` : row.inTime).format('hh:mm A') : row.inTime) : '-'}
                 </Typography>
             </TableCell>
             <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                 <Typography variant="body2" noWrap>
-                    {row.out_time || '-'}
+                    {row.out_time ? (dayjs(row.out_time.includes(':') && !row.out_time.includes('-') ? `2000-01-01 ${row.out_time}` : row.out_time).isValid() ? dayjs(row.out_time.includes(':') && !row.out_time.includes('-') ? `2000-01-01 ${row.out_time}` : row.out_time).format('hh:mm A') : row.out_time) : '-'}
                 </Typography>
             </TableCell>
             <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>

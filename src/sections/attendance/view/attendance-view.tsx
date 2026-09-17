@@ -5,10 +5,8 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
-import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Popover from '@mui/material/Popover';
 import Snackbar from '@mui/material/Snackbar';
 import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
@@ -26,7 +24,7 @@ import TablePagination from '@mui/material/TablePagination';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { IconButton, CircularProgress, MenuItem } from '@mui/material';
+import { MenuItem, IconButton, CircularProgress } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useAttendance } from 'src/hooks/useAttendance';
@@ -617,7 +615,8 @@ export function AttendanceView() {
                                 headLabel={[
                                     { id: 'employee_name', label: 'Employee', minWidth: { xs: 140, md: 180 }, sx: { display: { xs: 'none', md: 'table-cell' } } },
                                     { id: 'attendance_date', label: 'Date', minWidth: { xs: 100, md: 120 } },
-                                    { id: 'status', label: 'Status', minWidth: { xs: 80, md: 100 } },
+                                    { id: 'status', label: 'Status', minWidth: { xs: 80, md: 90 } },
+                                    { id: 'attendance_source', label: 'Source', minWidth: { xs: 80, md: 100 } },
                                     { id: 'in_time', label: 'In Time', minWidth: 120, sx: { display: { xs: 'none', md: 'table-cell' } } },
                                     { id: 'out_time', label: 'Out Time', minWidth: 120, sx: { display: { xs: 'none', md: 'table-cell' } } },
                                     { id: 'working_hours_display', label: 'Working Hours', minWidth: 120, sx: { display: { xs: 'none', md: 'table-cell' } } },
@@ -628,7 +627,7 @@ export function AttendanceView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#08a3cd' }} />
                                         </TableCell>
                                     </TableRow>
@@ -648,6 +647,8 @@ export function AttendanceView() {
                                                     inTime: row.in_time,
                                                     out_time: row.out_time,
                                                     working_hours_display: row.working_hours_display,
+                                                    attendance_source: row.attendance_source,
+                                                    manual: row.manual,
                                                     modified: row.modified,
                                                 }}
                                                 selected={selected.includes(row.name)}
@@ -664,7 +665,7 @@ export function AttendanceView() {
 
                                         {empty && (
                                             <TableRow>
-                                                <TableCell colSpan={8}>
+                                                <TableCell colSpan={9}>
                                                     <EmptyContent
                                                         title="No attendance records"
                                                         description="You haven't marked any attendance yet."
