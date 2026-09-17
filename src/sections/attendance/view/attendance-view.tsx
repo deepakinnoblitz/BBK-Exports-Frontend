@@ -31,7 +31,7 @@ import { useAttendance } from 'src/hooks/useAttendance';
 
 import { getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getHRPermissions } from 'src/api/hr-management';
+import { getHRDoc, getHRPermissions } from 'src/api/hr-management';
 import { fetchAttendance, createAttendance, updateAttendance, deleteAttendance } from 'src/api/attendance';
 
 import { Iconify } from 'src/components/iconify';
@@ -44,6 +44,8 @@ import { useAuth } from 'src/auth/auth-context';
 import { TableNoData } from '../../lead/table-no-data';
 import { TableEmptyRows } from '../../lead/table-empty-rows';
 import { AttendanceTableRow } from '../attendance-table-row';
+import { AttendanceSyncDialog } from '../attendance-sync-dialog';
+import { BiometricPunchesTable } from '../biometric-punches-table';
 import { AttendanceImportDialog } from '../attendance-import-dialog';
 import { LeadTableHead as AttendanceTableHead } from '../../lead/lead-table-head';
 import { AttendanceTableFiltersDrawer } from '../attendance-table-filters-drawer';
@@ -68,6 +70,7 @@ export function AttendanceView() {
 
     const [openCreate, setOpenCreate] = useState(false);
     const [openImport, setOpenImport] = useState(false);
+    const [openSync, setOpenSync] = useState(false);
     const [creating, setCreating] = useState(false);
     const [currentAttendanceId, setCurrentAttendanceId] = useState<string | null>(null);
     const [formData, setFormData] = useState<Record<string, any>>({
@@ -75,6 +78,7 @@ export function AttendanceView() {
         attendance_date: dayjs().format('YYYY-MM-DD'),
     });
     const [touched, setTouched] = useState(false);
+    const [loadingDoc, setLoadingDoc] = useState(false);
 
     const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
 
@@ -147,6 +151,7 @@ export function AttendanceView() {
         setOpenCreate(false);
         setCurrentAttendanceId(null);
         setTouched(false);
+        setLoadingDoc(false);
     };
 
     const handleOpenImport = () => {
@@ -296,14 +301,77 @@ export function AttendanceView() {
         }
     };
 
+    const handlePunchesChange = (updatedPunches: any[]) => {
+        // Sort punches chronologically
+        const sorted = [...updatedPunches].sort((a, b) => dayjs(a.punch_time).valueOf() - dayjs(b.punch_time).valueOf());
+
+        let inTimeStr = formData.in_time;
+        let outTimeStr = formData.out_time;
+
+        if (sorted.length > 0) {
+            inTimeStr = dayjs(sorted[0].punch_time).format('HH:mm:ss');
+            if (sorted.length > 1) {
+                outTimeStr = dayjs(sorted[sorted.length - 1].punch_time).format('HH:mm:ss');
+            }
+        }
+
+        // Recalculate working hours and overtime
+        let workingHours = '00.00';
+        let overtime = '00.00';
+        if (inTimeStr && outTimeStr) {
+            const start = dayjs(`2000-01-01 ${inTimeStr}`);
+            const end = dayjs(`2000-01-01 ${outTimeStr}`);
+            if (end.isAfter(start)) {
+                const diffMs = end.diff(start);
+                const diffHrs = diffMs / (1000 * 60 * 60);
+                const h = Math.floor(diffHrs);
+                const m = Math.round((diffHrs - h) * 60);
+                workingHours = `${h.toString().padStart(2, '0')}.${m.toString().padStart(2, '0')}`;
+                if (diffHrs > 9) {
+                    const otDiff = diffHrs - 9;
+                    const otH = Math.floor(otDiff);
+                    const otM = Math.round((otDiff - otH) * 60);
+                    overtime = `${otH.toString().padStart(2, '0')}.${otM.toString().padStart(2, '0')}`;
+                }
+            }
+        }
+
+        setFormData((prev: any) => ({
+            ...prev,
+            attendance_punches: sorted,
+            manual: 1,
+            in_time: inTimeStr,
+            out_time: outTimeStr,
+            working_hours_display: workingHours,
+            overtime_display: overtime,
+            ...(sorted.length > 0 && prev.status === 'Absent' ? { status: 'Present' } : {}),
+        }));
+    };
+
     const handleEditRow = (id: string) => {
         setCurrentAttendanceId(id);
         const fullRow = data.find((item: any) => item.name === id);
         if (fullRow) {
-            setFormData({ ...fullRow });
+            setFormData({ ...fullRow, attendance_punches: [] });
         }
         setTouched(false);
+        setLoadingDoc(true);
         setOpenCreate(true);
+
+        getHRDoc('Attendance', id)
+            .then((doc) => {
+                if (doc) {
+                    setFormData((prev: any) => ({
+                        ...prev,
+                        ...doc,
+                        attendance_punches: doc.attendance_punches || [],
+                    }));
+                }
+            })
+            .catch(console.error)
+            .finally(() => {
+                setLoadingDoc(false);
+            });
     };
 
     const handleOpenDetails = (id: string) => {
@@ -547,6 +615,22 @@ export function AttendanceView() {
                 <Box sx={{ display: 'flex', gap: 1 }}>
                     {isHR && permissions.write && (
                         <>
+                            <Button
+                                variant="contained"
+                                startIcon={<Iconify icon={"solar:restart-bold" as any} />}
+                                onClick={() => setOpenSync(true)}
+                                sx={{
+                                    borderRadius: 1.5,
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    bgcolor: '#36b37e',
+                                    color: 'common.white',
+                                    '&:hover': { bgcolor: '#2b9065' }
+                                }}
+                            >
+                                Sync Attendance
+                            </Button>
+
                             {canImportAttendace &&(
                                 <Button
                                     variant="outlined"
@@ -700,7 +784,13 @@ export function AttendanceView() {
             </Card>
 
             {/* CREATE/EDIT DIALOG */}
-            <Dialog open={openCreate} onClose={handleCloseCreate} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 2, boxShadow: (themeVar) => themeVar.customShadows.z24 } }}>
+            <Dialog
+                open={openCreate}
+                onClose={handleCloseCreate}
+                fullWidth
+                maxWidth={currentAttendanceId ? 'md' : 'sm'}
+                PaperProps={{ sx: { borderRadius: 2, boxShadow: (themeVar) => themeVar.customShadows.z24 } }}
+            >
                 <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     {currentAttendanceId ? 'Edit Attendance' : 'Mark Attendance'}
                     <IconButton onClick={handleCloseCreate} sx={{ color: (theme) => theme.palette.grey[500] }}>
@@ -768,6 +858,23 @@ export function AttendanceView() {
                             </Box>
 
                             {renderField('manual', 'Manual', 'checkbox')}
+
+                            {currentAttendanceId && (
+                                <Box sx={{ mt: 1 }}>
+                                    {loadingDoc ? (
+                                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                                            <CircularProgress size={32} sx={{ color: '#08a3cd' }} />
+                                        </Box>
+                                    ) : (
+                                        <BiometricPunchesTable
+                                            editable
+                                            punches={formData.attendance_punches || []}
+                                            attendanceDate={formData.attendance_date}
+                                            onPunchesChange={handlePunchesChange}
+                                        />
+                                    )}
+                                </Box>
+                            )}
                         </Box>
                     </LocalizationProvider>
                 </DialogContent>
@@ -827,6 +934,12 @@ export function AttendanceView() {
                 open={openImport}
                 onClose={handleCloseImport}
                 onRefresh={refetch}
+            />
+
+            <AttendanceSyncDialog
+                open={openSync}
+                onClose={() => setOpenSync(false)}
+                onSuccess={refetch}
             />
         </DashboardContent>
     );

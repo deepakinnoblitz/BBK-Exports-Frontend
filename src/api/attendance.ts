@@ -47,6 +47,38 @@ export async function createAttendance(data: Partial<Attendance>) {
 export async function updateAttendance(name: string, data: Partial<Attendance>) {
     const headers = await getAuthHeaders();
 
+    if ('attendance_punches' in data) {
+        const punches = (data as any).attendance_punches?.map((p: any, idx: number) => ({
+            doctype: 'Attendance Punch',
+            ...(p.name ? { name: p.name } : {}),
+            parent: name,
+            parentfield: 'attendance_punches',
+            parenttype: 'Attendance',
+            idx: idx + 1,
+            punch_time: p.punch_time,
+            punch_type: p.punch_type || 'IN',
+            device: p.device || null,
+            serial_number: p.serial_number || null,
+            source: p.source || 'Manual',
+        })) || [];
+
+        const payloadDoc = {
+            ...data,
+            doctype: 'Attendance',
+            name,
+            attendance_punches: punches,
+        };
+
+        const res = await frappeRequest('/api/method/frappe.client.save', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ doc: payloadDoc }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(handleFrappeError(json, 'Failed to update attendance record'));
+        return json.message;
+    }
+
     const res = await frappeRequest("/api/method/frappe.client.set_value", {
         method: "POST",
         headers,
