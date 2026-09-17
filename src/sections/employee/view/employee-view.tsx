@@ -68,6 +68,7 @@ import { DepartmentCreateDialog } from '../department-create-dialog';
 import { BloodGroupCreateDialog } from '../blood-group-create-dialog';
 import { DesignationCreateDialog } from '../designation-create-dialog';
 import EmployeeTableFiltersDrawer from '../employee-table-filters-drawer';
+import { EmployeeTypeCreateDialog } from '../employee-type-create-dialog';
 import { QualificationCreateDialog } from '../qualification-create-dialog';
 import { BankAccountDialog } from '../../master/bank-account/bank-account-dialog';
 // ----------------------------------------------------------------------
@@ -213,6 +214,10 @@ export function EmployeeView() {
     // Bus Route Create Dialog State
     const [openBusRouteCreate, setOpenBusRouteCreate] = useState(false);
     const [busRouteSearch, setBusRouteSearch] = useState('');
+
+    // Employee Type Create Dialog State
+    const [openEmployeeTypeCreate, setOpenEmployeeTypeCreate] = useState(false);
+    const [employeeTypeSearch, setEmployeeTypeSearch] = useState('');
 
     // Bank Account Create Dialog State
     const [openBankAccountCreate, setOpenBankAccountCreate] = useState(false);
@@ -376,6 +381,13 @@ export function EmployeeView() {
             getDoctypeList('Bus Travel Route', ['name', 'route_name'])
                 .then((options) => {
                     setFieldOptions(prev => ({ ...prev, 'bus_travel_route': options }));
+                })
+                .catch(console.error);
+
+            // Explicitly fetch options for employee_type
+            getDoctypeList('Employee Type', ['name', 'employee_type', 'category_type'])
+                .then((options) => {
+                    setFieldOptions(prev => ({ ...prev, 'employee_type': options }));
                 })
                 .catch(console.error);
         }).catch(console.error);
@@ -1056,7 +1068,7 @@ export function EmployeeView() {
                         >
                             {option.isNew ? (
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
                                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Bank Account</Typography>
                                 </Stack>
                             ) : (
@@ -1203,7 +1215,7 @@ export function EmployeeView() {
                         }}>
                             {option.isNew ? (
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
                                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Department</Typography>
                                 </Stack>
                             ) : (
@@ -1295,7 +1307,7 @@ export function EmployeeView() {
                         }}>
                             {option.isNew ? (
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
                                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Blood Group</Typography>
                                 </Stack>
                             ) : (
@@ -1386,7 +1398,7 @@ export function EmployeeView() {
                         }}>
                             {option.isNew ? (
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
                                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Qualification</Typography>
                                 </Stack>
                             ) : (
@@ -1477,7 +1489,7 @@ export function EmployeeView() {
                         }}>
                             {option.isNew ? (
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
                                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Designation</Typography>
                                 </Stack>
                             ) : (
@@ -1568,7 +1580,7 @@ export function EmployeeView() {
                         }}>
                             {option.isNew ? (
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
                                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Line Order</Typography>
                                 </Stack>
                             ) : (
@@ -1659,7 +1671,7 @@ export function EmployeeView() {
                         }}>
                             {option.isNew ? (
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
                                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Shift</Typography>
                                 </Stack>
                             ) : (
@@ -1750,7 +1762,7 @@ export function EmployeeView() {
                         }}>
                             {option.isNew ? (
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <Iconify icon={"solar:add-circle-bold" as any} width={24} />
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
                                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Bus - Travel Route</Typography>
                                 </Stack>
                             ) : (
@@ -1767,6 +1779,104 @@ export function EmployeeView() {
                     isOptionEqualToValue={(option: any, value: any) => {
                         const optionValue = typeof option === 'string' ? option : (option.route_name || option.name);
                         return optionValue === value || option?.name === value;
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label={label}
+                            placeholder={`Select ${label}`}
+                            required={required}
+                            error={!!formErrors[fieldname]}
+                            helperText={formErrors[fieldname]}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiFormLabel-asterisk': {
+                                    color: 'red',
+                                },
+                                ...extraProps.sx
+                            }}
+                        />
+                    )}
+                    freeSolo
+                    selectOnFocus
+                    clearOnBlur
+                    handleHomeEndKeys
+                />
+            );
+        }
+
+        if (fieldname === 'employee_type') {
+            return (
+                <Autocomplete
+                    fullWidth
+                    options={options}
+                    value={formData[fieldname] || ''}
+                    onChange={(event, newValue: any) => {
+                        if (newValue?.isNew || newValue === 'Create Employee Type' || newValue?.name === 'Create Employee Type' || newValue?.employee_type === 'Create Employee Type') {
+                            setOpenEmployeeTypeCreate(true);
+                            setEmployeeTypeSearch(newValue?.inputValue || '');
+                        } else {
+                            const value = typeof newValue === 'object' ? (newValue.employee_type || newValue.name) : newValue;
+                            handleInputChange(fieldname, value || '');
+                        }
+                    }}
+                    filterOptions={(currentOptions, params) => {
+                        const filtered = filter(currentOptions, params);
+                        const { inputValue } = params;
+                        const hasCreateOption = filtered.some((option: any) =>
+                            (typeof option === 'string' ? option : (option.employee_type || option.name)) === 'Create Employee Type' || option.isNew
+                        );
+                        if (!hasCreateOption) {
+                            filtered.push({
+                                inputValue: inputValue || '',
+                                name: 'Create Employee Type',
+                                employee_type: 'Create Employee Type',
+                                isNew: true,
+                            });
+                        }
+                        return filtered;
+                    }}
+                    renderOption={(props, option: any) => (
+                        <Box component="li" {...props} sx={{
+                            typography: 'body2',
+                            ...(option.isNew && {
+                                color: 'primary.main',
+                                fontWeight: 600,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                mt: 0.5,
+                                py: 3, minHeight: '56px',
+                                '&:hover': {
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                }
+                            })
+                        }}>
+                            {option.isNew ? (
+                                <Stack direction="row" alignItems="center" spacing={1.5}>
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                        Create Employee Type {option.inputValue ? `"${option.inputValue}"` : ''}
+                                    </Typography>
+                                </Stack>
+                            ) : (
+                                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {typeof option === 'string' ? option : (option.employee_type || option.name)}
+                                    </Typography>
+                                    {typeof option === 'object' && option.category_type && option.category_type !== 'General' && (
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', bgcolor: 'action.hover', px: 0.75, py: 0.25, borderRadius: 0.5 }}>
+                                            {option.category_type}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            )}
+                        </Box>
+                    )}
+                    getOptionLabel={(option) => (typeof option === 'string' ? option : (option.employee_type || option.name || ''))}
+                    isOptionEqualToValue={(option, value) => {
+                        const optVal = typeof option === 'string' ? option : (option.employee_type || option.name);
+                        const val = typeof value === 'string' ? value : (value?.employee_type || value?.name);
+                        return optVal === val;
                     }}
                     renderInput={(params) => (
                         <TextField
@@ -2414,16 +2524,7 @@ export function EmployeeView() {
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
                                             {renderField('department', 'Department', 'link', fieldOptions['department'] || [])}
                                             {renderField('designation', 'Designation', 'link', fieldOptions['designation'] || [])}
-                                            {renderField('employee_type', 'Employee Type', 'select', [
-                                                'Staff',
-                                                'North Indian Staff',
-                                                'Workers',
-                                                'Drivers',
-                                                'Contractor',
-                                                'House Keeping',
-                                                'Security',
-                                                'STP Employees'
-                                            ])}
+                                            {renderField('employee_type', 'Employee Type', 'link', fieldOptions['employee_type'] || [])}
                                             {renderField('line_order', 'Line Order', 'link', fieldOptions['line_order'] || [])}
                                             {renderField('shift', 'Shift', 'link', fieldOptions['shift'] || [])}
                                             {renderField('bus_travel_route', 'Bus - Travel Route', 'link', fieldOptions['bus_travel_route'] || [])}
@@ -2809,6 +2910,34 @@ export function EmployeeView() {
                         console.error('Failed to re-fetch bus travel route options:', err);
                     }
                     setSnackbar({ open: true, message: 'Bus Travel Route created successfully', severity: 'success' });
+                }}
+            />
+
+            <EmployeeTypeCreateDialog
+                open={openEmployeeTypeCreate}
+                onClose={() => setOpenEmployeeTypeCreate(false)}
+                currentTypeName={employeeTypeSearch}
+                onCreate={async (newType) => {
+                    setFieldOptions(prev => {
+                        const existing = prev['employee_type'] || [];
+                        const exists = existing.some((opt: any) => (typeof opt === 'string' ? opt : (opt.employee_type || opt.name)) === newType);
+                        if (exists) return prev;
+                        return {
+                            ...prev,
+                            employee_type: [...existing, { name: newType, employee_type: newType }]
+                        };
+                    });
+                    handleInputChange('employee_type', newType);
+                    try {
+                        const freshOptions = await getDoctypeList('Employee Type', ['name', 'employee_type', 'category_type']);
+                        setFieldOptions(prev => ({
+                            ...prev,
+                            employee_type: freshOptions
+                        }));
+                    } catch (err) {
+                        console.error('Failed to re-fetch employee type options:', err);
+                    }
+                    setSnackbar({ open: true, message: 'Employee Type created successfully', severity: 'success' });
                 }}
             />
 
