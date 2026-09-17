@@ -1,11 +1,10 @@
 import { PiMoneyWavy } from "react-icons/pi";
 import { useState, useEffect, useCallback } from 'react';
-import { RiKey2Line, RiImageLine, RiGlobalLine, RiDashboardLine, RiNotification3Line, RiLayoutMasonryLine, RiMoneyDollarBoxLine, RiCheckboxCircleLine, RiMailLine } from "react-icons/ri";
+import { RiKey2Line, RiMailLine, RiImageLine, RiGlobalLine, RiFingerprintLine, RiNotification3Line, RiCheckboxCircleLine } from "react-icons/ri";
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -17,17 +16,15 @@ import { useSettingsContext } from 'src/hooks/settings-context';
 
 import { updateHRMSSettings } from 'src/api/settings';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { getBiometricSettings, updateBiometricSettings } from 'src/api/biometric';
 import { getCompanyEmailSettings, updateCompanyEmailSettings, createCompanyEmailSettings } from 'src/api/company-email-settings';
-
-import { Iconify } from 'src/components/iconify';
 
 import { useAuth } from 'src/auth/auth-context';
 
 import { SettingsLogo } from '../settings-logo';
 import { SettingsLiveKit } from '../settings-livekit';
-import { SettingsSidebar } from '../settings-sidebar';
 import { SettingsCurrency } from '../settings-currency';
-import { SettingsDashboard } from '../settings-dashboard';
+import { SettingsBiometric } from '../settings-biometric';
 import { SettingsSalarySlip } from '../settings-salary-slip';
 import { SettingsCompanyEmail } from '../settings-company-email';
 import { SettingsNotifications } from '../settings-notifications';
@@ -42,6 +39,7 @@ const TABS = [
   { value: 'notifications', label: 'Notifications', icon: <RiNotification3Line size={22} /> },
   { value: 'salary', label: 'Salary Slip', icon: <PiMoneyWavy size={22} /> },
   { value: 'email', label: 'Email', icon: <RiMailLine size={22} /> },
+  { value: 'biometric', label: 'Biometric Integration', icon: <RiFingerprintLine size={22} /> },
   { value: 'api', label: 'API', icon: <RiKey2Line size={22} /> },
 ];
 
@@ -63,6 +61,18 @@ export function SettingsView() {
   });
   const [emailSettingsName, setEmailSettingsName] = useState<string | null>(null);
 
+  const [biometricSettings, setBiometricSettings] = useState<any>({
+    enabled: 0,
+    api_base_url: '',
+    api_key: '',
+    auto_sync_enabled: 0,
+    sync_mode: 'Manual Only',
+    sync_interval_minutes: 15,
+    daily_sync_times: '',
+    overlap_minutes: 15,
+    auto_reconciliation_enabled: 0,
+  });
+
   const { user } = useAuth();
   const isAuthorized = (user?.roles || []).some((role: string) =>
     ['HR', 'Administrator', 'System Manager'].includes(role)
@@ -74,20 +84,29 @@ export function SettingsView() {
     }
   }, [settings, formData]);
 
-  useEffect(() => {
-    const fetchEmailSettings = async () => {
-      const data = await getCompanyEmailSettings();
-      if (data) {
-        setEmailSettingsName(data.name);
-        setEmailSettings({
-          hr_email: data.hr_email || '',
-          hr_name: data.hr_name || '',
-          hr_cc_emails: data.hr_cc_emails || '',
-        });
-      }
-    };
-    fetchEmailSettings();
+  const fetchEmailSettings = useCallback(async () => {
+    const data = await getCompanyEmailSettings();
+    if (data) {
+      setEmailSettingsName(data.name);
+      setEmailSettings({
+        hr_email: data.hr_email || '',
+        hr_name: data.hr_name || '',
+        hr_cc_emails: data.hr_cc_emails || '',
+      });
+    }
   }, []);
+
+  const fetchBioSettings = useCallback(async () => {
+    const data = await getBiometricSettings();
+    if (data) {
+      setBiometricSettings(data);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEmailSettings();
+    fetchBioSettings();
+  }, [fetchEmailSettings, fetchBioSettings]);
 
   const handleChangeTab = useCallback((event: React.SyntheticEvent, newValue: string) => {
     setCurrentTab(newValue);
@@ -107,6 +126,9 @@ export function SettingsView() {
           const newDoc = await createCompanyEmailSettings(emailSettings);
           setEmailSettingsName(newDoc.name);
         }
+      } else if (currentTab === 'biometric') {
+        await updateBiometricSettings(biometricSettings);
+        await fetchBioSettings();
       } else {
         await updateHRMSSettings(formData);
       }
@@ -269,6 +291,16 @@ export function SettingsView() {
           <SettingsCompanyEmail
             data={emailSettings}
             onChange={(fieldname: string, value: any) => setEmailSettings((prev: any) => ({ ...prev, [fieldname]: value }))}
+          />
+        )}
+
+        {currentTab === 'biometric' && (
+          <SettingsBiometric
+            data={biometricSettings}
+            onChange={(fieldname: string, value: any) =>
+              setBiometricSettings((prev: any) => ({ ...prev, [fieldname]: value }))
+            }
+            onRefresh={fetchBioSettings}
           />
         )}
       </Box>

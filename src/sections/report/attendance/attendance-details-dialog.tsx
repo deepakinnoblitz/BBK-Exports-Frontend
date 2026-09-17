@@ -18,6 +18,8 @@ import { getHRDoc } from 'src/api/hr-management';
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
+import { BiometricPunchesTable } from '../../attendance/biometric-punches-table';
+
 // ----------------------------------------------------------------------
 
 type Props = {
@@ -195,19 +197,38 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                             <Box
                                 sx={{
                                     display: 'grid',
-                                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(4, 1fr)' },
+                                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
                                     gap: 2,
                                     p: 3
                                 }}
                             >
-                                <DetailRow label="In Time" value={attendance.in_time} icon="solar:clock-circle-bold" />
-                                <DetailRow label="Out Time" value={attendance.out_time} icon="solar:clock-circle-bold" />
+                                <DetailRow
+                                    label="In Time"
+                                    value={attendance.in_time ? (dayjs(attendance.in_time.includes(':') && !attendance.in_time.includes('-') ? `2000-01-01 ${attendance.in_time}` : attendance.in_time).isValid() ? dayjs(attendance.in_time.includes(':') && !attendance.in_time.includes('-') ? `2000-01-01 ${attendance.in_time}` : attendance.in_time).format('hh:mm A') : attendance.in_time) : '-'}
+                                    icon={"solar:clock-circle-bold" as any}
+                                />
+                                <DetailRow
+                                    label="Out Time"
+                                    value={attendance.out_time ? (dayjs(attendance.out_time.includes(':') && !attendance.out_time.includes('-') ? `2000-01-01 ${attendance.out_time}` : attendance.out_time).isValid() ? dayjs(attendance.out_time.includes(':') && !attendance.out_time.includes('-') ? `2000-01-01 ${attendance.out_time}` : attendance.out_time).format('hh:mm A') : attendance.out_time) : '-'}
+                                    icon={"solar:clock-circle-bold" as any}
+                                />
+                                <DetailRow label="Working Hours" value={attendance.working_hours_display || '00:00'} icon="solar:stopwatch-bold" />
                                 <DetailRow label="Overtime" value={attendance.overtime_display || '00:00'} icon="solar:stopwatch-bold" />
-                                <DetailRow label="Manual Entry" value={attendance.manual ? 'Yes' : 'No'} icon="solar:pen-new-square-bold" />
+                                <DetailRow label="Attendance Source" value={attendance.attendance_source || (attendance.manual ? 'Manual' : 'Biometric')} icon="solar:user-id-bold" />
+                                <DetailRow label="Manual Override" value={attendance.manual ? 'Yes (Protected)' : 'No'} icon="solar:pen-new-square-bold" />
                             </Box>
 
                             {attendance.leave_type && (
-                                <DetailRow label="Leave Type" value={attendance.leave_type} icon="solar:leaf-bold" />
+                                <Box sx={{ px: 3 }}>
+                                    <DetailRow label="Leave Type" value={attendance.leave_type} icon="solar:leaf-bold" />
+                                </Box>
+                            )}
+
+                            {/* Biometric Punch History */}
+                            {attendance.attendance_punches && attendance.attendance_punches.length > 0 && (
+                                <Box sx={{ px: 1, pb: 2 }}>
+                                    <BiometricPunchesTable punches={attendance.attendance_punches} />
+                                </Box>
                             )}
                         </Stack>
                     </Stack>

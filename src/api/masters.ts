@@ -2304,6 +2304,26 @@ export async function getBusTravelRoute(name: string) {
     if (!res.ok) throw new Error("Failed to fetch bus travel route details");
     return (await res.json()).message;
 }
+// Employee Type APIs
+export interface EmployeeType {
+    name: string;
+    employee_type: string;
+    category_type?: string;
+    description?: string;
+}
+
+export async function createEmployeeType(data: Partial<EmployeeType>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.insert", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doc: { doctype: "Employee Type", ...data } })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to create employee type"));
+    return json.message;
+}
+
 
 
 
