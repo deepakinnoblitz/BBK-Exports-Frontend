@@ -193,6 +193,7 @@ export const hrNavData = [
     children: [
       { title: 'Department', path: '/department' },
       { title: 'Designation', path: '/designation' },
+      { title: 'Employee Type', path: '/employee-type' },
       // { title: 'Project', path: '/project' },
       // { title: 'Activity Type', path: '/activity-type' },
       { title: 'Line Order', path: '/line-order' },

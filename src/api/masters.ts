@@ -2310,7 +2310,26 @@ export interface EmployeeType {
     employee_type: string;
     category_type?: string;
     description?: string;
+    creation?: string;
+    modified?: string;
 }
+
+export const fetchEmployeeTypes = (params: any) => {
+    const { search, ...restParams } = params;
+
+    const or_filters = search ? [
+        ["Employee Type", "name", "like", `%${search}%`],
+        ["Employee Type", "employee_type", "like", `%${search}%`],
+        ["Employee Type", "category_type", "like", `%${search}%`],
+        ["Employee Type", "description", "like", `%${search}%`],
+    ] : undefined;
+
+    return fetchFrappeList("Employee Type", {
+        ...restParams,
+        search: undefined,
+        or_filters
+    });
+};
 
 export async function createEmployeeType(data: Partial<EmployeeType>) {
     const headers = await getAuthHeaders();
@@ -2323,6 +2342,54 @@ export async function createEmployeeType(data: Partial<EmployeeType>) {
     if (!res.ok) throw new Error(handleFrappeError(json, "Failed to create employee type"));
     return json.message;
 }
+
+export async function updateEmployeeType(name: string, data: Partial<EmployeeType>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.set_value", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Employee Type", name, fieldname: data })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update employee type"));
+    return json.message;
+}
+
+export async function deleteEmployeeType(name: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.delete", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Employee Type", name })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to delete employee type"));
+    return true;
+}
+
+export async function renameEmployeeType(oldName: string, newName: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.rename_doc", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+            doctype: "Employee Type",
+            old_name: oldName,
+            new_name: newName,
+            merge: false
+        })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to rename employee type"));
+    return json.message;
+}
+
+export async function getEmployeeType(name: string) {
+    const res = await frappeRequest(`/api/method/frappe.client.get?doctype=Employee Type&name=${encodeURIComponent(name)}`);
+    if (!res.ok) throw new Error("Failed to fetch employee type details");
+    return (await res.json()).message;
+}
+
 
 
 
