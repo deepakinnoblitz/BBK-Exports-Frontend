@@ -2142,6 +2142,9 @@ export interface Shift {
     start_time?: string;
     end_time?: string;
     status?: string;
+    allow_overtime?: number | boolean;
+    overtime_hours?: number;
+    min_overtime_minutes?: number;
     description?: string;
 }
 

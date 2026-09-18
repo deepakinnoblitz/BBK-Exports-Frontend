@@ -81,6 +81,7 @@ export function AttendanceView() {
     const [loadingDoc, setLoadingDoc] = useState(false);
 
     const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
+    const [existingAttendanceDates, setExistingAttendanceDates] = useState<string[]>([]);
 
     // Filter State
     const [filterStatus, setFilterStatus] = useState('all');
@@ -116,6 +117,10 @@ export function AttendanceView() {
         ['HR Manager', 'HR', 'System Manager', 'Administrator'].includes(role)
     );
 
+    const isSystemManager = user?.roles?.some((role: string) =>
+        ['System Manager', 'Administrator'].includes(role)
+    );
+
     const effectiveEmployee = isHR ? filterEmployee : user?.employee;
 
     const { data, total, loading, refetch } = useAttendance(
@@ -142,7 +147,10 @@ export function AttendanceView() {
         setFormData({
             status: 'Present',
             attendance_date: dayjs().format('YYYY-MM-DD'),
+            attendance_punches: [],
         });
+        setExistingAttendanceDates([]);
+        setCurrentAttendanceId(null);
         setTouched(false);
         setOpenCreate(true);
     };
@@ -162,6 +170,63 @@ export function AttendanceView() {
         setOpenImport(false);
     };
 
+    const calculateHoursAndOvertime = (inTime?: string, outTime?: string) => {
+        if (!inTime || !outTime || inTime === '00:00:00' || outTime === '00:00:00') {
+            return {
+                workingHoursDisplay: '0:00',
+                workingHoursDecimal: 0,
+                officialOvertime: '0:00',
+                unofficialOvertime: '0:00',
+            };
+        }
+
+        const start = dayjs(`2000-01-01 ${inTime}`);
+        let end = dayjs(`2000-01-01 ${outTime}`);
+
+        if (!start.isValid() || !end.isValid()) {
+            return {
+                workingHoursDisplay: '0:00',
+                workingHoursDecimal: 0,
+                officialOvertime: '0:00',
+                unofficialOvertime: '0:00',
+            };
+        }
+
+        // Overnight shift support (matches Frappe Python & JS)
+        if (end.isBefore(start)) {
+            end = end.add(1, 'day');
+        }
+
+        const totalMinutes = end.diff(start, 'minute');
+        if (totalMinutes <= 0) {
+            return {
+                workingHoursDisplay: '0:00',
+                workingHoursDecimal: 0,
+                officialOvertime: '0:00',
+                unofficialOvertime: '0:00',
+            };
+        }
+
+        const regHours = Math.floor(totalMinutes / 60);
+        const regMinutes = totalMinutes % 60;
+        const workingHoursDecimal = parseFloat((totalMinutes / 60).toFixed(2));
+        const workingHoursDisplay = `${regHours}:${regMinutes.toString().padStart(2, '0')}`;
+
+        // Overtime calculation (matches Frappe logic)
+        const overtimeMinutes = Math.max(0, totalMinutes - 9 * 60);
+        const otHours = Math.floor(overtimeMinutes / 60);
+        const otMins = overtimeMinutes % 60;
+        const officialOvertime = `${otHours}:${otMins.toString().padStart(2, '0')}`;
+        const unofficialOvertime = `${otHours}:${otMins.toString().padStart(2, '0')}`;
+
+        return {
+            workingHoursDisplay,
+            workingHoursDecimal,
+            officialOvertime,
+            unofficialOvertime,
+        };
+    };
+
     const handleInputChange = (fieldname: string, value: any) => {
         setFormData((prev: Record<string, any>) => {
             const next = { ...prev, [fieldname]: value };
@@ -172,35 +237,44 @@ export function AttendanceView() {
 
             // Calculate working hours
             if (fieldname === 'in_time' || fieldname === 'out_time') {
-                if (next.in_time && next.out_time) {
-                    const start = dayjs(`2000-01-01 ${next.in_time}`);
-                    const end = dayjs(`2000-01-01 ${next.out_time}`);
-                    if (end.isAfter(start)) {
-                        const diffMs = end.diff(start);
-                        const diffHrs = diffMs / (1000 * 60 * 60);
-
-                        const h = Math.floor(diffHrs);
-                        const m = Math.round((diffHrs - h) * 60);
-                        const formattedTime = `${h.toString().padStart(2, '0')}.${m.toString().padStart(2, '0')}`;
-
-                        next.working_hours_display = formattedTime;
-
-                        if (diffHrs > 9) {
-                            const otDiff = diffHrs - 9;
-                            const otH = Math.floor(otDiff);
-                            const otM = Math.round((otDiff - otH) * 60);
-                            next.overtime_display = `${otH.toString().padStart(2, '0')}.${otM.toString().padStart(2, '0')}`;
-                        } else {
-                            next.overtime_display = '00.00';
-                        }
-                    } else {
-                        next.working_hours_display = '00.00';
-                        next.overtime_display = '00.00';
-                    }
-                }
+                const { workingHoursDisplay, workingHoursDecimal, officialOvertime, unofficialOvertime } =
+                    calculateHoursAndOvertime(next.in_time, next.out_time);
+                next.working_hours_display = workingHoursDisplay;
+                next.working_hours_decimal = workingHoursDecimal;
+                next.official_overtime = officialOvertime;
+                next.unofficial_overtime = unofficialOvertime;
             }
             return next;
         });
+
+        // When employee is selected, fetch their existing attendance dates to disable in DatePicker
+        if (fieldname === 'employee') {
+            if (value) {
+                fetchAttendance({
+                    page: 1,
+                    page_size: 100,
+                    filters: [
+                        ['Attendance', 'employee', '=', value],
+                        ['Attendance', 'docstatus', '!=', 2]
+                    ],
+                    fields: ['attendance_date']
+                }).then((res: any) => {
+                    const dates = (res?.data || []).map((r: any) => r.attendance_date).filter(Boolean);
+                    setExistingAttendanceDates(dates);
+                    // If current attendance_date already exists for this employee, clear it in Add mode
+                    if (!currentAttendanceId && formData.attendance_date && dates.includes(formData.attendance_date)) {
+                        setFormData((prev: any) => ({
+                            ...prev,
+                            attendance_date: '',
+                        }));
+                    }
+                }).catch(() => {
+                    setExistingAttendanceDates([]);
+                });
+            } else {
+                setExistingAttendanceDates([]);
+            }
+        }
     };
 
     const handleCloseSnackbar = () => {
@@ -229,13 +303,6 @@ export function AttendanceView() {
         if (!formData.employee) return 'Employee is required';
         if (!formData.attendance_date) return 'Attendance Date is required';
         if (!formData.status) return 'Status is required';
-
-        // Check future date
-        const selectedDate = dayjs(formData.attendance_date);
-        const today = dayjs().startOf('day');
-        if (selectedDate.isAfter(today)) {
-            return 'Attendance cannot be marked for future dates';
-        }
 
         // Time validation for Present/Half Day
         if (formData.status === 'Present' || formData.status === 'Half Day') {
@@ -283,11 +350,19 @@ export function AttendanceView() {
                 return;
             }
 
+            const sanitizedPunches = (formData.attendance_punches || []).filter(
+                (p: any) => p.punch_time && dayjs(p.punch_time).isValid()
+            );
+            const payload = {
+                ...formData,
+                attendance_punches: sanitizedPunches,
+            };
+
             if (currentAttendanceId) {
-                await updateAttendance(currentAttendanceId, formData as any);
+                await updateAttendance(currentAttendanceId, payload as any);
                 setSnackbar({ open: true, message: 'Attendance updated successfully', severity: 'success' });
             } else {
-                await createAttendance(formData as any);
+                await createAttendance(payload as any);
                 setSnackbar({ open: true, message: 'Attendance marked successfully', severity: 'success' });
             }
 
@@ -302,49 +377,50 @@ export function AttendanceView() {
     };
 
     const handlePunchesChange = (updatedPunches: any[]) => {
-        // Sort punches chronologically
-        const sorted = [...updatedPunches].sort((a, b) => dayjs(a.punch_time).valueOf() - dayjs(b.punch_time).valueOf());
+        // Find valid punches with timestamp
+        const validPunches = updatedPunches.filter((p) => p.punch_time && dayjs(p.punch_time).isValid());
+
+        const extractTime = (val: string) => {
+            if (!val) return null;
+            const parts = String(val).trim().split(' ');
+            let t = parts[parts.length - 1];
+            if (t.length === 5) t += ':00';
+            return t;
+        };
+
+        // Match Frappe Admin logic (attendance.py & attendance.js):
+        // In Time is derived from the first 'IN' punch (or first valid punch)
+        // Out Time is derived from the last 'OUT' punch (or last valid punch if > 1 punches)
+        const inPunches = validPunches.filter((p) => p.punch_type === 'IN');
+        const outPunches = validPunches.filter((p) => p.punch_type === 'OUT');
+
+        const firstIn = inPunches.length > 0 ? inPunches[0] : validPunches[0];
+        const lastOut = outPunches.length > 0 ? outPunches[outPunches.length - 1] : (validPunches.length > 1 ? validPunches[validPunches.length - 1] : null);
 
         let inTimeStr = formData.in_time;
         let outTimeStr = formData.out_time;
 
-        if (sorted.length > 0) {
-            inTimeStr = dayjs(sorted[0].punch_time).format('HH:mm:ss');
-            if (sorted.length > 1) {
-                outTimeStr = dayjs(sorted[sorted.length - 1].punch_time).format('HH:mm:ss');
-            }
+        if (firstIn) {
+            inTimeStr = extractTime(firstIn.punch_time) || inTimeStr;
+        }
+        if (lastOut) {
+            outTimeStr = extractTime(lastOut.punch_time) || outTimeStr;
         }
 
-        // Recalculate working hours and overtime
-        let workingHours = '00.00';
-        let overtime = '00.00';
-        if (inTimeStr && outTimeStr) {
-            const start = dayjs(`2000-01-01 ${inTimeStr}`);
-            const end = dayjs(`2000-01-01 ${outTimeStr}`);
-            if (end.isAfter(start)) {
-                const diffMs = end.diff(start);
-                const diffHrs = diffMs / (1000 * 60 * 60);
-                const h = Math.floor(diffHrs);
-                const m = Math.round((diffHrs - h) * 60);
-                workingHours = `${h.toString().padStart(2, '0')}.${m.toString().padStart(2, '0')}`;
-                if (diffHrs > 9) {
-                    const otDiff = diffHrs - 9;
-                    const otH = Math.floor(otDiff);
-                    const otM = Math.round((otDiff - otH) * 60);
-                    overtime = `${otH.toString().padStart(2, '0')}.${otM.toString().padStart(2, '0')}`;
-                }
-            }
-        }
+        const { workingHoursDisplay, workingHoursDecimal, officialOvertime, unofficialOvertime } =
+            calculateHoursAndOvertime(inTimeStr, outTimeStr);
 
         setFormData((prev: any) => ({
             ...prev,
-            attendance_punches: sorted,
+            attendance_punches: updatedPunches,
             manual: 1,
             in_time: inTimeStr,
             out_time: outTimeStr,
-            working_hours_display: workingHours,
-            overtime_display: overtime,
-            ...(sorted.length > 0 && prev.status === 'Absent' ? { status: 'Present' } : {}),
+            working_hours_display: workingHoursDisplay,
+            working_hours_decimal: workingHoursDecimal,
+            official_overtime: officialOvertime,
+            unofficial_overtime: unofficialOvertime,
+            ...(validPunches.length > 0 && prev.status === 'Absent' ? { status: 'Present' } : {}),
         }));
     };
 
@@ -510,6 +586,13 @@ export function AttendanceView() {
                     value={formData[fieldname] ? dayjs(formData[fieldname]) : null}
                     onChange={(newValue) => handleInputChange(fieldname, newValue?.format('YYYY-MM-DD') || '')}
                     format="DD-MM-YYYY"
+                    shouldDisableDate={(date) => {
+                        if (!date) return false;
+                        if (extraProps?.shouldDisableDate) {
+                            return extraProps.shouldDisableDate(date);
+                        }
+                        return false;
+                    }}
                     slotProps={{
                         textField: {
                             fullWidth: true,
@@ -530,6 +613,9 @@ export function AttendanceView() {
                     label={label}
                     value={formData[fieldname] ? dayjs(`2000-01-01 ${formData[fieldname]}`) : null}
                     onChange={(newValue) => handleInputChange(fieldname, newValue?.format('HH:mm:ss') || '')}
+                    views={['hours', 'minutes', 'seconds']}
+                    format="hh:mm:ss A"
+                    timeSteps={{ hours: 1, minutes: 1, seconds: 1 }}
                     slotProps={{
                         textField: {
                             fullWidth: true,
@@ -631,7 +717,7 @@ export function AttendanceView() {
                                 Sync Attendance
                             </Button>
 
-                            {canImportAttendace &&(
+                            {canImportAttendace && (
                                 <Button
                                     variant="outlined"
                                     startIcon={<Iconify icon="solar:import-bold-duotone" />}
@@ -640,8 +726,8 @@ export function AttendanceView() {
                                     Import
                                 </Button>
                             )}
-                            
-                            {canCreateAttendace &&(
+
+                            {canCreateAttendace && (
                                 <Button
                                     variant="contained"
                                     startIcon={<Iconify icon="mingcute:add-line" />}
@@ -704,6 +790,8 @@ export function AttendanceView() {
                                     { id: 'in_time', label: 'In Time', minWidth: 120, sx: { display: { xs: 'none', md: 'table-cell' } } },
                                     { id: 'out_time', label: 'Out Time', minWidth: 120, sx: { display: { xs: 'none', md: 'table-cell' } } },
                                     { id: 'working_hours_display', label: 'Working Hours', minWidth: 120, sx: { display: { xs: 'none', md: 'table-cell' } } },
+                                    { id: 'official_overtime', label: 'Overtime', minWidth: 110, sx: { display: { xs: 'none', md: 'table-cell' } } },
+                                    ...(isSystemManager ? [{ id: 'unofficial_overtime', label: 'Extra Overtime', minWidth: 120, sx: { display: { xs: 'none', md: 'table-cell' } } }] : []),
                                     { id: '', label: '', align: 'right' },
                                 ]}
                             />
@@ -711,7 +799,7 @@ export function AttendanceView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={isSystemManager ? 11 : 10} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#08a3cd' }} />
                                         </TableCell>
                                     </TableRow>
@@ -731,10 +819,13 @@ export function AttendanceView() {
                                                     inTime: row.in_time,
                                                     out_time: row.out_time,
                                                     working_hours_display: row.working_hours_display,
+                                                    official_overtime: row.official_overtime,
+                                                    unofficial_overtime: row.unofficial_overtime,
                                                     attendance_source: row.attendance_source,
                                                     manual: row.manual,
                                                     modified: row.modified,
                                                 }}
+                                                canViewUnofficial={isSystemManager}
                                                 selected={selected.includes(row.name)}
                                                 onSelectRow={() => handleSelectRow(row.name)}
                                                 onView={() => handleOpenDetails(row.name)}
@@ -788,7 +879,7 @@ export function AttendanceView() {
                 open={openCreate}
                 onClose={handleCloseCreate}
                 fullWidth
-                maxWidth={currentAttendanceId ? 'md' : 'sm'}
+                maxWidth={currentAttendanceId ? 'md' : 'md'}
                 PaperProps={{ sx: { borderRadius: 2, boxShadow: (themeVar) => themeVar.customShadows.z24 } }}
             >
                 <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -844,7 +935,15 @@ export function AttendanceView() {
                                     </li>
                                 )}
                             />
-                            {renderField('attendance_date', 'Attendance Date', 'date', [], {}, true)}
+                            {renderField('attendance_date', 'Attendance Date', 'date', [], {
+                                shouldDisableDate: (day: any) => {
+                                    const dStr = day.format('YYYY-MM-DD');
+                                    if (!currentAttendanceId && existingAttendanceDates.includes(dStr)) {
+                                        return true;
+                                    }
+                                    return false;
+                                }
+                            }, true)}
                             {renderField('status', 'Status', 'select', ['Present', 'Absent', 'Half Day', 'On Leave', 'Holiday', 'Missing'], { hidden: false })}
 
                             <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={2}>
@@ -852,34 +951,33 @@ export function AttendanceView() {
                                 {renderField('out_time', 'Out Time', 'time')}
                             </Box>
 
-                            <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={2}>
+                            <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: isSystemManager ? '1fr 1fr 1fr' : '1fr 1fr' }} gap={2}>
                                 {renderField('working_hours_display', 'Working Hours', 'text', [], { InputProps: { readOnly: true } })}
-                                {renderField('overtime_display', 'Overtime Hours', 'text', [], { InputProps: { readOnly: true } })}
+                                {renderField('official_overtime', 'Overtime', 'text', [], { InputProps: { readOnly: true } })}
+                                {isSystemManager && renderField('unofficial_overtime', 'Extra Overtime', 'text', [], { InputProps: { readOnly: true } })}
                             </Box>
 
                             {renderField('manual', 'Manual', 'checkbox')}
 
-                            {currentAttendanceId && (
-                                <Box sx={{ mt: 1 }}>
-                                    {loadingDoc ? (
-                                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                                            <CircularProgress size={32} sx={{ color: '#08a3cd' }} />
-                                        </Box>
-                                    ) : (
-                                        <BiometricPunchesTable
-                                            editable
-                                            punches={formData.attendance_punches || []}
-                                            attendanceDate={formData.attendance_date}
-                                            onPunchesChange={handlePunchesChange}
-                                        />
-                                    )}
-                                </Box>
-                            )}
+                            <Box sx={{ mt: 1 }}>
+                                {loadingDoc ? (
+                                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                                        <CircularProgress size={32} sx={{ color: '#08a3cd' }} />
+                                    </Box>
+                                ) : (
+                                    <BiometricPunchesTable
+                                        editable
+                                        punches={formData.attendance_punches || []}
+                                        attendanceDate={formData.attendance_date}
+                                        onPunchesChange={handlePunchesChange}
+                                    />
+                                )}
+                            </Box>
                         </Box>
                     </LocalizationProvider>
                 </DialogContent>
 
-                <DialogActions sx={{ p: 2}}>
+                <DialogActions sx={{ p: 2 }}>
                     <Button variant="contained" onClick={handleCreate} disabled={creating} sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}>
                         {creating ? 'Saving...' : (currentAttendanceId ? 'Update Record' : 'Save Record')}
                     </Button>

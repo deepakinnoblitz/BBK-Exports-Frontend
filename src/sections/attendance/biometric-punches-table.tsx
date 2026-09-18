@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Menu from '@mui/material/Menu';
 import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Select from '@mui/material/Select';
+import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
@@ -56,6 +58,24 @@ export function BiometricPunchesTable({
   const [punchRowsPerPage, setPunchRowsPerPage] = useState(5);
   const [devicesList, setDevicesList] = useState<any[]>([]);
   const [devicesMap, setDevicesMap] = useState<Record<string, any>>({});
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; index: number } | null>(null);
+
+  const handleReorderPunches = (fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= punches.length || toIdx >= punches.length) return;
+    const updated = [...punches];
+    const [movedItem] = updated.splice(fromIdx, 1);
+    updated.splice(toIdx, 0, movedItem);
+    onPunchesChange?.(updated);
+  };
+
+  const handleMoveRow = (toIndex: number) => {
+    if (menuAnchor) {
+      handleReorderPunches(menuAnchor.index, toIndex);
+      setMenuAnchor(null);
+    }
+  };
 
   useEffect(() => {
     fetchBiometricDevices({ page: 1, page_size: 100 })
@@ -70,23 +90,16 @@ export function BiometricPunchesTable({
         });
         setDevicesMap(map);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleAddPunch = () => {
     const lastPunch = punches[punches.length - 1];
     const nextType = lastPunch?.punch_type === 'IN' ? 'OUT' : 'IN';
-    const now = dayjs();
-    const baseDate = attendanceDate ? dayjs(attendanceDate) : now;
-    const punchTime = baseDate
-      .hour(now.hour())
-      .minute(now.minute())
-      .second(0)
-      .format('YYYY-MM-DD HH:mm:ss');
 
     const newPunch: PunchRecord = {
       doctype: 'Attendance Punch',
-      punch_time: punchTime,
+      punch_time: '',
       punch_type: nextType,
       source: 'Manual',
       device: '',
@@ -104,10 +117,17 @@ export function BiometricPunchesTable({
   };
 
   const handleTimeChange = (index: number, newTime: any) => {
-    if (!newTime || !newTime.isValid()) return;
     const updated = [...punches];
-    const current = dayjs(updated[index].punch_time);
-    const base = current.isValid() ? current : (attendanceDate ? dayjs(attendanceDate) : dayjs());
+    if (!newTime || !newTime.isValid()) {
+      updated[index] = {
+        ...updated[index],
+        punch_time: '',
+      };
+      onPunchesChange?.(updated);
+      return;
+    }
+    const current = updated[index].punch_time ? dayjs(updated[index].punch_time) : null;
+    const base = current && current.isValid() ? current : (attendanceDate ? dayjs(attendanceDate) : dayjs());
     const updatedDate = base
       .hour(newTime.hour())
       .minute(newTime.minute())
@@ -196,17 +216,6 @@ export function BiometricPunchesTable({
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
             No biometric punches recorded for this attendance.
           </Typography>
-          {editable && (
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<Iconify icon={"mingcute:add-line" as any} />}
-              onClick={handleAddPunch}
-              sx={{ borderRadius: 1, textTransform: 'none' }}
-            >
-              Add Punch
-            </Button>
-          )}
         </Box>
       ) : (
         <>
@@ -225,10 +234,11 @@ export function BiometricPunchesTable({
                 }}
               >
                 <TableRow>
-                  <TableCell sx={{ minWidth: editable ? 220 : 160 }}>Punch Time</TableCell>
-                  <TableCell align="center" sx={{ width: editable ? 120 : 100 }}>Direction</TableCell>
+                  {editable && <TableCell align="center" sx={{ width: 44, px: 0.5 }} />}
+                  <TableCell sx={{ minWidth: editable ? 250 : 160 }}>Punch Time</TableCell>
+                  <TableCell align="center" sx={{ width: editable ? 110 : 100 }}>Direction</TableCell>
                   <TableCell sx={{ minWidth: editable ? 180 : 150 }}>Terminal / Device</TableCell>
-                  <TableCell align={editable ? 'center' : 'right'} sx={{ width: 100 }}>Source</TableCell>
+                  <TableCell align="center" sx={{ width: 100 }}>Source</TableCell>
                   {editable && <TableCell align="right" sx={{ width: 60, pr: 2 }}>Action</TableCell>}
                 </TableRow>
               </TableHead>
@@ -246,32 +256,111 @@ export function BiometricPunchesTable({
                       <TableRow
                         key={actualIdx}
                         hover
+                        onDragOver={(e) => {
+                          if (!editable) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          if (dragOverIdx !== actualIdx) {
+                            setDragOverIdx(actualIdx);
+                          }
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverIdx === actualIdx) setDragOverIdx(null);
+                        }}
+                        onDrop={(e) => {
+                          if (!editable) return;
+                          e.preventDefault();
+                          const fromIdx = Number(e.dataTransfer.getData('text/plain'));
+                          setDraggedIdx(null);
+                          setDragOverIdx(null);
+                          if (!isNaN(fromIdx) && fromIdx !== actualIdx) {
+                            handleReorderPunches(fromIdx, actualIdx);
+                          }
+                        }}
                         sx={{
-                          '& td': {
-                            py: editable ? 1 : 1.25,
+                          opacity: draggedIdx === actualIdx ? 0.35 : 1,
+                          bgcolor: dragOverIdx === actualIdx ? (theme) => alpha(theme.palette.primary.main, 0.08) : undefined,
+                          borderTop:
+                            dragOverIdx === actualIdx && draggedIdx !== null && draggedIdx > actualIdx
+                              ? (theme) => `2px dashed ${theme.palette.primary.main}`
+                              : undefined,
+                          borderBottom:
+                            dragOverIdx === actualIdx && draggedIdx !== null && draggedIdx < actualIdx
+                              ? (theme) => `2px dashed ${theme.palette.primary.main}`
+                              : undefined,
+                          '& td, & th': {
+                            py: editable ? 0.75 : 1.25,
                             borderBottom: (theme) => `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                            verticalAlign: 'middle',
                           },
                           '&:last-of-type td': {
                             borderBottom: 'none',
                           },
+                          transition: 'background-color 0.15s ease',
                         }}
                       >
+                        {/* REORDER / SWITCH HANDLE */}
+                        {editable && (
+                          <TableCell align="center" sx={{ width: 44, px: 0.5 }}>
+                            <Box
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('text/plain', String(actualIdx));
+                                e.dataTransfer.effectAllowed = 'move';
+                                setDraggedIdx(actualIdx);
+                              }}
+                              onDragEnd={() => {
+                                setDraggedIdx(null);
+                                setDragOverIdx(null);
+                              }}
+                              sx={{ display: 'inline-flex', cursor: 'grab', '&:active': { cursor: 'grabbing' } }}
+                            >
+                              <Tooltip title="Drag to switch row, or click for options">
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMenuAnchor({ el: e.currentTarget, index: actualIdx });
+                                  }}
+                                  sx={{
+                                    color: 'text.secondary',
+                                    p: 0.5,
+                                    cursor: 'grab',
+                                    '&:hover': {
+                                      color: 'primary.main',
+                                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                    },
+                                  }}
+                                >
+                                  <Iconify icon={"solar:menu-dots-bold" as any} width={18} />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </TableCell>
+                        )}
+
                         {/* PUNCH TIME */}
                         <TableCell>
                           {editable ? (
                             <Stack direction="row" alignItems="center" spacing={1}>
                               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, minWidth: 70 }}>
-                                {dayjs(p.punch_time).isValid() ? dayjs(p.punch_time).format('DD-MM-YYYY') : ''}
+                                {attendanceDate
+                                  ? dayjs(attendanceDate).format('DD-MM-YYYY')
+                                  : (p.punch_time && dayjs(p.punch_time).isValid() ? dayjs(p.punch_time).format('DD-MM-YYYY') : '')}
                               </Typography>
                               <TimePicker
-                                value={dayjs(p.punch_time).isValid() ? dayjs(p.punch_time) : null}
+                                value={p.punch_time && dayjs(p.punch_time).isValid() ? dayjs(p.punch_time) : null}
                                 onChange={(val) => handleTimeChange(actualIdx, val)}
+                                views={['hours', 'minutes', 'seconds']}
+                                format="hh:mm:ss A"
+                                timeSteps={{ hours: 1, minutes: 1, seconds: 1 }}
                                 slotProps={{
                                   textField: {
                                     size: 'small',
                                     sx: {
-                                      width: 130,
-                                      '& .MuiInputBase-input': { py: 0.6, fontSize: '0.8rem', fontWeight: 600 },
+                                      width: 175,
+                                      '& .MuiInputBase-input': { py: 0.5, px: 0.75, fontSize: '0.8rem', fontWeight: 600 },
+                                      '& .MuiInputBase-root': { pr: 0.5 },
                                     },
                                   },
                                 }}
@@ -365,7 +454,7 @@ export function BiometricPunchesTable({
                         </TableCell>
 
                         {/* SOURCE */}
-                        <TableCell align={editable ? 'center' : 'right'} sx={{ pr: editable ? 1 : 2.5 }}>
+                        <TableCell align="center">
                           <Label
                             variant="soft"
                             color={p.source === 'Manual' ? 'warning' : 'info'}
@@ -384,17 +473,20 @@ export function BiometricPunchesTable({
                         {/* ACTION (DELETE) */}
                         {editable && (
                           <TableCell align="right" sx={{ pr: 2 }}>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeletePunch(actualIdx)}
-                              sx={{
-                                p: 0.5,
-                                '&:hover': { bgcolor: (theme) => alpha(theme.palette.error.main, 0.1) },
-                              }}
-                            >
-                              <Iconify icon={"solar:trash-bin-trash-bold" as any} width={18} />
-                            </IconButton>
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeletePunch(actualIdx)}
+                                sx={{
+                                  p: 0.5,
+                                  color: 'error.main',
+                                  '&:hover': { bgcolor: (theme) => alpha(theme.palette.error.main, 0.08) },
+                                }}
+                              >
+                                <Iconify icon={"solar:trash-bin-trash-bold" as any} width={18} />
+                              </IconButton>
+                            </Box>
                           </TableCell>
                         )}
                       </TableRow>
@@ -403,6 +495,58 @@ export function BiometricPunchesTable({
               </TableBody>
             </Table>
           </TableContainer>
+
+          {editable && (
+            <Menu
+              anchorEl={menuAnchor?.el}
+              open={Boolean(menuAnchor)}
+              onClose={() => setMenuAnchor(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+              slotProps={{
+                paper: {
+                  sx: { minWidth: 160, py: 0.5, boxShadow: (theme) => theme.customShadows?.z8 },
+                },
+              }}
+            >
+              <MenuItem
+                dense
+                disabled={menuAnchor?.index === 0}
+                onClick={() => handleMoveRow(0)}
+                sx={{ fontSize: '0.8rem', py: 0.75 }}
+              >
+                <Iconify icon={"solar:double-alt-arrow-up-bold" as any} width={16} sx={{ mr: 1, color: 'primary.main' }} />
+                Move to Top
+              </MenuItem>
+              <MenuItem
+                dense
+                disabled={menuAnchor?.index === 0}
+                onClick={() => menuAnchor && handleMoveRow(menuAnchor.index - 1)}
+                sx={{ fontSize: '0.8rem', py: 0.75 }}
+              >
+                <Iconify icon={"solar:alt-arrow-up-bold" as any} width={16} sx={{ mr: 1 }} />
+                Move Up
+              </MenuItem>
+              <MenuItem
+                dense
+                disabled={menuAnchor ? menuAnchor.index >= punches.length - 1 : true}
+                onClick={() => menuAnchor && handleMoveRow(menuAnchor.index + 1)}
+                sx={{ fontSize: '0.8rem', py: 0.75 }}
+              >
+                <Iconify icon={"solar:alt-arrow-down-bold" as any} width={16} sx={{ mr: 1 }} />
+                Move Down
+              </MenuItem>
+              <MenuItem
+                dense
+                disabled={menuAnchor ? menuAnchor.index >= punches.length - 1 : true}
+                onClick={() => handleMoveRow(punches.length - 1)}
+                sx={{ fontSize: '0.8rem', py: 0.75 }}
+              >
+                <Iconify icon={"solar:double-alt-arrow-down-bold" as any} width={16} sx={{ mr: 1, color: 'primary.main' }} />
+                Move to Bottom
+              </MenuItem>
+            </Menu>
+          )}
 
           {punches.length > 5 && (
             <TablePagination

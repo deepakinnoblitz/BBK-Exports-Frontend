@@ -18,6 +18,8 @@ import { getHRDoc } from 'src/api/hr-management';
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
+import { useAuth } from 'src/auth/auth-context';
+
 import { BiometricPunchesTable } from '../../attendance/biometric-punches-table';
 
 // ----------------------------------------------------------------------
@@ -29,6 +31,11 @@ type Props = {
 };
 
 export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) {
+    const { user } = useAuth();
+    const isSystemManager = user?.roles?.some((role: string) =>
+        ['System Manager', 'Administrator'].includes(role)
+    );
+
     const [attendance, setAttendance] = useState<any>(null);
     const [employeeDetails, setEmployeeDetails] = useState<any>(null);
     const [loading, setLoading] = useState(false);
@@ -213,7 +220,10 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                                     icon={"solar:clock-circle-bold" as any}
                                 />
                                 <DetailRow label="Working Hours" value={attendance.working_hours_display || '00:00'} icon="solar:stopwatch-bold" />
-                                <DetailRow label="Overtime" value={attendance.overtime_display || '00:00'} icon="solar:stopwatch-bold" />
+                                <DetailRow label="Overtime" value={attendance.official_overtime || attendance.overtime_display || '00:00'} icon="solar:stopwatch-bold" />
+                                {isSystemManager && (
+                                    <DetailRow label="Extra Overtime" value={attendance.unofficial_overtime || '00:00'} icon="solar:stopwatch-bold" />
+                                )}
                                 <DetailRow label="Attendance Source" value={attendance.attendance_source || (attendance.manual ? 'Manual' : 'Biometric')} icon="solar:user-id-bold" />
                                 <DetailRow label="Manual Override" value={attendance.manual ? 'Yes (Protected)' : 'No'} icon="solar:pen-new-square-bold" />
                             </Box>

@@ -33,7 +33,7 @@ export function ShiftTableRow({
   canEdit = true,
   canDelete = true,
 }: Props) {
-  const { shift_name, name, start_time, end_time, description, status } = row;
+  const { shift_name, name, start_time, end_time, description, status, allow_overtime, overtime_hours } = row;
   const displayName = shift_name || name;
 
   const formatTime = (time?: string) => {
@@ -102,6 +102,11 @@ export function ShiftTableRow({
         <Typography variant="body2" color="text.secondary">
           {timingDisplay}
         </Typography>
+        {!!allow_overtime && (
+          <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, display: 'block' }}>
+            OT: {overtime_hours || 0} hrs
+          </Typography>
+        )}
       </TableCell>
 
       <TableCell sx={{ maxWidth: 260 }}>
