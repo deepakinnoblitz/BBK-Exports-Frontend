@@ -2061,6 +2061,21 @@ export interface LineOrder {
     description?: string;
 }
 
+export const fetchLineOrders = (params: any) => {
+    const { search, ...restParams } = params;
+
+    const or_filters = search ? [
+        ["Line Order", "line_name", "like", `%${search}%`],
+        ["Line Order", "description", "like", `%${search}%`],
+    ] : undefined;
+
+    return fetchFrappeList("Line Order", {
+        ...restParams,
+        search: undefined,
+        or_filters
+    });
+};
+
 export async function createLineOrder(data: Partial<LineOrder>) {
     const headers = await getAuthHeaders();
     const res = await frappeRequest("/api/method/frappe.client.insert", {
@@ -2073,6 +2088,53 @@ export async function createLineOrder(data: Partial<LineOrder>) {
     return json.message;
 }
 
+export async function updateLineOrder(name: string, data: Partial<LineOrder>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.set_value", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Line Order", name, fieldname: data })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update line order"));
+    return json.message;
+}
+
+export async function deleteLineOrder(name: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.delete", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Line Order", name })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to delete line order"));
+    return true;
+}
+
+export async function renameLineOrder(oldName: string, newName: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.rename_doc", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+            doctype: "Line Order",
+            old_name: oldName,
+            new_name: newName,
+            merge: false
+        })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to rename line order"));
+    return json.message;
+}
+
+export async function getLineOrder(name: string) {
+    const res = await frappeRequest(`/api/method/frappe.client.get?doctype=Line Order&name=${encodeURIComponent(name)}`);
+    if (!res.ok) throw new Error("Failed to fetch line order details");
+    return (await res.json()).message;
+}
+
 // Shift APIs
 export interface Shift {
     name: string;
@@ -2082,6 +2144,21 @@ export interface Shift {
     status?: string;
     description?: string;
 }
+
+export const fetchShifts = (params: any) => {
+    const { search, ...restParams } = params;
+
+    const or_filters = search ? [
+        ["Shift", "shift_name", "like", `%${search}%`],
+        ["Shift", "description", "like", `%${search}%`],
+    ] : undefined;
+
+    return fetchFrappeList("Shift", {
+        ...restParams,
+        search: undefined,
+        or_filters
+    });
+};
 
 export async function createShift(data: Partial<Shift>) {
     const headers = await getAuthHeaders();
@@ -2095,6 +2172,53 @@ export async function createShift(data: Partial<Shift>) {
     return json.message;
 }
 
+export async function updateShift(name: string, data: Partial<Shift>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.set_value", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Shift", name, fieldname: data })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update shift"));
+    return json.message;
+}
+
+export async function deleteShift(name: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.delete", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Shift", name })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to delete shift"));
+    return true;
+}
+
+export async function renameShift(oldName: string, newName: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.rename_doc", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+            doctype: "Shift",
+            old_name: oldName,
+            new_name: newName,
+            merge: false
+        })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to rename shift"));
+    return json.message;
+}
+
+export async function getShift(name: string) {
+    const res = await frappeRequest(`/api/method/frappe.client.get?doctype=Shift&name=${encodeURIComponent(name)}`);
+    if (!res.ok) throw new Error("Failed to fetch shift details");
+    return (await res.json()).message;
+}
+
 // Bus Travel Route APIs
 export interface BusTravelRoute {
     name: string;
@@ -2104,6 +2228,23 @@ export interface BusTravelRoute {
     status?: string;
     description?: string;
 }
+
+export const fetchBusTravelRoutes = (params: any) => {
+    const { search, ...restParams } = params;
+
+    const or_filters = search ? [
+        ["Bus Travel Route", "route_name", "like", `%${search}%`],
+        ["Bus Travel Route", "bus_number", "like", `%${search}%`],
+        ["Bus Travel Route", "driver_contact", "like", `%${search}%`],
+        ["Bus Travel Route", "description", "like", `%${search}%`],
+    ] : undefined;
+
+    return fetchFrappeList("Bus Travel Route", {
+        ...restParams,
+        search: undefined,
+        or_filters
+    });
+};
 
 export async function createBusTravelRoute(data: Partial<BusTravelRoute>) {
     const headers = await getAuthHeaders();
@@ -2117,6 +2258,52 @@ export async function createBusTravelRoute(data: Partial<BusTravelRoute>) {
     return json.message;
 }
 
+export async function updateBusTravelRoute(name: string, data: Partial<BusTravelRoute>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.set_value", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Bus Travel Route", name, fieldname: data })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update bus travel route"));
+    return json.message;
+}
+
+export async function deleteBusTravelRoute(name: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.delete", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Bus Travel Route", name })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to delete bus travel route"));
+    return true;
+}
+
+export async function renameBusTravelRoute(oldName: string, newName: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.rename_doc", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+            doctype: "Bus Travel Route",
+            old_name: oldName,
+            new_name: newName,
+            merge: false
+        })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to rename bus travel route"));
+    return json.message;
+}
+
+export async function getBusTravelRoute(name: string) {
+    const res = await frappeRequest(`/api/method/frappe.client.get?doctype=Bus Travel Route&name=${encodeURIComponent(name)}`);
+    if (!res.ok) throw new Error("Failed to fetch bus travel route details");
+    return (await res.json()).message;
+}
 // Employee Type APIs
 export interface EmployeeType {
     name: string;

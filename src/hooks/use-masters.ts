@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-import { fetchItems, fetchProjects, fetchServices, fetchLeadFroms, fetchClaimTypes, fetchLeaveTypes, fetchDepartments, fetchBankAccounts, fetchDesignations, fetchPaymentTerms, fetchCallStatuses, fetchActivityTypes, fetchTaxTypesCustom, fetchMeetingStatuses, fetchAssetCategories, fetchPaymentTypesCustom, fetchCompanyBankAccounts, fetchEvaluationTraitCategories, fetchSalaryStructureComponents, fetchCrmEmailTemplateCategories, fetchCrmWhatsAppTemplateCategories, fetchBloodGroups, fetchHRDocumentCategoriesMaster, fetchQualifications } from 'src/api/masters';
+import { fetchItems, fetchProjects, fetchServices, fetchLeadFroms, fetchClaimTypes, fetchLeaveTypes, fetchDepartments, fetchBankAccounts, fetchDesignations, fetchPaymentTerms, fetchCallStatuses, fetchActivityTypes, fetchTaxTypesCustom, fetchMeetingStatuses, fetchAssetCategories, fetchPaymentTypesCustom, fetchCompanyBankAccounts, fetchEvaluationTraitCategories, fetchSalaryStructureComponents, fetchCrmEmailTemplateCategories, fetchCrmWhatsAppTemplateCategories, fetchBloodGroups, fetchHRDocumentCategoriesMaster, fetchQualifications, fetchLineOrders, fetchShifts, fetchBusTravelRoutes } from 'src/api/masters';
 
 export function useDepartments(
   page: number = 1,
@@ -990,6 +990,171 @@ export function useQualifications(
       setLoading(false);
     }
   }, [page, pageSize, search, orderBy, order]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  return { data, total, loading, error, refetch };
+}
+
+export function useLineOrders(
+  page: number = 1,
+  pageSize: number = 10,
+  search: string = '',
+  orderBy: string = 'creation',
+  order: 'asc' | 'desc' = 'desc',
+  status: string = 'all'
+) {
+  const [data, setData] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async (overrides?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    orderBy?: string;
+    order?: 'asc' | 'desc';
+    status?: string;
+  }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const filters: any[] = [];
+      const currentStatus = overrides?.status ?? status;
+      if (currentStatus !== 'all') {
+        filters.push(['Line Order', 'status', '=', currentStatus]);
+      }
+
+      const result = await fetchLineOrders({
+        page: overrides?.page ?? page,
+        page_size: overrides?.pageSize ?? pageSize,
+        search: overrides?.search ?? search,
+        orderBy: overrides?.orderBy ?? orderBy,
+        order: overrides?.order ?? order,
+        filters
+      });
+      setData(result.data || []);
+      setTotal(result.total || 0);
+    } catch (err: any) {
+      console.error('Failed to fetch Line Orders:', err);
+      setError(err.message || 'Failed to fetch Line Orders');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, search, orderBy, order, status]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  return { data, total, loading, error, refetch };
+}
+
+export function useShifts(
+  page: number = 1,
+  pageSize: number = 10,
+  search: string = '',
+  orderBy: string = 'creation',
+  order: 'asc' | 'desc' = 'desc',
+  status: string = 'all'
+) {
+  const [data, setData] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async (overrides?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    orderBy?: string;
+    order?: 'asc' | 'desc';
+    status?: string;
+  }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const filters: any[] = [];
+      const currentStatus = overrides?.status ?? status;
+      if (currentStatus !== 'all') {
+        filters.push(['Shift', 'status', '=', currentStatus]);
+      }
+
+      const result = await fetchShifts({
+        page: overrides?.page ?? page,
+        page_size: overrides?.pageSize ?? pageSize,
+        search: overrides?.search ?? search,
+        orderBy: overrides?.orderBy ?? orderBy,
+        order: overrides?.order ?? order,
+        filters
+      });
+      setData(result.data || []);
+      setTotal(result.total || 0);
+    } catch (err: any) {
+      console.error('Failed to fetch Shifts:', err);
+      setError(err.message || 'Failed to fetch Shifts');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, search, orderBy, order, status]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  return { data, total, loading, error, refetch };
+}
+
+export function useBusTravelRoutes(
+  page: number = 1,
+  pageSize: number = 10,
+  search: string = '',
+  orderBy: string = 'creation',
+  order: 'asc' | 'desc' = 'desc',
+  status: string = 'all'
+) {
+  const [data, setData] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async (overrides?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    orderBy?: string;
+    order?: 'asc' | 'desc';
+    status?: string;
+  }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const filters: any[] = [];
+      const currentStatus = overrides?.status ?? status;
+      if (currentStatus !== 'all') {
+        filters.push(['Bus Travel Route', 'status', '=', currentStatus]);
+      }
+
+      const result = await fetchBusTravelRoutes({
+        page: overrides?.page ?? page,
+        page_size: overrides?.pageSize ?? pageSize,
+        search: overrides?.search ?? search,
+        orderBy: overrides?.orderBy ?? orderBy,
+        order: overrides?.order ?? order,
+        filters
+      });
+      setData(result.data || []);
+      setTotal(result.total || 0);
+    } catch (err: any) {
+      console.error('Failed to fetch Bus Travel Routes:', err);
+      setError(err.message || 'Failed to fetch Bus Travel Routes');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, search, orderBy, order, status]);
 
   useEffect(() => {
     refetch();
