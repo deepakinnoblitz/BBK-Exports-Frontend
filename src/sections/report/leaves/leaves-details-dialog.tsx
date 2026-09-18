@@ -179,11 +179,25 @@ export function LeavesDetailsDialog({ open, onClose, leaveId, onRefresh, socket 
             const lowerAction = actionToApply.action.toLowerCase();
             const isClarify = lowerAction.includes('clarification') || lowerAction.includes('query') || lowerAction.includes('reply');
 
+            let successMessage = `Leave application ${actionToApply.action.toLowerCase().endsWith('e') ? `${actionToApply.action}d` : `${actionToApply.action}ed`} successfully`;
+            if (lowerAction.includes('clarification') || lowerAction.includes('query')) {
+                successMessage = 'Clarification requested successfully';
+            } else if (lowerAction.includes('reply')) {
+                successMessage = 'Reply submitted successfully';
+            } else if (lowerAction.includes('approve')) {
+                successMessage = 'Leave application approved successfully';
+            } else if (lowerAction.includes('reject')) {
+                successMessage = 'Leave application rejected successfully';
+            }
+
+            enqueueSnackbar(successMessage, { variant: 'success' });
+
             if (!isClarify) {
                 onClose();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to apply action:', error);
+            enqueueSnackbar(error?.message || `Failed to ${actionToApply.action.toLowerCase()} leave application`, { variant: 'error' });
         } finally {
             setSubmitting(false);
         }
