@@ -18,6 +18,7 @@ type Props = {
         id: string;
         employeeId: string;
         name: string;
+        employeeType?: string;
         department: string;
         designation: string;
         status: string;
@@ -107,20 +108,27 @@ export function EmployeeTableRow({
                 </Box>
             </TableCell>
 
-            {/* <TableCell>
-                <Typography variant="body2" noWrap>
-                    {row.employeeId}
+            <TableCell>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }} noWrap>
+                    {row.employeeId || row.id || '-'}
                 </Typography>
-            </TableCell> */}
+            </TableCell>
+
+            <TableCell>
+                <Typography variant="body2" noWrap sx={{ textTransform: 'capitalize' }}>
+                    {row.employeeType || '-'}
+                </Typography>
+            </TableCell>
 
             <TableCell>
                 <Typography variant="body2" noWrap>
-                    {row.department}
+                    {row.department || '-'}
                 </Typography>
             </TableCell>
+
             <TableCell>
                 <Typography variant="body2" noWrap>
-                    {row.designation}
+                    {row.designation || '-'}
                 </Typography>
             </TableCell>
 

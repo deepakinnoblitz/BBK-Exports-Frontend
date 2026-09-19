@@ -2357,7 +2357,7 @@ export function EmployeeView() {
 
                 <Scrollbar>
                     <TableContainer sx={{ overflow: 'unset' }}>
-                        <Table sx={{ minWidth: 800, borderCollapse: 'collapse' }}>
+                        <Table sx={{ minWidth: 960, borderCollapse: 'collapse' }}>
                             <EmployeeTableHead
                                 order={order}
                                 orderBy={orderBy}
@@ -2367,8 +2367,9 @@ export function EmployeeView() {
                                 hideCheckbox
                                 showIndex
                                 headLabel={[
-                                    { id: 'employee_name', label: 'Name', minWidth: 180 },
-                                    // { id: 'employee_id', label: 'ID', minWidth: 80 },
+                                    { id: 'employee_name', label: 'Name', minWidth: 160 },
+                                    { id: 'employee_id', label: 'Employee ID', minWidth: 120 },
+                                    { id: 'employee_type', label: 'Employee Type', minWidth: 130 },
                                     { id: 'department', label: 'Department', minWidth: 120 },
                                     { id: 'designation', label: 'Designation', minWidth: 120 },
                                     { id: 'status', label: 'Status', minWidth: 100 },
@@ -2379,7 +2380,7 @@ export function EmployeeView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#08a3cd' }} />
                                         </TableCell>
                                     </TableRow>
@@ -2394,6 +2395,7 @@ export function EmployeeView() {
                                                     id: row.name,
                                                     employeeId: row.employee_id,
                                                     name: row.employee_name,
+                                                    employeeType: row.employee_type,
                                                     department: row.department,
                                                     designation: row.designation,
                                                     status: row.status,
@@ -2412,7 +2414,7 @@ export function EmployeeView() {
 
                                         {empty && (
                                             <TableRow>
-                                                <TableCell colSpan={6}>
+                                                <TableCell colSpan={8}>
                                                     <EmptyContent
                                                         title="No employees found"
                                                         description="Click 'New Employee' to add your first team member."
