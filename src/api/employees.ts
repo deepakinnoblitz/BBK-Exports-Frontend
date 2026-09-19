@@ -23,6 +23,8 @@ export interface Employee {
     marital_status?: string;
     qualification?: string;
     aadhar_number?: string;
+    bus_travel_route?: string;
+    bus_route_point?: string;
 }
 
 // Employee APIs
