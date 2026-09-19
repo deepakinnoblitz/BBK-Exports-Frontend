@@ -143,6 +143,9 @@ export interface EmployeeAllocationPreview {
 export interface MonthlyAllocationItem {
     leave_type: string;
     leave_type_name: string;
+    allocation_basis?: string;
+    criteria_met?: boolean;
+    criteria_reason?: string;
     base_leaves: number;
     carry_forward_balance: number;
     total_leaves: number;
@@ -158,6 +161,11 @@ export interface MonthlyEmployeeAllocationPreview {
     employee_name: string;
     date_of_joining: string;
     in_probation: boolean;
+    working_days?: number;
+    present_days?: number;
+    attendance_pct?: number;
+    is_full_month_present?: boolean;
+    attendance_evaluated_month?: string;
     allocations: MonthlyAllocationItem[];
 }
 
@@ -176,11 +184,14 @@ export interface MonthlyAutoAllocateResult {
 /** GET /api/method/company.company.frontend_api.get_leave_allocation_preview */
 export async function getMonthlyLeaveAllocationPreview(
     year: number,
-    month: number
+    month: number,
+    attendance_month?: number,
+    attendance_year?: number
 ): Promise<MonthlyEmployeeAllocationPreview[]> {
-    const res = await frappeRequest(
-        `/api/method/company.company.frontend_api.get_leave_allocation_preview?year=${year}&month=${month}`
-    );
+    let url = `/api/method/company.company.frontend_api.get_leave_allocation_preview?year=${year}&month=${month}`;
+    if (attendance_month) url += `&attendance_month=${attendance_month}`;
+    if (attendance_year) url += `&attendance_year=${attendance_year}`;
+    const res = await frappeRequest(url);
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, 'Failed to get allocation preview'));
     return json.message || [];
@@ -189,13 +200,16 @@ export async function getMonthlyLeaveAllocationPreview(
 /** GET /api/method/company.company.frontend_api.auto_allocate_monthly_leaves */
 export async function autoAllocateMonthlyLeavesNew(
     year: number,
-    month: number
+    month: number,
+    only_conditional: boolean = false,
+    attendance_month?: number,
+    attendance_year?: number
 ): Promise<MonthlyAutoAllocateResult> {
     const headers = await getAuthHeaders();
-    const res = await frappeRequest(
-        `/api/method/company.company.frontend_api.auto_allocate_monthly_leaves?year=${year}&month=${month}`,
-        { method: 'GET', headers }
-    );
+    let url = `/api/method/company.company.frontend_api.auto_allocate_monthly_leaves?year=${year}&month=${month}&only_conditional=${only_conditional ? 1 : 0}`;
+    if (attendance_month) url += `&attendance_month=${attendance_month}`;
+    if (attendance_year) url += `&attendance_year=${attendance_year}`;
+    const res = await frappeRequest(url, { method: 'GET', headers });
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, 'Failed to auto-allocate monthly leaves'));
     return json.message;

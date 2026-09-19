@@ -42,10 +42,18 @@ type Props = {
 
 const STATUS_OPTIONS = ['Active', 'Inactive'];
 const RESET_FREQUENCY_OPTIONS = ['', 'Every 3 months', 'Every 4 months', 'Every 6 months', 'Whole year'];
+const ALLOCATION_BASIS_OPTIONS = [
+    'Fixed / Unconditional',
+    'Full Month Present (100% Attendance)',
+    'Minimum Present Days',
+    'Per N Days Worked',
+];
+const HALF_DAY_COUNT_OPTIONS = ['0.5 Day', '0 (Not Present)'];
 
 export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
     const [leaveTypeName, setLeaveTypeName] = useState('');
     const [isPaid, setIsPaid] = useState(false);
+    const [isPermission, setIsPermission] = useState(false);
     const [maxLeaves, setMaxLeaves] = useState<number | string>('');
     const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
     const [carryForward, setCarryForward] = useState(false);
@@ -54,7 +62,15 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
     const [probationPeriodMonths, setProbationPeriodMonths] = useState<number | ''>(3);
     const [probationError, setProbationError] = useState(false);
 
+    // Attendance Criteria States
+    const [allocationBasis, setAllocationBasis] = useState<string>('Fixed / Unconditional');
+    const [minPresentDays, setMinPresentDays] = useState<number | ''>('');
+    const [daysWorkedPerLeave, setDaysWorkedPerLeave] = useState<number | ''>(20);
+    const [countHalfDayAs, setCountHalfDayAs] = useState<string>('0.5 Day');
+    const [includeApprovedPaidLeaves, setIncludeApprovedPaidLeaves] = useState(false);
+
     const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(false);
     const [error, setError] = useState('');
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false,
@@ -62,15 +78,38 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
         severity: 'success',
     });
 
+    const resetForm = () => {
+        setLeaveTypeName('');
+        setIsPaid(false);
+        setIsPermission(false);
+        setMaxLeaves('');
+        setStatus('Active');
+        setCarryForward(false);
+        setResetFrequency('');
+        setRestrictDuringProbation(false);
+        setProbationPeriodMonths(3);
+        setProbationError(false);
+        setAllocationBasis('Fixed / Unconditional');
+        setMinPresentDays('');
+        setDaysWorkedPerLeave(20);
+        setCountHalfDayAs('0.5 Day');
+        setIncludeApprovedPaidLeaves(false);
+        setError('');
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            if (open) {
-                if (id) {
-                    try {
-                        setLoading(true);
-                        const data = await getLeaveType(id);
+        let isMounted = true;
+
+        if (open) {
+            resetForm();
+            if (id) {
+                setFetching(true);
+                getLeaveType(id)
+                    .then((data) => {
+                        if (!isMounted) return;
                         setLeaveTypeName(data.leave_type_name || data.name || '');
                         setIsPaid(!!data.is_paid);
+                        setIsPermission(!!data.is_permission);
                         setMaxLeaves(data.max_leaves ?? '');
                         setStatus(data.status || 'Active');
                         setCarryForward(!!data.carry_forward);
@@ -78,28 +117,31 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         setRestrictDuringProbation(!!data.restrict_during_probation);
                         setProbationPeriodMonths(data.probation_period_months || 3);
                         setProbationError(false);
-                    } catch (err) {
+                        setAllocationBasis(data.allocation_basis || 'Fixed / Unconditional');
+                        setMinPresentDays(data.min_present_days ?? '');
+                        setDaysWorkedPerLeave(data.days_worked_per_leave ?? 20);
+                        setCountHalfDayAs(data.count_half_day_as || '0.5 Day');
+                        setIncludeApprovedPaidLeaves(!!data.include_approved_paid_leaves);
+                    })
+                    .catch((err) => {
+                        if (!isMounted) return;
                         console.error('Failed to fetch leave type:', err);
                         setSnackbar({ open: true, message: 'Failed to fetch details', severity: 'error' });
-                    } finally {
-                        setLoading(false);
-                    }
-                } else {
-                    setLeaveTypeName('');
-                    setIsPaid(false);
-                    setMaxLeaves('');
-                    setStatus('Active');
-                    setCarryForward(false);
-                    setResetFrequency('');
-                    setRestrictDuringProbation(false);
-                    setProbationPeriodMonths(3);
-                    setProbationError(false);
-                }
-                setError('');
+                    })
+                    .finally(() => {
+                        if (isMounted) setFetching(false);
+                    });
+            } else {
+                setFetching(false);
             }
-        };
+        } else {
+            resetForm();
+            setFetching(false);
+        }
 
-        fetchData();
+        return () => {
+            isMounted = false;
+        };
     }, [open, id]);
 
     const handleSubmit = async () => {
@@ -130,9 +172,10 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
             setLoading(true);
             setError('');
 
-            const data: Partial<LeaveType> = {
+            const data: Partial<LeaveType> & Record<string, any> = {
                 leave_type_name: leaveTypeName,
                 is_paid: isPaid ? 1 : 0,
+                is_permission: isPermission ? 1 : 0,
                 max_leaves:
                     typeof maxLeaves === "number"
                         ? maxLeaves
@@ -145,6 +188,17 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                 probation_period_months: restrictDuringProbation
                     ? Number(probationPeriodMonths)
                     : 0,
+                allocation_basis: allocationBasis as any,
+                min_present_days:
+                    allocationBasis === 'Minimum Present Days' && minPresentDays !== ''
+                        ? Number(minPresentDays)
+                        : undefined,
+                days_worked_per_leave:
+                    allocationBasis === 'Per N Days Worked' && daysWorkedPerLeave !== ''
+                        ? Number(daysWorkedPerLeave)
+                        : 20,
+                count_half_day_as: countHalfDayAs as any,
+                include_approved_paid_leaves: includeApprovedPaidLeaves ? 1 : 0,
             };
 
             if (id) {
@@ -179,7 +233,12 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
             </DialogTitle>
 
             <DialogContent dividers>
-                <Box sx={{ py: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {fetching ? (
+                    <Box sx={{ py: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <CircularProgress sx={{ color: '#08a3cd' }} />
+                    </Box>
+                ) : (
+                    <Box sx={{ py: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3}>
                         <TextField
                             required
@@ -269,6 +328,23 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                             },
                         }}
                         />
+
+                        <FormControlLabel
+                            control={
+                                <CustomSwitch
+                                    checked={isPermission}
+                                    onChange={(e) => setIsPermission(e.target.checked)}
+                                    disabled={loading}
+                                />
+                            }
+                            label="Is Permission"
+                            sx={{
+                            m: 0,
+                            '& .MuiFormControlLabel-label': {
+                                ml: 1,
+                            },
+                        }}
+                        />
                     </Stack>
                     
                     <FormControlLabel
@@ -313,7 +389,98 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         inputProps={{ min: 1 }}
                     />
                     )}
+
+                    {/* Attendance & Service-Day Criteria Section */}
+                    <Box sx={{ pt: 3, borderTop: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                            Automatic Allocation & Attendance Criteria
+                        </Typography>
+
+                        <FormControl fullWidth disabled={loading}>
+                            <InputLabel id="allocation-basis-label" shrink>Allocation Basis</InputLabel>
+                            <Select
+                                labelId="allocation-basis-label"
+                                value={allocationBasis}
+                                onChange={(e) => setAllocationBasis(e.target.value as string)}
+                                label="Allocation Basis"
+                            >
+                                {ALLOCATION_BASIS_OPTIONS.map((opt) => (
+                                    <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        {allocationBasis === 'Minimum Present Days' && (
+                            <TextField
+                                fullWidth
+                                type="number"
+                                label="Minimum Present Days Required"
+                                value={minPresentDays}
+                                onChange={(e) => setMinPresentDays(e.target.value === '' ? '' : Number(e.target.value))}
+                                disabled={loading}
+                                helperText="Employee must attend at least this many days in the month to receive leave"
+                                InputLabelProps={{ shrink: true }}
+                                inputProps={{ min: 1, max: 31 }}
+                            />
+                        )}
+
+                        {allocationBasis === 'Per N Days Worked' && (
+                            <TextField
+                                fullWidth
+                                type="number"
+                                label="Days Worked Per 1 Leave"
+                                value={daysWorkedPerLeave}
+                                onChange={(e) => setDaysWorkedPerLeave(e.target.value === '' ? '' : Number(e.target.value))}
+                                disabled={loading}
+                                helperText="e.g., 20 days worked = 1 earned leave (Indian Factories Act standard)"
+                                InputLabelProps={{ shrink: true }}
+                                inputProps={{ min: 1 }}
+                            />
+                        )}
+
+                        {allocationBasis !== 'Fixed / Unconditional' && (
+                            <>
+                                <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={2}>
+                                    <FormControl fullWidth disabled={loading}>
+                                        <InputLabel id="count-half-day-label" shrink>Count Half Day As</InputLabel>
+                                        <Select
+                                            labelId="count-half-day-label"
+                                            value={countHalfDayAs}
+                                            onChange={(e) => setCountHalfDayAs(e.target.value as string)}
+                                            label="Count Half Day As"
+                                        >
+                                            {HALF_DAY_COUNT_OPTIONS.map((opt) => (
+                                                <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+
+                                    <FormControlLabel
+                                        control={
+                                            <CustomSwitch
+                                                checked={includeApprovedPaidLeaves}
+                                                onChange={(e) => setIncludeApprovedPaidLeaves(e.target.checked)}
+                                                disabled={loading}
+                                            />
+                                        }
+                                        label="Approved Paid Leaves Count as Present"
+                                        sx={{ m: 0, '& .MuiFormControlLabel-label': { ml: 1, fontSize: 13 } }}
+                                    />
+                                </Box>
+
+                                <Alert severity="info" sx={{ fontSize: 12 }}>
+                                    {allocationBasis === 'Full Month Present (100% Attendance)' &&
+                                        'Leaves are allocated only if the employee attends all scheduled working days in the month (Sundays, 2nd & 4th Saturdays, and official holidays are excluded).'}
+                                    {allocationBasis === 'Minimum Present Days' &&
+                                        'Leaves are allocated if the employee reaches the minimum present days threshold.'}
+                                    {allocationBasis === 'Per N Days Worked' &&
+                                        'Leaves are calculated proportionally based on actual days worked.'}
+                                </Alert>
+                            </>
+                        )}
+                    </Box>
                 </Box>
+                )}
             </DialogContent>
 
             <DialogActions sx={{ p: 2 }}>
@@ -321,7 +488,7 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                     onClick={handleSubmit} 
                     variant="contained" 
                     fullWidth
-                    disabled={loading} 
+                    disabled={loading || fetching} 
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
                     sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
                 >

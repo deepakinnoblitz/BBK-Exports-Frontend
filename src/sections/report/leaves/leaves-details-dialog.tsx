@@ -499,7 +499,7 @@ export function LeavesDetailsDialog({ open, onClose, leaveId, onRefresh, socket 
                                                     Duration
                                                 </Typography>
                                                 <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'primary.main' }}>
-                                                    {leave?.leave_type?.toLowerCase() === 'permission'
+                                                    {leave?.permission_hours || leave?.leave_type?.toLowerCase() === 'permission'
                                                         ? `${leave?.permission_hours} Mins`
                                                         : `${leave?.total_days} ${leave?.total_days === 1 ? 'Day' : 'Days'}`
                                                     }
