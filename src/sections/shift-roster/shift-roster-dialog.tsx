@@ -1,3 +1,6 @@
+import type {
+  ShiftRoster} from 'src/api/shift-roster';
+
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
@@ -7,6 +10,7 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
@@ -17,21 +21,19 @@ import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import CircularProgress from '@mui/material/CircularProgress';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { alpha } from '@mui/material/styles';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { getDoctypeList } from 'src/api/leads';
-import { Iconify } from 'src/components/iconify';
 import {
-  createRosterAssignment,
-  updateRosterAssignment,
   checkRosterConflict,
-  ShiftRoster,
+  createRosterAssignment,
+  updateRosterAssignment
 } from 'src/api/shift-roster';
 
+import { Iconify } from 'src/components/iconify';
 // ----------------------------------------------------------------------
 
 type Props = {
@@ -147,7 +149,7 @@ export function ShiftRosterDialog({
           } else {
             setConflictWarning(null);
           }
-        } catch (e) {
+        } catch {
           // ignore
         }
       } else {

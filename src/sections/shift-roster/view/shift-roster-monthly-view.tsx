@@ -19,13 +19,13 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
-import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
-import { alpha, useTheme } from '@mui/material/styles';
+
+import { useMonthlyRoster } from 'src/hooks/use-shift-roster';
 
 import { getDoctypeList } from 'src/api/leads';
+
 import { Iconify } from 'src/components/iconify';
-import { useMonthlyRoster } from 'src/hooks/use-shift-roster';
 
 import { ShiftRosterDialog } from '../shift-roster-dialog';
 
@@ -50,8 +50,6 @@ function getShiftShortCode(name: string): string {
 }
 
 export function ShiftRosterMonthlyView({ canEdit = true }: { canEdit?: boolean }) {
-  const theme = useTheme();
-
   const [currentDate, setCurrentDate] = useState<dayjs.Dayjs>(dayjs());
   const [selectedDept, setSelectedDept] = useState('all');
   const [searchEmployee, setSearchEmployee] = useState('');
@@ -553,6 +551,7 @@ export function ShiftRosterMonthlyView({ canEdit = true }: { canEdit?: boolean }
                           onClick={() => handleCellClick(emp.employee, d.date)}
                           sx={{
                             p: 0.5,
+                            bgcolor: isToday ? 'action.selected' : undefined,
                             borderRight: (t) => `1px solid ${t.palette.divider}`,
                             borderBottom: (t) => `1px solid ${t.palette.divider}`,
                             cursor: canEdit ? 'pointer' : 'default',
