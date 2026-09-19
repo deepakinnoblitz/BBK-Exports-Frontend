@@ -19,6 +19,7 @@ export interface LeaveAllocation {
     total_leaves_taken: number;
     status: string;
     workflow_state?: string;
+    allocation_source?: 'Auto' | 'Manual';
 }
 
 // Leave Allocation APIs

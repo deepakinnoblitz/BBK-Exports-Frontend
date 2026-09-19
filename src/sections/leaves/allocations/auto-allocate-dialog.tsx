@@ -49,16 +49,12 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
     const [step, setStep] = useState<'input' | 'preview'>('input');
     const [year, setYear] = useState(currentDate.getFullYear());
     const [month, setMonth] = useState(currentDate.getMonth() + 1);
-    const [attPeriod, setAttPeriod] = useState<'previous' | 'same'>('previous');
     const [previewData, setPreviewData] = useState<MonthlyEmployeeAllocationPreview[]>([]);
     const [loading, setLoading] = useState(false);
     const [allocating, setAllocating] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     const getAttendanceMonthYear = () => {
-        if (attPeriod === 'same') {
-            return { attYear: year, attMonth: month };
-        }
         const prevDate = new Date(year, month - 2, 1);
         return { attYear: prevDate.getFullYear(), attMonth: prevDate.getMonth() + 1 };
     };
@@ -225,24 +221,6 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
                             </TextField>
                         </Stack>
 
-                        <TextField
-                            select
-                            fullWidth
-                            label="Attendance Evaluation Period"
-                            value={attPeriod}
-                            onChange={(e) => setAttPeriod(e.target.value as any)}
-                            InputLabelProps={{ shrink: true }}
-                            sx={{ mt: 2 }}
-                            helperText="Conditional leaves (e.g. 100% Full Month Present) will evaluate attendance during this period"
-                        >
-                            <MenuItem value="previous">
-                                Previous Month ({month === 1 ? `December ${year - 1}` : `${monthNames[month - 2]} ${year}`}) — Standard Earned Leave
-                            </MenuItem>
-                            <MenuItem value="same">
-                                Selected Month ({monthNames[month - 1]} {year})
-                            </MenuItem>
-                        </TextField>
-
                         <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
                             This will preview and allocate monthly leaves to all active employees for{' '}
                             <strong>{monthNames[month - 1]} {year}</strong>.
@@ -284,14 +262,6 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
                                 <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 700 }}>
                                     Allocating for <strong>{monthNames[month - 1]} {year}</strong>
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    Attendance evaluated:{' '}
-                                    <strong>
-                                        {attPeriod === 'previous'
-                                            ? (month === 1 ? `December ${year - 1}` : `${monthNames[month - 2]} ${year}`)
-                                            : `${monthNames[month - 1]} ${year}`}
-                                    </strong>
-                                </Typography>
                             </Box>
                             <TextField
                                 value={searchQuery}
@@ -315,7 +285,6 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
                                         <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, minWidth: 170 }}>Employee</TableCell>
                                         <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, textAlign: 'center', width: 100 }}>Joined</TableCell>
                                         <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, textAlign: 'center', width: 90 }}>Status</TableCell>
-                                        <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, textAlign: 'center', width: 130 }}>Attendance</TableCell>
                                         <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, minWidth: 350 }}>Proposed Allocations</TableCell>
                                     </TableRow>
                                 </TableHead>
@@ -344,29 +313,6 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
                                                         fontSize: 10,
                                                     }}
                                                 />
-                                            </TableCell>
-                                            <TableCell sx={{ textAlign: 'center' }}>
-                                                {row.working_days !== undefined ? (
-                                                    <Box>
-                                                        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 12 }}>
-                                                            {row.present_days} / {row.working_days} <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>days</Typography>
-                                                        </Typography>
-                                                        <Chip
-                                                            label={row.is_full_month_present ? `${row.attendance_pct}% • Full` : `${row.attendance_pct}%`}
-                                                            size="small"
-                                                            sx={{
-                                                                height: 18,
-                                                                fontSize: 9.5,
-                                                                fontWeight: 700,
-                                                                bgcolor: row.is_full_month_present ? alpha('#22c55e', 0.12) : alpha('#ffab00', 0.12),
-                                                                color: row.is_full_month_present ? '#22c55e' : '#ffab00',
-                                                                mt: 0.25,
-                                                            }}
-                                                        />
-                                                    </Box>
-                                                ) : (
-                                                    <Typography variant="caption" sx={{ color: 'text.disabled' }}>-</Typography>
-                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 <Stack spacing={0.75}>
@@ -418,23 +364,8 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
                                                                     ({alloc.reset_frequency})
                                                                 </Typography>
                                                             )}
-                                                            {/* Status & Criteria Badges */}
+                                                            {/* Status Badges */}
                                                             <Stack direction="row" spacing={0.5} sx={{ ml: 'auto' }} alignItems="center">
-                                                                {alloc.allocation_basis && alloc.allocation_basis !== 'Fixed / Unconditional' && (
-                                                                    <Tooltip title={alloc.criteria_reason || ''}>
-                                                                        <Chip
-                                                                            label={alloc.criteria_met ? 'Criteria Met' : 'Not Met'}
-                                                                            size="small"
-                                                                            sx={{
-                                                                                height: 18,
-                                                                                fontSize: 9,
-                                                                                fontWeight: 700,
-                                                                                bgcolor: alloc.criteria_met ? alpha('#22c55e', 0.12) : alpha('#ff5630', 0.12),
-                                                                                color: alloc.criteria_met ? '#22c55e' : '#ff5630',
-                                                                            }}
-                                                                        />
-                                                                    </Tooltip>
-                                                                )}
                                                                 <Chip
                                                                     label={alloc.exists ? 'Already Allocated' : 'New'}
                                                                     size="small"

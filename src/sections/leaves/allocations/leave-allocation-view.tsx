@@ -455,6 +455,7 @@ export function LeaveAllocationView() {
                                 headLabel={[
                                     { id: 'employee', label: 'Employee' },
                                     { id: 'leave_type', label: 'Leave Type' },
+                                    { id: 'allocation_source', label: 'Source' },
                                     { id: 'from_date', label: 'Period' },
                                     { id: 'total_leaves_allocated', label: 'Allocated', align: 'center' },
                                     { id: 'total_leaves_taken', label: 'Taken', align: 'center' },
@@ -466,7 +467,7 @@ export function LeaveAllocationView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#08a3cd' }} />
                                         </TableCell>
                                     </TableRow>
@@ -482,6 +483,7 @@ export function LeaveAllocationView() {
                                                     employee: row.employee,
                                                     employeeName: row.employee_name,
                                                     leaveType: row.leave_type,
+                                                    allocationSource: row.allocation_source || 'Manual',
                                                     fromDate: row.from_date,
                                                     toDate: row.to_date,
                                                     totalLeaves: row.total_leaves_allocated,

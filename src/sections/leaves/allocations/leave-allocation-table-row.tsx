@@ -21,6 +21,7 @@ type Props = {
         employee: string;
         employeeName: string;
         leaveType: string;
+        allocationSource?: string;
         fromDate: string;
         toDate: string;
         totalLeaves: number;
@@ -129,6 +130,16 @@ export function LeaveAllocationTableRow({
             <TableCell>
                 <Label variant="soft" color="info" sx={{ fontWeight: 700 }}>
                     {row.leaveType}
+                </Label>
+            </TableCell>
+
+            <TableCell>
+                <Label
+                    variant="soft"
+                    color={row.allocationSource === 'Auto' ? 'info' : 'warning'}
+                    sx={{ fontWeight: 700 }}
+                >
+                    {(row.allocationSource || 'Manual').toUpperCase()}
                 </Label>
             </TableCell>
 

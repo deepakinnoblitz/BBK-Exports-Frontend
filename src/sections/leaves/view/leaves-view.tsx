@@ -35,7 +35,7 @@ import { uploadFile } from 'src/api/data-import';
 import { markAsRead } from 'src/api/unread-counts';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRPermissions, getHRDoc } from 'src/api/hr-management';
-import { applyLeaveWorkflowAction, checkLeaveBalance, checkLeaveOverlap, createLeaveApplication, deleteLeaveApplication, getEmployeeProbationInfo, updateLeaveStatus } from 'src/api/leaves';
+import { applyLeaveWorkflowAction, checkLeaveBalance, checkLeaveOverlap, createLeaveApplication, deleteLeaveApplication, fetchEmployeeAppliedLeaveDates, getEmployeeProbationInfo, updateLeaveStatus } from 'src/api/leaves';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -117,6 +117,7 @@ export function LeavesView() {
     const [totalDays, setTotalDays] = useState(0);
     const [balanceInfo, setBalanceInfo] = useState<{ remaining: number, unit: string } | null>(null);
     const [probationInfo, setProbationInfo] = useState<{ is_probation: boolean; restricted_types: string[]; probation_end_date: string | null; } | null>(null);
+    const [appliedDates, setAppliedDates] = useState<string[]>([]);
 
     const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
     const [leaveTypeOptions, setLeaveTypeOptions] = useState<any[]>([]);
@@ -180,14 +181,19 @@ export function LeavesView() {
         }
     }, [isRestrictedEmployee, user, employee]);
 
-    // Fetch probation info when employee changes
+    // Fetch probation info and existing applied dates when employee changes
     useEffect(() => {
         if (employee) {
             getEmployeeProbationInfo(employee, fromDate || undefined)
                 .then(setProbationInfo)
                 .catch(console.error);
+
+            fetchEmployeeAppliedLeaveDates(employee)
+                .then(setAppliedDates)
+                .catch(console.error);
         } else {
             setProbationInfo(null);
+            setAppliedDates([]);
         }
     }, [employee, fromDate]);
 
@@ -217,10 +223,13 @@ export function LeavesView() {
                 from_date: fromDate,
                 to_date: toDate,
                 half_day: halfDay ? 1 : 0,
-                permission_hours: isPermissionType(leaveType) ? Number(permissionHours) : undefined
+                permission_hours: isPermissionType(leaveType) ? (Number(permissionHours) || 0) : undefined
             }).then(res => {
                 setBalanceInfo({ remaining: res.remaining, unit: res.unit });
-            }).catch(console.error);
+            }).catch((err) => {
+                console.error(err);
+                setBalanceInfo(null);
+            });
         } else {
             setBalanceInfo(null);
         }
@@ -243,6 +252,7 @@ export function LeavesView() {
         setAttachments([]);
         setTotalDays(0);
         setBalanceInfo(null);
+        setAppliedDates([]);
         setFormErrors({});
     };
 
@@ -256,6 +266,26 @@ export function LeavesView() {
 
         if (isPermissionType(leaveType) && (!permissionHours || Number(permissionHours) < 10)) {
             errors.permissionHours = 'Permission duration must be at least 10 minutes';
+        }
+
+        if (fromDate && toDate && appliedDates.length > 0) {
+            const start = dayjs(fromDate);
+            const end = dayjs(toDate);
+            let curr = start;
+            let hasOverlap = false;
+            let overlapDate = '';
+            while (curr.isBefore(end) || curr.isSame(end, 'day')) {
+                const dateStr = curr.format('YYYY-MM-DD');
+                if (appliedDates.includes(dateStr)) {
+                    hasOverlap = true;
+                    overlapDate = curr.format('DD-MM-YYYY');
+                    break;
+                }
+                curr = curr.add(1, 'day');
+            }
+            if (hasOverlap) {
+                errors.fromDate = `Leave application already exists for ${overlapDate}`;
+            }
         }
 
         setFormErrors(errors);
@@ -769,7 +799,11 @@ export function LeavesView() {
                             getOptionLabel={(option) => (typeof option === 'string' ? option : option.name)}
                             value={leaveTypeOptions.find((o) => o.name === leaveType) || null}
                             onChange={(event, newValue) => {
-                                setLeaveType(newValue ? newValue.name : '');
+                                const newType = newValue ? newValue.name : '';
+                                setLeaveType(newType);
+                                setBalanceInfo(null);
+                                setTotalDays(0);
+                                setPermissionHours('');
                                 if (formErrors.leaveType) setFormErrors(prev => ({ ...prev, leaveType: '' }));
                             }}
                             getOptionDisabled={(option) => !!(probationInfo?.is_probation && probationInfo.restricted_types.includes(option.name))}
@@ -829,6 +863,7 @@ export function LeavesView() {
                                             label={isPermissionType(leaveType) ? "Permission Date" : "Leave Date"}
                                             value={fromDate ? dayjs(fromDate) : null}
                                             format="DD-MM-YYYY"
+                                            shouldDisableDate={(day) => appliedDates.includes(day.format('YYYY-MM-DD'))}
                                             onChange={(newValue) => {
                                                 const date = newValue?.format('YYYY-MM-DD') || '';
                                                 setFromDate(date);
@@ -853,6 +888,7 @@ export function LeavesView() {
                                                 label="From Date"
                                                 value={fromDate ? dayjs(fromDate) : null}
                                                 format="DD-MM-YYYY"
+                                                shouldDisableDate={(day) => appliedDates.includes(day.format('YYYY-MM-DD'))}
                                                 onChange={(newValue) => {
                                                     const date = newValue?.format('YYYY-MM-DD') || '';
                                                     setFromDate(date);
@@ -873,6 +909,7 @@ export function LeavesView() {
                                                 label="To Date"
                                                 value={toDate ? dayjs(toDate) : null}
                                                 format="DD-MM-YYYY"
+                                                shouldDisableDate={(day) => appliedDates.includes(day.format('YYYY-MM-DD')) || (fromDate ? day.isBefore(dayjs(fromDate)) : false)}
                                                 onChange={(newValue) => {
                                                     const date = newValue?.format('YYYY-MM-DD') || '';
                                                     setToDate(date);
