@@ -51,8 +51,6 @@ function getShiftShortCode(name: string): string {
 }
 
 export function ShiftRosterMonthlyView({ canEdit = true }: { canEdit?: boolean }) {
-  const theme = useTheme();
-
   const [currentDate, setCurrentDate] = useState<dayjs.Dayjs>(dayjs());
   const [selectedDept, setSelectedDept] = useState('all');
   const [searchEmployee, setSearchEmployee] = useState('');
@@ -554,6 +552,7 @@ export function ShiftRosterMonthlyView({ canEdit = true }: { canEdit?: boolean }
                           onClick={() => handleCellClick(emp.employee, d.date)}
                           sx={{
                             p: 0.5,
+                            bgcolor: isToday ? 'action.selected' : undefined,
                             borderRight: (t) => `1px solid ${t.palette.divider}`,
                             borderBottom: (t) => `1px solid ${t.palette.divider}`,
                             cursor: canEdit ? 'pointer' : 'default',

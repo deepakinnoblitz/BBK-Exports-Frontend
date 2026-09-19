@@ -16,6 +16,7 @@ import { Iconify } from 'src/components/iconify';
 
 import { useAuth } from 'src/auth/auth-context';
 
+import { useAuth } from 'src/auth/auth-context';
 // ----------------------------------------------------------------------
 
 type Props = {
@@ -43,7 +44,6 @@ export function ShiftRosterTableRow({
   const displayDelete = hasCustomPerms ? !!user?.permissions?.actions?.shift_roster?.delete : canDelete;
 
   const {
-    name,
     employee,
     employee_name,
     department,

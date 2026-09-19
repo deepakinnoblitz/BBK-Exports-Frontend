@@ -26,7 +26,6 @@ import { getDoctypeList } from 'src/api/leads';
 import { Iconify } from 'src/components/iconify';
 
 import { ShiftRosterDialog } from '../shift-roster-dialog';
-
 // ----------------------------------------------------------------------
 
 export function ShiftRosterCalendarView({

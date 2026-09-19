@@ -10,6 +10,7 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
@@ -148,7 +149,7 @@ export function ShiftRosterDialog({
           } else {
             setConflictWarning(null);
           }
-        } catch (e) {
+        } catch {
           // ignore
         }
       } else {
