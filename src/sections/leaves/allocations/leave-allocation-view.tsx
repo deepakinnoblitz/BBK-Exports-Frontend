@@ -1,7 +1,12 @@
+import type {
+    AutoLeaveAllocationLog} from 'src/api/leave-allocations';
+
 import dayjs from 'dayjs';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
@@ -35,7 +40,12 @@ import { useLeaveAllocations } from 'src/hooks/useLeaveAllocations';
 import { getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRPermissions } from 'src/api/hr-management';
-import { createLeaveAllocation, deleteLeaveAllocation, updateLeaveAllocation } from 'src/api/leave-allocations';
+import {
+    createLeaveAllocation,
+    deleteLeaveAllocation,
+    updateLeaveAllocation,
+    fetchAutoLeaveAllocationLogs,
+} from 'src/api/leave-allocations';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -48,11 +58,15 @@ import { TableNoData } from '../../lead/table-no-data';
 import AutoAllocateDialog from './auto-allocate-dialog';
 import AutoAllocateResultDialog from './auto-allocate-result-dialog';
 import { LeaveAllocationTableRow } from './leave-allocation-table-row';
+import { AutoAllocateLogTableRow } from './auto-allocate-log-table-row';
 import { LeadTableHead as LeavesTableHead } from '../../lead/lead-table-head';
+import AutoAllocateLogDetailsDialog from './auto-allocate-log-details-dialog';
 import { LeaveAllocationDetailsDialog } from './leave-allocation-details-dialog';
 import { LeaveAllocationFiltersDrawer } from './leave-allocation-filters-drawer';
+import { AutoAllocateLogFiltersDrawer } from './auto-allocate-log-filters-drawer';
 import { LeadTableToolbar as LeavesTableToolbar } from '../../lead/lead-table-toolbar';
 
+import type { LogFiltersProps } from './auto-allocate-log-filters-drawer';
 // ----------------------------------------------------------------------
 
 const SORT_OPTIONS = [
@@ -60,6 +74,23 @@ const SORT_OPTIONS = [
     { value: 'modified_asc', label: 'Oldest First' },
     { value: 'employee_name_asc', label: 'Employee: A to Z' },
     { value: 'employee_name_desc', label: 'Employee: Z to A' },
+];
+
+const LOG_SORT_OPTIONS = [
+    { value: 'execution_date_desc', label: 'Newest First' },
+    { value: 'execution_date_asc', label: 'Oldest First' },
+    { value: 'created_count_desc', label: 'Allocations: High to Low' },
+    { value: 'created_count_asc', label: 'Allocations: Low to High' },
+];
+
+const LOG_TABLE_HEAD = [
+    { id: 'name', label: 'Log ID / Time', width: 220 },
+    { id: 'target_period', label: 'Target Period', width: 180 },
+    { id: 'execution_type', label: 'Execution Mode', width: 140 },
+    { id: 'executed_by', label: 'Executed By', width: 160 },
+    { id: 'created_count', label: 'Allocations Summary', align: 'center' as const, width: 180 },
+    { id: 'status', label: 'Status', align: 'center' as const, width: 120 },
+    { id: 'actions', label: 'Actions', align: 'right' as const, width: 80 },
 ];
 
 export function LeaveAllocationView() {
@@ -132,6 +163,50 @@ export function LeaveAllocationView() {
         delete: true,
     });
 
+    // Tab State
+    const [currentTab, setCurrentTab] = useState<'allocations' | 'logs'>('allocations');
+
+    // Logs Tab State
+    const [logPage, setLogPage] = useState(0);
+    const [logRowsPerPage, setLogRowsPerPage] = useState(10);
+    const [logSearch, setLogSearch] = useState('');
+    const [logSortBy, setLogSortBy] = useState('execution_date_desc');
+    const [openLogFilters, setOpenLogFilters] = useState(false);
+    const [logFilters, setLogFilters] = useState<LogFiltersProps>({
+        status: 'all',
+        execution_type: 'all',
+        year: 'all',
+        month: 'all',
+    });
+    const [logData, setLogData] = useState<AutoLeaveAllocationLog[]>([]);
+    const [logTotal, setLogTotal] = useState(0);
+    const [logLoading, setLogLoading] = useState(false);
+    const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
+    const [openLogDetails, setOpenLogDetails] = useState(false);
+
+    const canResetLogFilters =
+        logFilters.status !== 'all' ||
+        logFilters.execution_type !== 'all' ||
+        logFilters.year !== 'all' ||
+        logFilters.month !== 'all' ||
+        !!logSearch;
+
+    const handleResetLogFilters = () => {
+        setLogFilters({
+            status: 'all',
+            execution_type: 'all',
+            year: 'all',
+            month: 'all',
+        });
+        setLogSearch('');
+        setLogPage(0);
+    };
+
+    const handleLogFilters = (update: Partial<LogFiltersProps>) => {
+        setLogFilters((prev) => ({ ...prev, ...update }));
+        setLogPage(0);
+    };
+
     const { data, total, loading, refetch } = useLeaveAllocations(
         page + 1,
         rowsPerPage,
@@ -154,6 +229,34 @@ export function LeaveAllocationView() {
         getDoctypeList('Employee', ['name', 'employee_name']).then(setEmployeeOptions);
         getDoctypeList('Leave Type', ['name']).then(setLeaveTypeOptions);
     }, []);
+
+    const fetchLogs = useCallback(async () => {
+        try {
+            setLogLoading(true);
+            const res = await fetchAutoLeaveAllocationLogs({
+                page: logPage + 1,
+                limit: logRowsPerPage,
+                search: logSearch || undefined,
+                status: logFilters.status,
+                execution_type: logFilters.execution_type,
+                year: logFilters.year !== 'all' ? logFilters.year : undefined,
+                month: logFilters.month !== 'all' ? logFilters.month : undefined,
+                sort_by: logSortBy,
+            });
+            setLogData(res.data || []);
+            setLogTotal(res.total || 0);
+        } catch (err) {
+            console.error('Failed to fetch logs:', err);
+        } finally {
+            setLogLoading(false);
+        }
+    }, [logPage, logRowsPerPage, logSearch, logFilters, logSortBy]);
+
+    useEffect(() => {
+        if (currentTab === 'logs') {
+            fetchLogs();
+        }
+    }, [currentTab, fetchLogs]);
 
     const validateForm = () => {
         const errors: Record<string, string> = {};
@@ -282,6 +385,42 @@ export function LeaveAllocationView() {
                 </Stack>
             </Stack>
 
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+                <Tabs
+                    value={currentTab}
+                    onChange={(_, val) => setCurrentTab(val)}
+                    sx={{
+                        px: 0,
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                        '& .MuiTab-root': {
+                            minHeight: 48,
+                            fontWeight: 700,
+                            typography: 'subtitle2',
+                            marginRight: (theme) => theme.spacing(1),
+                            '&:last-of-type': {
+                                marginRight: 0,
+                            },
+                            '&.Mui-selected': { color: '#08a3cd' },
+                        },
+                    }}
+                >
+                    <Tab
+                        value="allocations"
+                        label="Allocation List"
+                        icon={<Iconify icon="solar:list-bold" width={20} />}
+                        iconPosition="start"
+                    />
+                    <Tab
+                        value="logs"
+                        label="Auto Allocate Leave Log"
+                        icon={<Iconify icon="solar:history-bold" width={20} />}
+                        iconPosition="start"
+                    />
+                </Tabs>
+            </Stack>
+
+            {currentTab === 'allocations' && (
             <Card>
                 <LeavesTableToolbar
                     numSelected={0}
@@ -401,11 +540,120 @@ export function LeaveAllocationView() {
                     count={total}
                     page={page}
                     rowsPerPage={rowsPerPage}
-                    onPageChange={(e, p) => setPage(p)}
-                    onRowsPerPageChange={(e) => setRowsPerPage(parseInt(e.target.value, 10))}
+                    onPageChange={(_: any, p: number) => setPage(p)}
+                    onRowsPerPageChange={(e: any) => setRowsPerPage(parseInt(e.target.value, 10))}
                     rowsPerPageOptions={[10, 25, 50]}
                 />
             </Card>
+            )}
+
+            {currentTab === 'logs' && (
+                <Card>
+                    <LeavesTableToolbar
+                        numSelected={0}
+                        filterName={logSearch}
+                        onFilterName={(e) => {
+                            setLogSearch(e.target.value);
+                            setLogPage(0);
+                        }}
+                        searchPlaceholder="Search logs by ID, period, user..."
+                        sortBy={logSortBy}
+                        onSortChange={(val) => {
+                            setLogSortBy(val);
+                            setLogPage(0);
+                        }}
+                        sortOptions={LOG_SORT_OPTIONS}
+                        onOpenFilter={() => setOpenLogFilters(true)}
+                        canReset={canResetLogFilters}
+                    />
+
+                    <Scrollbar>
+                        <TableContainer sx={{ overflow: 'unset' }}>
+                            <Table sx={{ minWidth: 800 }}>
+                                <LeavesTableHead
+                                    order={logSortBy.endsWith('_asc') ? 'asc' : 'desc'}
+                                    orderBy={logSortBy.replace(/_(asc|desc)$/, '')}
+                                    headLabel={LOG_TABLE_HEAD}
+                                    rowCount={logData.length}
+                                    numSelected={0}
+                                    onSelectAllRows={() => {}}
+                                    hideCheckbox
+                                    showIndex
+                                />
+
+                                <TableBody>
+                                    {logLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={8} align="center" sx={{ py: 12 }}>
+                                                <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        <>
+                                            {logData.map((row, index) => (
+                                                <AutoAllocateLogTableRow
+                                                    key={row.name}
+                                                    index={logPage * logRowsPerPage + index}
+                                                    row={row}
+                                                    onView={() => {
+                                                        setSelectedLogId(row.name);
+                                                        setOpenLogDetails(true);
+                                                    }}
+                                                />
+                                            ))}
+
+                                            {logData.length > 0 && logData.length < 5 && (
+                                                <>
+                                                    {Array.from({ length: 5 - logData.length }).map((_, i) => (
+                                                        <TableRow
+                                                            key={`empty-log-${i}`}
+                                                            sx={{
+                                                                height: 68,
+                                                                '& td': { borderBottom: 'none' },
+                                                            }}
+                                                        >
+                                                            <TableCell colSpan={8} />
+                                                        </TableRow>
+                                                    ))}
+                                                </>
+                                            )}
+
+                                            {logSearch && !logData.length && (
+                                                <TableNoData searchQuery={logSearch} />
+                                            )}
+
+                                            {!logData.length && !logSearch && (
+                                                <TableRow>
+                                                    <TableCell colSpan={8}>
+                                                        <EmptyContent
+                                                            title="No Auto Allocation Logs Found"
+                                                            description="Logs will appear here whenever automatic or manual monthly allocations are executed."
+                                                            sx={{ py: 16 }}
+                                                        />
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    </Scrollbar>
+
+                    <TablePagination
+                        component="div"
+                        count={logTotal}
+                        page={logPage}
+                        rowsPerPage={logRowsPerPage}
+                        onPageChange={(_: any, p: number) => setLogPage(p)}
+                        onRowsPerPageChange={(e: any) => {
+                            setLogRowsPerPage(parseInt(e.target.value, 10));
+                            setLogPage(0);
+                        }}
+                        rowsPerPageOptions={[10, 25, 50]}
+                    />
+                </Card>
+            )}
 
             <Dialog open={openCreate} onClose={handleCloseCreate} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 2 } }}>
                 <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -601,6 +849,7 @@ export function LeaveAllocationView() {
                     setResultData(res);
                     setOpenResult(true);
                     refetch();
+                    fetchLogs();
                 }}
                 onError={(error) => {
                     setSnackbar({ open: true, message: error, severity: 'error' });
@@ -614,6 +863,15 @@ export function LeaveAllocationView() {
                     setResultData(null);
                 }}
                 data={resultData}
+            />
+
+            <AutoAllocateLogDetailsDialog
+                open={openLogDetails}
+                onClose={() => {
+                    setOpenLogDetails(false);
+                    setSelectedLogId(null);
+                }}
+                logId={selectedLogId}
             />
 
             {/* Filter Drawer */}
@@ -639,6 +897,16 @@ export function LeaveAllocationView() {
                     employees: employeeOptions,
                 }}
                 isHR={isHR}
+            />
+
+            {/* Auto Allocate Logs Filter Drawer */}
+            <AutoAllocateLogFiltersDrawer
+                open={openLogFilters}
+                onClose={() => setOpenLogFilters(false)}
+                filters={logFilters}
+                onFilters={handleLogFilters}
+                canReset={canResetLogFilters}
+                onResetFilters={handleResetLogFilters}
             />
 
             <Snackbar
