@@ -1,6 +1,7 @@
 import type { WorkflowAction } from 'src/api/reimbursement-claims';
 
 import dayjs from 'dayjs';
+import { useSnackbar } from 'notistack';
 import { useState, useEffect } from 'react';
 import {
     FaFileAlt,
@@ -67,6 +68,7 @@ type Props = {
 export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit = true, onRefresh }: Props) {
     const theme = useTheme();
     const { user } = useAuth();
+    const { enqueueSnackbar } = useSnackbar();
     const [submitting, setSubmitting] = useState<boolean>(false);
     const [commentDialogOpen, setCommentDialogOpen] = useState(false);
     const [comment, setComment] = useState('');
@@ -124,12 +126,31 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
                 paid_by: user?.email
             } : undefined;
 
-            await applyReimbursementClaimWorkflowAction(claim.name, selectedAction.action, comment, paymentDetails);
+            const res = await applyReimbursementClaimWorkflowAction(claim.name, selectedAction.action, comment, paymentDetails);
+
+            const actLower = selectedAction.action.toLowerCase();
+            let successMessage = `Claim ${selectedAction.action.toLowerCase().endsWith('e') ? `${selectedAction.action}d` : `${selectedAction.action}ed`} successfully`;
+            if (actLower.includes('approve')) {
+                successMessage = 'Claim approved successfully';
+            } else if (actLower.includes('reject')) {
+                successMessage = 'Claim rejected successfully';
+            } else if (actLower.includes('cancel')) {
+                successMessage = 'Claim cancelled successfully';
+            } else if (actLower.includes('pay')) {
+                successMessage = 'Claim marked as paid successfully';
+            }
+
+            enqueueSnackbar(successMessage, { variant: 'success' });
+            if (res?.email_warning) {
+                enqueueSnackbar(res.email_warning, { variant: 'info' });
+            }
+
             if (onRefresh) onRefresh();
             setCommentDialogOpen(false);
             onClose();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to apply workflow action:', error);
+            enqueueSnackbar(error?.message || `Failed to ${selectedAction.action.toLowerCase()} claim`, { variant: 'error' });
         } finally {
             setSubmitting(false);
         }
@@ -148,11 +169,13 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
                 payment_reference: editPaymentReference,
                 paid_date: editPaymentDate || undefined
             });
+            enqueueSnackbar('Payment details updated successfully', { variant: 'success' });
             if (onRefresh) onRefresh();
             setEditPaymentOpen(false);
             onClose();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to update payment details:', error);
+            enqueueSnackbar(error?.message || 'Failed to update payment details', { variant: 'error' });
         } finally {
             setSubmitting(false);
         }

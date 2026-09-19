@@ -217,6 +217,7 @@ export const BankAccountPage = lazy(() => import('src/pages/bank-account'));
 export const AssetCategoryPage = lazy(() => import('src/pages/asset-category'));
 export const PerformanceCriteriaCategoryPage = lazy(() => import('src/pages/performance-criteria-category'));
 export const DesignationPage = lazy(() => import('src/pages/designation'));
+export const EmployeeTypePage = lazy(() => import('src/pages/employee-type'));
 export const SalaryStructureComponentPage = lazy(() => import('src/pages/salary-structure-component'));
 export const LeaveTypePage = lazy(() => import('src/pages/leave-type'));
 export const HRDocumentCategoryPage = lazy(() => import('src/pages/hr-document-category'));
@@ -495,6 +496,7 @@ export const routesSection: RouteObject[] = [
       { path: 'asset-category', element: <RolePermissionGuard actionKey="master_asset_category"><AssetCategoryPage /></RolePermissionGuard> },
       { path: 'performance-criteria-category', element: <RolePermissionGuard actionKey="master_criteria_category"><PerformanceCriteriaCategoryPage /></RolePermissionGuard> },
       { path: 'designation', element: <RolePermissionGuard actionKey="master_designation"><DesignationPage /></RolePermissionGuard> },
+      { path: 'employee-type', element: <RolePermissionGuard actionKey="master_employee_type"><EmployeeTypePage /></RolePermissionGuard> },
       { path: 'salary-structure-component', element: <RolePermissionGuard actionKey="master_salary_component"><SalaryStructureComponentPage /></RolePermissionGuard> },
       { path: 'leave-type', element: <RolePermissionGuard actionKey="master_leave_type"><LeaveTypePage /></RolePermissionGuard> },
       { path: 'blood-group', element: <RolePermissionGuard actionKey="master_blood_group"><BloodGroupPage /></RolePermissionGuard> },
