@@ -2,7 +2,7 @@ import type { ShiftRoster, MonthlyRosterResponse } from 'src/api/shift-roster';
 
 import { useState, useEffect, useCallback } from 'react';
 
-import { fetchMonthlyRoster, fetchCalendarRoster, fetchShiftRosterList } from 'src/api/shift-roster';
+import { fetchShiftRosterList, fetchMonthlyRoster, fetchCalendarRoster, ShiftRoster, MonthlyRosterResponse } from 'src/api/shift-roster';
 
 export function useShiftRoster(
   page: number = 1,

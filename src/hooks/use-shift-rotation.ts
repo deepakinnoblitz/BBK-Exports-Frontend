@@ -2,7 +2,7 @@ import type { ShiftRotation } from 'src/api/shift-rotation';
 
 import { useState, useEffect, useCallback } from 'react';
 
-import { fetchShiftRotationList } from 'src/api/shift-rotation';
+import { fetchShiftRotationList, getShiftRotationDoc, ShiftRotation } from 'src/api/shift-rotation';
 
 export function useShiftRotations(
   page: number = 1,
@@ -41,9 +41,11 @@ export function useShiftRotations(
 
       const response = await fetchShiftRotationList({
         page,
+        page_size: limit,
         limit,
         search,
-        order_by: `${orderBy} ${order}`,
+        orderBy,
+        order,
         fields,
         filters,
       });

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
-import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
@@ -15,7 +14,6 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 
@@ -24,6 +22,7 @@ import { fetchRosterHistory } from 'src/api/shift-roster';
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+
 // ----------------------------------------------------------------------
 
 type Props = {
@@ -211,12 +210,6 @@ export function ShiftRosterHistoryDialog({ open, onClose, rosterId, employee }: 
           </TableContainer>
         )}
       </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2, borderTop: (theme) => `1px solid ${theme.palette.divider}` }}>
-        <Button variant="outlined" color="inherit" onClick={onClose}>
-          Close
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

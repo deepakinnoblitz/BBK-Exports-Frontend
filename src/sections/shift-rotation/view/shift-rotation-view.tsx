@@ -48,8 +48,12 @@ import { LeadTableToolbar as ShiftRotationTableToolbar } from '../../lead/lead-t
 const sortOptions = [
   { value: 'modified_desc', label: 'Newest First' },
   { value: 'modified_asc', label: 'Oldest First' },
-  { value: 'rotation_name_asc', label: 'Name: A to Z' },
-  { value: 'rotation_name_desc', label: 'Name: Z to A' },
+  { value: 'rotation_name_asc', label: 'Rotation Name: A to Z' },
+  { value: 'rotation_name_desc', label: 'Rotation Name: Z to A' },
+  { value: 'frequency_asc', label: 'Frequency: A to Z' },
+  { value: 'frequency_desc', label: 'Frequency: Z to A' },
+  { value: 'start_date_desc', label: 'Active Period: Newest' },
+  { value: 'start_date_asc', label: 'Active Period: Oldest' },
 ];
 
 export function ShiftRotationView() {
@@ -159,28 +163,20 @@ export function ShiftRotationView() {
   const empty = !data.length && !filterName && !loading;
 
   const handleSortChange = (value: string) => {
-    if (value === 'modified_desc') {
-      setOrderBy('modified');
-      setOrder('desc');
-    } else if (value === 'modified_asc') {
-      setOrderBy('modified');
-      setOrder('asc');
-    } else if (value === 'rotation_name_asc') {
-      setOrderBy('rotation_name');
-      setOrder('asc');
-    } else if (value === 'rotation_name_desc') {
-      setOrderBy('rotation_name');
-      setOrder('desc');
+    if (value.includes('_')) {
+      const isAsc = value.endsWith('_asc');
+      const property = value.replace(/_(asc|desc)$/, '');
+      setOrder(isAsc ? 'asc' : 'desc');
+      setOrderBy(property);
+    } else {
+      const isAsc = orderBy === value && order === 'asc';
+      setOrder(isAsc ? 'desc' : 'asc');
+      setOrderBy(value);
     }
+    setPage(0);
   };
 
-  const getSortByValue = () => {
-    if (orderBy === 'modified' && order === 'desc') return 'modified_desc';
-    if (orderBy === 'modified' && order === 'asc') return 'modified_asc';
-    if (orderBy === 'rotation_name' && order === 'asc') return 'rotation_name_asc';
-    if (orderBy === 'rotation_name' && order === 'desc') return 'rotation_name_desc';
-    return 'modified_desc';
-  };
+  const getSortByValue = () => `${orderBy}_${order}`;
 
   const handleCreate = () => {
     setSelectedName(null);
@@ -289,6 +285,7 @@ export function ShiftRotationView() {
               <ShiftRotationTableHead
                 order={order}
                 orderBy={orderBy}
+                onSort={(id: string) => handleSortChange(id)}
                 rowCount={total}
                 numSelected={0}
                 onSelectAllRows={() => {}}
@@ -390,20 +387,6 @@ export function ShiftRotationView() {
         }}
         rotationName={selectedDetailName}
         canEdit={canEdit}
-        onEdit={() => {
-          setOpenDetails(false);
-          if (selectedDetailName) {
-            setSelectedName(selectedDetailName);
-            setOpenDialog(true);
-          }
-        }}
-        onGenerate={() => {
-          if (selectedDetailName) {
-            setGenerateTargetName(selectedDetailName);
-            setOpenDetails(false);
-            setOpenGenerateDialog(true);
-          }
-        }}
       />
 
       {/* Generate Roster Modal (near Add button & details) */}
