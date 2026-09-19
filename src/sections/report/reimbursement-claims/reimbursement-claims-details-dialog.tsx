@@ -126,7 +126,7 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
                 paid_by: user?.email
             } : undefined;
 
-            await applyReimbursementClaimWorkflowAction(claim.name, selectedAction.action, comment, paymentDetails);
+            const res = await applyReimbursementClaimWorkflowAction(claim.name, selectedAction.action, comment, paymentDetails);
 
             const actLower = selectedAction.action.toLowerCase();
             let successMessage = `Claim ${selectedAction.action.toLowerCase().endsWith('e') ? `${selectedAction.action}d` : `${selectedAction.action}ed`} successfully`;
@@ -141,6 +141,9 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
             }
 
             enqueueSnackbar(successMessage, { variant: 'success' });
+            if (res?.email_warning) {
+                enqueueSnackbar(res.email_warning, { variant: 'info' });
+            }
 
             if (onRefresh) onRefresh();
             setCommentDialogOpen(false);

@@ -383,8 +383,9 @@ export function LeavesView() {
                 }
             }
 
-            await applyLeaveWorkflowAction(id, action);
-            setSnackbar({ open: true, message: `Leave application ${action}ed successfully`, severity: 'success' });
+            const res = await applyLeaveWorkflowAction(id, action);
+            const extra = res?.email_warning ? ` (${res.email_warning})` : '';
+            setSnackbar({ open: true, message: `Leave application ${action}ed successfully${extra}`, severity: 'success' });
             await refetch();
         } catch (error: any) {
             setSnackbar({ open: true, message: error.message || `Failed to ${action} leave application`, severity: 'error' });

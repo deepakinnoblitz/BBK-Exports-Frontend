@@ -165,7 +165,7 @@ export function LeavesDetailsDialog({ open, onClose, leaveId, onRefresh, socket 
                 // If there's a generic comment, we could handle it too, but here we focus on clarifications
             }
 
-            await applyLeaveWorkflowAction(leaveId, actionToApply.action, comment, updateData);
+            const res = await applyLeaveWorkflowAction(leaveId, actionToApply.action, comment, updateData);
 
             setComment('');
             setCommentDialogOpen(false);
@@ -191,6 +191,9 @@ export function LeavesDetailsDialog({ open, onClose, leaveId, onRefresh, socket 
             }
 
             enqueueSnackbar(successMessage, { variant: 'success' });
+            if (res?.email_warning) {
+                enqueueSnackbar(res.email_warning, { variant: 'info' });
+            }
 
             if (!isClarify) {
                 onClose();

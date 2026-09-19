@@ -350,8 +350,9 @@ export function ReimbursementClaimsView() {
 
     const handleApplyAction = async (id: string, action: string) => {
         try {
-            await applyReimbursementClaimWorkflowAction(id, action);
-            setSnackbar({ open: true, message: `Claim ${action}ed successfully`, severity: 'success' });
+            const res = await applyReimbursementClaimWorkflowAction(id, action);
+            const extra = res?.email_warning ? ` (${res.email_warning})` : '';
+            setSnackbar({ open: true, message: `Claim ${action}ed successfully${extra}`, severity: 'success' });
 
             // Mark as read for HR
             markAsRead('Reimbursement Claim', id).then(() => {
