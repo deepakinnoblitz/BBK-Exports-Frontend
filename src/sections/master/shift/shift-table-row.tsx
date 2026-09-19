@@ -33,7 +33,7 @@ export function ShiftTableRow({
   canEdit = true,
   canDelete = true,
 }: Props) {
-  const { shift_name, name, start_time, end_time, description, status, allow_overtime, overtime_hours } = row;
+  const { shift_name, name, start_time, end_time, description, status, allow_overtime, overtime_hours, lunch_hours, break_hours } = row;
   const displayName = shift_name || name;
 
   const formatTime = (time?: string) => {
@@ -42,6 +42,15 @@ export function ShiftTableRow({
     const parsed = dayjs(`2000-01-01T${normalizedTime}`);
     if (parsed.isValid()) {
       return parsed.format('hh:mm A');
+    }
+    return time;
+  };
+
+  const formatDuration = (time?: string) => {
+    if (!time || time === '00:00:00' || time === '00:00') return '';
+    const parts = time.split(':');
+    if (parts.length >= 2) {
+      return `${parts[0]}:${parts[1]}`;
     }
     return time;
   };
@@ -107,6 +116,18 @@ export function ShiftTableRow({
             OT: {overtime_hours || 0} hrs
           </Typography>
         )}
+      </TableCell>
+
+      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+        <Typography variant="body2" color={formatDuration(lunch_hours) ? 'text.primary' : 'text.secondary'}>
+          {formatDuration(lunch_hours) ? `${formatDuration(lunch_hours)} hrs` : '-'}
+        </Typography>
+      </TableCell>
+
+      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+        <Typography variant="body2" color={formatDuration(break_hours) ? 'text.primary' : 'text.secondary'}>
+          {formatDuration(break_hours) ? `${formatDuration(break_hours)} hrs` : '-'}
+        </Typography>
       </TableCell>
 
       <TableCell sx={{ maxWidth: 260 }}>

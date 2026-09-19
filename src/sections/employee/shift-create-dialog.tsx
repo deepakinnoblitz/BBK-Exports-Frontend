@@ -34,6 +34,8 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
     const [shiftName, setShiftName] = useState(currentShiftName);
     const [startTime, setStartTime] = useState<Dayjs | null>(null);
     const [endTime, setEndTime] = useState<Dayjs | null>(null);
+    const [lunchHours, setLunchHours] = useState<Dayjs | null>(null);
+    const [breakHours, setBreakHours] = useState<Dayjs | null>(null);
     const [allowOvertime, setAllowOvertime] = useState(false);
     const [overtimeHours, setOvertimeHours] = useState<number | string>('');
     const [minOvertimeMinutes, setMinOvertimeMinutes] = useState<number | string>(0);
@@ -46,6 +48,8 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
             setShiftName(currentShiftName);
             setStartTime(null);
             setEndTime(null);
+            setLunchHours(null);
+            setBreakHours(null);
             setAllowOvertime(false);
             setOvertimeHours('');
             setMinOvertimeMinutes(0);
@@ -67,6 +71,8 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
                 shift_name: shiftName.trim(),
                 start_time: startTime ? startTime.format('HH:mm:ss') : undefined,
                 end_time: endTime ? endTime.format('HH:mm:ss') : undefined,
+                lunch_hours: lunchHours ? lunchHours.format('HH:mm:ss') : undefined,
+                break_hours: breakHours ? breakHours.format('HH:mm:ss') : undefined,
                 allow_overtime: allowOvertime ? 1 : 0,
                 overtime_hours: allowOvertime && overtimeHours !== '' ? Number(overtimeHours) : 0,
                 min_overtime_minutes: allowOvertime && minOvertimeMinutes !== '' ? Number(minOvertimeMinutes) : 0,
@@ -139,6 +145,40 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
                                     textField: {
                                         fullWidth: true,
                                         InputLabelProps: { shrink: true }
+                                    }
+                                }}
+                            />
+                        </Box>
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                            <TimePicker
+                                label="Lunch Hours"
+                                ampm={false}
+                                format="HH:mm"
+                                value={lunchHours}
+                                onChange={(newValue) => setLunchHours(newValue)}
+                                disabled={loading}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        InputLabelProps: { shrink: true },
+                                        helperText: 'e.g. 01:00 (1 hr lunch)'
+                                    }
+                                }}
+                            />
+
+                            <TimePicker
+                                label="Break Hours"
+                                ampm={false}
+                                format="HH:mm"
+                                value={breakHours}
+                                onChange={(newValue) => setBreakHours(newValue)}
+                                disabled={loading}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        InputLabelProps: { shrink: true },
+                                        helperText: 'e.g. 00:30 (30 mins break)'
                                     }
                                 }}
                             />

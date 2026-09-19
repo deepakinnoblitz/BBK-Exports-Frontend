@@ -81,6 +81,7 @@ export function AttendanceView() {
     const [loadingDoc, setLoadingDoc] = useState(false);
 
     const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
+    const [shiftList, setShiftList] = useState<any[]>([]);
     const [existingAttendanceDates, setExistingAttendanceDates] = useState<string[]>([]);
 
     // Filter State
@@ -140,7 +141,18 @@ export function AttendanceView() {
 
     useEffect(() => {
         getHRPermissions('Attendance').then(setPermissions);
-        getDoctypeList('Employee', ['name', 'employee_name']).then(setEmployeeOptions).catch(console.error);
+        getDoctypeList('Employee', ['name', 'employee_name', 'shift']).then(setEmployeeOptions).catch(console.error);
+        getDoctypeList('Shift', [
+            'name',
+            'shift_name',
+            'start_time',
+            'end_time',
+            'lunch_hours',
+            'break_hours',
+            'allow_overtime',
+            'overtime_hours',
+            'min_overtime_minutes',
+        ]).then(setShiftList).catch(console.error);
     }, []);
 
     const handleOpenCreate = () => {
@@ -170,7 +182,30 @@ export function AttendanceView() {
         setOpenImport(false);
     };
 
-    const calculateHoursAndOvertime = (inTime?: string, outTime?: string) => {
+    const parseDurationMinutes = (timeStr?: string) => {
+        if (!timeStr || timeStr === '00:00' || timeStr === '00:00:00') return 0;
+        const parts = String(timeStr).split(':');
+        const h = parseInt(parts[0], 10) || 0;
+        const m = parseInt(parts[1], 10) || 0;
+        return h * 60 + m;
+    };
+
+    const getShiftDoc = (employeeId?: string, shiftId?: string) => {
+        if (shiftId) {
+            const found = shiftList.find((s) => s.name === shiftId || s.shift_name === shiftId);
+            if (found) return found;
+        }
+        if (employeeId) {
+            const emp = employeeOptions.find((e) => e.name === employeeId);
+            if (emp?.shift) {
+                const found = shiftList.find((s) => s.name === emp.shift || s.shift_name === emp.shift);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
+
+    const calculateHoursAndOvertime = (inTime?: string, outTime?: string, shiftObj?: any) => {
         if (!inTime || !outTime || inTime === '00:00:00' || outTime === '00:00:00') {
             return {
                 workingHoursDisplay: '0:00',
@@ -207,17 +242,62 @@ export function AttendanceView() {
             };
         }
 
-        const regHours = Math.floor(totalMinutes / 60);
-        const regMinutes = totalMinutes % 60;
-        const workingHoursDecimal = parseFloat((totalMinutes / 60).toFixed(2));
+        // Deduct lunch & break hours from elapsed time
+        const totalBreakMinutes = shiftObj
+            ? parseDurationMinutes(shiftObj.lunch_hours) + parseDurationMinutes(shiftObj.break_hours)
+            : 0;
+
+        const netWorkingMinutes =
+            totalMinutes > totalBreakMinutes ? totalMinutes - totalBreakMinutes : totalMinutes;
+
+        const regHours = Math.floor(netWorkingMinutes / 60);
+        const regMinutes = netWorkingMinutes % 60;
+        const workingHoursDecimal = parseFloat((netWorkingMinutes / 60).toFixed(2));
         const workingHoursDisplay = `${regHours}:${regMinutes.toString().padStart(2, '0')}`;
 
-        // Overtime calculation (matches Frappe logic)
-        const overtimeMinutes = Math.max(0, totalMinutes - 9 * 60);
-        const otHours = Math.floor(overtimeMinutes / 60);
-        const otMins = overtimeMinutes % 60;
-        const officialOvertime = `${otHours}:${otMins.toString().padStart(2, '0')}`;
-        const unofficialOvertime = `${otHours}:${otMins.toString().padStart(2, '0')}`;
+        // Overtime calculation (matches Frappe backend logic)
+        let officialOvertime = '0:00';
+        let unofficialOvertime = '0:00';
+
+        if (shiftObj && shiftObj.end_time) {
+            let sEnd = dayjs(`2000-01-01 ${shiftObj.end_time}`);
+            let shiftStandardMinutes = 9 * 60 - totalBreakMinutes;
+
+            if (shiftObj.start_time) {
+                const sStart = dayjs(`2000-01-01 ${shiftObj.start_time}`);
+                if (sEnd.isBefore(sStart)) sEnd = sEnd.add(1, 'day');
+                const shiftDurationMinutes = sEnd.diff(sStart, 'minute');
+                shiftStandardMinutes = Math.max(0, shiftDurationMinutes - totalBreakMinutes);
+            }
+
+            const postShiftMinutes = Math.max(0, end.diff(sEnd, 'minute'));
+            const excessWorkedMinutes = Math.max(0, netWorkingMinutes - shiftStandardMinutes);
+
+            let extraMinutes = postShiftMinutes > 0 ? Math.min(postShiftMinutes, excessWorkedMinutes) : 0;
+            const minThreshold = parseInt(shiftObj.min_overtime_minutes, 10) || 0;
+            if (extraMinutes < minThreshold) {
+                extraMinutes = 0;
+            }
+
+            const unoffH = Math.floor(extraMinutes / 60);
+            const unoffM = extraMinutes % 60;
+            unofficialOvertime = `${unoffH}:${unoffM.toString().padStart(2, '0')}`;
+
+            let offMins = 0;
+            if (shiftObj.allow_overtime) {
+                const maxOff = (parseFloat(shiftObj.overtime_hours) || 0) * 60;
+                offMins = Math.min(extraMinutes, maxOff);
+            }
+            const offH = Math.floor(offMins / 60);
+            const offM = offMins % 60;
+            officialOvertime = `${offH}:${offM.toString().padStart(2, '0')}`;
+        } else {
+            const overtimeMinutes = Math.max(0, netWorkingMinutes - 9 * 60);
+            const otHours = Math.floor(overtimeMinutes / 60);
+            const otMins = overtimeMinutes % 60;
+            officialOvertime = `${otHours}:${otMins.toString().padStart(2, '0')}`;
+            unofficialOvertime = `${otHours}:${otMins.toString().padStart(2, '0')}`;
+        }
 
         return {
             workingHoursDisplay,
@@ -235,14 +315,24 @@ export function AttendanceView() {
                 next.manual = value ? 1 : 0;
             }
 
+            if (fieldname === 'employee') {
+                const emp = employeeOptions.find((e) => e.name === value);
+                if (emp?.shift) {
+                    next.shift = emp.shift;
+                }
+            }
+
             // Calculate working hours
-            if (fieldname === 'in_time' || fieldname === 'out_time') {
-                const { workingHoursDisplay, workingHoursDecimal, officialOvertime, unofficialOvertime } =
-                    calculateHoursAndOvertime(next.in_time, next.out_time);
-                next.working_hours_display = workingHoursDisplay;
-                next.working_hours_decimal = workingHoursDecimal;
-                next.official_overtime = officialOvertime;
-                next.unofficial_overtime = unofficialOvertime;
+            if (fieldname === 'in_time' || fieldname === 'out_time' || fieldname === 'employee') {
+                if (next.in_time && next.out_time) {
+                    const shiftDoc = getShiftDoc(next.employee, next.shift);
+                    const { workingHoursDisplay, workingHoursDecimal, officialOvertime, unofficialOvertime } =
+                        calculateHoursAndOvertime(next.in_time, next.out_time, shiftDoc);
+                    next.working_hours_display = workingHoursDisplay;
+                    next.working_hours_decimal = workingHoursDecimal;
+                    next.official_overtime = officialOvertime;
+                    next.unofficial_overtime = unofficialOvertime;
+                }
             }
             return next;
         });
@@ -407,8 +497,9 @@ export function AttendanceView() {
             outTimeStr = extractTime(lastOut.punch_time) || outTimeStr;
         }
 
+        const shiftDoc = getShiftDoc(formData.employee, formData.shift);
         const { workingHoursDisplay, workingHoursDecimal, officialOvertime, unofficialOvertime } =
-            calculateHoursAndOvertime(inTimeStr, outTimeStr);
+            calculateHoursAndOvertime(inTimeStr, outTimeStr, shiftDoc);
 
         setFormData((prev: any) => ({
             ...prev,
@@ -437,10 +528,21 @@ export function AttendanceView() {
         getHRDoc('Attendance', id)
             .then((doc) => {
                 if (doc) {
+                    const shiftDoc = getShiftDoc(doc.employee, doc.shift);
+                    let computed = null;
+                    if (doc.in_time && doc.out_time) {
+                        computed = calculateHoursAndOvertime(doc.in_time, doc.out_time, shiftDoc);
+                    }
                     setFormData((prev: any) => ({
                         ...prev,
                         ...doc,
                         attendance_punches: doc.attendance_punches || [],
+                        ...(computed ? {
+                            working_hours_display: computed.workingHoursDisplay,
+                            working_hours_decimal: computed.workingHoursDecimal,
+                            official_overtime: computed.officialOvertime,
+                            unofficial_overtime: computed.unofficialOvertime,
+                        } : {})
                     }));
                 }
             })

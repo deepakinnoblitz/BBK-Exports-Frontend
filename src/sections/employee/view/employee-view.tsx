@@ -446,6 +446,9 @@ export function EmployeeView() {
 
         setFormData(prev => {
             const next = { ...prev, [fieldname]: finalValue };
+            if (fieldname === 'status' && finalValue === 'Active') {
+                next.date_of_leaving = '';
+            }
             return next;
         });
 
@@ -787,6 +790,12 @@ export function EmployeeView() {
 
         if (formData.personal_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.personal_email)) {
             errors.personal_email = 'Invalid email format';
+        }
+
+        if (formData.status === 'Inactive' && formData.date_of_leaving && formData.date_of_joining) {
+            if (new Date(formData.date_of_leaving) < new Date(formData.date_of_joining)) {
+                errors.date_of_leaving = 'Date of Leaving cannot be before Joining Date';
+            }
         }
 
         // Check if any error in Tab 0
@@ -2531,6 +2540,7 @@ export function EmployeeView() {
                                             {renderField('date_of_joining', 'Joining Date', 'date', [], {}, true)}
                                             {renderField('user', 'User Login (Email)', 'autocomplete', fieldOptions['user'] || [], {}, false)}
                                             {renderField('status', 'Status', 'select', ['Active', 'Inactive'], {}, true)}
+                                            {formData.status === 'Inactive' && renderField('date_of_leaving', 'Date of Leaving (DOL)', 'date', [], {}, false)}
                                             {renderField('skip_probation', 'Skip Probation', 'checkbox')}
                                         </Box>
                                     </>

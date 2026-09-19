@@ -39,6 +39,8 @@ import { LeadTableToolbar } from '../../../lead/lead-table-toolbar';
 const TABLE_HEAD = [
   { id: 'shift_name', label: 'Shift Name' },
   { id: 'timing', label: 'Timing' },
+  { id: 'lunch_hours', label: 'Lunch Hours' },
+  { id: 'break_hours', label: 'Break Hours' },
   { id: 'description', label: 'Description' },
   { id: 'status', label: 'Status' },
   { id: 'actions', label: 'Actions', align: 'right' },

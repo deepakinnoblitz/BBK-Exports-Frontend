@@ -13,6 +13,7 @@ export interface Employee {
     designation?: string;
     status: 'Active' | 'Inactive';
     date_of_joining?: string;
+    date_of_leaving?: string;
     personal_email?: string;
     dob?: string;
     blood_group?: string;
