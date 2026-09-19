@@ -226,6 +226,9 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                                             <DetailItem label="Designation" value={employee.designation} icon="solar:medal-star-bold" />
                                             <DetailItem label="Employee Type" value={employee.employee_type} icon="solar:user-id-bold" />
                                             <DetailItem label="Joining Date" value={employee.date_of_joining ? fDate(employee.date_of_joining, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
+                                            {(employee.status === 'Inactive' || employee.date_of_leaving) && (
+                                                <DetailItem label="Date of Leaving (DOL)" value={employee.date_of_leaving ? fDate(employee.date_of_leaving, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
+                                            )}
                                             <DetailItem label="Date of Birth" value={employee.dob ? fDate(employee.dob, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
                                             <DetailItem label="Blood Group" value={employee.blood_group} icon="solar:drop-bold" />
                                             <DetailItem label="Gender" value={employee.sex} icon="solar:user-bold" />
@@ -235,6 +238,9 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                                             <DetailItem label="Line Order" value={employee.line_order} icon="solar:settings-minimalistic-bold" />
                                             <DetailItem label="Shift" value={employee.shift} icon="solar:clock-circle-bold" />
                                             <DetailItem label="Bus - Travel Route" value={employee.bus_travel_route} icon="solar:bus-bold" />
+                                            {employee.bus_route_point && (
+                                                <DetailItem label="Bus Route Point" value={employee.bus_route_point} icon="solar:map-point-bold" />
+                                            )}
                                         </Box>
                                     </Box>
 

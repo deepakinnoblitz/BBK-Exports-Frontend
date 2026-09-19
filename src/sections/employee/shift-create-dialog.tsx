@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -12,6 +13,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
@@ -32,6 +34,11 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
     const [shiftName, setShiftName] = useState(currentShiftName);
     const [startTime, setStartTime] = useState<Dayjs | null>(null);
     const [endTime, setEndTime] = useState<Dayjs | null>(null);
+    const [lunchHours, setLunchHours] = useState<Dayjs | null>(null);
+    const [breakHours, setBreakHours] = useState<Dayjs | null>(null);
+    const [allowOvertime, setAllowOvertime] = useState(false);
+    const [overtimeHours, setOvertimeHours] = useState<number | string>('');
+    const [minOvertimeMinutes, setMinOvertimeMinutes] = useState<number | string>(0);
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -41,6 +48,11 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
             setShiftName(currentShiftName);
             setStartTime(null);
             setEndTime(null);
+            setLunchHours(null);
+            setBreakHours(null);
+            setAllowOvertime(false);
+            setOvertimeHours('');
+            setMinOvertimeMinutes(0);
             setDescription('');
             setError('');
         }
@@ -59,6 +71,11 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
                 shift_name: shiftName.trim(),
                 start_time: startTime ? startTime.format('HH:mm:ss') : undefined,
                 end_time: endTime ? endTime.format('HH:mm:ss') : undefined,
+                lunch_hours: lunchHours ? lunchHours.format('HH:mm:ss') : undefined,
+                break_hours: breakHours ? breakHours.format('HH:mm:ss') : undefined,
+                allow_overtime: allowOvertime ? 1 : 0,
+                overtime_hours: allowOvertime && overtimeHours !== '' ? Number(overtimeHours) : 0,
+                min_overtime_minutes: allowOvertime && minOvertimeMinutes !== '' ? Number(minOvertimeMinutes) : 0,
                 description: description.trim() || undefined,
                 status: 'Active'
             });
@@ -132,7 +149,83 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
                                 }}
                             />
                         </Box>
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                            <TimePicker
+                                label="Lunch Hours"
+                                ampm={false}
+                                format="HH:mm"
+                                value={lunchHours}
+                                onChange={(newValue) => setLunchHours(newValue)}
+                                disabled={loading}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        InputLabelProps: { shrink: true },
+                                        helperText: 'e.g. 01:00 (1 hr lunch)'
+                                    }
+                                }}
+                            />
+
+                            <TimePicker
+                                label="Break Hours"
+                                ampm={false}
+                                format="HH:mm"
+                                value={breakHours}
+                                onChange={(newValue) => setBreakHours(newValue)}
+                                disabled={loading}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        InputLabelProps: { shrink: true },
+                                        helperText: 'e.g. 00:30 (30 mins break)'
+                                    }
+                                }}
+                            />
+                        </Box>
                     </LocalizationProvider>
+
+                    <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: (theme) => theme.palette.mode === 'light' ? 'grey.50' : 'background.neutral' }}>
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={allowOvertime}
+                                    onChange={(e) => setAllowOvertime(e.target.checked)}
+                                    disabled={loading}
+                                />
+                            }
+                            label={<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Allow Overtime</Typography>}
+                        />
+
+                        {allowOvertime && (
+                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 2 }}>
+                                <TextField
+                                    fullWidth
+                                    type="number"
+                                    label="Official Overtime (Hours)"
+                                    placeholder="e.g. 2.0"
+                                    value={overtimeHours}
+                                    onChange={(e) => setOvertimeHours(e.target.value)}
+                                    disabled={loading}
+                                    InputLabelProps={{ shrink: true }}
+                                    inputProps={{ min: 0, step: 0.5 }}
+                                    helperText="Max official overtime"
+                                />
+                                <TextField
+                                    fullWidth
+                                    type="number"
+                                    label="Min Threshold (Minutes)"
+                                    placeholder="e.g. 30"
+                                    value={minOvertimeMinutes}
+                                    onChange={(e) => setMinOvertimeMinutes(e.target.value)}
+                                    disabled={loading}
+                                    InputLabelProps={{ shrink: true }}
+                                    inputProps={{ min: 0, step: 5 }}
+                                    helperText="Min minutes before OT counts"
+                                />
+                            </Box>
+                        )}
+                    </Box>
 
                     <TextField
                         fullWidth

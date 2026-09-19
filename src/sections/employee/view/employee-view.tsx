@@ -46,6 +46,7 @@ import { fNumber } from 'src/utils/format-number';
 
 import { getDoctypeList } from 'src/api/leads';
 import { uploadFile } from 'src/api/data-import';
+import { getBusTravelRoute } from 'src/api/masters';
 import { getStates, getCities } from 'src/api/location';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getEmployee, createEmployee, updateEmployee, deleteEmployee } from 'src/api/employees';
@@ -256,6 +257,26 @@ export function EmployeeView() {
         severity: 'info'
     });
 
+    const [busRoutePoints, setBusRoutePoints] = useState<any[]>([]);
+    const [loadingRoutePoints, setLoadingRoutePoints] = useState(false);
+
+    const loadBusRoutePoints = useCallback(async (routeName: string) => {
+        if (!routeName) {
+            setBusRoutePoints([]);
+            return;
+        }
+        try {
+            setLoadingRoutePoints(true);
+            const routeDoc = await getBusTravelRoute(routeName);
+            setBusRoutePoints(routeDoc?.points || []);
+        } catch (err) {
+            console.error('Failed to load bus route points:', err);
+            setBusRoutePoints([]);
+        } finally {
+            setLoadingRoutePoints(false);
+        }
+    }, []);
+
 
     const [hrSettings, setHRSettings] = useState<{ default_currency: string; currency_symbol: string; default_locale: string }>({
         default_currency: 'INR',
@@ -444,8 +465,25 @@ export function EmployeeView() {
             finalValue = formatPhoneNumberCustom(value);
         }
 
+        if (fieldname === 'bus_travel_route') {
+            setFormData(prev => ({
+                ...prev,
+                bus_travel_route: finalValue,
+                bus_route_point: ''
+            }));
+            if (finalValue) {
+                loadBusRoutePoints(finalValue);
+            } else {
+                setBusRoutePoints([]);
+            }
+            return;
+        }
+
         setFormData(prev => {
             const next = { ...prev, [fieldname]: finalValue };
+            if (fieldname === 'status' && finalValue === 'Active') {
+                next.date_of_leaving = '';
+            }
             return next;
         });
 
@@ -651,6 +689,7 @@ export function EmployeeView() {
     };
     const handleOpenCreate = async () => {
         setFormData({ status: 'Active', ctc: 0, skip_probation: 0, country: 'India', documents: [] });
+        setBusRoutePoints([]);
         setFormErrors({});
         setOpenCreate(true);
         setCurrentTab(0);
@@ -665,6 +704,7 @@ export function EmployeeView() {
         setFormErrors({});
         setCurrentEmployeeId(null);
         setFormData({ status: 'Active', ctc: 0, skip_probation: 0, country: 'India', documents: [] });
+        setBusRoutePoints([]);
         setServerAlert({ message: '', severity: 'info' });
         setStateOptions([]);
         setCityOptions([]);
@@ -787,6 +827,12 @@ export function EmployeeView() {
 
         if (formData.personal_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.personal_email)) {
             errors.personal_email = 'Invalid email format';
+        }
+
+        if (formData.status === 'Inactive' && formData.date_of_leaving && formData.date_of_joining) {
+            if (new Date(formData.date_of_leaving) < new Date(formData.date_of_joining)) {
+                errors.date_of_leaving = 'Date of Leaving cannot be before Joining Date';
+            }
         }
 
         // Check if any error in Tab 0
@@ -914,6 +960,12 @@ export function EmployeeView() {
                 if (cleanedRow.office_phone_number) cleanedRow.office_phone_number = cleanPhoneNumber(cleanedRow.office_phone_number);
                 setFormData(cleanedRow);
 
+                if (cleanedRow.bus_travel_route) {
+                    loadBusRoutePoints(cleanedRow.bus_travel_route);
+                } else {
+                    setBusRoutePoints([]);
+                }
+
                 // Fetch states if country exists
                 if (cleanedRow.country) {
                     const states = await getStates(cleanedRow.country);
@@ -950,6 +1002,13 @@ export function EmployeeView() {
         if (!field._visibility_fn) return true;
 
         return field._visibility_fn(formData);
+    };
+
+    const formatPointDisplayTime = (timeStr?: string) => {
+        if (!timeStr) return '';
+        const norm = timeStr.includes(':') && timeStr.split(':')[0].length === 1 ? `0${timeStr}` : timeStr;
+        const parsed = dayjs(`2000-01-01T${norm.length === 5 ? `${norm}:00` : norm}`);
+        return parsed.isValid() ? parsed.format('hh:mm A') : timeStr;
     };
 
     const renderField = (fieldname: string, label: string, type: string = 'text', options: any[] = [], extraProps: any = {}, required: boolean = false) => {
@@ -1111,6 +1170,71 @@ export function EmployeeView() {
             );
         }
 
+        if (fieldname === 'bus_route_point') {
+            const selectedPoint = busRoutePoints.find((p: any) => {
+                const pName = typeof p === 'string' ? p : p?.point_name;
+                const pId = typeof p === 'object' ? p?.name : '';
+                return pName === formData[fieldname] || pId === formData[fieldname];
+            });
+
+            return (
+                <Autocomplete
+                    fullWidth
+                    options={busRoutePoints}
+                    value={selectedPoint || (formData[fieldname] ? { point_name: formData[fieldname] } : null)}
+                    disabled={!formData.bus_travel_route || loadingRoutePoints}
+                    onChange={(event, newValue: any) => {
+                        const val = typeof newValue === 'object' && newValue ? (newValue.point_name || newValue.name || '') : (newValue || '');
+                        handleInputChange(fieldname, val);
+                    }}
+                    getOptionLabel={(option: any) => {
+                        if (typeof option === 'string') return option;
+                        if (option?.point_name) return option.point_name;
+                        return option?.name || '';
+                    }}
+                    isOptionEqualToValue={(option: any, value: any) => {
+                        const optVal = typeof option === 'string' ? option : (option?.point_name || option?.name);
+                        const currentVal = typeof value === 'string' ? value : (value?.point_name || value?.name);
+                        return optVal === currentVal || option?.name === currentVal || option?.point_name === currentVal;
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label={label}
+                            placeholder={!formData.bus_travel_route ? "Select Bus Route first" : (loadingRoutePoints ? "Loading points..." : `Select ${label}`)}
+                            required={required}
+                            error={!!formErrors[fieldname]}
+                            helperText={formErrors[fieldname]}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiFormLabel-asterisk': { color: 'red' },
+                                ...extraProps.sx
+                            }}
+                        />
+                    )}
+                    renderOption={(props, option: any) => {
+                        const name = typeof option === 'string' ? option : (option?.point_name || option?.name || '');
+                        const pickup = typeof option === 'object' && option?.pickup_time ? formatPointDisplayTime(option.pickup_time) : null;
+                        const drop = typeof option === 'object' && option?.drop_time ? formatPointDisplayTime(option.drop_time) : null;
+                        return (
+                            <Box component="li" {...props} key={option?.name || name}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', py: 0.5 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                        {name}
+                                    </Typography>
+                                    {(pickup || drop) && (
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.25 }}>
+                                            {pickup ? `Pickup: ${pickup}` : ''}{pickup && drop ? ' • ' : ''}{drop ? `Drop: ${drop}` : ''}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </Box>
+                        );
+                    }}
+                />
+            );
+        }
+
         if (type === 'autocomplete') {
             // Determine if field should be disabled based on dependencies
             let disabled = false;
@@ -1129,20 +1253,21 @@ export function EmployeeView() {
                     fullWidth
                     options={options}
                     value={formData[fieldname] || ''}
-                    onChange={(event, newValue) => {
-                        // Handle both string values and objects with name property
-                        const value = typeof newValue === 'object' && newValue?.name ? newValue.name : newValue;
+                    onChange={(event, newValue: any) => {
+                        // Handle both string values and objects with point_name or name property
+                        const value = typeof newValue === 'object' && newValue ? (newValue.point_name || newValue.name || '') : (newValue || '');
                         handleInputChange(fieldname, value || '');
                     }}
                     getOptionLabel={(option) => {
-                        // Handle both string options and objects with name property
+                        // Handle both string options and objects with point_name or name property
                         if (typeof option === 'string') return option;
+                        if (option?.point_name) return option.point_name;
                         if (option?.name) return option.name;
                         return '';
                     }}
                     isOptionEqualToValue={(option, value) => {
                         // Handle comparison for both strings and objects
-                        const optionValue = typeof option === 'string' ? option : option?.name;
+                        const optionValue = typeof option === 'string' ? option : (option?.point_name || option?.name);
                         return optionValue === value;
                     }}
                     disabled={disabled}
@@ -2348,7 +2473,7 @@ export function EmployeeView() {
 
                 <Scrollbar>
                     <TableContainer sx={{ overflow: 'unset' }}>
-                        <Table sx={{ minWidth: 800, borderCollapse: 'collapse' }}>
+                        <Table sx={{ minWidth: 960, borderCollapse: 'collapse' }}>
                             <EmployeeTableHead
                                 order={order}
                                 orderBy={orderBy}
@@ -2358,8 +2483,9 @@ export function EmployeeView() {
                                 hideCheckbox
                                 showIndex
                                 headLabel={[
-                                    { id: 'employee_name', label: 'Name', minWidth: 180 },
-                                    // { id: 'employee_id', label: 'ID', minWidth: 80 },
+                                    { id: 'employee_name', label: 'Name', minWidth: 160 },
+                                    { id: 'employee_id', label: 'Employee ID', minWidth: 120 },
+                                    { id: 'employee_type', label: 'Employee Type', minWidth: 130 },
                                     { id: 'department', label: 'Department', minWidth: 120 },
                                     { id: 'designation', label: 'Designation', minWidth: 120 },
                                     { id: 'status', label: 'Status', minWidth: 100 },
@@ -2370,7 +2496,7 @@ export function EmployeeView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#08a3cd' }} />
                                         </TableCell>
                                     </TableRow>
@@ -2385,6 +2511,7 @@ export function EmployeeView() {
                                                     id: row.name,
                                                     employeeId: row.employee_id,
                                                     name: row.employee_name,
+                                                    employeeType: row.employee_type,
                                                     department: row.department,
                                                     designation: row.designation,
                                                     status: row.status,
@@ -2403,7 +2530,7 @@ export function EmployeeView() {
 
                                         {empty && (
                                             <TableRow>
-                                                <TableCell colSpan={6}>
+                                                <TableCell colSpan={8}>
                                                     <EmptyContent
                                                         title="No employees found"
                                                         description="Click 'New Employee' to add your first team member."
@@ -2528,9 +2655,11 @@ export function EmployeeView() {
                                             {renderField('line_order', 'Line Order', 'link', fieldOptions['line_order'] || [])}
                                             {renderField('shift', 'Shift', 'link', fieldOptions['shift'] || [])}
                                             {renderField('bus_travel_route', 'Bus - Travel Route', 'link', fieldOptions['bus_travel_route'] || [])}
+                                            {formData.bus_travel_route && renderField('bus_route_point', 'Bus Route Point', 'autocomplete', busRoutePoints)}
                                             {renderField('date_of_joining', 'Joining Date', 'date', [], {}, true)}
                                             {renderField('user', 'User Login (Email)', 'autocomplete', fieldOptions['user'] || [], {}, false)}
                                             {renderField('status', 'Status', 'select', ['Active', 'Inactive'], {}, true)}
+                                            {formData.status === 'Inactive' && renderField('date_of_leaving', 'Date of Leaving (DOL)', 'date', [], {}, false)}
                                             {renderField('skip_probation', 'Skip Probation', 'checkbox')}
                                         </Box>
                                     </>
@@ -2900,6 +3029,7 @@ export function EmployeeView() {
                         };
                     });
                     handleInputChange('bus_travel_route', newRoute);
+                    loadBusRoutePoints(newRoute);
                     try {
                         const freshOptions = await getDoctypeList('Bus Travel Route', ['name', 'route_name']);
                         setFieldOptions(prev => ({

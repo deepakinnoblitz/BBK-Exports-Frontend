@@ -13,6 +13,7 @@ export interface Employee {
     designation?: string;
     status: 'Active' | 'Inactive';
     date_of_joining?: string;
+    date_of_leaving?: string;
     personal_email?: string;
     dob?: string;
     blood_group?: string;
@@ -22,6 +23,8 @@ export interface Employee {
     marital_status?: string;
     qualification?: string;
     aadhar_number?: string;
+    bus_travel_route?: string;
+    bus_route_point?: string;
 }
 
 // Employee APIs

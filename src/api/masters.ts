@@ -2142,6 +2142,11 @@ export interface Shift {
     start_time?: string;
     end_time?: string;
     status?: string;
+    lunch_hours?: string;
+    break_hours?: string;
+    allow_overtime?: number | boolean;
+    overtime_hours?: number;
+    min_overtime_minutes?: number;
     description?: string;
 }
 
@@ -2220,6 +2225,13 @@ export async function getShift(name: string) {
 }
 
 // Bus Travel Route APIs
+export interface BusRoutePoint {
+    name?: string;
+    point_name: string;
+    pickup_time?: string;
+    drop_time?: string;
+}
+
 export interface BusTravelRoute {
     name: string;
     route_name: string;
@@ -2227,6 +2239,7 @@ export interface BusTravelRoute {
     driver_contact?: string;
     status?: string;
     description?: string;
+    points?: BusRoutePoint[];
 }
 
 export const fetchBusTravelRoutes = (params: any) => {
@@ -2248,10 +2261,17 @@ export const fetchBusTravelRoutes = (params: any) => {
 
 export async function createBusTravelRoute(data: Partial<BusTravelRoute>) {
     const headers = await getAuthHeaders();
-    const res = await frappeRequest("/api/method/frappe.client.insert", {
+    const res = await frappeRequest("/api/method/company.company.doctype.bus_travel_route.bus_travel_route.save_bus_travel_route", {
         method: "POST",
         headers,
-        body: JSON.stringify({ doc: { doctype: "Bus Travel Route", ...data } })
+        body: JSON.stringify({
+            route_name: data.route_name,
+            bus_number: data.bus_number,
+            driver_contact: data.driver_contact,
+            status: data.status || 'Active',
+            description: data.description,
+            points: JSON.stringify(data.points || [])
+        })
     });
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, "Failed to create bus travel route"));
@@ -2260,10 +2280,18 @@ export async function createBusTravelRoute(data: Partial<BusTravelRoute>) {
 
 export async function updateBusTravelRoute(name: string, data: Partial<BusTravelRoute>) {
     const headers = await getAuthHeaders();
-    const res = await frappeRequest("/api/method/frappe.client.set_value", {
+    const res = await frappeRequest("/api/method/company.company.doctype.bus_travel_route.bus_travel_route.save_bus_travel_route", {
         method: "POST",
         headers,
-        body: JSON.stringify({ doctype: "Bus Travel Route", name, fieldname: data })
+        body: JSON.stringify({
+            name,
+            route_name: data.route_name,
+            bus_number: data.bus_number,
+            driver_contact: data.driver_contact,
+            status: data.status || 'Active',
+            description: data.description,
+            points: JSON.stringify(data.points || [])
+        })
     });
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update bus travel route"));

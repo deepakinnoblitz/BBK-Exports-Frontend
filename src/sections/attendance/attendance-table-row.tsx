@@ -26,6 +26,8 @@ type Props = {
         inTime?: string;
         out_time?: string;
         working_hours_display?: string;
+        official_overtime?: string;
+        unofficial_overtime?: string;
         attendance_source?: string;
         manual?: number | boolean;
         modified: string;
@@ -37,6 +39,7 @@ type Props = {
     onDelete: VoidFunction;
     canEdit?: boolean;
     canDelete?: boolean;
+    canViewUnofficial?: boolean;
     hideCheckbox?: boolean;
     index?: number;
 };
@@ -50,6 +53,7 @@ export function AttendanceTableRow({
     onDelete,
     canEdit,
     canDelete,
+    canViewUnofficial = false,
     hideCheckbox = false,
     index,
 }: Props) {
@@ -171,6 +175,20 @@ export function AttendanceTableRow({
                     {row.working_hours_display || '-'}
                 </Typography>
             </TableCell>
+
+            <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                <Typography variant="body2" noWrap sx={{ color: row.official_overtime && row.official_overtime !== '0:00' ? 'primary.main' : 'text.secondary', fontWeight: row.official_overtime && row.official_overtime !== '0:00' ? 600 : 400 }}>
+                    {row.official_overtime || '-'}
+                </Typography>
+            </TableCell>
+
+            {canViewUnofficial && (
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <Typography variant="body2" noWrap sx={{ color: row.unofficial_overtime && row.unofficial_overtime !== '0:00' ? 'warning.main' : 'text.secondary', fontWeight: row.unofficial_overtime && row.unofficial_overtime !== '0:00' ? 600 : 400 }}>
+                        {row.unofficial_overtime || '-'}
+                    </Typography>
+                </TableCell>
+            )}
 
             <TableCell align="right">
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1.5 }}>
