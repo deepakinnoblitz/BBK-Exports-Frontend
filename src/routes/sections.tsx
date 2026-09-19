@@ -224,6 +224,8 @@ export const HRDocumentCategoryPage = lazy(() => import('src/pages/hr-document-c
 export const BloodGroupPage = lazy(() => import('src/pages/blood-group'));
 export const LineOrderPage = lazy(() => import('src/pages/line-order'));
 export const ShiftPage = lazy(() => import('src/pages/shift'));
+export const ShiftRosterPage = lazy(() => import('src/pages/shift-roster'));
+export const ShiftRotationPage = lazy(() => import('src/pages/shift-rotation'));
 export const BusTravelRoutePage = lazy(() => import('src/pages/bus-travel-route'));
 export const LeadFromPage = lazy(() => import('src/pages/lead-from'));
 export const CallStatusPage = lazy(() => import('src/pages/call-status'));
@@ -502,6 +504,8 @@ export const routesSection: RouteObject[] = [
       { path: 'blood-group', element: <RolePermissionGuard actionKey="master_blood_group"><BloodGroupPage /></RolePermissionGuard> },
       { path: 'line-order', element: <RolePermissionGuard actionKey="master_line_order"><LineOrderPage /></RolePermissionGuard> },
       { path: 'shift', element: <RolePermissionGuard actionKey="master_shift"><ShiftPage /></RolePermissionGuard> },
+      { path: 'shift-roster', element: <RolePermissionGuard actionKey="shift_roster"><ShiftRosterPage /></RolePermissionGuard> },
+      { path: 'shift-rotation', element: <RolePermissionGuard actionKey="shift_rotation"><ShiftRotationPage /></RolePermissionGuard> },
       { path: 'bus-travel-route', element: <RolePermissionGuard actionKey="master_bus_travel_route"><BusTravelRoutePage /></RolePermissionGuard> },
       { path: 'hr-document-category', element: <HRDocumentCategoryPage /> },
       { path: 'master/lead-from', element: <RolePermissionGuard actionKey="master_lead_from"><LeadFromPage /></RolePermissionGuard> },

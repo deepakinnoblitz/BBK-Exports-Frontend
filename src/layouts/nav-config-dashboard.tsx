@@ -75,6 +75,17 @@ export const hrNavData = [
     ],
   },
   {
+    title: 'Shift Management',
+    path: '/shift-roster',
+    icon: <RiCalendarScheduleLine size={18} />,
+    children: [
+      { title: 'Employee Shift Roster', path: '/shift-roster' },
+      { title: 'Monthly Roster', path: '/shift-roster?view=monthly' },
+      { title: 'Shift Rotation', path: '/shift-rotation' },
+      { title: 'Shift Master', path: '/shift' },
+    ],
+  },
+  {
     title: 'Leaves Records',
     path: '/leaves',
     icon: <RiAppsLine size={18} />,
@@ -504,6 +515,9 @@ export function getNavData(user: any = null, view?: 'HR' | 'CRM', settings?: any
         if (lower === 'wfh attendance' || lower === 'my wfh attendance') return 'wfh_attendance';
         if (lower === 'sales target entry') return 'sales_target_entry';
         if (lower === 'calendar') return 'events';
+        if (lower === 'shift management' || lower === 'employee shift roster' || lower === 'monthly roster') return 'shift_roster';
+        if (lower === 'shift rotation') return 'shift_rotation';
+        if (lower === 'shift master') return 'master_shift';
         return lower.replace(/\s+/g, '_');
       };
 
