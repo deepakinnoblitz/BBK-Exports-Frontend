@@ -1,4 +1,5 @@
 import { CONFIG } from 'src/config-global';
+
 import { ShiftRotationView } from 'src/sections/shift-rotation/view';
 
 // ----------------------------------------------------------------------

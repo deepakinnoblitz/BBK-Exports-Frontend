@@ -1,3 +1,5 @@
+import type { ShiftRotation} from 'src/api/shift-rotation';
+
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
@@ -7,6 +9,7 @@ import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
+import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -17,12 +20,12 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
-import { alpha } from '@mui/material/styles';
+
+import { getShiftRotationDoc } from 'src/api/shift-rotation';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
-import { ShiftRotation, getShiftRotationDoc } from 'src/api/shift-rotation';
 
 // ----------------------------------------------------------------------
 

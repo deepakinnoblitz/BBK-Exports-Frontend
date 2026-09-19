@@ -1,3 +1,5 @@
+import type { ShiftRotation} from 'src/api/shift-rotation';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -5,6 +7,7 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -14,11 +17,11 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
-import { alpha } from '@mui/material/styles';
+
+import { generateRotationAssignments } from 'src/api/shift-rotation';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
-import { ShiftRotation, generateRotationAssignments } from 'src/api/shift-rotation';
 
 // ----------------------------------------------------------------------
 

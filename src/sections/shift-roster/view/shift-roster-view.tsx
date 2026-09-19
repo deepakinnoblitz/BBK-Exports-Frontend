@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
@@ -10,17 +10,19 @@ import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 
-import { useAuth } from 'src/auth/auth-context';
-import { Iconify } from 'src/components/iconify';
-import { DashboardContent } from 'src/layouts/dashboard';
 import { useShiftRoster } from 'src/hooks/use-shift-roster';
 
-import { ShiftRosterListView } from './shift-roster-list-view';
-import { ShiftRosterCalendarView } from './shift-roster-calendar-view';
-import { ShiftRosterMonthlyView } from './shift-roster-monthly-view';
-import { ShiftRosterDialog } from '../shift-roster-dialog';
-import { ShiftRosterBulkDialog } from '../shift-roster-bulk-dialog';
+import { DashboardContent } from 'src/layouts/dashboard';
 
+import { Iconify } from 'src/components/iconify';
+
+import { useAuth } from 'src/auth/auth-context';
+
+import { ShiftRosterDialog } from '../shift-roster-dialog';
+import { ShiftRosterListView } from './shift-roster-list-view';
+import { ShiftRosterBulkDialog } from '../shift-roster-bulk-dialog';
+import { ShiftRosterMonthlyView } from './shift-roster-monthly-view';
+import { ShiftRosterCalendarView } from './shift-roster-calendar-view';
 // ----------------------------------------------------------------------
 
 interface SummaryCardProps {

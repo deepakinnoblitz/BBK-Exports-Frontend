@@ -1,8 +1,10 @@
+import type { ShiftRotation } from 'src/api/shift-rotation';
+
 import dayjs from 'dayjs';
 
 import Box from '@mui/material/Box';
-import { alpha } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
+import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
@@ -10,8 +12,8 @@ import IconButton from '@mui/material/IconButton';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
+
 import { useAuth } from 'src/auth/auth-context';
-import { ShiftRotation } from 'src/api/shift-rotation';
 
 // ----------------------------------------------------------------------
 
