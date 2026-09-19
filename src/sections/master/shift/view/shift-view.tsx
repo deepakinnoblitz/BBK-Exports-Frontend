@@ -30,6 +30,7 @@ import { useAuth } from 'src/auth/auth-context';
 import { ShiftDialog } from '../shift-dialog';
 import { ShiftTableRow } from '../shift-table-row';
 import { TableNoData } from '../../../lead/table-no-data';
+import { ShiftDetailsDialog } from '../shift-details-dialog';
 import { LeadTableHead } from '../../../lead/lead-table-head';
 import { TableEmptyRows } from '../../../lead/table-empty-rows';
 import { LeadTableToolbar } from '../../../lead/lead-table-toolbar';
@@ -70,6 +71,9 @@ export function ShiftView() {
   const [openForm, setOpenForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const [openDetails, setOpenDetails] = useState(false);
+  const [selectedDetailsId, setSelectedDetailsId] = useState<string | null>(null);
+
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string | null }>({
     open: false,
     id: null,
@@ -106,6 +110,11 @@ export function ShiftView() {
   const handleEditRow = (id: string) => {
     setSelectedId(id);
     setOpenForm(true);
+  };
+
+  const handleViewRow = (id: string) => {
+    setSelectedDetailsId(id);
+    setOpenDetails(true);
   };
 
   const handleDeleteRow = (id: string) => {
@@ -186,6 +195,7 @@ export function ShiftView() {
                         row={row}
                         selected={false}
                         onEditRow={() => handleEditRow(row.name)}
+                        onViewRow={() => handleViewRow(row.name)}
                         onDeleteRow={() => handleDeleteRow(row.name)}
                         onSelectRow={() => {}}
                         canEdit={canEdit}
@@ -244,6 +254,15 @@ export function ShiftView() {
           });
           refetch();
         }}
+      />
+
+      <ShiftDetailsDialog
+        open={openDetails}
+        onClose={() => {
+          setOpenDetails(false);
+          setSelectedDetailsId(null);
+        }}
+        shiftId={selectedDetailsId}
       />
 
       <Snackbar

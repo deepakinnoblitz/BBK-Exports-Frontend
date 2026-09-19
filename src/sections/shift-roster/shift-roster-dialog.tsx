@@ -1,3 +1,6 @@
+import type {
+  ShiftRoster} from 'src/api/shift-roster';
+
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
@@ -10,27 +13,25 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
-import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import CircularProgress from '@mui/material/CircularProgress';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { alpha } from '@mui/material/styles';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { getDoctypeList } from 'src/api/leads';
-import { Iconify } from 'src/components/iconify';
 import {
-  createRosterAssignment,
-  updateRosterAssignment,
   checkRosterConflict,
-  ShiftRoster,
+  createRosterAssignment,
+  updateRosterAssignment
 } from 'src/api/shift-roster';
+
+import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
@@ -213,57 +214,16 @@ export function ShiftRosterDialog({
         PaperProps={{
           sx: {
             borderRadius: 2,
-            boxShadow: (themeVar: any) => themeVar.customShadows?.z24,
           },
         }}
       >
-        <DialogTitle
-          sx={{
-            m: 0,
-            px: 3,
-            py: 2,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
-          }}
-        >
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 1,
-                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                color: 'primary.main',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Iconify icon={isEdit ? 'solar:pen-bold' : 'solar:calendar-add-bold'} width={20} />
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>
-              {isEdit ? 'Edit Shift Assignment' : 'Assign Employee Shift'}
-            </Typography>
-          </Stack>
-
-          <IconButton
-            onClick={onClose}
-            sx={{
-              color: 'text.disabled',
-              '&:hover': {
-                color: 'text.primary',
-                bgcolor: (theme) => alpha(theme.palette.grey[500], 0.12),
-              },
-            }}
-          >
-            <Iconify icon="mingcute:close-line" width={20} />
-          </IconButton>
+        <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6">{isEdit ? 'Edit Shift Assignment' : 'New Shift Assignment'}</Typography>
+          <Iconify icon="mingcute:close-line" onClick={onClose} sx={{ cursor: 'pointer', color: 'text.disabled' }} />
         </DialogTitle>
 
-        <DialogContent sx={{ p: 3, mt: 1 }}>
-          <Stack spacing={2.5}>
+        <DialogContent dividers>
+          <Stack spacing={3} sx={{ py: 2 }}>
             {errorMessage && (
               <Alert severity="error" onClose={() => setErrorMessage(null)}>
                 {errorMessage}
@@ -281,8 +241,8 @@ export function ShiftRosterDialog({
               options={employees}
               loading={loadingData}
               disabled={isEdit}
-              getOptionLabel={(opt) => `${opt.employee_name || opt.name} (${opt.name})`}
-              isOptionEqualToValue={(option, value) => option.name === value.name}
+              getOptionLabel={(opt) => (opt ? opt.employee_name || opt.name : '')}
+              isOptionEqualToValue={(option, value) => option?.name === value?.name}
               value={selectedEmployee}
               onChange={(_, val) => setSelectedEmployee(val)}
               renderOption={(props, option, { selected: isSelected }) => (
@@ -303,19 +263,21 @@ export function ShiftRosterDialog({
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Employee *"
+                  required
+                  label="Employee"
                   placeholder="Select Employee..."
+                  InputLabelProps={{ shrink: true }}
                   sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
                 />
               )}
             />
 
             {/* Shift Master Selector */}
-            <FormControl fullWidth sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}>
-              <InputLabel>Shift *</InputLabel>
+            <FormControl fullWidth required sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}>
+              <InputLabel shrink>Shift</InputLabel>
               <Select
                 value={selectedShift}
-                label="Shift *"
+                label="Shift"
                 onChange={(e) => setSelectedShift(e.target.value)}
               >
                 {shifts.map((s) => (
@@ -328,9 +290,9 @@ export function ShiftRosterDialog({
             </FormControl>
 
             {/* Date Range Fields */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
               <DatePicker
-                label="Effective From *"
+                label="Effective From"
                 value={effectiveFrom}
                 onChange={(val) => {
                   setEffectiveFrom(val);
@@ -340,7 +302,9 @@ export function ShiftRosterDialog({
                 }}
                 slotProps={{
                   textField: {
+                    required: true,
                     fullWidth: true,
+                    InputLabelProps: { shrink: true },
                     sx: { '& .MuiFormLabel-asterisk': { color: 'red' } },
                   },
                 }}
@@ -354,16 +318,17 @@ export function ShiftRosterDialog({
                 slotProps={{
                   textField: {
                     fullWidth: true,
+                    InputLabelProps: { shrink: true },
                     helperText: 'Leave same for single date assignment',
                   },
                 }}
               />
-            </Stack>
+            </Box>
 
             {/* Assignment Type & Status */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
               <FormControl fullWidth>
-                <InputLabel>Assignment Type</InputLabel>
+                <InputLabel shrink>Assignment Type</InputLabel>
                 <Select
                   value={assignmentType}
                   label="Assignment Type"
@@ -378,7 +343,7 @@ export function ShiftRosterDialog({
               </FormControl>
 
               <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
+                <InputLabel shrink>Status</InputLabel>
                 <Select
                   value={status}
                   label="Status"
@@ -388,29 +353,33 @@ export function ShiftRosterDialog({
                   <MenuItem value="Cancelled">Cancelled</MenuItem>
                 </Select>
               </FormControl>
-            </Stack>
+            </Box>
 
-            {/* Reason */}
+            {/* Description / Reason */}
             <TextField
-              label="Reason / Notes"
+              fullWidth
+              multiline
+              rows={3}
+              label="Description / Reason"
+              placeholder="Add a brief description (Optional)"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              multiline
-              rows={2}
-              placeholder="e.g. Project deployment weekend support, rotational coverage..."
+              disabled={submitting}
+              InputLabelProps={{ shrink: true }}
             />
           </Stack>
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2, borderTop: (theme) => `1px solid ${theme.palette.divider}` }}>
+        <DialogActions sx={{ p: 2 }}>
           <Button
-            variant="contained"
             onClick={handleSubmit}
+            variant="contained"
+            fullWidth
             disabled={submitting}
-            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
-            startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <Iconify icon={isEdit ? 'solar:pen-bold' : 'solar:check-circle-bold'} />}
+            startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : null}
+            sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
           >
-            {isEdit ? 'Save Changes' : 'Assign Shift'}
+            {isEdit ? 'Save Changes' : 'Create'}
           </Button>
         </DialogActions>
       </Dialog>

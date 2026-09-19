@@ -1,4 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import type {
+  ShiftRotation} from 'src/api/shift-rotation';
+
+import { useMemo, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -15,37 +18,42 @@ import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { useAuth } from 'src/auth/auth-context';
-import { getDoctypeList } from 'src/api/leads';
-import { Iconify } from 'src/components/iconify';
-import { Scrollbar } from 'src/components/scrollbar';
-import { DashboardContent } from 'src/layouts/dashboard';
-import { EmptyContent } from 'src/components/empty-content';
-import { ConfirmDialog } from 'src/components/confirm-dialog';
 import { useShiftRotations } from 'src/hooks/use-shift-rotation';
+
+import { getDoctypeList } from 'src/api/leads';
+import { DashboardContent } from 'src/layouts/dashboard';
 import {
-  ShiftRotation,
   deleteShiftRotation,
 } from 'src/api/shift-rotation';
 
+import { Iconify } from 'src/components/iconify';
+import { Scrollbar } from 'src/components/scrollbar';
+import { EmptyContent } from 'src/components/empty-content';
+import { ConfirmDialog } from 'src/components/confirm-dialog';
+
+import { useAuth } from 'src/auth/auth-context';
+
 import { TableNoData } from '../../lead/table-no-data';
 import { TableEmptyRows } from '../../lead/table-empty-rows';
-import { LeadTableHead as ShiftRotationTableHead } from '../../lead/lead-table-head';
-import { LeadTableToolbar as ShiftRotationTableToolbar } from '../../lead/lead-table-toolbar';
-
-import { ShiftRotationTableRow } from '../shift-rotation-table-row';
 import { ShiftRotationDialog } from '../shift-rotation-dialog';
+import { ShiftRotationTableRow } from '../shift-rotation-table-row';
 import { ShiftRotationDetailsDialog } from '../shift-rotation-details-dialog';
 import { ShiftRotationGenerateDialog } from '../shift-rotation-generate-dialog';
+import { LeadTableHead as ShiftRotationTableHead } from '../../lead/lead-table-head';
 import { ShiftRotationTableFiltersDrawer } from '../shift-rotation-table-filters-drawer';
+import { LeadTableToolbar as ShiftRotationTableToolbar } from '../../lead/lead-table-toolbar';
 
 // ----------------------------------------------------------------------
 
 const sortOptions = [
   { value: 'modified_desc', label: 'Newest First' },
   { value: 'modified_asc', label: 'Oldest First' },
-  { value: 'rotation_name_asc', label: 'Name: A to Z' },
-  { value: 'rotation_name_desc', label: 'Name: Z to A' },
+  { value: 'rotation_name_asc', label: 'Rotation Name: A to Z' },
+  { value: 'rotation_name_desc', label: 'Rotation Name: Z to A' },
+  { value: 'frequency_asc', label: 'Frequency: A to Z' },
+  { value: 'frequency_desc', label: 'Frequency: Z to A' },
+  { value: 'start_date_desc', label: 'Active Period: Newest' },
+  { value: 'start_date_asc', label: 'Active Period: Oldest' },
 ];
 
 export function ShiftRotationView() {
@@ -155,28 +163,20 @@ export function ShiftRotationView() {
   const empty = !data.length && !filterName && !loading;
 
   const handleSortChange = (value: string) => {
-    if (value === 'modified_desc') {
-      setOrderBy('modified');
-      setOrder('desc');
-    } else if (value === 'modified_asc') {
-      setOrderBy('modified');
-      setOrder('asc');
-    } else if (value === 'rotation_name_asc') {
-      setOrderBy('rotation_name');
-      setOrder('asc');
-    } else if (value === 'rotation_name_desc') {
-      setOrderBy('rotation_name');
-      setOrder('desc');
+    if (value.includes('_')) {
+      const isAsc = value.endsWith('_asc');
+      const property = value.replace(/_(asc|desc)$/, '');
+      setOrder(isAsc ? 'asc' : 'desc');
+      setOrderBy(property);
+    } else {
+      const isAsc = orderBy === value && order === 'asc';
+      setOrder(isAsc ? 'desc' : 'asc');
+      setOrderBy(value);
     }
+    setPage(0);
   };
 
-  const getSortByValue = () => {
-    if (orderBy === 'modified' && order === 'desc') return 'modified_desc';
-    if (orderBy === 'modified' && order === 'asc') return 'modified_asc';
-    if (orderBy === 'rotation_name' && order === 'asc') return 'rotation_name_asc';
-    if (orderBy === 'rotation_name' && order === 'desc') return 'rotation_name_desc';
-    return 'modified_desc';
-  };
+  const getSortByValue = () => `${orderBy}_${order}`;
 
   const handleCreate = () => {
     setSelectedName(null);
@@ -285,6 +285,7 @@ export function ShiftRotationView() {
               <ShiftRotationTableHead
                 order={order}
                 orderBy={orderBy}
+                onSort={(id: string) => handleSortChange(id)}
                 rowCount={total}
                 numSelected={0}
                 onSelectAllRows={() => {}}
@@ -386,20 +387,6 @@ export function ShiftRotationView() {
         }}
         rotationName={selectedDetailName}
         canEdit={canEdit}
-        onEdit={() => {
-          setOpenDetails(false);
-          if (selectedDetailName) {
-            setSelectedName(selectedDetailName);
-            setOpenDialog(true);
-          }
-        }}
-        onGenerate={() => {
-          if (selectedDetailName) {
-            setGenerateTargetName(selectedDetailName);
-            setOpenDetails(false);
-            setOpenGenerateDialog(true);
-          }
-        }}
       />
 
       {/* Generate Roster Modal (near Add button & details) */}

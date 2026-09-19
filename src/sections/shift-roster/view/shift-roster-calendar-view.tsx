@@ -15,13 +15,15 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import FormControl from '@mui/material/FormControl';
+import { Box, alpha, useTheme } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import CircularProgress from '@mui/material/CircularProgress';
-import { Box, alpha, useTheme } from '@mui/material';
+
+import { useCalendarRoster } from 'src/hooks/use-shift-roster';
 
 import { getDoctypeList } from 'src/api/leads';
+
 import { Iconify } from 'src/components/iconify';
-import { useCalendarRoster } from 'src/hooks/use-shift-roster';
 
 import { ShiftRosterDialog } from '../shift-roster-dialog';
 
@@ -64,8 +66,12 @@ export function ShiftRosterCalendarView({
         getDoctypeList('Employee', ['name', 'employee_name', 'department']),
         getDoctypeList('Department', ['name', 'department_name']),
       ]);
-      setEmployees(empRes || []);
+      const empList = empRes || [];
+      setEmployees(empList);
       setDepartments(deptRes || []);
+      if (empList.length > 0) {
+        setSelectedEmployee((prev: any) => prev || empList[0]);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -74,10 +80,12 @@ export function ShiftRosterCalendarView({
   const startDate = currentDate.startOf('month').subtract(7, 'day').format('YYYY-MM-DD');
   const endDate = currentDate.endOf('month').add(7, 'day').format('YYYY-MM-DD');
 
+  const activeEmployeeName = selectedEmployee?.name || (employees.length > 0 ? employees[0]?.name : undefined);
+
   const { events, loading, refetch } = useCalendarRoster(
     startDate,
     endDate,
-    selectedEmployee?.name || undefined,
+    activeEmployeeName,
     selectedDept !== 'all' ? selectedDept : undefined
   );
 
@@ -237,7 +245,16 @@ export function ShiftRosterCalendarView({
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <Select
               value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
+              onChange={(e) => {
+                const newDept = e.target.value;
+                setSelectedDept(newDept);
+                if (newDept !== 'all') {
+                  const filtered = employees.filter((emp) => emp.department === newDept);
+                  if (filtered.length > 0 && (!selectedEmployee || selectedEmployee.department !== newDept)) {
+                    setSelectedEmployee(filtered[0]);
+                  }
+                }
+              }}
               displayEmpty
             >
               <MenuItem value="all">All Departments</MenuItem>
@@ -251,11 +268,14 @@ export function ShiftRosterCalendarView({
 
           <Autocomplete
             size="small"
-            options={employees}
-            getOptionLabel={(opt) => opt.employee_name || opt.name}
+            disableClearable={Boolean(selectedEmployee)}
+            options={selectedDept === 'all' ? employees : employees.filter((e) => e.department === selectedDept)}
+            getOptionLabel={(opt) => (opt ? opt.employee_name || opt.name : '')}
             isOptionEqualToValue={(option, value) => option?.name === value?.name}
-            value={selectedEmployee}
-            onChange={(_, val) => setSelectedEmployee(val)}
+            value={selectedEmployee || (employees.length > 0 ? employees[0] : null)}
+            onChange={(_, val) => {
+              if (val) setSelectedEmployee(val);
+            }}
             renderOption={(props, option, { selected: isSelected }) => (
               <li {...props} key={option.name}>
                 <Box sx={{ flexGrow: 1 }}>
@@ -272,7 +292,7 @@ export function ShiftRosterCalendarView({
               </li>
             )}
             renderInput={(params) => (
-              <TextField {...params} placeholder="Filter Employee..." sx={{ width: 220 }} />
+              <TextField {...params} placeholder="Select Employee..." sx={{ width: 240 }} />
             )}
           />
 

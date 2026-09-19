@@ -79,10 +79,10 @@ export const hrNavData = [
     path: '/shift-roster',
     icon: <RiCalendarScheduleLine size={18} />,
     children: [
+      { title: 'Shift', path: '/shift' },
       { title: 'Employee Shift Roster', path: '/shift-roster' },
       { title: 'Monthly Roster', path: '/shift-roster?view=monthly' },
       { title: 'Shift Rotation', path: '/shift-rotation' },
-      { title: 'Shift Master', path: '/shift' },
     ],
   },
   {

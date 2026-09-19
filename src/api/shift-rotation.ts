@@ -1,5 +1,6 @@
 import { frappeRequest, getAuthHeaders } from 'src/utils/csrf';
 import { handleFrappeError } from 'src/utils/api-error-handler';
+
 import { fetchFrappeList } from './hr-management';
 
 export interface ShiftRotationSequenceItem {
@@ -34,19 +35,36 @@ export interface ShiftRotation {
 
 // Fetch list of rotations
 export const fetchShiftRotationList = (params: any) => {
-  const { search, ...rest } = params;
+  const { search, limit, page_size, order_by, orderBy, order, page, filters, fields, or_filters: customOrFilters } = params;
   const cleanSearch = search?.trim();
 
-  const or_filters = rest.or_filters || [];
+  const or_filters = customOrFilters ? [...customOrFilters] : [];
 
   if (cleanSearch) {
     or_filters.push(
       ['Shift Rotation', 'rotation_name', 'like', `%${cleanSearch}%`],
-      ['Shift Rotation', 'frequency', 'like', `%${cleanSearch}%`]
+      ['Shift Rotation', 'frequency', 'like', `%${cleanSearch}%`],
+      ['Shift Rotation', 'name', 'like', `%${cleanSearch}%`]
     );
   }
 
-  return fetchFrappeList('Shift Rotation', { ...rest, or_filters });
+  let finalOrderBy = orderBy;
+  let finalOrder = order;
+  if (!finalOrderBy && order_by) {
+    const parts = order_by.split(' ');
+    finalOrderBy = parts[0];
+    finalOrder = parts[1] as any;
+  }
+
+  return fetchFrappeList('Shift Rotation', {
+    page: page || 1,
+    page_size: page_size || limit || 10,
+    orderBy: finalOrderBy || 'modified',
+    order: finalOrder || 'desc',
+    fields,
+    filters,
+    or_filters,
+  });
 };
 
 // Fetch single rotation with child tables

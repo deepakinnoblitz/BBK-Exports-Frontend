@@ -1,12 +1,14 @@
+import type { ShiftRotation} from 'src/api/shift-rotation';
+
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
-import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
+import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -17,12 +19,12 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
-import { alpha } from '@mui/material/styles';
+
+import { getShiftRotationDoc } from 'src/api/shift-rotation';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
-import { ShiftRotation, getShiftRotationDoc } from 'src/api/shift-rotation';
 
 // ----------------------------------------------------------------------
 
@@ -31,7 +33,6 @@ type Props = {
   onClose: () => void;
   rotationName: string | null;
   onEdit?: () => void;
-  onGenerate?: () => void;
   canEdit?: boolean;
 };
 
@@ -39,8 +40,6 @@ export function ShiftRotationDetailsDialog({
   open,
   onClose,
   rotationName,
-  onEdit,
-  onGenerate,
   canEdit = true,
 }: Props) {
   const [rotation, setRotation] = useState<ShiftRotation | null>(null);
@@ -150,23 +149,11 @@ export function ShiftRotationDetailsDialog({
                 </Typography>
               </Box>
 
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <Label color={(rotation.status === 'Active' && 'success') || 'error'}>
                   {(rotation.status || 'Active').toUpperCase()}
                 </Label>
-
-                {onGenerate && (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<Iconify icon="solar:play-bold" />}
-                    onClick={onGenerate}
-                    sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
-                  >
-                    Generate Roster
-                  </Button>
-                )}
-              </Stack>
+              </Box>
             </Box>
 
             {/* General Information Grid */}
