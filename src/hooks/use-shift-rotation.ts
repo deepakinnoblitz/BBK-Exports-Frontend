@@ -1,5 +1,3 @@
-import type { ShiftRotation } from 'src/api/shift-rotation';
-
 import { useState, useEffect, useCallback } from 'react';
 
 import { fetchShiftRotationList, getShiftRotationDoc, ShiftRotation } from 'src/api/shift-rotation';

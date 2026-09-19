@@ -15,8 +15,6 @@ import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 import { useAuth } from 'src/auth/auth-context';
-
-import { useAuth } from 'src/auth/auth-context';
 // ----------------------------------------------------------------------
 
 type Props = {
