@@ -40,6 +40,7 @@ type Props = {
         status: string;
         halfDay?: number | boolean;
         permissionHours?: number;
+        isPermission?: boolean;
         modified?: string;
         hrQueryCount?: number;
         empReplyCount?: number;
@@ -198,7 +199,7 @@ export function LeavesTableRow({
         }
     };
 
-    const isPermission = row.leaveType.trim().toLowerCase() === 'permission';
+    const isPermission = Boolean(row.isPermission || row.permissionHours || row.leaveType.trim().toLowerCase() === 'permission');
 
     const showActions = isHR && (row.status === 'Pending' || row.status === 'Open' || row.status === 'Clarification Requested');
 

@@ -20,7 +20,21 @@ type Props = {
 };
 
 export function LeaveTypeDetailsDialog({ open, onClose, row }: Props) {
-  const { leave_type_name, is_paid, max_leaves, status, carry_forward, reset_frequency, restrict_during_probation } = row;
+  const {
+    leave_type_name,
+    is_paid,
+    is_permission,
+    max_leaves,
+    status,
+    carry_forward,
+    reset_frequency,
+    restrict_during_probation,
+    allocation_basis,
+    min_present_days,
+    days_worked_per_leave,
+    count_half_day_as,
+    include_approved_paid_leaves,
+  } = row;
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 2, boxShadow: (themeVar: any) => themeVar.customShadows.z24, } }}>
@@ -72,10 +86,24 @@ export function LeaveTypeDetailsDialog({ open, onClose, row }: Props) {
                       }}
                   >
                       <DetailItem label="Is Paid" value={is_paid ? 'Yes' : 'No'} icon={<FaMoneyBill size={18} />} />
+                      <DetailItem label="Is Permission" value={is_permission ? 'Yes' : 'No'} icon={<Iconify icon={"solar:clock-circle-bold" as any} width={18} />} />
                       <DetailItem label="Max Leaves" value={max_leaves ?? '-'} icon={<FaSortNumericUp size={18} />} />
                       <DetailItem label="Carry Forward" value={carry_forward ? 'Yes' : 'No'} icon={<FaArrowRight size={18} />} />
                       <DetailItem label="Reset Frequency" value={reset_frequency || '-'} icon={<FaSyncAlt size={18} />} />
                       <DetailItem label="Restrict During Probation" value={restrict_during_probation ? 'Yes' : 'No'} icon={<FaLock size={18} />} />
+                      <DetailItem label="Allocation Basis" value={allocation_basis || 'Fixed / Unconditional'} icon={<Iconify icon={"solar:calendar-bold" as any} width={18} />} />
+                      {allocation_basis === 'Minimum Present Days' && (
+                          <DetailItem label="Min Present Days" value={min_present_days ?? '-'} icon={<Iconify icon={"eva:checkmark-circle-2-fill" as any} width={18} />} />
+                      )}
+                      {allocation_basis === 'Per N Days Worked' && (
+                          <DetailItem label="Days Worked / Leave" value={days_worked_per_leave ?? 20} icon={<Iconify icon={"eva:pie-chart-2-fill" as any} width={18} />} />
+                      )}
+                      {allocation_basis && allocation_basis !== 'Fixed / Unconditional' && (
+                          <>
+                              <DetailItem label="Half Day Count" value={count_half_day_as || '0.5 Day'} icon={<Iconify icon={"solar:clock-circle-bold" as any} width={18} />} />
+                              <DetailItem label="Include Paid Leaves" value={include_approved_paid_leaves ? 'Yes' : 'No'} icon={<Iconify icon={"solar:shield-check-bold" as any} width={18} />} />
+                          </>
+                      )}
                   </Box>
               </Box>
           </Box>

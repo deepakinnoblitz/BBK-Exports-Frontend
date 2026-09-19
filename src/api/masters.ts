@@ -775,14 +775,21 @@ export interface LeaveType {
     name: string;
     leave_type_name: string;
     is_paid?: number;
+    is_permission?: number;
     max_leaves?: number;
     status?: 'Active' | 'Inactive';
     carry_forward?: number;
     reset_frequency?: 'Every 3 months' | 'Every 4 months' | 'Every 6 months' | 'Whole year';
     restrict_during_probation?: number;
     probation_period_months?: number;
+    allocation_basis?: 'Fixed / Unconditional' | 'Full Month Present (100% Attendance)' | 'Minimum Present Days' | 'Per N Days Worked';
+    min_present_days?: number;
+    days_worked_per_leave?: number;
+    count_half_day_as?: '0.5 Day' | '0 (Not Present)';
+    include_approved_paid_leaves?: number;
     creation?: string;
     modified?: string;
+    [key: string]: any;
 }
 
 // Leave Type APIs

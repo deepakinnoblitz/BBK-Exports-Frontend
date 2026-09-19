@@ -54,6 +54,11 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
     const [allocating, setAllocating] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
+    const getAttendanceMonthYear = () => {
+        const prevDate = new Date(year, month - 2, 1);
+        return { attYear: prevDate.getFullYear(), attMonth: prevDate.getMonth() + 1 };
+    };
+
     const handleClose = () => {
         setStep('input');
         setPreviewData([]);
@@ -64,7 +69,8 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
     const handlePreview = async () => {
         try {
             setLoading(true);
-            const data = await getMonthlyLeaveAllocationPreview(year, month);
+            const { attYear, attMonth } = getAttendanceMonthYear();
+            const data = await getMonthlyLeaveAllocationPreview(year, month, attMonth, attYear);
             setPreviewData(data);
             setStep('preview');
         } catch (error: any) {
@@ -83,7 +89,8 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
     const handleAllocate = async () => {
         try {
             setAllocating(true);
-            const data = await autoAllocateMonthlyLeavesNew(year, month);
+            const { attYear, attMonth } = getAttendanceMonthYear();
+            const data = await autoAllocateMonthlyLeavesNew(year, month, false, attMonth, attYear);
             onSuccess(data);
             handleClose();
         } catch (error: any) {
@@ -213,6 +220,7 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
                                 ))}
                             </TextField>
                         </Stack>
+
                         <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
                             This will preview and allocate monthly leaves to all active employees for{' '}
                             <strong>{monthNames[month - 1]} {year}</strong>.
@@ -250,9 +258,11 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
                         </Stack>
 
                         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
-                            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                                Preview for <strong>{monthNames[month - 1]} {year}</strong>
-                            </Typography>
+                            <Box>
+                                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 700 }}>
+                                    Allocating for <strong>{monthNames[month - 1]} {year}</strong>
+                                </Typography>
+                            </Box>
                             <TextField
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -263,7 +273,7 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
                                         <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled', mr: 1 }} />
                                     ),
                                 }}
-                                sx={{ width: 320 }}
+                                sx={{ width: 300 }}
                             />
                         </Stack>
 
@@ -272,10 +282,10 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
                                 <TableHead>
                                     <TableRow>
                                         <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, width: 50 }}>S.no</TableCell>
-                                        <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, minWidth: 180 }}>Employee</TableCell>
-                                        <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, textAlign: 'center', width: 110 }}>Joined</TableCell>
-                                        <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, textAlign: 'center', width: 100 }}>Status</TableCell>
-                                        <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, minWidth: 360 }}>Proposed Allocations</TableCell>
+                                        <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, minWidth: 170 }}>Employee</TableCell>
+                                        <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, textAlign: 'center', width: 100 }}>Joined</TableCell>
+                                        <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, textAlign: 'center', width: 90 }}>Status</TableCell>
+                                        <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700, minWidth: 350 }}>Proposed Allocations</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -354,19 +364,20 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
                                                                     ({alloc.reset_frequency})
                                                                 </Typography>
                                                             )}
-                                                            {/* Status */}
-                                                            <Chip
-                                                                label={alloc.exists ? 'Already Allocated' : 'New'}
-                                                                size="small"
-                                                                sx={{
-                                                                    ml: 'auto',
-                                                                    height: 18,
-                                                                    fontSize: 9,
-                                                                    fontWeight: 700,
-                                                                    bgcolor: alloc.exists ? alpha('#ffab00', 0.08) : alpha('#22c55e', 0.08),
-                                                                    color: alloc.exists ? '#ffab00' : '#22c55e',
-                                                                }}
-                                                            />
+                                                            {/* Status Badges */}
+                                                            <Stack direction="row" spacing={0.5} sx={{ ml: 'auto' }} alignItems="center">
+                                                                <Chip
+                                                                    label={alloc.exists ? 'Already Allocated' : 'New'}
+                                                                    size="small"
+                                                                    sx={{
+                                                                        height: 18,
+                                                                        fontSize: 9,
+                                                                        fontWeight: 700,
+                                                                        bgcolor: alloc.exists ? alpha('#ffab00', 0.08) : alpha('#22c55e', 0.08),
+                                                                        color: alloc.exists ? '#ffab00' : '#22c55e',
+                                                                    }}
+                                                                />
+                                                            </Stack>
                                                         </Box>
                                                     ))}
                                                     {row.allocations.length === 0 && (

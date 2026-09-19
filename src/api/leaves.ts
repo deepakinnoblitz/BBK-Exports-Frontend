@@ -252,3 +252,16 @@ export async function checkLeaveOverlap(params: {
     }
     return (await res.json()).message;
 }
+
+export async function fetchEmployeeAppliedLeaveDates(employee: string): Promise<string[]> {
+    if (!employee) return [];
+    try {
+        const res = await frappeRequest(`/api/method/company.company.frontend_api.get_employee_applied_leave_dates?employee=${encodeURIComponent(employee)}`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.message || [];
+    } catch (e) {
+        console.error("Failed to fetch employee applied leave dates:", e);
+        return [];
+    }
+}

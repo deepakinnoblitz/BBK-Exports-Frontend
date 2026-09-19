@@ -35,7 +35,7 @@ import { uploadFile } from 'src/api/data-import';
 import { markAsRead } from 'src/api/unread-counts';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRPermissions, getHRDoc } from 'src/api/hr-management';
-import { applyLeaveWorkflowAction, checkLeaveBalance, checkLeaveOverlap, createLeaveApplication, deleteLeaveApplication, getEmployeeProbationInfo, updateLeaveStatus } from 'src/api/leaves';
+import { applyLeaveWorkflowAction, checkLeaveBalance, checkLeaveOverlap, createLeaveApplication, deleteLeaveApplication, fetchEmployeeAppliedLeaveDates, getEmployeeProbationInfo, updateLeaveStatus } from 'src/api/leaves';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -117,6 +117,7 @@ export function LeavesView() {
     const [totalDays, setTotalDays] = useState(0);
     const [balanceInfo, setBalanceInfo] = useState<{ remaining: number, unit: string } | null>(null);
     const [probationInfo, setProbationInfo] = useState<{ is_probation: boolean; restricted_types: string[]; probation_end_date: string | null; } | null>(null);
+    const [appliedDates, setAppliedDates] = useState<string[]>([]);
 
     const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
     const [leaveTypeOptions, setLeaveTypeOptions] = useState<any[]>([]);
@@ -136,10 +137,16 @@ export function LeavesView() {
 
     // Permissions State
     const [permissions, setPermissions] = useState<{ read: boolean; write: boolean; delete: boolean }>({
-        read: true,
-        write: true,
-        delete: true,
+        read: false,
+        write: false,
+        delete: false
     });
+
+    const isPermissionType = (type?: string) => {
+        if (!type) return false;
+        const found = leaveTypeOptions.find(o => o.name === type || o.leave_type_name === type);
+        return Boolean(found?.is_permission || type.trim().toLowerCase() === 'permission');
+    };
 
     const { data, total, loading, refetch } = useLeaveApplications(
         page + 1,
@@ -164,7 +171,7 @@ export function LeavesView() {
     useEffect(() => {
         getHRPermissions('Leave Application').then(setPermissions);
         getDoctypeList('Employee', ['name', 'employee_name']).then(setEmployeeOptions).catch(console.error);
-        getDoctypeList('Leave Type', ['name']).then(setLeaveTypeOptions).catch(console.error);
+        getDoctypeList('Leave Type', ['name', 'leave_type_name', 'is_permission']).then(setLeaveTypeOptions).catch(console.error);
     }, []);
 
 
@@ -174,14 +181,19 @@ export function LeavesView() {
         }
     }, [isRestrictedEmployee, user, employee]);
 
-    // Fetch probation info when employee changes
+    // Fetch probation info and existing applied dates when employee changes
     useEffect(() => {
         if (employee) {
             getEmployeeProbationInfo(employee, fromDate || undefined)
                 .then(setProbationInfo)
                 .catch(console.error);
+
+            fetchEmployeeAppliedLeaveDates(employee)
+                .then(setAppliedDates)
+                .catch(console.error);
         } else {
             setProbationInfo(null);
+            setAppliedDates([]);
         }
     }, [employee, fromDate]);
 
@@ -198,7 +210,7 @@ export function LeavesView() {
             }
         }
 
-        if (leaveType.toLowerCase() === 'permission') {
+        if (isPermissionType(leaveType)) {
             days = Number(permissionHours) || 0;
         }
 
@@ -211,14 +223,17 @@ export function LeavesView() {
                 from_date: fromDate,
                 to_date: toDate,
                 half_day: halfDay ? 1 : 0,
-                permission_hours: leaveType.toLowerCase() === 'permission' ? Number(permissionHours) : undefined
+                permission_hours: isPermissionType(leaveType) ? (Number(permissionHours) || 0) : undefined
             }).then(res => {
                 setBalanceInfo({ remaining: res.remaining, unit: res.unit });
-            }).catch(console.error);
+            }).catch((err) => {
+                console.error(err);
+                setBalanceInfo(null);
+            });
         } else {
             setBalanceInfo(null);
         }
-    }, [employee, leaveType, fromDate, toDate, halfDay, permissionHours]);
+    }, [employee, leaveType, fromDate, toDate, halfDay, permissionHours, leaveTypeOptions]);
 
     const handleOpenCreate = () => {
         setOpenCreate(true);
@@ -237,6 +252,7 @@ export function LeavesView() {
         setAttachments([]);
         setTotalDays(0);
         setBalanceInfo(null);
+        setAppliedDates([]);
         setFormErrors({});
     };
 
@@ -248,8 +264,28 @@ export function LeavesView() {
         if (!toDate) errors.toDate = 'End date is required';
         if (!reason) errors.reason = 'Please provide a reason for your leave';
 
-        if (leaveType.toLowerCase() === 'permission' && (!permissionHours || Number(permissionHours) < 10)) {
+        if (isPermissionType(leaveType) && (!permissionHours || Number(permissionHours) < 10)) {
             errors.permissionHours = 'Permission duration must be at least 10 minutes';
+        }
+
+        if (fromDate && toDate && appliedDates.length > 0) {
+            const start = dayjs(fromDate);
+            const end = dayjs(toDate);
+            let curr = start;
+            let hasOverlap = false;
+            let overlapDate = '';
+            while (curr.isBefore(end) || curr.isSame(end, 'day')) {
+                const dateStr = curr.format('YYYY-MM-DD');
+                if (appliedDates.includes(dateStr)) {
+                    hasOverlap = true;
+                    overlapDate = curr.format('DD-MM-YYYY');
+                    break;
+                }
+                curr = curr.add(1, 'day');
+            }
+            if (hasOverlap) {
+                errors.fromDate = `Leave application already exists for ${overlapDate}`;
+            }
         }
 
         setFormErrors(errors);
@@ -317,7 +353,7 @@ export function LeavesView() {
                 attachmentUrl = attachments[0].url || '';
             }
 
-            if (leaveType.toLowerCase() === 'permission' && (!permissionHours || Number(permissionHours) < 10)) {
+            if (isPermissionType(leaveType) && (!permissionHours || Number(permissionHours) < 10)) {
                 setSnackbar({ open: true, message: 'Permission duration must be at least 10 minutes', severity: 'error' });
                 return;
             }
@@ -330,7 +366,7 @@ export function LeavesView() {
                 reson: reason,
                 half_day: halfDay ? 1 : 0,
                 half_day_date: halfDay ? halfDayDate : undefined,
-                permission_hours: leaveType.toLowerCase() === 'permission' ? Number(permissionHours) : undefined,
+                permission_hours: isPermissionType(leaveType) ? Number(permissionHours) : undefined,
                 attachment: attachmentUrl,
                 total_days: totalDays,
             };
@@ -539,6 +575,7 @@ export function LeavesView() {
                                                     status: row.workflow_state || row.status || 'Pending',
                                                     halfDay: row.half_day,
                                                     permissionHours: row.permission_hours,
+                                                    isPermission: isPermissionType(row.leave_type),
                                                     modified: row.modified,
                                                     hrQueryCount: [1, 2, 3, 4, 5].filter(i => {
                                                         const field = i === 1 ? 'hr_query' : `hr_query_${i}`;
@@ -634,7 +671,7 @@ export function LeavesView() {
                                         fontWeight: 500
                                     }}
                                 >
-                                    {leaveType.toLowerCase() === 'permission' ? 'Requested Minutes' : 'Total Days'}
+                                    {isPermissionType(leaveType) ? 'Requested Minutes' : 'Total Days'}
                                 </Typography>
                                 <Typography
                                     variant="h3"
@@ -668,7 +705,7 @@ export function LeavesView() {
                                             fontWeight: 500
                                         }}
                                     >
-                                        Available {leaveType.toLowerCase() === 'permission' ? 'Minutes' : 'Days'}
+                                        Available {isPermissionType(leaveType) ? 'Minutes' : 'Days'}
                                     </Typography>
                                     <Typography
                                         variant="h3"
@@ -677,7 +714,7 @@ export function LeavesView() {
                                             color: balanceInfo.remaining >= totalDays ? 'success.main' : 'error.main'
                                         }}
                                     >
-                                        {balanceInfo.remaining} {leaveType.toLowerCase() === 'permission' ? 'Minutes' : 'Days'}
+                                        {balanceInfo.remaining} {isPermissionType(leaveType) ? 'Minutes' : 'Days'}
                                     </Typography>
                                 </Box>
                             )}
@@ -686,7 +723,7 @@ export function LeavesView() {
 
                     {leaveType && balanceInfo && totalDays > balanceInfo.remaining && (
                         <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-                            Insufficient {leaveType} balance. You have <strong>{balanceInfo.remaining} {leaveType.toLowerCase() === 'permission' ? 'minutes' : 'days'}</strong> available, but you are requesting <strong>{totalDays} {leaveType.toLowerCase() === 'permission' ? 'minutes' : 'days'}</strong>.
+                            Insufficient {leaveType} balance. You have <strong>{balanceInfo.remaining} {isPermissionType(leaveType) ? 'minutes' : 'days'}</strong> available, but you are requesting <strong>{totalDays} {isPermissionType(leaveType) ? 'minutes' : 'days'}</strong>.
                         </Alert>
                     )}
 
@@ -762,7 +799,11 @@ export function LeavesView() {
                             getOptionLabel={(option) => (typeof option === 'string' ? option : option.name)}
                             value={leaveTypeOptions.find((o) => o.name === leaveType) || null}
                             onChange={(event, newValue) => {
-                                setLeaveType(newValue ? newValue.name : '');
+                                const newType = newValue ? newValue.name : '';
+                                setLeaveType(newType);
+                                setBalanceInfo(null);
+                                setTotalDays(0);
+                                setPermissionHours('');
                                 if (formErrors.leaveType) setFormErrors(prev => ({ ...prev, leaveType: '' }));
                             }}
                             getOptionDisabled={(option) => !!(probationInfo?.is_probation && probationInfo.restricted_types.includes(option.name))}
@@ -817,11 +858,12 @@ export function LeavesView() {
 
                                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                                     {/* For Permission leave type OR Half Day, show only one date picker */}
-                                    {(leaveType.toLowerCase() === 'permission' || halfDay) ? (
+                                    {(isPermissionType(leaveType) || halfDay) ? (
                                         <DatePicker
-                                            label={leaveType.toLowerCase() === 'permission' ? "Permission Date" : "Leave Date"}
+                                            label={isPermissionType(leaveType) ? "Permission Date" : "Leave Date"}
                                             value={fromDate ? dayjs(fromDate) : null}
                                             format="DD-MM-YYYY"
+                                            shouldDisableDate={(day) => appliedDates.includes(day.format('YYYY-MM-DD'))}
                                             onChange={(newValue) => {
                                                 const date = newValue?.format('YYYY-MM-DD') || '';
                                                 setFromDate(date);
@@ -846,6 +888,7 @@ export function LeavesView() {
                                                 label="From Date"
                                                 value={fromDate ? dayjs(fromDate) : null}
                                                 format="DD-MM-YYYY"
+                                                shouldDisableDate={(day) => appliedDates.includes(day.format('YYYY-MM-DD'))}
                                                 onChange={(newValue) => {
                                                     const date = newValue?.format('YYYY-MM-DD') || '';
                                                     setFromDate(date);
@@ -866,6 +909,7 @@ export function LeavesView() {
                                                 label="To Date"
                                                 value={toDate ? dayjs(toDate) : null}
                                                 format="DD-MM-YYYY"
+                                                shouldDisableDate={(day) => appliedDates.includes(day.format('YYYY-MM-DD')) || (fromDate ? day.isBefore(dayjs(fromDate)) : false)}
                                                 onChange={(newValue) => {
                                                     const date = newValue?.format('YYYY-MM-DD') || '';
                                                     setToDate(date);
@@ -886,7 +930,7 @@ export function LeavesView() {
                                     )}
 
                                     {/* Permission Duration Picker - only for Permission leave type */}
-                                    {leaveType && leaveType.toLowerCase() === 'permission' && (
+                                    {leaveType && isPermissionType(leaveType) && (
                                         <TimePicker
                                             label="Permission Duration (HH:mm)"
                                             value={permissionHours ? dayjs().startOf('day').add(Number(permissionHours), 'minutes') : null}
