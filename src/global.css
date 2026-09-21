@@ -49,6 +49,18 @@ ul {
 
 :root {
   --font-heading: 'Outfit', sans-serif;
+  --btn-primary-bg: #059669;
+  --btn-primary-hover: #047857;
+  --btn-primary-color: #ffffff;
+}
+
+.btn-primary-common {
+  background-color: var(--btn-primary-bg) !important;
+  color: var(--btn-primary-color) !important;
+}
+
+.btn-primary-common:hover {
+  background-color: var(--btn-primary-hover) !important;
 }
 
 @media print {

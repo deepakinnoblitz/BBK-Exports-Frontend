@@ -193,7 +193,7 @@ export function CombinedDashboardView() {
         <DashboardContent maxWidth="xl">
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: { xs: 3, md: 5 }, mt: 3, flexWrap: 'wrap', gap: 2 }}>
                 <Typography variant="h4">
-                    Hi, {user?.full_name || 'User'}, Welcome back 👋
+                    Hello, {user?.full_name || 'User'}, Welcome back!
                 </Typography>
 
                 <Stack direction="row" spacing={2} alignItems="center">

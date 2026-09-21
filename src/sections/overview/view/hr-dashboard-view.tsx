@@ -1,7 +1,5 @@
-import { FaUsers } from "react-icons/fa6";
 import { useState, useEffect } from 'react';
-import { GrDocumentUser } from "react-icons/gr";
-import { HiOutlineDocumentText } from "react-icons/hi2";
+import { FaUsers, FaUserCheck, FaUserXmark } from "react-icons/fa6";
 
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
@@ -20,7 +18,6 @@ import {
 } from 'src/api/dashboard';
 
 import { Loader } from 'src/components/loader';
-import { Iconify } from 'src/components/iconify';
 
 import { useAuth } from 'src/auth/auth-context';
 
@@ -164,7 +161,7 @@ export function HRDashboardView() {
     return (
         <DashboardContent maxWidth="xl">
             <Typography variant="h4" sx={{ mb: { xs: 3, md: 2 }, mt: 3 }}>
-                Hi, {user?.full_name || 'HR User'}, Welcome back 👋
+                Hello, {user?.full_name || 'HR User'}, Welcome back !
             </Typography>
 
             {/* <DashboardEomCard /> */}
@@ -192,35 +189,27 @@ export function HRDashboardView() {
                         total={data.total_employees || 0}
                         loading={loading}
                         icon={<FaUsers />}
+                        color="#3b82f6"
                     />
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <HRSummaryWidget
-                        title="Pending Leave Applications"
-                        total={data.pending_leaves || 0}
-                        color="warning"
+                        title="Today Present"
+                        total={(data as any).today_present ?? 0}
+                        color="#10b981"
                         loading={loading}
-                        icon={<GrDocumentUser />}
+                        icon={<FaUserCheck />}
                     />
                 </Grid>
 
-                {/* <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <HRSummaryWidget
-                        title="Yesterday Missing Attendance"
-                        total={data.missing_attendance || 0}
-                        color="error"
-                        icon={<Iconify icon={"solar:close-circle-bold-duotone" as any} width={32} />}
-                    />
-                </Grid> */}
-
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <HRSummaryWidget
-                        title="Pending Request Applications"
-                        total={data.pending_request || 0}
-                        color="info"
+                        title="Today Absent"
+                        total={(data as any).today_absent ?? 0}
+                        color="#f97316"
                         loading={loading}
-                        icon={<HiOutlineDocumentText />}
+                        icon={<FaUserXmark />}
                     />
                 </Grid>
 

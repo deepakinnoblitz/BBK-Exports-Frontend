@@ -125,7 +125,7 @@ export function EmployeeDashboardView() {
                 <UserStatusBar disableAutoCheckIn />
             </Stack>
             <Typography variant="h4" sx={{ mb: { xs: 3, md: 2 } }}>
-                Hi, {data.employee_name || user?.full_name || 'Employee'}, Welcome back 👋
+                Hello, {data.employee_name || user?.full_name || 'Employee'}, Welcome back !
             </Typography>
 
 

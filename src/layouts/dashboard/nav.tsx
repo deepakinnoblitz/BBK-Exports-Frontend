@@ -1,21 +1,25 @@
 import type { Theme, SxProps, Breakpoint } from '@mui/material/styles';
 
 import { useLocation } from 'react-router';
-import { varAlpha } from 'minimal-shared/utils';
 import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
 import Collapse from '@mui/material/Collapse';
 import ListItem from '@mui/material/ListItem';
 import { useTheme } from '@mui/material/styles';
+import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
 import ListItemButton from '@mui/material/ListItemButton';
 import Drawer, { drawerClasses } from '@mui/material/Drawer';
 
 import { usePathname } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
-import { Logo } from 'src/components/logo';
+import { CONFIG } from 'src/config-global';
+
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
@@ -23,7 +27,7 @@ import type { NavItem } from '../nav-config-dashboard';
 
 // ----------------------------------------------------------------------
 
-const isRouteActive = (itemPath: string, currentFullPath: string) => {
+const isRouteActive = (itemPath: string, currentFullPath: string): boolean => {
   if (!itemPath) return false;
 
   const [itemPathname, itemSearch] = itemPath.split('?');
@@ -34,8 +38,7 @@ const isRouteActive = (itemPath: string, currentFullPath: string) => {
   }
 
   const isPathnameActive =
-    currentPathname === itemPathname ||
-    currentPathname.startsWith(itemPathname + '/');
+    currentPathname === itemPathname || currentPathname.startsWith(`${itemPathname}/`);
 
   if (!isPathnameActive) return false;
 
@@ -62,6 +65,8 @@ const hasActiveChild = (item: any, currentFullPath: string): boolean => {
 
 export type NavContentProps = {
   data: NavItem[];
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
   slots?: {
     topArea?: React.ReactNode;
     bottomArea?: React.ReactNode;
@@ -74,32 +79,44 @@ export function NavDesktop({
   data,
   slots,
   layoutQuery,
-}: Omit<NavContentProps, 'workspaces'> & { layoutQuery: Breakpoint }) {
+  isCollapsed = false,
+  onToggleCollapse,
+}: Omit<NavContentProps, 'workspaces'> & {
+  layoutQuery: Breakpoint;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+}) {
   const theme = useTheme();
 
   return (
     <Box
       sx={{
-        pt: 2.5,
-        px: 2,
-        top: 0,
+        top: 'var(--layout-top-accent-height, 36px)',
         left: 0,
-        height: 1,
+        height: 'calc(100vh - var(--layout-top-accent-height, 36px))',
         display: 'none',
         position: 'fixed',
         flexDirection: 'column',
         zIndex: 'var(--layout-nav-zIndex)',
         width: 'var(--layout-nav-vertical-width)',
-        // bgcolor: 'var(--palette-grey-200)',
-        bgcolor: '#f4faff',
-        borderRight: `1px solid ${varAlpha(theme.vars.palette.grey['500Channel'], 0.12)}`,
+        bgcolor: '#f5f7fb',
+        borderRight: 'none',
+        transition: theme.transitions.create(['width'], {
+          easing: 'var(--layout-transition-easing)',
+          duration: 'var(--layout-transition-duration)',
+        }),
         [theme.breakpoints.up(layoutQuery)]: {
           display: 'flex',
         },
         ...sx,
       }}
     >
-      <NavContent data={data} slots={slots} />
+      <NavContent
+        data={data}
+        slots={slots}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
+      />
     </Box>
   );
 }
@@ -114,7 +131,6 @@ export function NavMobile({
   onClose,
 }: Omit<NavContentProps, 'workspaces'> & { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
-  const theme = useTheme();
 
   useEffect(() => {
     if (open) {
@@ -129,57 +145,250 @@ export function NavMobile({
       onClose={onClose}
       sx={{
         [`& .${drawerClasses.paper}`]: {
-          pt: 2.5,
-          px: 2,
+          top: 'var(--layout-top-accent-height, 36px)',
+          height: 'calc(100vh - var(--layout-top-accent-height, 36px))',
           overflow: 'unset',
           width: 'var(--layout-nav-mobile-width)',
-          bgcolor: theme.vars.palette.grey[200],
+          bgcolor: '#f5f7fb',
+          color: 'text.primary',
           ...sx,
         },
       }}
     >
-      <NavContent data={data} slots={slots} />
+      <NavContent data={data} slots={slots} isCollapsed={false} onCloseMobile={onClose} />
     </Drawer>
   );
 }
 
 // ----------------------------------------------------------------------
 
-export function NavContent({ data, slots, sx }: Omit<NavContentProps, 'workspaces'>) {
+export function NavContent({
+  data,
+  slots,
+  sx,
+  isCollapsed = false,
+  onToggleCollapse,
+  onCloseMobile,
+}: Omit<NavContentProps, 'workspaces'> & { onCloseMobile?: () => void }) {
   const pathname = usePathname();
   const { search } = useLocation();
 
   const fullPath = pathname + search;
 
   return (
-    <>
-      <Logo />
+    <Box
+      sx={[
+        {
+          display: 'flex',
+          flexDirection: 'column',
+          height: 1,
+          color: 'text.primary',
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+    >
+      {/* Top Header: Original Color Logo + Collapse Button */}
+      <Box
+        sx={{
+          height: isCollapsed ? 108 : 'auto',
+          minHeight: isCollapsed ? 108 : 124,
+          px: isCollapsed ? 1 : 2,
+          pt: 1,
+          pb: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          flexShrink: 0,
+          mb: 1.5,
+        }}
+      >
+        {!isCollapsed ? (
+          <Box
+            component={RouterLink}
+            href="/"
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textDecoration: 'none',
+              width: '100%',
+              my: 0.5,
+            }}
+          >
+            <Box
+              component="img"
+              src={`${CONFIG.assetsDir}/logo/Innoblitz%20Logo%20Full.png`}
+              alt="Logo"
+              sx={{
+                height: 88,
+                width: 'auto',
+                maxWidth: 210,
+                objectFit: 'contain',
+                transition: 'all 0.2s ease',
+                '&:hover': { opacity: 0.85, transform: 'scale(1.02)' },
+              }}
+            />
+            <Typography
+              component="span"
+              sx={{
+                mt: 1,
+                fontSize: '0.785rem',
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                color: '#1e293b',
+                textTransform: 'uppercase',
+                lineHeight: 1.25,
+                textAlign: 'center',
+                fontFamily: 'inherit',
+              }}
+            >
+              BBK EXPORTS
+            </Typography>
+          </Box>
+        ) : (
+          <Box
+            component={RouterLink}
+            href="/"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textDecoration: 'none',
+              mb: 1,
+            }}
+          >
+            <Box
+              component="img"
+              src={`${CONFIG.assetsDir}/logo/Innoblitz_logo.png`}
+              alt="Logo"
+              sx={{
+                height: 50,
+                width: 50,
+                objectFit: 'contain',
+              }}
+            />
+          </Box>
+        )}
+
+        {onToggleCollapse && !isCollapsed && (
+          <Tooltip title="Collapse sidebar" placement="right" arrow>
+            <IconButton
+              onClick={onToggleCollapse}
+              size="small"
+              sx={{
+                position: 'absolute',
+                right: 10,
+                top: 12,
+                width: 28,
+                height: 28,
+                borderRadius: 1,
+                bgcolor: 'rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(0, 0, 0, 0.08)',
+                color: 'text.secondary',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  bgcolor: 'rgba(0, 0, 0, 0.08)',
+                  color: 'text.primary',
+                  borderColor: 'rgba(0, 0, 0, 0.16)',
+                },
+              }}
+            >
+              <Iconify
+                icon="eva:arrow-ios-forward-fill"
+                width={16}
+                sx={{
+                  transform: 'rotate(180deg)',
+                  transition: 'transform 0.2s',
+                }}
+              />
+            </IconButton>
+          </Tooltip>
+        )}
+
+        {onToggleCollapse && isCollapsed && (
+          <Tooltip title="Expand sidebar" placement="right" arrow>
+            <IconButton
+              onClick={onToggleCollapse}
+              size="small"
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: 1,
+                bgcolor: 'rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(0, 0, 0, 0.08)',
+                color: 'text.secondary',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  bgcolor: 'rgba(0, 0, 0, 0.08)',
+                  color: 'text.primary',
+                  borderColor: 'rgba(0, 0, 0, 0.16)',
+                },
+              }}
+            >
+              <Iconify icon="eva:arrow-ios-forward-fill" width={16} />
+            </IconButton>
+          </Tooltip>
+        )}
+
+        {onCloseMobile && (
+          <IconButton
+            onClick={onCloseMobile}
+            size="small"
+            sx={{
+              position: 'absolute',
+              right: 12,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 28,
+              height: 28,
+              borderRadius: 1,
+              bgcolor: 'rgba(0, 0, 0, 0.04)',
+              color: 'text.secondary',
+            }}
+          >
+            <Iconify icon="mingcute:close-line" width={16} />
+          </IconButton>
+        )}
+      </Box>
 
       {slots?.topArea}
 
-      <Scrollbar fillContent>
+      <Scrollbar
+        fillContent
+        sx={{
+          '& .simplebar-scrollbar:before': {
+            bgcolor: 'rgba(0, 0, 0, 0.15)',
+          },
+        }}
+      >
         <Box
           component="nav"
-          sx={[
-            {
-              display: 'flex',
-              flex: '1 1 auto',
-              flexDirection: 'column',
-              pb: 3,
-            },
-            ...(Array.isArray(sx) ? sx : [sx]),
-          ]}
+          sx={{
+            display: 'flex',
+            flex: '1 1 auto',
+            flexDirection: 'column',
+            pb: 3,
+            px: isCollapsed ? 1 : 1.75,
+          }}
         >
-          <List disablePadding sx={{ px: 1.5, gap: 1, display: 'flex', flexDirection: 'column', py: 1 }}>
+          <List disablePadding sx={{ gap: 0.5, display: 'flex', flexDirection: 'column' }}>
             {data.map((item) => (
-              <NavListItem key={item.title} item={item} fullPath={fullPath} />
+              <NavListItem
+                key={item.title}
+                item={item}
+                fullPath={fullPath}
+                isCollapsed={isCollapsed}
+              />
             ))}
           </List>
         </Box>
       </Scrollbar>
 
       {slots?.bottomArea}
-    </>
+    </Box>
   );
 }
 
@@ -199,66 +408,73 @@ function NavListSubItem({ child, fullPath }: { child: any; fullPath: string }) {
       <ListItem disableGutters disablePadding sx={{ display: 'block' }}>
         <ListItemButton
           onClick={handleToggle}
-          sx={[
-            (theme) => ({
-              pl: 1.25,
-              py: 0.75,
-              borderRadius: 1,
-              typography: 'body2',
-              fontSize: '0.9375rem',
-              color: theme.vars.palette.text.secondary,
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              '&:hover': {
-                bgcolor: varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
-                color: theme.vars.palette.text.primary,
-                transform: 'translateX(4px)',
-              },
-              ...(isChildActived && {
-                fontWeight: 'fontWeightSemiBold',
-                color: '#08a3cd',
-                bgcolor: varAlpha('8 163 205', 0.08),
-              }),
+          sx={{
+            pl: 1.5,
+            pr: 1,
+            py: 0.65,
+            borderRadius: 1,
+            typography: 'body2',
+            fontSize: '0.85rem',
+            color: isChildActived ? '#059669' : 'text.secondary',
+            transition: 'all 0.15s ease',
+            '&:hover': {
+              bgcolor: 'rgba(0, 0, 0, 0.04)',
+              color: 'text.primary',
+            },
+            ...(isChildActived && {
+              fontWeight: 600,
             }),
-          ]}
+          }}
         >
           {child.icon ? (
-            <Box component="span" sx={{ width: 20, height: 20, mr: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit' }}>
+            <Box
+              component="span"
+              sx={{
+                width: 18,
+                height: 18,
+                mr: 1.25,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'inherit',
+              }}
+            >
               {child.icon}
             </Box>
           ) : (
             <Box
               component="span"
               sx={{
-                width: 6,
-                height: 6,
+                width: 5,
+                height: 5,
                 borderRadius: '50%',
                 bgcolor: 'currentColor',
-                mr: 2,
-                opacity: 0.4,
-                transition: 'all 0.2s',
-                ...(isChildActived && {
-                  opacity: 1,
-                  transform: 'scale(1.3)',
-                }),
+                mr: 1.5,
+                opacity: isChildActived ? 1 : 0.4,
               }}
             />
           )}
-          <Box component="span" sx={{ flexGrow: 1 }}>{child.title}</Box>
+          <Box component="span" sx={{ flexGrow: 1 }}>
+            {child.title}
+          </Box>
           <Iconify
-            width={16}
+            width={14}
             icon={open ? 'eva:arrow-ios-downward-fill' : 'eva:arrow-ios-forward-fill'}
-            sx={{ ml: 1, flexShrink: 0, transition: 'transform 0.2s' }}
+            sx={{ ml: 1, flexShrink: 0, color: 'text.disabled' }}
           />
         </ListItemButton>
 
         <Collapse in={open} timeout="auto" unmountOnExit>
-          <List disablePadding sx={{
-            pl: 3,
-            mt: 0.5,
-            gap: 0.5,
-            display: 'flex',
-            flexDirection: 'column',
-          }}>
+          <List
+            disablePadding
+            sx={{
+              pl: 2.5,
+              mt: 0.5,
+              gap: 0.5,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             {child.children.map((subChild: any) => {
               const isSubChildActived = isRouteActive(subChild.path, fullPath);
               return (
@@ -266,27 +482,35 @@ function NavListSubItem({ child, fullPath }: { child: any; fullPath: string }) {
                   key={subChild.title}
                   component={RouterLink}
                   href={subChild.path}
-                  sx={[
-                    (theme) => ({
-                      pl: 1.25,
-                      py: 0.6,
-                      borderRadius: 1,
-                      typography: 'body2',
-                      fontSize: '0.8875rem',
-                      color: theme.vars.palette.text.secondary,
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                      '&:hover': {
-                        bgcolor: varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
-                        color: theme.vars.palette.text.primary,
-                        transform: 'translateX(4px)',
+                  sx={{
+                    pl: 1.5,
+                    py: 0.55,
+                    borderRadius: 1,
+                    typography: 'body2',
+                    fontSize: '0.825rem',
+                    position: 'relative',
+                    color: isSubChildActived ? '#059669' : 'text.secondary',
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      bgcolor: isSubChildActived ? '#D1FAE5' : 'rgba(0, 0, 0, 0.04)',
+                      color: isSubChildActived ? '#059669' : 'text.primary',
+                    },
+                    ...(isSubChildActived && {
+                      fontWeight: 600,
+                      bgcolor: '#D1FAE5',
+                      overflow: 'hidden',
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 3,
+                        borderRadius: '3px 0 0 3px',
+                        bgcolor: '#059669',
                       },
-                      ...(isSubChildActived && {
-                        fontWeight: 'fontWeightSemiBold',
-                        color: '#08a3cd',
-                        bgcolor: varAlpha('8 163 205', 0.08),
-                      }),
                     }),
-                  ]}
+                  }}
                 >
                   <Box
                     component="span"
@@ -295,13 +519,8 @@ function NavListSubItem({ child, fullPath }: { child: any; fullPath: string }) {
                       height: 4,
                       borderRadius: '50%',
                       bgcolor: 'currentColor',
-                      mr: 2,
-                      opacity: 0.4,
-                      transition: 'all 0.2s',
-                      ...(isSubChildActived && {
-                        opacity: 1,
-                        transform: 'scale(1.3)',
-                      }),
+                      mr: 1.5,
+                      opacity: isSubChildActived ? 1 : 0.4,
                     }}
                   />
                   {subChild.title}
@@ -318,54 +537,70 @@ function NavListSubItem({ child, fullPath }: { child: any; fullPath: string }) {
     <ListItemButton
       component={RouterLink}
       href={child.path}
-      sx={[
-        (theme) => ({
-          pl: 1.25,
-          py: 0.75,
-          borderRadius: 1,
-          typography: 'body2',
-          fontSize: '0.8575rem',
-          color: theme.vars.palette.text.secondary,
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          '&:hover': {
-            bgcolor: varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
-            color: theme.vars.palette.text.primary,
-            transform: 'translateX(4px)',
+      sx={{
+        pl: 1.5,
+        pr: 1,
+        py: 0.65,
+        borderRadius: 1,
+        typography: 'body2',
+        fontSize: '0.875rem',
+        position: 'relative',
+        color: isChildActived ? '#059669' : 'text.secondary',
+        transition: 'all 0.15s ease',
+        '&:hover': {
+          bgcolor: isChildActived ? '#D1FAE5' : 'rgba(0, 0, 0, 0.04)',
+          color: isChildActived ? '#059669' : 'text.primary',
+        },
+        ...(isChildActived && {
+          fontWeight: 600,
+          bgcolor: '#D1FAE5',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 3.5,
+            borderRadius: '3px 0 0 3px',
+            bgcolor: '#059669',
           },
-          ...(isChildActived && {
-            fontWeight: 'fontWeightSemiBold',
-            color: '#08a3cd',
-            bgcolor: varAlpha('8 163 205', 0.08),
-          }),
         }),
-      ]}
+      }}
     >
       {child.icon ? (
-        <Box component="span" sx={{ width: 20, height: 20, mr: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit' }}>
+        <Box
+          component="span"
+          sx={{
+            width: 18,
+            height: 18,
+            mr: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'inherit',
+          }}
+        >
           {child.icon}
         </Box>
       ) : (
         <Box
           component="span"
           sx={{
-            width: 6,
-            height: 6,
+            width: 5,
+            height: 5,
             borderRadius: '50%',
             bgcolor: 'currentColor',
-            mr: 2,
-            opacity: 0.4,
-            transition: 'all 0.2s',
-            ...(isChildActived && {
-              opacity: 1,
-              transform: 'scale(1.3)',
-              boxShadow: (theme) => `0 0 0 3px ${varAlpha(theme.vars.palette.primary.mainChannel, 0.2)}`,
-            }),
+            mr: 1.5,
+            opacity: isChildActived ? 1 : 0.4,
           }}
         />
       )}
-      {child.title}
+      <Box component="span" sx={{ flexGrow: 1 }}>
+        {child.title}
+      </Box>
       {child.info && (
-        <Box component="span" sx={{ ml: 2 }}>
+        <Box component="span" sx={{ ml: 1.5 }}>
           {child.info}
         </Box>
       )}
@@ -373,14 +608,77 @@ function NavListSubItem({ child, fullPath }: { child: any; fullPath: string }) {
   );
 }
 
-function NavListItem({ item, fullPath }: { item: NavItem; fullPath: string }) {
-  const [open, setOpen] = useState(false);
+// ----------------------------------------------------------------------
+
+function NavListItem({
+  item,
+  fullPath,
+  isCollapsed,
+}: {
+  item: NavItem;
+  fullPath: string;
+  isCollapsed: boolean;
+}) {
+  const isActived = hasActiveChild(item, fullPath);
+  const [open, setOpen] = useState(isActived);
+
+  // Keep open in sync if route changes to active child
+  useEffect(() => {
+    if (isActived) {
+      setOpen(true);
+    }
+  }, [isActived]);
 
   const handleToggle = useCallback(() => {
     setOpen((prev) => !prev);
   }, []);
 
-  const isActived = hasActiveChild(item, fullPath);
+  // In collapsed mode: render icon-only with tooltip
+  if (isCollapsed) {
+    const targetHref = item.children?.[0]?.path || item.path;
+    return (
+      <ListItem disableGutters disablePadding sx={{ display: 'flex', justifyContent: 'center' }}>
+        <Tooltip title={item.title} placement="right" arrow>
+          <ListItemButton
+            component={RouterLink}
+            href={targetHref}
+            sx={{
+              width: 44,
+              height: 44,
+              borderRadius: 1.25,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              p: 0,
+              color: isActived ? '#059669' : 'text.secondary',
+              bgcolor: isActived ? '#D1FAE5' : 'transparent',
+              boxShadow: isActived ? '0 1px 3px rgba(0, 0, 0, 0.08)' : 'none',
+              transition: 'all 0.15s ease',
+              '&:hover': {
+                bgcolor: isActived ? '#D1FAE5' : 'rgba(0, 0, 0, 0.04)',
+                color: isActived ? '#059669' : 'text.primary',
+              },
+            }}
+          >
+            <Box
+              component="span"
+              sx={{
+                width: 20,
+                height: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {item.icon}
+            </Box>
+          </ListItemButton>
+        </Tooltip>
+      </ListItem>
+    );
+  }
+
+  const isExpandedGroup = Boolean(item.children) && open;
 
   const renderContent = (
     <ListItemButton
@@ -388,76 +686,91 @@ function NavListItem({ item, fullPath }: { item: NavItem; fullPath: string }) {
       {...(item.children
         ? { onClick: handleToggle }
         : { component: RouterLink, href: item.path })}
-      sx={[
-        (theme) => ({
-          pl: 1.5,
-          py: 0.875,
-          gap: 2,
-          pr: 1,
-          borderRadius: 1.25,
-          typography: 'body2',
-          fontWeight: 'fontWeightMedium',
-          color: theme.vars.palette.text.secondary,
-          minHeight: 48,
+      sx={{
+        px: 1.5,
+        py: 0.9,
+        borderRadius: 1,
+        typography: 'body2',
+        fontSize: '0.925rem',
+        fontWeight: isExpandedGroup || isActived ? 600 : 500,
+        color: isExpandedGroup || isActived ? '#059669' : '#4b5563',
+        bgcolor: isExpandedGroup || isActived ? (item.children ? '#ffffff' : '#D1FAE5') : 'transparent',
+        boxShadow: isExpandedGroup ? '0 1px 3px rgba(0, 0, 0, 0.06)' : 'none',
+        transition: 'all 0.15s ease',
+        '&:hover': {
+          bgcolor: isExpandedGroup ? '#ffffff' : isActived ? '#D1FAE5' : 'rgba(0, 0, 0, 0.04)',
+          color: isExpandedGroup || isActived ? '#059669' : '#111827',
+        },
+        ...(!item.children &&
+          isActived && {
+          color: '#059669',
+          bgcolor: '#D1FAE5',
+          boxShadow: 'none',
           position: 'relative',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          overflow: 'hidden',
+          '&:hover': {
+            bgcolor: '#D1FAE5',
+            color: '#059669',
+          },
           '&::before': {
             content: '""',
             position: 'absolute',
             left: 0,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: 3,
-            height: 0,
-            borderRadius: '0 4px 4px 0',
-            bgcolor: '#08a3cd',
-            transition: 'height 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            top: 0,
+            bottom: 0,
+            width: 3.5,
+            borderRadius: '4px 0 0 4px',
+            bgcolor: '#059669',
           },
-          '&:hover': {
-            bgcolor: varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
-            color: theme.vars.palette.text.primary,
-            transform: 'translateX(4px)',
-          },
-          ...(isActived && {
-            fontWeight: 'fontWeightSemiBold',
-            color: '#08a3cd',
-            bgcolor: varAlpha('8 163 205', 0.12),
-            boxShadow: 'none',
-            '&::before': {
-              display: 'block',
-              height: '70%',
-            },
-            '&:hover': {
-              bgcolor: varAlpha('8 163 205', 0.16),
-              transform: 'translateX(4px)',
-            },
-          }),
         }),
-      ]}
+      }}
     >
-      <Box component="span" sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit' }}>
-        {item.icon}
-      </Box>
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flexGrow: 1, minWidth: 0 }}>
+        {item.icon && (
+          <Box
+            component="span"
+            sx={{
+              width: 20,
+              height: 20,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: isExpandedGroup || isActived ? '#059669' : '#6b7280',
+              flexShrink: 0,
+            }}
+          >
+            {item.icon}
+          </Box>
+        )}
 
-      <Box component="span" sx={{ flexGrow: 1, fontSize: '0.9375rem' }}>
-        {item.title}
-      </Box>
+        <Typography
+          variant="body2"
+          noWrap
+          sx={{
+            fontSize: '0.925rem',
+            fontWeight: 'inherit',
+            color: 'inherit',
+          }}
+        >
+          {item.title}
+        </Typography>
+      </Stack>
 
       {item.info && (
-        <Box component="span" sx={{ ml: 1.5, display: 'inline-flex' }}>
+        <Box component="span" sx={{ ml: 1, display: 'inline-flex' }}>
           {item.info}
         </Box>
       )}
 
       {item.children && (
         <Iconify
-          width={18}
-          icon={open ? 'eva:arrow-ios-downward-fill' : 'eva:arrow-ios-forward-fill'}
+          width={16}
+          icon={open ? 'eva:arrow-ios-upward-fill' : 'eva:arrow-ios-downward-fill'}
           sx={{
             ml: 1,
             flexShrink: 0,
-            transition: 'transform 0.2s',
-            ...(open && { transform: 'rotate(0deg)' })
+            color: isExpandedGroup ? '#059669' : '#9ca3af',
+            transition: 'color 0.15s ease',
           }}
         />
       )}
@@ -470,24 +783,17 @@ function NavListItem({ item, fullPath }: { item: NavItem; fullPath: string }) {
 
       {item.children && (
         <Collapse in={open} timeout="auto" unmountOnExit>
-          <List disablePadding sx={{
-            pl: 4,
-            mt: 0.5,
-            gap: 0.5,
-            display: 'flex',
-            flexDirection: 'column',
-            position: 'relative',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              left: 16,
-              top: 0,
-              bottom: 0,
-              width: 2,
-              bgcolor: (theme) => varAlpha(theme.vars.palette.grey['500Channel'], 0.12),
-              borderRadius: 1,
-            }
-          }}>
+          <List
+            disablePadding
+            sx={{
+              pl: 1.5,
+              mt: 0.5,
+              mb: 0.5,
+              gap: 0.25,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             {item.children.map((child: any) => (
               <NavListSubItem key={child.title} child={child} fullPath={fullPath} />
             ))}
