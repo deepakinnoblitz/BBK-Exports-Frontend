@@ -164,7 +164,7 @@ export function HRDashboardView() {
     return (
         <DashboardContent maxWidth="xl">
             <Typography variant="h4" sx={{ mb: { xs: 3, md: 2 }, mt: 3 }}>
-                Hi, {user?.full_name || 'HR User'}, Welcome back 👋
+                Hi, {user?.full_name || 'HR User'}, Welcome back !
             </Typography>
 
             {/* <DashboardEomCard /> */}
@@ -192,6 +192,7 @@ export function HRDashboardView() {
                         total={data.total_employees || 0}
                         loading={loading}
                         icon={<FaUsers />}
+                        color="#3b82f6"
                     />
                 </Grid>
 
@@ -199,7 +200,7 @@ export function HRDashboardView() {
                     <HRSummaryWidget
                         title="Pending Leave Applications"
                         total={data.pending_leaves || 0}
-                        color="warning"
+                        color="#0284c7"
                         loading={loading}
                         icon={<GrDocumentUser />}
                     />
@@ -209,7 +210,9 @@ export function HRDashboardView() {
                     <HRSummaryWidget
                         title="Yesterday Missing Attendance"
                         total={data.missing_attendance || 0}
-                        color="error"
+                        color="#ef4444"
+                        loading={loading}
+                        subtitle="Unregistered punches"
                         icon={<Iconify icon={"solar:close-circle-bold-duotone" as any} width={32} />}
                     />
                 </Grid> */}
@@ -218,7 +221,7 @@ export function HRDashboardView() {
                     <HRSummaryWidget
                         title="Pending Request Applications"
                         total={data.pending_request || 0}
-                        color="info"
+                        color="#7c3aed"
                         loading={loading}
                         icon={<HiOutlineDocumentText />}
                     />

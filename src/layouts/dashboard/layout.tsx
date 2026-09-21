@@ -2,14 +2,12 @@ import type { Breakpoint } from '@mui/material/styles';
 
 import { merge } from 'es-toolkit';
 import { useBoolean } from 'minimal-shared/hooks';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Fade from '@mui/material/Fade';
 import Alert from '@mui/material/Alert';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import { useTheme, alpha } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 
 import { RouterLink } from 'src/routes/components';
 
@@ -39,6 +37,7 @@ import { MenuButton } from '../components/menu-button';
 import { HeaderSection } from '../core/header-section';
 import { LayoutSection } from '../core/layout-section';
 import { AccountPopover } from '../components/account-popover';
+import { DashboardBreadcrumbBar } from './dashboard-breadcrumb-bar';
 
 import type { MainSectionProps } from '../core/main-section';
 import type { HeaderSectionProps } from '../core/header-section';
@@ -74,6 +73,26 @@ export function DashboardLayout({
   const { unreadCounts } = useUnreadCountsContext();
 
   const { view } = useDashboardView();
+
+  const [isNavCollapsed, setIsNavCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('dashboard_nav_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleCollapse = useCallback(() => {
+    setIsNavCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('dashboard_nav_collapsed', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
 
   const { navData } = useMemo(() => {
     const result = getNavData(user, view, settings);
@@ -308,18 +327,21 @@ export function DashboardLayout({
         </Alert>
       ),
       leftArea: (
-        <>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flexGrow: 1 }}>
           {/** @slot Nav mobile */}
           <MenuButton
             onClick={onOpen}
-            sx={{ mr: 1, ml: -1, [theme.breakpoints.up(layoutQuery)]: { display: 'none' } }}
+            sx={{ mr: 0.5, ml: -1, [theme.breakpoints.up(layoutQuery)]: { display: 'none' } }}
           />
           <NavMobile key={view} data={navData} open={open} onClose={onClose} />
 
-          <Box sx={{ ml: 2, display: 'inline-flex' }}>
+          {/* Top Bar Breadcrumbs */}
+          <DashboardBreadcrumbBar navData={navData} />
+
+          <Box sx={{ ml: 1, display: { xs: 'none', md: 'inline-flex' } }}>
             <DashboardSwitcher />
           </Box>
-        </>
+        </Box>
       ),
       rightArea: (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 2 } }}>
@@ -378,18 +400,40 @@ export function DashboardLayout({
     return (
       <HeaderSection
         disableElevation
+        disableOffset
         layoutQuery={layoutQuery}
         {...slotProps?.header}
         slots={{ ...headerSlots, ...slotProps?.header?.slots }}
         slotProps={merge(headerSlotProps, slotProps?.header?.slotProps ?? {})}
-        sx={slotProps?.header?.sx}
+        sx={{
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          borderTopLeftRadius: { xs: 0, [layoutQuery]: 24 },
+          borderTop: { xs: 'none', [layoutQuery]: '1px solid rgba(0, 0, 0, 0.08)' },
+          borderLeft: { xs: 'none', [layoutQuery]: '1px solid rgba(0, 0, 0, 0.08)' },
+          top: 'var(--layout-top-accent-height, 36px)',
+          ...slotProps?.header?.sx,
+        }}
       />
     );
   };
 
   const renderFooter = () => null;
 
-  const renderMain = () => <MainSection {...slotProps?.main}>{children}</MainSection>;
+  const renderMain = () => (
+    <Box
+      sx={{
+        flex: '1 1 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: '#ffffff',
+        borderLeft: { xs: 'none', [layoutQuery]: '1px solid rgba(0, 0, 0, 0.08)' },
+        minHeight: '100%',
+      }}
+    >
+      <MainSection {...slotProps?.main}>{children}</MainSection>
+    </Box>
+  );
 
   return (
     <CallProvider>
@@ -404,14 +448,60 @@ export function DashboardLayout({
             },
           }}
         >
+          {/* Top 1-inch Accent Bar */}
+          <Box
+            sx={{
+              height: 'var(--layout-top-accent-height, 36px)',
+              bgcolor: '#f5f7fb',
+              width: 1,
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              zIndex: (t) => t.zIndex.appBar + 20,
+            }}
+          />
+
+          {/* Corner Mask: Keeps the nook outside the curve #f5f7fb with zero extra border */}
+          <Box
+            component="svg"
+            viewBox="0 0 24 24"
+            sx={{
+              display: { xs: 'none', [layoutQuery]: 'block' },
+              position: 'fixed',
+              top: 'var(--layout-top-accent-height, 36px)',
+              left: 'var(--layout-nav-vertical-width)',
+              width: 24,
+              height: 24,
+              zIndex: (t) => t.zIndex.appBar + 5,
+              pointerEvents: 'none',
+              transition: (t) =>
+                t.transitions.create(['left'], {
+                  easing: 'var(--layout-transition-easing)',
+                  duration: 'var(--layout-transition-duration)',
+                }),
+            }}
+          >
+            <path d="M0 0 H24 A24 24 0 0 0 0 24 Z" fill="#f5f7fb" />
+          </Box>
+
           <LayoutSection
             headerSection={renderHeader()}
-            sidebarSection={<NavDesktop key={view} data={navData} layoutQuery={layoutQuery} />}
+            sidebarSection={
+              <NavDesktop
+                key={view}
+                data={navData}
+                layoutQuery={layoutQuery}
+                isCollapsed={isNavCollapsed}
+                onToggleCollapse={handleToggleCollapse}
+              />
+            }
             footerSection={renderFooter()}
-            cssVars={{ ...dashboardLayoutVars(theme), ...cssVars }}
+            cssVars={{ ...dashboardLayoutVars(theme, isNavCollapsed), ...cssVars }}
             sx={[
               {
-                bgcolor: 'common.white',
+                bgcolor: '#f5f7fb',
+                minHeight: '100vh',
+                pt: 'var(--layout-top-accent-height, 36px)',
                 [`& .${layoutClasses.sidebarContainer}`]: {
                   [theme.breakpoints.up(layoutQuery)]: {
                     pl: 'var(--layout-nav-vertical-width)',
