@@ -63,7 +63,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
   const [overrideConflicts, setOverrideConflicts] = useState(false);
   const [reason, setReason] = useState('');
 
-  const [previewData, setPreviewData] = useState<any[] | null>(null);
+  const [previewData, setPreviewData] = useState<any>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -468,9 +468,18 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
             </Stack>
           ) : (
             <Stack spacing={2.5}>
-              <Alert severity="info" icon={<Iconify icon="solar:info-circle-bold" />}>
-                Review the simulated shifts before applying to the database. Overlapping active assignments will be handled based on your override settings.
-              </Alert>
+              {previewData?.conflict_employees_count ? (
+                <Alert severity="warning" icon={<Iconify icon={"solar:danger-circle-bold" as any} />}>
+                  {previewData.conflict_employees_count} employee(s) have overlapping shift assignments.
+                  {overrideConflicts
+                    ? ' "Override existing shifts" is ENABLED: old assignments will be superseded.'
+                    : ' "Override existing shifts" is DISABLED: conflicting employees will be skipped unless override is checked.'}
+                </Alert>
+              ) : (
+                <Alert severity="info" icon={<Iconify icon="solar:info-circle-bold" />}>
+                  Review the simulated shifts before applying to the database. Overlapping active assignments will be handled based on your override settings.
+                </Alert>
+              )}
 
               <TableContainer sx={{ maxHeight: 380, border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 1.5 }}>
                 <Table size="small" stickyHeader>
@@ -484,15 +493,15 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {previewData?.map((item: any, idx: number) => (
+                    {(Array.isArray(previewData) ? previewData : previewData?.preview || []).map((item: any, idx: number) => (
                       <TableRow key={idx} hover>
                         <TableCell>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{item.employee_name}</Typography>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{item.employee_name || item.employee}</Typography>
                           <Typography variant="caption" sx={{ color: 'text.secondary' }}>{item.employee}</Typography>
                         </TableCell>
                         <TableCell>{item.department || '-'}</TableCell>
                         <TableCell>
-                          <Label variant="soft" color="info">{item.shift}</Label>
+                          <Label variant="soft" color="info">{item.new_shift || item.shift}</Label>
                         </TableCell>
                         <TableCell sx={{ whiteSpace: 'nowrap' }}>
                           {item.effective_from} → {item.effective_to}

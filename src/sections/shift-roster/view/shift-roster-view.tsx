@@ -209,7 +209,7 @@ export function ShiftRosterView() {
         >
           <div>
             <Typography variant="h4" sx={{ fontWeight: 800 }}>
-              Employee Shift Roster
+              Employee Shift Assignment
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
               Manage date-wise shift assignments, rotations, and monthly workforce roster boards.
