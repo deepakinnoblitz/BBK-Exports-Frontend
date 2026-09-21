@@ -9,15 +9,13 @@ import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Select from '@mui/material/Select';
 import Switch from '@mui/material/Switch';
 import MenuItem from '@mui/material/MenuItem';
 import Snackbar from '@mui/material/Snackbar';
 import TextField from '@mui/material/TextField';
-import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
-import FormControl from '@mui/material/FormControl';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -26,7 +24,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
-import { getShift, createShift, updateShift } from 'src/api/masters';
+import { getShift, createShift, updateShift, renameShift } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -59,6 +57,13 @@ export function ShiftDialog({ open, onClose, onSuccess, id }: Props) {
         severity: 'success',
     });
 
+    const parseTimeString = (timeStr?: string) => {
+        if (!timeStr) return null;
+        const normalized = timeStr.includes(':') && timeStr.split(':')[0].length === 1 ? `0${timeStr}` : timeStr;
+        const parsed = dayjs(`2000-01-01T${normalized}`);
+        return parsed.isValid() ? parsed : null;
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             if (open) {
@@ -67,10 +72,10 @@ export function ShiftDialog({ open, onClose, onSuccess, id }: Props) {
                         setLoading(true);
                         const data = await getShift(id);
                         setShiftName(data.shift_name || data.name || '');
-                        setStartTime(data.start_time ? dayjs(`2000-01-01T${data.start_time}`) : null);
-                        setEndTime(data.end_time ? dayjs(`2000-01-01T${data.end_time}`) : null);
-                        setLunchHours(data.lunch_hours ? dayjs(`2000-01-01T${data.lunch_hours}`) : null);
-                        setBreakHours(data.break_hours ? dayjs(`2000-01-01T${data.break_hours}`) : null);
+                        setStartTime(parseTimeString(data.start_time));
+                        setEndTime(parseTimeString(data.end_time));
+                        setLunchHours(parseTimeString(data.lunch_hours));
+                        setBreakHours(parseTimeString(data.break_hours));
                         setStatus(data.status || 'Active');
                         setAllowOvertime(!!data.allow_overtime);
                         setOvertimeHours(data.overtime_hours ?? '');
@@ -102,7 +107,8 @@ export function ShiftDialog({ open, onClose, onSuccess, id }: Props) {
     }, [open, id]);
 
     const handleSubmit = async () => {
-        if (!shiftName.trim()) {
+        const trimmedName = shiftName.trim();
+        if (!trimmedName) {
             setError('required');
             setSnackbar({ open: true, message: 'Shift Name is required', severity: 'error' });
             return;
@@ -112,22 +118,41 @@ export function ShiftDialog({ open, onClose, onSuccess, id }: Props) {
             setLoading(true);
             setError('');
 
-            const data: Partial<Shift> = {
-                shift_name: shiftName.trim(),
-                start_time: startTime ? startTime.format('HH:mm:ss') : undefined,
-                end_time: endTime ? endTime.format('HH:mm:ss') : undefined,
-                lunch_hours: lunchHours ? lunchHours.format('HH:mm:ss') : undefined,
-                break_hours: breakHours ? breakHours.format('HH:mm:ss') : undefined,
-                status,
-                allow_overtime: allowOvertime ? 1 : 0,
-                overtime_hours: allowOvertime && overtimeHours !== '' ? Number(overtimeHours) : 0,
-                min_overtime_minutes: allowOvertime && minOvertimeMinutes !== '' ? Number(minOvertimeMinutes) : 0,
-                description: description.trim() || undefined,
-            };
-
             if (id) {
-                await updateShift(id, data);
+                let currentId = id;
+                if (trimmedName !== id) {
+                    await renameShift(id, trimmedName);
+                    currentId = trimmedName;
+                }
+
+                const data: any = {
+                    shift_name: trimmedName,
+                    start_time: startTime ? startTime.format('HH:mm:ss') : null,
+                    end_time: endTime ? endTime.format('HH:mm:ss') : null,
+                    lunch_hours: lunchHours ? lunchHours.format('HH:mm:ss') : null,
+                    break_hours: breakHours ? breakHours.format('HH:mm:ss') : null,
+                    status,
+                    allow_overtime: allowOvertime ? 1 : 0,
+                    overtime_hours: allowOvertime && overtimeHours !== '' ? Number(overtimeHours) : 0,
+                    min_overtime_minutes: allowOvertime && minOvertimeMinutes !== '' ? Number(minOvertimeMinutes) : 0,
+                    description: description.trim() || null,
+                };
+
+                await updateShift(currentId, data);
             } else {
+                const data: Partial<Shift> = {
+                    shift_name: trimmedName,
+                    start_time: startTime ? startTime.format('HH:mm:ss') : undefined,
+                    end_time: endTime ? endTime.format('HH:mm:ss') : undefined,
+                    lunch_hours: lunchHours ? lunchHours.format('HH:mm:ss') : undefined,
+                    break_hours: breakHours ? breakHours.format('HH:mm:ss') : undefined,
+                    status,
+                    allow_overtime: allowOvertime ? 1 : 0,
+                    overtime_hours: allowOvertime && overtimeHours !== '' ? Number(overtimeHours) : 0,
+                    min_overtime_minutes: allowOvertime && minOvertimeMinutes !== '' ? Number(minOvertimeMinutes) : 0,
+                    description: description.trim() || undefined,
+                };
+
                 await createShift(data);
             }
 
@@ -157,7 +182,9 @@ export function ShiftDialog({ open, onClose, onSuccess, id }: Props) {
         >
             <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h6">{id ? 'Edit Shift' : 'New Shift'}</Typography>
-                <Iconify icon="mingcute:close-line" onClick={onClose} sx={{ cursor: 'pointer', color: 'text.disabled' }} />
+                <IconButton onClick={onClose} sx={{ color: (theme) => theme.palette.grey[500] }}>
+                    <Iconify icon="mingcute:close-line" />
+                </IconButton>
             </DialogTitle>
 
             <DialogContent dividers>
@@ -244,17 +271,18 @@ export function ShiftDialog({ open, onClose, onSuccess, id }: Props) {
                         </Box>
                     </LocalizationProvider>
 
-                    <FormControl fullWidth disabled={loading}>
-                        <InputLabel shrink>Status</InputLabel>
-                        <Select
-                            value={status}
-                            label="Status"
-                            onChange={(e) => setStatus(e.target.value)}
-                        >
-                            <MenuItem value="Active">Active</MenuItem>
-                            <MenuItem value="Inactive">Inactive</MenuItem>
-                        </Select>
-                    </FormControl>
+                    <TextField
+                        select
+                        fullWidth
+                        label="Status"
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                        disabled={loading}
+                        InputLabelProps={{ shrink: true }}
+                    >
+                        <MenuItem value="Active">Active</MenuItem>
+                        <MenuItem value="Inactive">Inactive</MenuItem>
+                    </TextField>
 
                     <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: (theme) => theme.palette.mode === 'light' ? 'grey.50' : 'background.neutral' }}>
                         <FormControlLabel
@@ -338,3 +366,4 @@ export function ShiftDialog({ open, onClose, onSuccess, id }: Props) {
         </Dialog>
     );
 }
+

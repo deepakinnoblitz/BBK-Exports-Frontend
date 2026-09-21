@@ -14,9 +14,9 @@ import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
-import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
@@ -220,7 +220,9 @@ export function ShiftRosterDialog({
       >
         <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6">{isEdit ? 'Edit Shift Assignment' : 'New Shift Assignment'}</Typography>
-          <Iconify icon="mingcute:close-line" onClick={onClose} sx={{ cursor: 'pointer', color: 'text.disabled' }} />
+          <IconButton onClick={onClose} sx={{ color: (theme) => theme.palette.grey[500] }}>
+            <Iconify icon="mingcute:close-line" />
+          </IconButton>
         </DialogTitle>
 
         <DialogContent dividers>
@@ -242,7 +244,7 @@ export function ShiftRosterDialog({
               options={employees}
               loading={loadingData}
               disabled={isEdit}
-              getOptionLabel={(opt) => (opt ? opt.employee_name || opt.name : '')}
+              getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
               isOptionEqualToValue={(option, value) => option?.name === value?.name}
               value={selectedEmployee}
               onChange={(_, val) => setSelectedEmployee(val)}
@@ -274,26 +276,52 @@ export function ShiftRosterDialog({
             />
 
             {/* Shift Master Selector */}
-            <FormControl fullWidth required sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}>
-              <InputLabel shrink>Shift</InputLabel>
-              <Select
-                value={selectedShift}
-                label="Shift"
-                onChange={(e) => setSelectedShift(e.target.value)}
-              >
-                {shifts.map((s) => (
-                  <MenuItem key={s.name} value={s.name}>
-                    {s.shift_name || s.name}{' '}
-                    {s.start_time && s.end_time ? `(${String(s.start_time).slice(0, 5)} - ${String(s.end_time).slice(0, 5)})` : ''}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              fullWidth
+              options={shifts}
+              getOptionLabel={(option) => {
+                if (typeof option === 'string') return option;
+                const timeStr = option.start_time && option.end_time ? ` (${String(option.start_time).slice(0, 5)} - ${String(option.end_time).slice(0, 5)})` : '';
+                return `${option.shift_name || option.name}${timeStr}`;
+              }}
+              value={shifts.find((s) => s.name === selectedShift) || null}
+              onChange={(_, newValue) => {
+                setSelectedShift(newValue ? newValue.name : '');
+              }}
+              renderOption={(props, option, { selected: isSelected }) => (
+                <li {...props} key={option.name}>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      {option.shift_name || option.name}
+                    </Typography>
+                    {option.start_time && option.end_time && (
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {String(option.start_time).slice(0, 5)} - {String(option.end_time).slice(0, 5)}
+                      </Typography>
+                    )}
+                  </Box>
+                  {isSelected && (
+                    <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: 'primary.main', ml: 1 }} />
+                  )}
+                </li>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  required
+                  label="Shift"
+                  placeholder="Select Shift..."
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
+                />
+              )}
+            />
 
             {/* Date Range Fields */}
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
               <DatePicker
                 label="Effective From"
+                format="DD-MM-YYYY"
                 value={effectiveFrom}
                 onChange={(val) => {
                   setEffectiveFrom(val);
@@ -313,6 +341,7 @@ export function ShiftRosterDialog({
 
               <DatePicker
                 label="Effective To"
+                format="DD-MM-YYYY"
                 value={effectiveTo}
                 minDate={effectiveFrom || undefined}
                 onChange={(val) => setEffectiveTo(val)}
@@ -328,32 +357,32 @@ export function ShiftRosterDialog({
 
             {/* Assignment Type & Status */}
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-              <FormControl fullWidth>
-                <InputLabel shrink>Assignment Type</InputLabel>
-                <Select
-                  value={assignmentType}
-                  label="Assignment Type"
-                  onChange={(e) => setAssignmentType(e.target.value)}
-                >
-                  <MenuItem value="Manual">Manual</MenuItem>
-                  <MenuItem value="Bulk">Bulk</MenuItem>
-                  <MenuItem value="Rotation">Rotation</MenuItem>
-                  <MenuItem value="Override">Override (Replace Conflicts)</MenuItem>
-                  <MenuItem value="Shift Change">Shift Change</MenuItem>
-                </Select>
-              </FormControl>
+              <TextField
+                select
+                fullWidth
+                label="Assignment Type"
+                value={assignmentType}
+                onChange={(e) => setAssignmentType(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              >
+                <MenuItem value="Manual">Manual</MenuItem>
+                <MenuItem value="Bulk">Bulk</MenuItem>
+                <MenuItem value="Rotation">Rotation</MenuItem>
+                <MenuItem value="Override">Override (Replace Conflicts)</MenuItem>
+                <MenuItem value="Shift Change">Shift Change</MenuItem>
+              </TextField>
 
-              <FormControl fullWidth>
-                <InputLabel shrink>Status</InputLabel>
-                <Select
-                  value={status}
-                  label="Status"
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <MenuItem value="Active">Active</MenuItem>
-                  <MenuItem value="Cancelled">Cancelled</MenuItem>
-                </Select>
-              </FormControl>
+              <TextField
+                select
+                fullWidth
+                label="Status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              >
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Cancelled">Cancelled</MenuItem>
+              </TextField>
             </Box>
 
             {/* Description / Reason */}

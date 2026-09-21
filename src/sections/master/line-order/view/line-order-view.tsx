@@ -44,8 +44,8 @@ const TABLE_HEAD = [
 ];
 
 const SORT_OPTIONS = [
-  { value: 'creation_desc', label: 'Newest First' },
-  { value: 'creation_asc', label: 'Oldest First' },
+  { value: 'modified_desc', label: 'Newest First' },
+  { value: 'modified_asc', label: 'Oldest First' },
 ];
 
 // ----------------------------------------------------------------------
@@ -62,7 +62,7 @@ export function LineOrderView() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [filterName, setFilterName] = useState('');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
-  const [orderBy, setOrderBy] = useState('creation');
+  const [orderBy, setOrderBy] = useState('modified');
 
   const [openForm, setOpenForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);

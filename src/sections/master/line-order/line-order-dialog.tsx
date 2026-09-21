@@ -18,7 +18,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { getLineOrder, createLineOrder, updateLineOrder } from 'src/api/masters';
+import { getLineOrder, createLineOrder, updateLineOrder, renameLineOrder } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -83,14 +83,22 @@ export function LineOrderDialog({ open, onClose, onSuccess, id }: Props) {
             setLoading(true);
             setError('');
 
+            let currentId = id;
+            const trimmedLineName = lineName.trim();
+
+            if (id && trimmedLineName !== id) {
+                await renameLineOrder(id, trimmedLineName);
+                currentId = trimmedLineName;
+            }
+
             const data: Partial<LineOrder> = {
-                line_name: lineName.trim(),
+                line_name: trimmedLineName,
                 status,
                 description: description.trim() || undefined,
             };
 
-            if (id) {
-                await updateLineOrder(id, data);
+            if (currentId) {
+                await updateLineOrder(currentId, data);
             } else {
                 await createLineOrder(data);
             }

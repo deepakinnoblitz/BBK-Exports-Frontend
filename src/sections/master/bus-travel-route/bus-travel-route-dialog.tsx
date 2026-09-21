@@ -33,7 +33,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
-import { getBusTravelRoute, createBusTravelRoute, updateBusTravelRoute } from 'src/api/masters';
+import { getBusTravelRoute, createBusTravelRoute, updateBusTravelRoute, renameBusTravelRoute } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -130,6 +130,14 @@ export function BusTravelRouteDialog({ open, onClose, onSuccess, id }: Props) {
             setLoading(true);
             setError('');
 
+            let currentId = id;
+            const trimmedRouteName = routeName.trim();
+
+            if (id && trimmedRouteName !== id) {
+                await renameBusTravelRoute(id, trimmedRouteName);
+                currentId = trimmedRouteName;
+            }
+
             const validPoints = points
                 .map((p) => ({
                     name: p.name,
@@ -140,7 +148,7 @@ export function BusTravelRouteDialog({ open, onClose, onSuccess, id }: Props) {
                 .filter((p) => p.point_name);
 
             const data: Partial<BusTravelRoute> = {
-                route_name: routeName.trim(),
+                route_name: trimmedRouteName,
                 bus_number: busNumber.trim() || undefined,
                 driver_contact: driverContact.trim() || undefined,
                 status,
@@ -148,8 +156,8 @@ export function BusTravelRouteDialog({ open, onClose, onSuccess, id }: Props) {
                 points: validPoints,
             };
 
-            if (id) {
-                await updateBusTravelRoute(id, data);
+            if (currentId) {
+                await updateBusTravelRoute(currentId, data);
             } else {
                 await createBusTravelRoute(data);
             }

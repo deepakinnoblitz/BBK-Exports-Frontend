@@ -2133,6 +2133,22 @@ export async function renameLineOrder(oldName: string, newName: string) {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, "Failed to rename line order"));
+
+    // Touch the renamed document using frappe.client.set_value to update `modified` timestamp
+    try {
+        await frappeRequest("/api/method/frappe.client.set_value", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                doctype: "Line Order",
+                name: newName,
+                fieldname: { line_name: newName }
+            })
+        });
+    } catch (touchErr) {
+        console.error("Error touching Line Order after rename:", touchErr);
+    }
+
     return json.message;
 }
 
@@ -2155,6 +2171,10 @@ export interface Shift {
     overtime_hours?: number;
     min_overtime_minutes?: number;
     description?: string;
+    break_duration?: number;
+    enable_auto_attendance?: boolean;
+    creation?: string;
+    modified?: string;
 }
 
 export const fetchShifts = (params: any) => {
@@ -2162,7 +2182,6 @@ export const fetchShifts = (params: any) => {
 
     const or_filters = search ? [
         ["Shift", "shift_name", "like", `%${search}%`],
-        ["Shift", "description", "like", `%${search}%`],
     ] : undefined;
 
     return fetchFrappeList("Shift", {
@@ -2222,6 +2241,22 @@ export async function renameShift(oldName: string, newName: string) {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, "Failed to rename shift"));
+
+    // Touch the renamed document using frappe.client.set_value to update `modified` timestamp
+    try {
+        await frappeRequest("/api/method/frappe.client.set_value", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                doctype: "Shift",
+                name: newName,
+                fieldname: { shift_name: newName }
+            })
+        });
+    } catch (touchErr) {
+        console.error("Error touching Shift after rename:", touchErr);
+    }
+
     return json.message;
 }
 
@@ -2247,6 +2282,8 @@ export interface BusTravelRoute {
     status?: string;
     description?: string;
     points?: BusRoutePoint[];
+    creation?: string;
+    modified?: string;
 }
 
 export const fetchBusTravelRoutes = (params: any) => {
@@ -2331,6 +2368,22 @@ export async function renameBusTravelRoute(oldName: string, newName: string) {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, "Failed to rename bus travel route"));
+
+    // Touch the renamed document using frappe.client.set_value to update `modified` timestamp
+    try {
+        await frappeRequest("/api/method/frappe.client.set_value", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                doctype: "Bus Travel Route",
+                name: newName,
+                fieldname: { route_name: newName }
+            })
+        });
+    } catch (touchErr) {
+        console.error("Error touching Bus Travel Route after rename:", touchErr);
+    }
+
     return json.message;
 }
 

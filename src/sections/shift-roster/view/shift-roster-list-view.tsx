@@ -47,11 +47,19 @@ export function ShiftRosterListView({
   canCreate = true,
   canEdit = true,
   canDelete = true,
+  selectedEmployees: controlledEmployees,
+  onSelectEmployees,
+  selectedEmployee,
+  onSelectEmployee,
 }: {
   onCreateNew: VoidFunction;
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  selectedEmployees?: any[];
+  onSelectEmployees?: (emps: any[]) => void;
+  selectedEmployee?: any | null;
+  onSelectEmployee?: (emp: any | null) => void;
 }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -61,18 +69,32 @@ export function ShiftRosterListView({
 
   // Filters State
   const [filters, setFilters] = useState<{
-    employee: any | null;
+    employees: any[];
     shift: string;
     status: string;
     fromDate: dayjs.Dayjs | null;
     toDate: dayjs.Dayjs | null;
   }>({
-    employee: null,
+    employees: controlledEmployees || (selectedEmployee ? (Array.isArray(selectedEmployee) ? selectedEmployee : [selectedEmployee]) : []),
     shift: 'all',
     status: 'all',
     fromDate: null,
     toDate: null,
   });
+
+  useEffect(() => {
+    if (controlledEmployees !== undefined) {
+      setFilters((prev) => ({
+        ...prev,
+        employees: Array.isArray(controlledEmployees) ? controlledEmployees : controlledEmployees ? [controlledEmployees] : [],
+      }));
+    } else if (selectedEmployee !== undefined) {
+      setFilters((prev) => ({
+        ...prev,
+        employees: Array.isArray(selectedEmployee) ? selectedEmployee : selectedEmployee ? [selectedEmployee] : [],
+      }));
+    }
+  }, [controlledEmployees, selectedEmployee]);
 
   const [openFilters, setOpenFilters] = useState(false);
 
@@ -124,23 +146,38 @@ export function ShiftRosterListView({
   };
 
   const handleFilters = (update: any) => {
-    setFilters((prev) => ({ ...prev, ...update }));
+    setFilters((prev) => {
+      const next = { ...prev, ...update };
+      if ('employees' in update) {
+        const val = update.employees || [];
+        onSelectEmployees?.(val);
+        onSelectEmployee?.(val.length === 1 ? val[0] : val.length > 0 ? val : null);
+      } else if ('employee' in update) {
+        const val = Array.isArray(update.employee) ? update.employee : update.employee ? [update.employee] : [];
+        next.employees = val;
+        onSelectEmployees?.(val);
+        onSelectEmployee?.(val.length === 1 ? val[0] : val.length > 0 ? val : null);
+      }
+      return next;
+    });
     setPage(0);
   };
 
   const handleResetFilters = () => {
     setFilters({
-      employee: null,
+      employees: [],
       shift: 'all',
       status: 'all',
       fromDate: null,
       toDate: null,
     });
+    onSelectEmployees?.([]);
+    onSelectEmployee?.(null);
   };
 
   const canReset =
     !!search ||
-    !!filters.employee ||
+    (filters.employees && filters.employees.length > 0) ||
     filters.shift !== 'all' ||
     filters.status !== 'all' ||
     !!filters.fromDate ||
@@ -149,8 +186,13 @@ export function ShiftRosterListView({
   // Build custom filter criteria
   const customFilters = useMemo(() => {
     const res: any[] = [];
-    if (filters.employee?.name) {
-      res.push(['Employee Shift Roster', 'employee', '=', filters.employee.name]);
+    if (filters.employees && filters.employees.length > 0) {
+      const empIds = filters.employees.map((e: any) => (typeof e === 'string' ? e : e?.name)).filter(Boolean);
+      if (empIds.length === 1) {
+        res.push(['Employee Shift Roster', 'employee', '=', empIds[0]]);
+      } else if (empIds.length > 1) {
+        res.push(['Employee Shift Roster', 'employee', 'in', empIds]);
+      }
     }
     if (filters.shift && filters.shift !== 'all') {
       res.push(['Employee Shift Roster', 'shift', '=', filters.shift]);
@@ -263,39 +305,39 @@ export function ShiftRosterListView({
           canReset={canReset}
         />
 
-        <Scrollbar>
-          <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
-            <Table size="medium" sx={{ minWidth: 1080, borderCollapse: 'collapse' }}>
+        <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
+          <Scrollbar>
+            <Table size="medium" sx={{ minWidth: 800, borderCollapse: 'collapse' }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: '#f4f6f8' }}>
-                  <TableCell align="center" sx={{ fontWeight: 700, color: 'text.secondary', width: 60 }}>
+                  <TableCell align="center" sx={{ fontWeight: 700, color: 'text.secondary', width: 50, px: 1 }}>
                     S.No
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>
                     Employee
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>
                     Department
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>
                     Designation
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>
                     Shift
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>
                     Effective From
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>
                     Effective To
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>
                     Source
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>
                     Status
                   </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700, color: 'text.secondary', pr: 3, whiteSpace: 'nowrap' }}>
+                  <TableCell align="right" sx={{ fontWeight: 700, color: 'text.secondary', pr: 2, pl: 1, whiteSpace: 'nowrap' }}>
                     Actions
                   </TableCell>
                 </TableRow>
@@ -304,7 +346,7 @@ export function ShiftRosterListView({
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
                       <CircularProgress sx={{ color: '#08a3cd' }} />
                     </TableCell>
                   </TableRow>
@@ -327,7 +369,7 @@ export function ShiftRosterListView({
 
                     {empty && (
                       <TableRow>
-                        <TableCell colSpan={9}>
+                        <TableCell colSpan={10}>
                           <EmptyContent
                             title="No shift roster assignments found"
                             description="Click 'New Assignment' or 'Bulk Assign' to schedule employee shifts."
@@ -348,8 +390,8 @@ export function ShiftRosterListView({
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
-        </Scrollbar>
+          </Scrollbar>
+        </TableContainer>
 
         <TablePagination
           component="div"

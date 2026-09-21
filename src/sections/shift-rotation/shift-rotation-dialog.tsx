@@ -252,36 +252,35 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
         <DialogTitle
           sx={{
             m: 0,
+            p: 2,
             px: 3,
-            py: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
-            fontWeight: 700,
           }}
         >
-          {isEdit ? 'Edit Shift Rotation' : 'New Shift Rotation'}
+          <Typography variant="h6">{isEdit ? 'Edit Shift Rotation' : 'New Shift Rotation'}</Typography>
           <IconButton
             onClick={onClose}
             sx={{
-              position: 'absolute',
-              right: 8,
-              top: 8,
               color: 'text.disabled',
               '&:hover': {
                 color: 'text.primary',
               },
             }}
           >
-            <Iconify icon="mingcute:close-line" width={20} />
+            <Iconify icon="mingcute:close-line" />
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 3, px: 4 }}>
+        <DialogContent dividers sx={{ p: 3 }}>
           {loadingDoc ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
               <CircularProgress sx={{ color: '#08a3cd' }} />
             </Box>
           ) : (
-            <Stack spacing={2.5} sx={{ mt: 1 }}>
+            <Stack spacing={3} sx={{ py: 1 }}>
               {errorMessage && (
                 <Alert severity="error" onClose={() => setErrorMessage(null)}>
                   {errorMessage}
@@ -304,36 +303,44 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                   onChange={(e) => setRotationName(e.target.value)}
                   placeholder="e.g. Production Weekly Shift Rotation"
                   disabled={isEdit}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
                 />
 
-                <FormControl fullWidth required>
-                  <InputLabel>Rotation Frequency</InputLabel>
-                  <Select
-                    value={frequency}
-                    label="Rotation Frequency"
-                    onChange={(e) => setFrequency(e.target.value as any)}
-                  >
-                    <MenuItem value="Daily">Daily</MenuItem>
-                    <MenuItem value="Weekly">Weekly</MenuItem>
-                    <MenuItem value="Bi-weekly">Bi-weekly (Fortnightly)</MenuItem>
-                    <MenuItem value="Monthly">Monthly</MenuItem>
-                  </Select>
-                </FormControl>
+                <TextField
+                  select
+                  fullWidth
+                  required
+                  label="Rotation Frequency"
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value as any)}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
+                >
+                  <MenuItem value="Daily">Daily</MenuItem>
+                  <MenuItem value="Weekly">Weekly</MenuItem>
+                  <MenuItem value="Bi-weekly">Bi-weekly (Fortnightly)</MenuItem>
+                  <MenuItem value="Monthly">Monthly</MenuItem>
+                </TextField>
 
                 <DatePicker
-                  label="Start Date *"
+                  label="Start Date"
+                  format="DD-MM-YYYY"
                   value={startDate}
                   onChange={(v) => setStartDate(v)}
                   slotProps={{
                     textField: {
                       fullWidth: true,
                       required: true,
+                      InputLabelProps: { shrink: true },
+                      sx: { '& .MuiFormLabel-asterisk': { color: 'red' } },
                     },
                   }}
                 />
 
                 <DatePicker
-                  label="End Date *"
+                  label="End Date"
+                  format="DD-MM-YYYY"
                   value={endDate}
                   minDate={startDate || undefined}
                   onChange={(v) => setEndDate(v)}
@@ -341,37 +348,39 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                     textField: {
                       fullWidth: true,
                       required: true,
+                      InputLabelProps: { shrink: true },
+                      sx: { '& .MuiFormLabel-asterisk': { color: 'red' } },
                     },
                   }}
                 />
 
-                <FormControl fullWidth>
-                  <InputLabel>Department</InputLabel>
-                  <Select
-                    value={department}
-                    label="Department"
-                    onChange={(e) => setDepartment(e.target.value)}
-                  >
-                    <MenuItem value="">All / None</MenuItem>
-                    {departments.map((d) => (
-                      <MenuItem key={d.name} value={d.name}>
-                        {d.department_name || d.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <TextField
+                  select
+                  fullWidth
+                  label="Department"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                >
+                  <MenuItem value="">All / None</MenuItem>
+                  {departments.map((d) => (
+                    <MenuItem key={d.name} value={d.name}>
+                      {d.department_name || d.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
 
-                <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={status}
-                    label="Status"
-                    onChange={(e) => setStatus(e.target.value as any)}
-                  >
-                    <MenuItem value="Active">Active</MenuItem>
-                    <MenuItem value="Inactive">Inactive</MenuItem>
-                  </Select>
-                </FormControl>
+                <TextField
+                  select
+                  fullWidth
+                  label="Status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as any)}
+                  InputLabelProps={{ shrink: true }}
+                >
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Inactive">Inactive</MenuItem>
+                </TextField>
               </Box>
 
               {/* Shift Sequence Pattern */}
@@ -383,7 +392,7 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                   bgcolor: 'background.neutral',
                 }}
               >
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                     Shift Sequence Pattern
                   </Typography>
@@ -393,42 +402,61 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                     variant="outlined"
                     startIcon={<Iconify icon="solar:add-circle-bold" />}
                     onClick={handleAddSequence}
-                    sx={{ borderRadius: 1 }}
+                    sx={{
+                      borderRadius: 1,
+                      color: '#08a3cd',
+                      borderColor: '#08a3cd',
+                      '&:hover': {
+                        borderColor: '#068fb3',
+                        bgcolor: 'rgba(8, 163, 205, 0.08)',
+                      },
+                    }}
                   >
                     Add Step
                   </Button>
                 </Stack>
 
-                <Stack spacing={1.5}>
+                <Stack spacing={2}>
                   {sequences.map((seq, idx) => (
-                    <Stack key={idx} direction="row" spacing={1.5} alignItems="center">
+                    <Stack key={idx} direction="row" spacing={2} alignItems="center">
                       <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary', width: 65, flexShrink: 0 }}>
                         Step {idx + 1}:
                       </Typography>
 
-                      <FormControl fullWidth size="small" required>
-                        <InputLabel>Select Shift</InputLabel>
-                        <Select
-                          value={seq.shift}
-                          label="Select Shift"
-                          onChange={(e) => handleSequenceShiftChange(idx, e.target.value)}
-                        >
-                          {shifts.map((s) => (
-                            <MenuItem key={s.name} value={s.name}>
-                              {s.shift_name || s.name}{' '}
-                              {s.start_time && s.end_time ? `(${String(s.start_time).slice(0, 5)} - ${String(s.end_time).slice(0, 5)})` : ''}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        required
+                        label="Select Shift"
+                        value={seq.shift}
+                        onChange={(e) => handleSequenceShiftChange(idx, e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                        sx={{
+                          bgcolor: 'background.paper',
+                          borderRadius: 1,
+                          '& .MuiFormLabel-asterisk': { color: 'red' },
+                        }}
+                      >
+                        {shifts.map((s) => (
+                          <MenuItem key={s.name} value={s.name}>
+                            {s.shift_name || s.name}{' '}
+                            {s.start_time && s.end_time ? `(${String(s.start_time).slice(0, 5)} - ${String(s.end_time).slice(0, 5)})` : ''}
+                          </MenuItem>
+                        ))}
+                      </TextField>
 
                       <IconButton
                         size="small"
                         color="error"
                         onClick={() => handleRemoveSequence(idx)}
                         disabled={sequences.length <= 1}
+                        sx={{
+                          color: sequences.length <= 1 ? 'text.disabled' : '#ff5630',
+                          '&:hover': { bgcolor: 'rgba(255, 86, 48, 0.08)' },
+                        }}
                       >
-                        <Iconify icon={"solar:trash-bin-minimalistic-bold" as any} />
+                        <Iconify icon={"solar:trash-bin-minimalistic-bold" as any} width={20} />
                       </IconButton>
                     </Stack>
                   ))}
@@ -454,7 +482,7 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                       </Typography>
                     </Box>
                     {isSelected && (
-                      <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: 'primary.main', ml: 1 }} />
+                      <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: '#08a3cd', ml: 1 }} />
                     )}
                   </li>
                 )}
@@ -463,6 +491,7 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                     {...params}
                     label={`Assigned Employees (${selectedEmployees.length})`}
                     placeholder="Search and select employees..."
+                    InputLabelProps={{ shrink: true }}
                   />
                 )}
               />
@@ -512,17 +541,18 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                 multiline
                 rows={2}
                 placeholder="Optional notes regarding this rotation..."
+                InputLabelProps={{ shrink: true }}
               />
             </Stack>
           )}
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2, borderTop: (theme) => `1px solid ${theme.palette.divider}` }}>
+        <DialogActions sx={{ p: 2.5, px: 3, borderTop: (theme) => `1px solid ${theme.palette.divider}` }}>
           <Button
             variant="contained"
             onClick={handleSubmit}
             disabled={submitting || loadingDoc}
-            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' }, px: 3 }}
             startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
           >
             {isEdit ? 'Update' : 'Create'}

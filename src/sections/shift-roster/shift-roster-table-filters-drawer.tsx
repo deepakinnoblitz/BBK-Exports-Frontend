@@ -1,6 +1,8 @@
 import type dayjs from 'dayjs';
 import type { SelectChangeEvent } from '@mui/material/Select';
 
+import { useMemo } from 'react';
+
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Badge from '@mui/material/Badge';
@@ -21,12 +23,14 @@ import { Scrollbar } from 'src/components/scrollbar';
 
 // ----------------------------------------------------------------------
 
+
 type Props = {
   open: boolean;
   onOpen: VoidFunction;
   onClose: VoidFunction;
   filters: {
-    employee: any | null;
+    employees?: any[];
+    employee?: any | null;
     shift: string;
     status: string;
     fromDate: dayjs.Dayjs | null;
@@ -56,8 +60,14 @@ export function ShiftRosterTableFiltersDrawer({
   employeeOptions,
   shiftOptions,
 }: Props) {
-  const handleFilterEmployee = (event: any, value: any | null) => {
-    onFilters({ employee: value });
+  const currentEmployees = useMemo(() => {
+    if (filters.employees) return filters.employees;
+    if (filters.employee) return Array.isArray(filters.employee) ? filters.employee : [filters.employee];
+    return [];
+  }, [filters.employees, filters.employee]);
+
+  const handleFilterEmployees = (event: any, value: any[]) => {
+    onFilters({ employees: value || [] });
   };
 
   const handleFilterShift = (event: SelectChangeEvent<string>) => {
@@ -142,13 +152,15 @@ export function ShiftRosterTableFiltersDrawer({
                 Employee
               </Typography>
               <Autocomplete
+                multiple
+                disableCloseOnSelect
                 fullWidth
                 size="small"
                 options={employeeOptions}
-                getOptionLabel={(opt) => (opt ? opt.employee_name || opt.name : '')}
+                getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
                 isOptionEqualToValue={(option, value) => option?.name === value?.name}
-                value={filters.employee}
-                onChange={handleFilterEmployee}
+                value={employeeOptions.filter((opt) => currentEmployees.some((ce: any) => (typeof ce === 'string' ? ce === opt.name : ce?.name === opt.name)))}
+                onChange={handleFilterEmployees}
                 renderOption={(props, option, { selected: isSelected }) => (
                   <li {...props} key={option.name}>
                     <Box sx={{ flexGrow: 1 }}>
@@ -167,7 +179,7 @@ export function ShiftRosterTableFiltersDrawer({
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    placeholder="Search employee..."
+                    placeholder={currentEmployees.length === 0 ? "Search employee(s)..." : ""}
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: 1.5,
