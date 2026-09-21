@@ -45,24 +45,26 @@ export function HRSummaryWidget({
             <Card
                 sx={[
                     {
-                        p: 3,
-                        pr: 4.5,
+                        pt: 1.75,
+                        pb: 2,
+                        pl: 2.75,
+                        pr: 4,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         position: 'relative',
                         borderRadius: 3,
-                        bgcolor: '#ffffff',
-                        border: '1px solid rgba(0, 0, 0, 0.08)',
-                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+                        bgcolor: alpha(resolvedColor, 0.035),
+                        border: `1px solid ${alpha(resolvedColor, 0.18)}`,
+                        boxShadow: `0 4px 20px ${alpha(resolvedColor, 0.08)}`,
                         transition: theme.transitions.create(['box-shadow', 'transform']),
                         overflow: 'hidden',
-                        minHeight: 120,
+                        minHeight: 104,
                         '&:hover': {
                             transform: 'translateY(-3px)',
-                            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.08)',
+                            boxShadow: `0 12px 32px ${alpha(resolvedColor, 0.16)}`,
                             '& .accent-tab': {
-                                width: 14,
+                                width: 10,
                                 boxShadow: `inset 2px 1px 3px rgba(255, 255, 255, 0.5), inset -1px -1px 3px rgba(0, 0, 0, 0.2), 0 4px 14px ${alpha(resolvedColor, 0.45)}`,
                             },
                             '& .icon-wrapper': {
@@ -82,7 +84,7 @@ export function HRSummaryWidget({
                         right: 0,
                         top: '50%',
                         transform: 'translateY(-50%)',
-                        width: 11,
+                        width: 7,
                         height: 80,
                         borderRadius: '8px 0 0 8px',
                         background: `linear-gradient(180deg, ${resolvedColor} 0%, ${alpha(resolvedColor, 0.85)} 100%)`,

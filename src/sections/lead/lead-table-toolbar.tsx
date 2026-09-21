@@ -18,6 +18,8 @@ import FormControl from '@mui/material/FormControl';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
+import { COMMON_COLORS } from 'src/theme';
+
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
@@ -32,6 +34,7 @@ type LeadTableToolbarProps = {
   // Filter Drawer Props
   onOpenFilter?: (event: React.MouseEvent<HTMLElement>) => void;
   canReset?: boolean;
+  filterCount?: number;
   // Legacy Props for backward compatibility
   filterStatus?: string;
   onFilterStatus?: (event: SelectChangeEvent<string>) => void;
@@ -66,8 +69,28 @@ export function LeadTableToolbar({
   searchPlaceholder = 'Search...',
   filterLabel = 'Status',
   sortOptions = DEFAULT_SORT_OPTIONS,
+  filterCount,
 }: LeadTableToolbarProps) {
   const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
+  const searchInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const activeFilterCount = filterCount !== undefined ? filterCount : (canReset ? 1 : 0);
+
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleClearSearch = () => {
+    onFilterName({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+    searchInputRef.current?.focus();
+  };
 
   const handleSortClick = (event: React.MouseEvent<HTMLElement>) => {
     setSortAnchorEl(event.currentTarget);
@@ -121,15 +144,74 @@ export function LeadTableToolbar({
         }}>
           <OutlinedInput
             fullWidth
+            inputRef={searchInputRef}
             value={filterName}
             onChange={onFilterName}
             placeholder={searchPlaceholder}
             startAdornment={
               <InputAdornment position="start">
-                <Iconify width={20} icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
+                <Iconify width={18} icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
               </InputAdornment>
             }
-            sx={{ maxWidth: { xs: '100%', md: 480 } }}
+            endAdornment={
+              <InputAdornment position="end">
+                {filterName ? (
+                  <IconButton
+                    size="small"
+                    onClick={handleClearSearch}
+                    edge="end"
+                    aria-label="clear search"
+                    sx={{
+                      p: 0.5,
+                      color: 'text.disabled',
+                      '&:hover': { color: 'text.primary' },
+                    }}
+                  >
+                    <Iconify icon="solar:close-circle-bold" width={18} />
+                  </IconButton>
+                ) : (
+                  <Box
+                    sx={{
+                      display: { xs: 'none', sm: 'inline-flex' },
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      px: 0.75,
+                      py: 0.25,
+                      borderRadius: '6px',
+                      bgcolor: '#F1F5F9',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      lineHeight: 1,
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    ⌘ K
+                  </Box>
+                )}
+              </InputAdornment>
+            }
+            sx={{
+              maxWidth: { xs: '100%', md: 480 },
+              height: 50,
+              borderRadius: 1.25,
+              bgcolor: 'background.paper',
+              '& .MuiOutlinedInput-input': {
+                py: 0,
+                fontSize: '0.875rem',
+              },
+              '& fieldset': {
+                borderColor: 'divider',
+              },
+              '&:hover fieldset': {
+                borderColor: 'text.secondary',
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: 'var(--btn-primary-bg, #059669)',
+              },
+            }}
           />
 
           {options && onFilterStatus && (
@@ -142,6 +224,7 @@ export function LeadTableToolbar({
                 label={filterLabel}
                 onChange={onFilterStatus}
                 size="medium"
+                sx={{ height: 46 }}
               >
                 <MenuItem value="all">
                   All {filterLabel}
@@ -175,53 +258,90 @@ export function LeadTableToolbar({
             {onOpenFilter && (
               <Button
                 disableRipple
-                color="inherit"
-                startIcon={
-                  <Badge color="error" variant="dot" invisible={!canReset}>
-                    <Iconify icon="ic:round-filter-list" />
-                  </Badge>
-                }
                 onClick={onOpenFilter}
                 sx={{
                   flexGrow: { xs: 1, md: 0 },
-                  height: 40,
-                  px: 2,
-                  bgcolor: 'background.neutral',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  fontWeight: 500,
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                  minWidth: 'fit-content',
+                  height: 50,
+                  px: 1.75,
+                  bgcolor: COMMON_COLORS.filterButton.bg,
+                  color: COMMON_COLORS.filterButton.color,
+                  borderRadius: 1.25,
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  textTransform: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  boxShadow: 'none',
+                  border: 'none',
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    bgcolor: COMMON_COLORS.filterButton.hoverBg,
+                    boxShadow: 'none',
+                  },
                 }}
               >
-                Filters
+                <Badge
+                  color="error"
+                  variant="dot"
+                  invisible={activeFilterCount === 0 && !canReset}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      top: 2,
+                      right: 2,
+                    },
+                  }}
+                >
+                  <Iconify icon={"solar:filter-linear" as any} width={18} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
+                </Badge>
+                <Box component="span" sx={{ whiteSpace: 'nowrap', display: 'inline', fontWeight: 700 }}>
+                  {activeFilterCount > 0 ? `Filters (${activeFilterCount})` : 'Filters'}
+                </Box>
+                <Iconify icon={"eva:chevron-down-fill" as any} width={16} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
               </Button>
             )}
 
             {onSortChange && (
               <>
                 <Button
-                  variant="text"
-                  color="inherit"
-                  startIcon={<Iconify icon={"solar:sort-bold" as any} />}
                   onClick={handleSortClick}
                   sx={{
                     flexGrow: { xs: 1, md: 0 },
-                    minWidth: { xs: '0', md: 180 },
-                    height: 40,
-                    px: 2,
-                    color: 'text.primary',
-                    bgcolor: 'background.neutral',
+                    minWidth: { xs: '0', md: 175 },
+                    height: 50,
+                    px: 1.5,
+                    py: 0.5,
+                    bgcolor: COMMON_COLORS.sortButton.bg,
                     border: '1px solid',
                     borderColor: 'divider',
-                    borderRadius: 1,
-                    fontWeight: 500,
-                    whiteSpace: 'nowrap',
+                    borderRadius: 1.25,
+                    textTransform: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1.25,
+                    transition: 'all 0.15s ease',
                     '&:hover': {
                       bgcolor: 'action.hover',
+                      borderColor: 'text.secondary',
                     },
                   }}
                 >
-                  {currentSortLabel}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Iconify icon={"solar:sort-vertical-linear" as any} width={18} sx={{ color: COMMON_COLORS.sortButton.labelColor, flexShrink: 0 }} />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+                      <Typography component="span" sx={{ fontSize: '0.675rem', fontWeight: 500, color: COMMON_COLORS.sortButton.labelColor, lineHeight: 1.1 }}>
+                        Sort by
+                      </Typography>
+                      <Typography component="span" sx={{ fontSize: '0.8125rem', fontWeight: 700, color: COMMON_COLORS.sortButton.valueColor, lineHeight: 1.2 }}>
+                        {currentSortLabel}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Iconify icon={"eva:chevron-down-fill" as any} width={16} sx={{ color: COMMON_COLORS.sortButton.labelColor, flexShrink: 0, ml: 1 }} />
                 </Button>
 
                 <Menu

@@ -190,17 +190,18 @@ export function NavContent({
       {/* Top Header: Original Color Logo + Collapse Button */}
       <Box
         sx={{
-          height: isCollapsed ? 108 : 116,
+          height: isCollapsed ? 108 : 'auto',
+          minHeight: isCollapsed ? 108 : 124,
           px: isCollapsed ? 1 : 2,
           pt: 1,
           pb: 1,
           display: 'flex',
-          flexDirection: isCollapsed ? 'column' : 'row',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
           flexShrink: 0,
-          mb: 2,
+          mb: 1.5,
         }}
       >
         {!isCollapsed ? (
@@ -209,6 +210,7 @@ export function NavContent({
             href="/"
             sx={{
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               textDecoration: 'none',
@@ -229,6 +231,22 @@ export function NavContent({
                 '&:hover': { opacity: 0.85, transform: 'scale(1.02)' },
               }}
             />
+            <Typography
+              component="span"
+              sx={{
+                mt: 1,
+                fontSize: '0.785rem',
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                color: '#1e293b',
+                textTransform: 'uppercase',
+                lineHeight: 1.25,
+                textAlign: 'center',
+                fontFamily: 'inherit',
+              }}
+            >
+              BBK EXPORTS
+            </Typography>
           </Box>
         ) : (
           <Box
@@ -397,7 +415,7 @@ function NavListSubItem({ child, fullPath }: { child: any; fullPath: string }) {
             borderRadius: 1,
             typography: 'body2',
             fontSize: '0.85rem',
-            color: isChildActived ? '#08a3cd' : 'text.secondary',
+            color: isChildActived ? '#059669' : 'text.secondary',
             transition: 'all 0.15s ease',
             '&:hover': {
               bgcolor: 'rgba(0, 0, 0, 0.04)',
@@ -471,24 +489,25 @@ function NavListSubItem({ child, fullPath }: { child: any; fullPath: string }) {
                     typography: 'body2',
                     fontSize: '0.825rem',
                     position: 'relative',
-                    color: isSubChildActived ? '#08a3cd' : 'text.secondary',
+                    color: isSubChildActived ? '#059669' : 'text.secondary',
                     transition: 'all 0.15s ease',
                     '&:hover': {
-                      bgcolor: 'rgba(0, 0, 0, 0.04)',
-                      color: 'text.primary',
+                      bgcolor: isSubChildActived ? '#D1FAE5' : 'rgba(0, 0, 0, 0.04)',
+                      color: isSubChildActived ? '#059669' : 'text.primary',
                     },
                     ...(isSubChildActived && {
                       fontWeight: 600,
-                      bgcolor: 'rgba(8, 163, 205, 0.08)',
+                      bgcolor: '#D1FAE5',
+                      overflow: 'hidden',
                       '&::before': {
                         content: '""',
                         position: 'absolute',
                         left: 0,
-                        top: '18%',
-                        bottom: '18%',
+                        top: 0,
+                        bottom: 0,
                         width: 3,
-                        borderRadius: '0 3px 3px 0',
-                        bgcolor: '#08a3cd',
+                        borderRadius: '3px 0 0 3px',
+                        bgcolor: '#059669',
                       },
                     }),
                   }}
@@ -526,24 +545,25 @@ function NavListSubItem({ child, fullPath }: { child: any; fullPath: string }) {
         typography: 'body2',
         fontSize: '0.875rem',
         position: 'relative',
-        color: isChildActived ? '#08a3cd' : 'text.secondary',
+        color: isChildActived ? '#059669' : 'text.secondary',
         transition: 'all 0.15s ease',
         '&:hover': {
-          bgcolor: 'rgba(0, 0, 0, 0.04)',
-          color: 'text.primary',
+          bgcolor: isChildActived ? '#D1FAE5' : 'rgba(0, 0, 0, 0.04)',
+          color: isChildActived ? '#059669' : 'text.primary',
         },
         ...(isChildActived && {
           fontWeight: 600,
-          bgcolor: 'rgba(8, 163, 205, 0.08)',
+          bgcolor: '#D1FAE5',
+          overflow: 'hidden',
           '&::before': {
             content: '""',
             position: 'absolute',
             left: 0,
-            top: '18%',
-            bottom: '18%',
-            width: 3,
-            borderRadius: '0 3px 3px 0',
-            bgcolor: '#08a3cd',
+            top: 0,
+            bottom: 0,
+            width: 3.5,
+            borderRadius: '3px 0 0 3px',
+            bgcolor: '#059669',
           },
         }),
       }}
@@ -630,13 +650,13 @@ function NavListItem({
               alignItems: 'center',
               justifyContent: 'center',
               p: 0,
-              color: isActived ? '#08a3cd' : 'text.secondary',
-              bgcolor: isActived ? '#ffffff' : 'transparent',
+              color: isActived ? '#059669' : 'text.secondary',
+              bgcolor: isActived ? '#D1FAE5' : 'transparent',
               boxShadow: isActived ? '0 1px 3px rgba(0, 0, 0, 0.08)' : 'none',
               transition: 'all 0.15s ease',
               '&:hover': {
-                bgcolor: isActived ? '#ffffff' : 'rgba(0, 0, 0, 0.04)',
-                color: isActived ? '#08a3cd' : 'text.primary',
+                bgcolor: isActived ? '#D1FAE5' : 'rgba(0, 0, 0, 0.04)',
+                color: isActived ? '#059669' : 'text.primary',
               },
             }}
           >
@@ -673,29 +693,34 @@ function NavListItem({
         typography: 'body2',
         fontSize: '0.925rem',
         fontWeight: isExpandedGroup || isActived ? 600 : 500,
-        color: isExpandedGroup || isActived ? '#08a3cd' : '#4b5563',
-        bgcolor: isExpandedGroup || isActived ? '#ffffff' : 'transparent',
-        boxShadow: isExpandedGroup || isActived ? '0 1px 3px rgba(0, 0, 0, 0.06)' : 'none',
+        color: isExpandedGroup || isActived ? '#059669' : '#4b5563',
+        bgcolor: isExpandedGroup || isActived ? (item.children ? '#ffffff' : '#D1FAE5') : 'transparent',
+        boxShadow: isExpandedGroup ? '0 1px 3px rgba(0, 0, 0, 0.06)' : 'none',
         transition: 'all 0.15s ease',
         '&:hover': {
-          bgcolor: isExpandedGroup || isActived ? '#ffffff' : 'rgba(0, 0, 0, 0.04)',
-          color: isExpandedGroup || isActived ? '#08a3cd' : '#111827',
+          bgcolor: isExpandedGroup ? '#ffffff' : isActived ? '#D1FAE5' : 'rgba(0, 0, 0, 0.04)',
+          color: isExpandedGroup || isActived ? '#059669' : '#111827',
         },
         ...(!item.children &&
           isActived && {
-          color: '#08a3cd',
-          bgcolor: 'rgba(8, 163, 205, 0.08)',
+          color: '#059669',
+          bgcolor: '#D1FAE5',
           boxShadow: 'none',
           position: 'relative',
+          overflow: 'hidden',
+          '&:hover': {
+            bgcolor: '#D1FAE5',
+            color: '#059669',
+          },
           '&::before': {
             content: '""',
             position: 'absolute',
             left: 0,
-            top: '20%',
-            bottom: '20%',
-            width: 3,
-            borderRadius: '0 3px 3px 0',
-            bgcolor: '#08a3cd',
+            top: 0,
+            bottom: 0,
+            width: 3.5,
+            borderRadius: '4px 0 0 4px',
+            bgcolor: '#059669',
           },
         }),
       }}
@@ -710,7 +735,7 @@ function NavListItem({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: isExpandedGroup || isActived ? '#08a3cd' : '#6b7280',
+              color: isExpandedGroup || isActived ? '#059669' : '#6b7280',
               flexShrink: 0,
             }}
           >
@@ -744,7 +769,7 @@ function NavListItem({
           sx={{
             ml: 1,
             flexShrink: 0,
-            color: isExpandedGroup ? '#08a3cd' : '#9ca3af',
+            color: isExpandedGroup ? '#059669' : '#9ca3af',
             transition: 'color 0.15s ease',
           }}
         />

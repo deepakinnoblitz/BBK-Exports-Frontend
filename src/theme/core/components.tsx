@@ -31,6 +31,13 @@ const MuiButton: Components<Theme>['MuiButton'] = {
         backgroundColor: theme.vars.palette.grey[800],
       },
     }),
+    containedPrimary: {
+      backgroundColor: 'var(--btn-primary-bg, #059669)',
+      color: 'var(--btn-primary-color, #ffffff)',
+      '&:hover': {
+        backgroundColor: 'var(--btn-primary-hover, #047857)',
+      },
+    },
     sizeLarge: {
       minHeight: 48,
     },

@@ -2445,7 +2445,11 @@ export function EmployeeView() {
                         variant="contained"
                         startIcon={<Iconify icon="mingcute:add-line" />}
                         onClick={handleOpenCreate}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{
+                            bgcolor: 'var(--btn-primary-bg, #059669)',
+                            color: 'var(--btn-primary-color, common.white)',
+                            '&:hover': { bgcolor: 'var(--btn-primary-hover, #047857)' },
+                        }}
                     >
                         New Employee
                     </Button>
@@ -2461,7 +2465,7 @@ export function EmployeeView() {
                         setPage(0);
                     }}
                     onDelete={handleBulkDelete}
-                    searchPlaceholder="Search employees..."
+                    searchPlaceholder="Search employees by name, ID, department..."
                     sortOptions={sortOptions}
                     sortBy={getSortByValue()}
                     onSortChange={handleSortChange}
