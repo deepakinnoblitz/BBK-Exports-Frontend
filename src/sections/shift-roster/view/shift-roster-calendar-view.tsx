@@ -31,9 +31,13 @@ import { ShiftRosterDialog } from '../shift-roster-dialog';
 export function ShiftRosterCalendarView({
   canCreate = true,
   canEdit = true,
+  selectedEmployee: controlledEmployee,
+  onSelectEmployee,
 }: {
   canCreate?: boolean;
   canEdit?: boolean;
+  selectedEmployee?: any | null;
+  onSelectEmployee?: (emp: any | null) => void;
 }) {
   const theme = useTheme();
   const calendarRef = useRef<FullCalendar>(null);
@@ -44,7 +48,13 @@ export function ShiftRosterCalendarView({
   // Filters
   const [employees, setEmployees] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
+  const [internalEmployee, setInternalEmployee] = useState<any | null>(null);
+
+  const selectedEmployee = controlledEmployee !== undefined ? controlledEmployee : internalEmployee;
+  const setSelectedEmployee = (val: any | null) => {
+    setInternalEmployee(val);
+    onSelectEmployee?.(val);
+  };
   const [selectedDept, setSelectedDept] = useState('all');
 
   // Calendar dates
@@ -68,8 +78,8 @@ export function ShiftRosterCalendarView({
       const empList = empRes || [];
       setEmployees(empList);
       setDepartments(deptRes || []);
-      if (empList.length > 0) {
-        setSelectedEmployee((prev: any) => prev || empList[0]);
+      if (!controlledEmployee && empList.length > 0) {
+        setSelectedEmployee(empList[0]);
       }
     } catch (e) {
       console.error(e);
@@ -267,13 +277,12 @@ export function ShiftRosterCalendarView({
 
           <Autocomplete
             size="small"
-            disableClearable={Boolean(selectedEmployee)}
             options={selectedDept === 'all' ? employees : employees.filter((e) => e.department === selectedDept)}
             getOptionLabel={(opt) => (opt ? opt.employee_name || opt.name : '')}
             isOptionEqualToValue={(option, value) => option?.name === value?.name}
-            value={selectedEmployee || (employees.length > 0 ? employees[0] : null)}
+            value={selectedEmployee || null}
             onChange={(_, val) => {
-              if (val) setSelectedEmployee(val);
+              setSelectedEmployee(val || null);
             }}
             renderOption={(props, option, { selected: isSelected }) => (
               <li {...props} key={option.name}>

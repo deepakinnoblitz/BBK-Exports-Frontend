@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
@@ -125,6 +125,8 @@ export function ShiftRosterView() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
+
   const actionPerms = user?.permissions?.actions?.shift_roster;
   const hasCustomPerms = !!user?.permissions?.custom_permissions_assigned && !!actionPerms;
   const canCreate = hasCustomPerms ? !!actionPerms?.create : true;
@@ -135,6 +137,14 @@ export function ShiftRosterView() {
   const [currentView, setCurrentView] = useState<'list' | 'calendar' | 'monthly'>(
     urlView === 'monthly' ? 'monthly' : urlView === 'calendar' ? 'calendar' : 'monthly'
   );
+
+  // If no single employee is selected and view is calendar, switch back to monthly view
+  useEffect(() => {
+    if (!selectedEmployee && currentView === 'calendar') {
+      setCurrentView('monthly');
+      setSearchParams({ view: 'monthly' });
+    }
+  }, [selectedEmployee, currentView, setSearchParams]);
 
   // Dialogs
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
@@ -276,7 +286,9 @@ export function ShiftRosterView() {
             {[
               { value: 'monthly', label: 'Monthly Roster View', icon: 'material-symbols:grid-on' },
               { value: 'list', label: 'List View', icon: 'solar:list-bold' },
-              { value: 'calendar', label: 'Calendar View', icon: 'solar:calendar-bold' },
+              ...(selectedEmployee
+                ? [{ value: 'calendar', label: 'Calendar View', icon: 'solar:calendar-bold' }]
+                : []),
             ].map((tab) => {
               const isActive = currentView === tab.value;
               return (
@@ -308,7 +320,13 @@ export function ShiftRosterView() {
         </Box>
 
         {/* View Component Rendering */}
-        {currentView === 'monthly' && <ShiftRosterMonthlyView canEdit={canEdit} />}
+        {currentView === 'monthly' && (
+          <ShiftRosterMonthlyView
+            canEdit={canEdit}
+            selectedEmployee={selectedEmployee}
+            onSelectEmployee={setSelectedEmployee}
+          />
+        )}
 
         {currentView === 'list' && (
           <ShiftRosterListView
@@ -316,11 +334,18 @@ export function ShiftRosterView() {
             canCreate={canCreate}
             canEdit={canEdit}
             canDelete={canDelete}
+            selectedEmployee={selectedEmployee}
+            onSelectEmployee={setSelectedEmployee}
           />
         )}
 
         {currentView === 'calendar' && (
-          <ShiftRosterCalendarView canCreate={canCreate} canEdit={canEdit} />
+          <ShiftRosterCalendarView
+            canCreate={canCreate}
+            canEdit={canEdit}
+            selectedEmployee={selectedEmployee}
+            onSelectEmployee={setSelectedEmployee}
+          />
         )}
       </Stack>
 

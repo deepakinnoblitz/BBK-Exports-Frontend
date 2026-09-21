@@ -47,11 +47,15 @@ export function ShiftRosterListView({
   canCreate = true,
   canEdit = true,
   canDelete = true,
+  selectedEmployee,
+  onSelectEmployee,
 }: {
   onCreateNew: VoidFunction;
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  selectedEmployee?: any | null;
+  onSelectEmployee?: (emp: any | null) => void;
 }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -67,12 +71,18 @@ export function ShiftRosterListView({
     fromDate: dayjs.Dayjs | null;
     toDate: dayjs.Dayjs | null;
   }>({
-    employee: null,
+    employee: selectedEmployee || null,
     shift: 'all',
     status: 'all',
     fromDate: null,
     toDate: null,
   });
+
+  useEffect(() => {
+    if (selectedEmployee !== undefined) {
+      setFilters((prev) => ({ ...prev, employee: selectedEmployee }));
+    }
+  }, [selectedEmployee]);
 
   const [openFilters, setOpenFilters] = useState(false);
 
@@ -125,6 +135,9 @@ export function ShiftRosterListView({
 
   const handleFilters = (update: any) => {
     setFilters((prev) => ({ ...prev, ...update }));
+    if ('employee' in update) {
+      onSelectEmployee?.(update.employee || null);
+    }
     setPage(0);
   };
 
@@ -136,6 +149,7 @@ export function ShiftRosterListView({
       fromDate: null,
       toDate: null,
     });
+    onSelectEmployee?.(null);
   };
 
   const canReset =

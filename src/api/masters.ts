@@ -2222,6 +2222,22 @@ export async function renameShift(oldName: string, newName: string) {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, "Failed to rename shift"));
+
+    // Touch the renamed document using frappe.client.set_value to update `modified` timestamp
+    try {
+        await frappeRequest("/api/method/frappe.client.set_value", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                doctype: "Shift",
+                name: newName,
+                fieldname: { shift_name: newName }
+            })
+        });
+    } catch (touchErr) {
+        console.error("Error touching Shift after rename:", touchErr);
+    }
+
     return json.message;
 }
 

@@ -50,11 +50,25 @@ function getShiftShortCode(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-export function ShiftRosterMonthlyView({ canEdit = true }: { canEdit?: boolean }) {
+export function ShiftRosterMonthlyView({
+  canEdit = true,
+  selectedEmployee: controlledEmployee,
+  onSelectEmployee,
+}: {
+  canEdit?: boolean;
+  selectedEmployee?: any | null;
+  onSelectEmployee?: (emp: any | null) => void;
+}) {
   const [currentDate, setCurrentDate] = useState<dayjs.Dayjs>(dayjs());
   const [selectedDept, setSelectedDept] = useState('all');
   const [searchEmployee, setSearchEmployee] = useState('');
-  const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
+  const [internalEmployee, setInternalEmployee] = useState<any | null>(null);
+
+  const selectedEmployee = controlledEmployee !== undefined ? controlledEmployee : internalEmployee;
+  const setSelectedEmployee = (val: any | null) => {
+    setInternalEmployee(val);
+    onSelectEmployee?.(val);
+  };
 
   const [departments, setDepartments] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);

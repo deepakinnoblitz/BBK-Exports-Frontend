@@ -200,49 +200,27 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
         <DialogTitle
           sx={{
             m: 0,
-            px: 3,
-            py: 2,
+            p: 2,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
           }}
         >
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 1,
-                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                color: 'primary.main',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Iconify icon="solar:users-group-rounded-bold" width={20} />
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>
-              {step === 'form' ? 'Bulk Shift Assignment' : 'Preview Bulk Shift Assignment'}
-            </Typography>
-          </Stack>
+          <Typography variant="h6">
+            {step === 'form' ? 'Bulk Shift Assignment' : 'Preview Bulk Shift Assignment'}
+          </Typography>
 
           <IconButton
             onClick={onClose}
             sx={{
-              color: 'text.disabled',
-              '&:hover': {
-                color: 'text.primary',
-                bgcolor: (theme) => alpha(theme.palette.grey[500], 0.12),
-              },
+              color: (theme) => theme.palette.grey[500],
             }}
           >
-            <Iconify icon="mingcute:close-line" width={20} />
+            <Iconify icon="mingcute:close-line" />
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 3, mt: 1 }}>
+        <DialogContent dividers sx={{ p: 3 }}>
           {errorMessage && (
             <Alert severity="error" sx={{ mb: 2.5 }} onClose={() => setErrorMessage(null)}>
               {errorMessage}
@@ -250,24 +228,25 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
           )}
 
           {step === 'form' ? (
-            <Stack spacing={2.5}>
+            <Stack spacing={2.5} sx={{ py: 1 }}>
               {/* Department filter helper */}
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-                <FormControl fullWidth size="small">
-                  <InputLabel>Filter by Department</InputLabel>
-                  <Select
-                    value={selectedDept}
-                    label="Filter by Department"
-                    onChange={(e) => setSelectedDept(e.target.value)}
-                  >
-                    <MenuItem value="all">All Departments</MenuItem>
-                    {departments.map((d) => (
-                      <MenuItem key={d.name} value={d.name}>
-                        {d.department_name || d.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Filter by Department"
+                  value={selectedDept}
+                  onChange={(e) => setSelectedDept(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                >
+                  <MenuItem value="all">All Departments</MenuItem>
+                  {departments.map((d) => (
+                    <MenuItem key={d.name} value={d.name}>
+                      {d.department_name || d.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
 
                 <Button
                   variant="outlined"
@@ -317,52 +296,90 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label={`Selected Employees (${selectedEmployees.length}) *`}
-                    placeholder="Select Employee(s)..."
+                    required
+                    label={`Selected Employees (${selectedEmployees.length})`}
+                    placeholder={selectedEmployees.length === 0 ? "Select Employee(s)..." : ""}
+                    InputLabelProps={{ shrink: true }}
                     sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
                   />
                 )}
               />
 
               {/* Shift Selector */}
-              <FormControl fullWidth sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}>
-                <InputLabel>Shift to Apply *</InputLabel>
-                <Select
-                  value={selectedShift}
-                  label="Shift to Apply *"
-                  onChange={(e) => setSelectedShift(e.target.value)}
-                >
-                  {shifts.map((s) => (
-                    <MenuItem key={s.name} value={s.name}>
-                      {s.shift_name || s.name}{' '}
-                      {s.start_time && s.end_time ? `(${String(s.start_time).slice(0, 5)} - ${String(s.end_time).slice(0, 5)})` : ''}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                fullWidth
+                options={shifts}
+                getOptionLabel={(option) => {
+                  if (typeof option === 'string') return option;
+                  const timeStr = option.start_time && option.end_time ? ` (${String(option.start_time).slice(0, 5)} - ${String(option.end_time).slice(0, 5)})` : '';
+                  return `${option.shift_name || option.name}${timeStr}`;
+                }}
+                value={shifts.find((s) => s.name === selectedShift) || null}
+                onChange={(_, newValue) => {
+                  setSelectedShift(newValue ? newValue.name : '');
+                }}
+                renderOption={(props, option, { selected: isSelected }) => (
+                  <li {...props} key={option.name}>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        {option.shift_name || option.name}
+                      </Typography>
+                      {option.start_time && option.end_time && (
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          {String(option.start_time).slice(0, 5)} - {String(option.end_time).slice(0, 5)}
+                        </Typography>
+                      )}
+                    </Box>
+                    {isSelected && (
+                      <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: 'primary.main', ml: 1 }} />
+                    )}
+                  </li>
+                )}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    required
+                    label="Shift to Apply"
+                    placeholder="Select Shift..."
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
+                  />
+                )}
+              />
 
               {/* Date Range */}
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <DatePicker
-                  label="Start Date *"
+                  label="Start Date"
+                  format="DD-MM-YYYY"
                   value={effectiveFrom}
-                  onChange={(val) => setEffectiveFrom(val)}
+                  onChange={(val) => {
+                    setEffectiveFrom(val);
+                    if (!effectiveTo || effectiveTo.isBefore(val)) {
+                      setEffectiveTo(val);
+                    }
+                  }}
                   slotProps={{
                     textField: {
                       fullWidth: true,
+                      required: true,
+                      InputLabelProps: { shrink: true },
                       sx: { '& .MuiFormLabel-asterisk': { color: 'red' } },
                     },
                   }}
                 />
 
                 <DatePicker
-                  label="End Date *"
+                  label="End Date"
+                  format="DD-MM-YYYY"
                   value={effectiveTo}
                   minDate={effectiveFrom || undefined}
                   onChange={(val) => setEffectiveTo(val)}
                   slotProps={{
                     textField: {
                       fullWidth: true,
+                      required: true,
+                      InputLabelProps: { shrink: true },
                       sx: { '& .MuiFormLabel-asterisk': { color: 'red' } },
                     },
                   }}
@@ -407,12 +424,14 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
 
               {/* Reason */}
               <TextField
+                fullWidth
                 label="Reason / Reference Note"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 multiline
                 rows={2}
                 placeholder="Optional assignment note..."
+                InputLabelProps={{ shrink: true }}
               />
             </Stack>
           ) : (
