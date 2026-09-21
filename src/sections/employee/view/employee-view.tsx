@@ -2176,13 +2176,13 @@ export function EmployeeView() {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ py: 1.5, bgcolor: '#08a3cd', color: 'common.white', fontWeight: 700, width: '60%' }}>
+                                <TableCell sx={{ py: 1.5, bgcolor: '#059669', color: 'common.white', fontWeight: 700, width: '60%' }}>
                                     Component Name *
                                 </TableCell>
-                                <TableCell align="right" sx={{ py: 1.5, bgcolor: '#08a3cd', color: 'common.white', fontWeight: 700, width: '35%' }}>
+                                <TableCell align="right" sx={{ py: 1.5, bgcolor: '#059669', color: 'common.white', fontWeight: 700, width: '35%' }}>
                                     Amount
                                 </TableCell>
-                                <TableCell width={48} sx={{ py: 1.5, bgcolor: '#08a3cd' }} />
+                                <TableCell width={48} sx={{ py: 1.5, bgcolor: '#059669' }} />
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -2273,16 +2273,16 @@ export function EmployeeView() {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ py: 1.5, bgcolor: '#08a3cd', color: 'common.white', fontWeight: 700, width: '30%' }}>
+                                <TableCell sx={{ py: 1.5, bgcolor: '#059669', color: 'common.white', fontWeight: 700, width: '30%' }}>
                                     Title *
                                 </TableCell>
-                                <TableCell sx={{ py: 1.5, bgcolor: '#08a3cd', color: 'common.white', fontWeight: 700, width: '30%' }}>
+                                <TableCell sx={{ py: 1.5, bgcolor: '#059669', color: 'common.white', fontWeight: 700, width: '30%' }}>
                                     Attachment *
                                 </TableCell>
-                                <TableCell sx={{ py: 1.5, bgcolor: '#08a3cd', color: 'common.white', fontWeight: 700, width: '35%' }}>
+                                <TableCell sx={{ py: 1.5, bgcolor: '#059669', color: 'common.white', fontWeight: 700, width: '35%' }}>
                                     Description
                                 </TableCell>
-                                <TableCell width={48} sx={{ py: 1.5, bgcolor: '#08a3cd' }} />
+                                <TableCell width={48} sx={{ py: 1.5, bgcolor: '#059669' }} />
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -2501,7 +2501,7 @@ export function EmployeeView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -2780,7 +2780,7 @@ export function EmployeeView() {
                         variant="contained"
                         onClick={handleCreate}
                         loading={creating}
-                        sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                     >
                         {currentEmployeeId ? 'Update Employee' : 'Create Employee'}
                     </LoadingButton>

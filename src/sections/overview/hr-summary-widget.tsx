@@ -84,7 +84,7 @@ export function HRSummaryWidget({
                         right: 0,
                         top: '50%',
                         transform: 'translateY(-50%)',
-                        width: 7,
+                        width: 5,
                         height: 80,
                         borderRadius: '8px 0 0 8px',
                         background: `linear-gradient(180deg, ${resolvedColor} 0%, ${alpha(resolvedColor, 0.85)} 100%)`,
