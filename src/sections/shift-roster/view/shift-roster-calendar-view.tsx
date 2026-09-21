@@ -31,11 +31,15 @@ import { ShiftRosterDialog } from '../shift-roster-dialog';
 export function ShiftRosterCalendarView({
   canCreate = true,
   canEdit = true,
-  selectedEmployee: controlledEmployee,
+  selectedEmployees: controlledEmployees,
+  onSelectEmployees,
+  selectedEmployee,
   onSelectEmployee,
 }: {
   canCreate?: boolean;
   canEdit?: boolean;
+  selectedEmployees?: any[];
+  onSelectEmployees?: (emps: any[]) => void;
   selectedEmployee?: any | null;
   onSelectEmployee?: (emp: any | null) => void;
 }) {
@@ -48,13 +52,21 @@ export function ShiftRosterCalendarView({
   // Filters
   const [employees, setEmployees] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
-  const [internalEmployee, setInternalEmployee] = useState<any | null>(null);
+  const [internalEmployees, setInternalEmployees] = useState<any[]>([]);
 
-  const selectedEmployee = controlledEmployee !== undefined ? controlledEmployee : internalEmployee;
-  const setSelectedEmployee = (val: any | null) => {
-    setInternalEmployee(val);
-    onSelectEmployee?.(val);
+  const selectedEmployees: any[] = (controlledEmployees !== undefined
+    ? (Array.isArray(controlledEmployees) ? controlledEmployees : controlledEmployees ? [controlledEmployees] : [])
+    : selectedEmployee !== undefined
+    ? (Array.isArray(selectedEmployee) ? selectedEmployee : selectedEmployee ? [selectedEmployee] : [])
+    : internalEmployees);
+
+  const setSelectedEmployees = (val: any[]) => {
+    setInternalEmployees(val);
+    onSelectEmployees?.(val);
+    onSelectEmployee?.(val.length === 1 ? val[0] : val.length > 0 ? val : null);
   };
+
+  const currentSelectedEmployee = selectedEmployees.length > 0 ? selectedEmployees[0] : null;
   const [selectedDept, setSelectedDept] = useState('all');
 
   // Calendar dates
@@ -78,8 +90,8 @@ export function ShiftRosterCalendarView({
       const empList = empRes || [];
       setEmployees(empList);
       setDepartments(deptRes || []);
-      if (!controlledEmployee && empList.length > 0) {
-        setSelectedEmployee(empList[0]);
+      if (!controlledEmployees && !selectedEmployee && empList.length > 0 && selectedEmployees.length === 0) {
+        setSelectedEmployees([empList[0]]);
       }
     } catch (e) {
       console.error(e);
@@ -89,7 +101,7 @@ export function ShiftRosterCalendarView({
   const startDate = currentDate.startOf('month').subtract(7, 'day').format('YYYY-MM-DD');
   const endDate = currentDate.endOf('month').add(7, 'day').format('YYYY-MM-DD');
 
-  const activeEmployeeName = selectedEmployee?.name || (employees.length > 0 ? employees[0]?.name : undefined);
+  const activeEmployeeName = currentSelectedEmployee?.name || (employees.length > 0 ? employees[0]?.name : undefined);
 
   const { events, loading, refetch } = useCalendarRoster(
     startDate,
@@ -259,8 +271,8 @@ export function ShiftRosterCalendarView({
                 setSelectedDept(newDept);
                 if (newDept !== 'all') {
                   const filtered = employees.filter((emp) => emp.department === newDept);
-                  if (filtered.length > 0 && (!selectedEmployee || selectedEmployee.department !== newDept)) {
-                    setSelectedEmployee(filtered[0]);
+                  if (filtered.length > 0 && (!currentSelectedEmployee || currentSelectedEmployee.department !== newDept)) {
+                    setSelectedEmployees([filtered[0]]);
                   }
                 }
               }}
@@ -278,11 +290,11 @@ export function ShiftRosterCalendarView({
           <Autocomplete
             size="small"
             options={selectedDept === 'all' ? employees : employees.filter((e) => e.department === selectedDept)}
-            getOptionLabel={(opt) => (opt ? opt.employee_name || opt.name : '')}
+            getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
             isOptionEqualToValue={(option, value) => option?.name === value?.name}
-            value={selectedEmployee || null}
+            value={currentSelectedEmployee || null}
             onChange={(_, val) => {
-              setSelectedEmployee(val || null);
+              setSelectedEmployees(val ? [val] : []);
             }}
             renderOption={(props, option, { selected: isSelected }) => (
               <li {...props} key={option.name}>

@@ -1002,7 +1002,7 @@ export function useLineOrders(
   page: number = 1,
   pageSize: number = 10,
   search: string = '',
-  orderBy: string = 'creation',
+  orderBy: string = 'modified',
   order: 'asc' | 'desc' = 'desc',
   status: string = 'all'
 ) {
@@ -1112,7 +1112,7 @@ export function useBusTravelRoutes(
   page: number = 1,
   pageSize: number = 10,
   search: string = '',
-  orderBy: string = 'creation',
+  orderBy: string = 'modified',
   order: 'asc' | 'desc' = 'desc',
   status: string = 'all'
 ) {

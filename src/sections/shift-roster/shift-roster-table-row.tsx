@@ -81,12 +81,12 @@ export function ShiftRosterTableRow({
       hover
       tabIndex={-1}
       sx={{
-        '& td, & th': { borderBottom: (t) => `1px solid ${t.palette.divider}` },
+        '& td, & th': { borderBottom: (t) => `1px solid ${t.palette.divider}`, px: 1.5, py: 1.25 },
         '&:last-child td, &:last-child th': { borderBottom: 0 },
       }}
     >
       {typeof index === 'number' && (
-        <TableCell align="center" sx={{ width: 60 }}>
+        <TableCell align="center" sx={{ width: 50, px: 1 }}>
           <Box
             sx={{
               width: 28,
@@ -117,7 +117,7 @@ export function ShiftRosterTableRow({
         </TableCell>
       )}
 
-      <TableCell component="th" scope="row">
+      <TableCell component="th" scope="row" sx={{ px: 1.5 }}>
         <Box>
           <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
             {employee_name || employee}
@@ -128,19 +128,19 @@ export function ShiftRosterTableRow({
         </Box>
       </TableCell>
 
-      <TableCell>
+      <TableCell sx={{ px: 1.5 }}>
         <Typography variant="body2" noWrap>
           {department || '-'}
         </Typography>
       </TableCell>
 
-      <TableCell>
+      <TableCell sx={{ px: 1.5 }}>
         <Typography variant="body2" noWrap sx={{ color: 'text.secondary' }}>
           {designation || '-'}
         </Typography>
       </TableCell>
 
-      <TableCell>
+      <TableCell sx={{ px: 1.5 }}>
         <Stack direction="row" spacing={1} alignItems="center">
           <Box
             sx={{
@@ -157,31 +157,31 @@ export function ShiftRosterTableRow({
         </Stack>
       </TableCell>
 
-      <TableCell>
+      <TableCell sx={{ px: 1.5 }}>
         <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
           {formatDate(effective_from)}
         </Typography>
       </TableCell>
 
-      <TableCell>
+      <TableCell sx={{ px: 1.5 }}>
         <Typography variant="body2" noWrap sx={{ color: isRange ? 'text.primary' : 'text.disabled' }}>
           {formatDate(effective_to)}
         </Typography>
       </TableCell>
 
-      <TableCell>
+      <TableCell sx={{ px: 1.5 }}>
         <Label variant="soft" color={getSourceColor(assignment_type)}>
           {assignment_type || 'Manual'}
         </Label>
       </TableCell>
 
-      <TableCell>
+      <TableCell sx={{ px: 1.5 }}>
         <Label color={(status === 'Active' && 'success') || 'error'}>
           {(status || 'Active').toUpperCase()}
         </Label>
       </TableCell>
 
-      <TableCell align="right" sx={{ pr: 3, whiteSpace: 'nowrap' }}>
+      <TableCell align="right" sx={{ pr: 2, pl: 1, whiteSpace: 'nowrap' }}>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
           <Tooltip title="View Assignment History">
             <IconButton size="small" onClick={onViewHistory} sx={{ color: 'info.main' }}>

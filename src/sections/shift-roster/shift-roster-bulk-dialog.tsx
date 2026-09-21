@@ -200,7 +200,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
         <DialogTitle
           sx={{
             m: 0,
-            p: 2,
+            p: 2.5,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -228,13 +228,19 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
           )}
 
           {step === 'form' ? (
-            <Stack spacing={2.5} sx={{ py: 1 }}>
-              {/* Department filter helper */}
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+            <Stack spacing={3} sx={{ py: 1 }}>
+              {/* Department filter and select all / clear all helper buttons */}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr auto' },
+                  gap: 1.5,
+                  alignItems: 'center',
+                }}
+              >
                 <TextField
                   select
                   fullWidth
-                  size="small"
                   label="Filter by Department"
                   value={selectedDept}
                   onChange={(e) => setSelectedDept(e.target.value)}
@@ -248,26 +254,52 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                   ))}
                 </TextField>
 
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={handleSelectAllDept}
-                  sx={{ whiteSpace: 'nowrap', height: 40 }}
-                >
-                  Select All ({filteredEmployeesByDept.length})
-                </Button>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ height: '100%' }}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleSelectAllDept}
+                    startIcon={<Iconify icon={"solar:check-square-bold" as any} width={18} />}
+                    sx={{
+                      height: 54,
+                      px: 2,
+                      whiteSpace: 'nowrap',
+                      borderColor: '#08a3cd',
+                      color: '#08a3cd',
+                      fontWeight: 600,
+                      borderRadius: 1,
+                      '&:hover': {
+                        borderColor: '#068fb3',
+                        bgcolor: alpha('#08a3cd', 0.08),
+                      },
+                    }}
+                  >
+                    Select All ({filteredEmployeesByDept.length})
+                  </Button>
 
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  size="small"
-                  onClick={handleClearAll}
-                  disabled={selectedEmployees.length === 0}
-                  sx={{ whiteSpace: 'nowrap', height: 40 }}
-                >
-                  Clear Selected
-                </Button>
-              </Stack>
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    onClick={handleClearAll}
+                    disabled={selectedEmployees.length === 0}
+                    startIcon={<Iconify icon={"solar:close-square-bold" as any} width={18} />}
+                    sx={{
+                      height: 54,
+                      px: 2,
+                      whiteSpace: 'nowrap',
+                      fontWeight: 600,
+                      color: 'text.secondary',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      '&:hover': {
+                        borderColor: 'text.primary',
+                        bgcolor: (theme) => alpha(theme.palette.grey[500], 0.08),
+                      },
+                    }}
+                  >
+                    Clear All
+                  </Button>
+                </Stack>
+              </Box>
 
               {/* Multi-employee selector */}
               <Autocomplete
@@ -348,7 +380,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
               />
 
               {/* Date Range */}
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                 <DatePicker
                   label="Start Date"
                   format="DD-MM-YYYY"
@@ -384,19 +416,19 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                     },
                   }}
                 />
-              </Stack>
+              </Box>
 
               {/* Checkbox Options */}
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 3 }} sx={{ py: 0.5, flexWrap: 'wrap' }}>
                 <FormControlLabel
                   control={
                     <Checkbox
                       checked={excludeWeeklyOffs}
                       onChange={(e) => setExcludeWeeklyOffs(e.target.checked)}
-                      color="primary"
+                      sx={{ color: '#08a3cd', '&.Mui-checked': { color: '#08a3cd' } }}
                     />
                   }
-                  label="Exclude Weekly Offs (Sundays)"
+                  label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Exclude Weekly Offs (Sundays)</Typography>}
                 />
 
                 <FormControlLabel
@@ -404,10 +436,10 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                     <Checkbox
                       checked={excludeHolidays}
                       onChange={(e) => setExcludeHolidays(e.target.checked)}
-                      color="primary"
+                      sx={{ color: '#08a3cd', '&.Mui-checked': { color: '#08a3cd' } }}
                     />
                   }
-                  label="Exclude Company Holidays"
+                  label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Exclude Company Holidays</Typography>}
                 />
 
                 <FormControlLabel
@@ -418,7 +450,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                       color="error"
                     />
                   }
-                  label="Override existing shifts"
+                  label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Override existing shifts</Typography>}
                 />
               </Stack>
 

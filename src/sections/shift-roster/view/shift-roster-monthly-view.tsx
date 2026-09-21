@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -52,22 +52,36 @@ function getShiftShortCode(name: string): string {
 
 export function ShiftRosterMonthlyView({
   canEdit = true,
-  selectedEmployee: controlledEmployee,
+  selectedEmployees: controlledEmployees,
+  onSelectEmployees,
+  selectedEmployee,
   onSelectEmployee,
 }: {
   canEdit?: boolean;
+  selectedEmployees?: any[];
+  onSelectEmployees?: (emps: any[]) => void;
   selectedEmployee?: any | null;
   onSelectEmployee?: (emp: any | null) => void;
 }) {
   const [currentDate, setCurrentDate] = useState<dayjs.Dayjs>(dayjs());
   const [selectedDept, setSelectedDept] = useState('all');
   const [searchEmployee, setSearchEmployee] = useState('');
-  const [internalEmployee, setInternalEmployee] = useState<any | null>(null);
+  const [internalEmployees, setInternalEmployees] = useState<any[]>([]);
 
-  const selectedEmployee = controlledEmployee !== undefined ? controlledEmployee : internalEmployee;
-  const setSelectedEmployee = (val: any | null) => {
-    setInternalEmployee(val);
-    onSelectEmployee?.(val);
+  const selectedEmployees: any[] = useMemo(() => {
+    if (controlledEmployees !== undefined) {
+      return Array.isArray(controlledEmployees) ? controlledEmployees : controlledEmployees ? [controlledEmployees] : [];
+    }
+    if (selectedEmployee !== undefined) {
+      return Array.isArray(selectedEmployee) ? selectedEmployee : selectedEmployee ? [selectedEmployee] : [];
+    }
+    return internalEmployees;
+  }, [controlledEmployees, selectedEmployee, internalEmployees]);
+
+  const setSelectedEmployees = (val: any[]) => {
+    setInternalEmployees(val);
+    onSelectEmployees?.(val);
+    onSelectEmployee?.(val.length === 1 ? val[0] : val.length > 0 ? val : null);
   };
 
   const [departments, setDepartments] = useState<any[]>([]);
@@ -105,11 +119,16 @@ export function ShiftRosterMonthlyView({
   const month = currentDate.month() + 1;
   const year = currentDate.year();
 
+  const employeeFilterParam = useMemo(() => {
+    if (selectedEmployees.length === 0) return undefined;
+    return selectedEmployees.map((e) => (typeof e === 'string' ? e : e.name));
+  }, [selectedEmployees]);
+
   const { data, loading, refetch } = useMonthlyRoster(
     month,
     year,
     selectedDept !== 'all' ? selectedDept : undefined,
-    selectedEmployee?.name || undefined
+    employeeFilterParam
   );
 
   const handlePrevMonth = () => {
@@ -251,14 +270,16 @@ export function ShiftRosterMonthlyView({
             </Select>
           </FormControl>
 
-          {/* Specific Employee Filter */}
+          {/* Multiple Employee Filter */}
           <Autocomplete
+            multiple
+            disableCloseOnSelect
             size="small"
-            options={employees}
-            getOptionLabel={(opt) => opt.employee_name || opt.name}
+            options={selectedDept === 'all' ? employees : employees.filter((e) => e.department === selectedDept)}
+            getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
             isOptionEqualToValue={(option, value) => option?.name === value?.name}
-            value={selectedEmployee}
-            onChange={(_, val) => setSelectedEmployee(val)}
+            value={employees.filter((opt) => selectedEmployees.some((se) => (typeof se === 'string' ? se === opt.name : se?.name === opt.name)))}
+            onChange={(_, val) => setSelectedEmployees(val || [])}
             renderOption={(props, option, { selected: isSelected }) => (
               <li {...props} key={option.name}>
                 <Box sx={{ flexGrow: 1 }}>
@@ -274,9 +295,9 @@ export function ShiftRosterMonthlyView({
                 )}
               </li>
             )}
-            sx={{ minWidth: 260, flexGrow: 1 }}
+            sx={{ minWidth: 280, flexGrow: 1 }}
             renderInput={(params) => (
-              <TextField {...params} label="Employee" placeholder="Filter specific employee..." />
+              <TextField {...params} label="Employee" placeholder={selectedEmployees.length === 0 ? "Select Employee(s)..." : ""} />
             )}
           />
 
