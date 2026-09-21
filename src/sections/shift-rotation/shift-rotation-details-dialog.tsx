@@ -86,20 +86,6 @@ export function ShiftRotationDetailsDialog({
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 1,
-              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-              color: 'primary.main',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Iconify icon={"solar:refresh-circle-bold-duotone" as any} width={22} />
-          </Box>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             Shift Rotation Details
           </Typography>
