@@ -15,6 +15,7 @@ import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import TableContainer from '@mui/material/TableContainer';
+import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { fetchRosterHistory } from 'src/api/shift-roster';
@@ -35,9 +36,12 @@ type Props = {
 export function ShiftRosterHistoryDialog({ open, onClose, rosterId, employee }: Props) {
   const [historyList, setHistoryList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
     if (open) {
+      setPage(0);
       loadHistory();
     }
   }, [open, rosterId, employee]);
@@ -66,6 +70,11 @@ export function ShiftRosterHistoryDialog({ open, onClose, rosterId, employee }: 
     if (!dt) return '-';
     return dayjs(dt).format('DD-MMM-YYYY hh:mm A');
   };
+
+  const paginatedList = historyList.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   return (
     <Dialog
@@ -135,79 +144,94 @@ export function ShiftRosterHistoryDialog({ open, onClose, rosterId, employee }: 
             <Typography variant="body1">No history logs found for this assignment.</Typography>
           </Box>
         ) : (
-          <TableContainer
-            component={Scrollbar}
-            sx={{
-              maxHeight: 400,
-              border: (theme) => `1px solid ${theme.palette.divider}`,
-              borderRadius: 1.5,
-            }}
-          >
-            <Table size="small" stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Employee</TableCell>
-                  <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Effective Period</TableCell>
-                  <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Shift Change</TableCell>
-                  <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Source</TableCell>
-                  <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Changed By</TableCell>
-                  <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Changed At</TableCell>
-                  <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Reason</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {historyList.map((row) => (
-                  <TableRow key={row.name} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{row.employee_name || row.employee}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>{row.employee}</Typography>
-                    </TableCell>
-
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                      <Typography variant="body2">
-                        {formatDate(row.effective_from)}
-                        {row.effective_to && row.effective_to !== row.effective_from ? ` → ${formatDate(row.effective_to)}` : ''}
-                      </Typography>
-                    </TableCell>
-
-                    <TableCell>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="body2" sx={{ color: row.previous_shift ? 'text.secondary' : 'text.disabled' }}>
-                          {row.previous_shift || 'None'}
-                        </Typography>
-                        <Iconify icon={"solar:arrow-right-linear" as any} width={14} sx={{ color: 'text.disabled' }} />
-                        <Typography variant="subtitle2" sx={{ color: row.new_shift ? 'success.main' : 'error.main', fontWeight: 600 }}>
-                          {row.new_shift || 'Cancelled'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-
-                    <TableCell>
-                      <Label variant="soft" color="info">
-                        {row.source || 'MANUAL'}
-                      </Label>
-                    </TableCell>
-
-                    <TableCell>
-                      <Typography variant="body2">{row.changed_by}</Typography>
-                    </TableCell>
-
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {formatDateTime(row.changed_at)}
-                      </Typography>
-                    </TableCell>
-
-                    <TableCell>
-                      <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 200 }}>
-                        {row.reason || '-'}
-                      </Typography>
-                    </TableCell>
+          <>
+            <TableContainer
+              component={Scrollbar}
+              sx={{
+                maxHeight: 400,
+                border: (theme) => `1px solid ${theme.palette.divider}`,
+                borderRadius: 1.5,
+              }}
+            >
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Employee</TableCell>
+                    <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Effective Period</TableCell>
+                    <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Shift Change</TableCell>
+                    <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Source</TableCell>
+                    <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Changed By</TableCell>
+                    <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Changed At</TableCell>
+                    <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Reason</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {paginatedList.map((row) => (
+                    <TableRow key={row.name} hover>
+                      <TableCell>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{row.employee_name || row.employee}</Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{row.employee}</Typography>
+                      </TableCell>
+
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        <Typography variant="body2">
+                          {formatDate(row.effective_from)}
+                          {row.effective_to && row.effective_to !== row.effective_from ? ` → ${formatDate(row.effective_to)}` : ''}
+                        </Typography>
+                      </TableCell>
+
+                      <TableCell>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Typography variant="body2" sx={{ color: row.previous_shift ? 'text.secondary' : 'text.disabled' }}>
+                            {row.previous_shift || 'None'}
+                          </Typography>
+                          <Iconify icon={"solar:arrow-right-linear" as any} width={14} sx={{ color: 'text.disabled' }} />
+                          <Typography variant="subtitle2" sx={{ color: row.new_shift ? 'success.main' : 'error.main', fontWeight: 600 }}>
+                            {row.new_shift || 'Cancelled'}
+                          </Typography>
+                        </Stack>
+                      </TableCell>
+
+                      <TableCell>
+                        <Label variant="soft" color="info">
+                          {row.source || 'MANUAL'}
+                        </Label>
+                      </TableCell>
+
+                      <TableCell>
+                        <Typography variant="body2">{row.changed_by}</Typography>
+                      </TableCell>
+
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          {formatDateTime(row.changed_at)}
+                        </Typography>
+                      </TableCell>
+
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 200 }}>
+                          {row.reason || '-'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            <TablePagination
+              component="div"
+              page={page}
+              count={historyList.length}
+              rowsPerPage={rowsPerPage}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[5, 10, 25]}
+            />
+          </>
         )}
       </DialogContent>
     </Dialog>

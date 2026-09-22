@@ -109,6 +109,7 @@ export function ShiftRosterListView({
   const [selectedRoster, setSelectedRoster] = useState<ShiftRoster | null>(null);
   const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<{ rosterId?: string; employee?: string }>({});
+  const [confirmBulkCancel, setConfirmBulkCancel] = useState(false);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
   // Snackbar State
@@ -120,6 +121,11 @@ export function ShiftRosterListView({
     open: false,
     message: '',
     severity: 'success',
+  });
+
+  const [confirmCancel, setConfirmCancel] = useState<{ open: boolean; name: string | null }>({
+    open: false,
+    name: null,
   });
 
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; name: string | null }>({
@@ -274,16 +280,16 @@ export function ShiftRosterListView({
     setSelected(newSelected);
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkCancel = () => {
     if (selected.length > 0) {
-      setConfirmBulkDelete(true);
+      setConfirmBulkCancel(true);
     }
   };
 
-  const handleConfirmBulkDelete = async () => {
+  const handleConfirmBulkCancel = async () => {
     try {
       await Promise.all(
-        selected.map((name) => deleteOrCancelRosterAssignment(name, 'Cancelled by user in bulk'))
+        selected.map((name) => deleteOrCancelRosterAssignment(name, 'Cancelled by user in bulk', false))
       );
       setSnackbar({
         open: true,
@@ -299,6 +305,35 @@ export function ShiftRosterListView({
         severity: 'error',
       });
     } finally {
+      setConfirmBulkCancel(false);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selected.length > 0) {
+      setConfirmBulkDelete(true);
+    }
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    try {
+      await Promise.all(
+        selected.map((name) => deleteOrCancelRosterAssignment(name, 'Deleted by user in bulk', true))
+      );
+      setSnackbar({
+        open: true,
+        message: `${selected.length} shift assignment(s) deleted permanently`,
+        severity: 'success',
+      });
+      setSelected([]);
+      refetch();
+    } catch (e: any) {
+      setSnackbar({
+        open: true,
+        message: e?.message || 'Failed to delete shift assignments',
+        severity: 'error',
+      });
+    } finally {
       setConfirmBulkDelete(false);
     }
   };
@@ -308,6 +343,33 @@ export function ShiftRosterListView({
     setOpenEditDialog(true);
   };
 
+  const handleCancel = (row: ShiftRoster) => {
+    setConfirmCancel({ open: true, name: row.name });
+  };
+
+  const handleConfirmCancel = async () => {
+    if (confirmCancel.name) {
+      try {
+        await deleteOrCancelRosterAssignment(confirmCancel.name, 'Cancelled by user', false);
+        setSnackbar({
+          open: true,
+          message: 'Shift assignment cancelled successfully',
+          severity: 'success',
+        });
+        refetch();
+      } catch (e: any) {
+        console.error(e);
+        setSnackbar({
+          open: true,
+          message: e?.message || 'Failed to cancel shift assignment',
+          severity: 'error',
+        });
+      } finally {
+        setConfirmCancel({ open: false, name: null });
+      }
+    }
+  };
+
   const handleDelete = (row: ShiftRoster) => {
     setConfirmDelete({ open: true, name: row.name });
   };
@@ -315,10 +377,10 @@ export function ShiftRosterListView({
   const handleConfirmDelete = async () => {
     if (confirmDelete.name) {
       try {
-        await deleteOrCancelRosterAssignment(confirmDelete.name, 'Cancelled by user');
+        await deleteOrCancelRosterAssignment(confirmDelete.name, 'Deleted by user', true);
         setSnackbar({
           open: true,
-          message: 'Shift assignment cancelled successfully',
+          message: 'Shift assignment deleted permanently',
           severity: 'success',
         });
         setSelected((prev) => prev.filter((id) => id !== confirmDelete.name));
@@ -327,7 +389,7 @@ export function ShiftRosterListView({
         console.error(e);
         setSnackbar({
           open: true,
-          message: e?.message || 'Failed to cancel shift assignment',
+          message: e?.message || 'Failed to delete shift assignment',
           severity: 'error',
         });
       } finally {
@@ -357,6 +419,7 @@ export function ShiftRosterListView({
             setPage(0);
             setSelected([]);
           }}
+          onCancel={handleBulkCancel}
           onDelete={handleBulkDelete}
           searchPlaceholder="Search employee, shift..."
           sortOptions={sortOptions}
@@ -433,6 +496,7 @@ export function ShiftRosterListView({
                         canEdit={canEdit}
                         canDelete={canDelete}
                         onEditRow={() => handleEdit(row)}
+                        onCancelRow={() => handleCancel(row)}
                         onDeleteRow={() => handleDelete(row)}
                         onViewHistory={() => handleViewHistory(row)}
                       />
@@ -524,15 +588,41 @@ export function ShiftRosterListView({
         />
       )}
 
+      {/* Confirm Single Cancel Dialog */}
+      <ConfirmDialog
+        open={confirmCancel.open}
+        onClose={() => setConfirmCancel({ open: false, name: null })}
+        title="Cancel Shift Assignment"
+        content="Are you sure you want to cancel this shift roster assignment?"
+        action={
+          <Button variant="contained" color="warning" onClick={handleConfirmCancel}>
+            Cancel Assignment
+          </Button>
+        }
+      />
+
+      {/* Confirm Bulk Cancel Dialog */}
+      <ConfirmDialog
+        open={confirmBulkCancel}
+        onClose={() => setConfirmBulkCancel(false)}
+        title="Cancel Selected Shift Assignments"
+        content={`Are you sure you want to cancel ${selected.length} selected shift assignment(s)?`}
+        action={
+          <Button variant="contained" color="warning" onClick={handleConfirmBulkCancel}>
+            Cancel Assignments
+          </Button>
+        }
+      />
+
       {/* Confirm Single Delete Dialog */}
       <ConfirmDialog
         open={confirmDelete.open}
         onClose={() => setConfirmDelete({ open: false, name: null })}
-        title="Cancel Shift Assignment"
-        content="Are you sure you want to cancel this shift roster assignment?"
+        title="Delete Shift Assignment"
+        content="Are you sure you want to permanently delete this shift assignment? This action cannot be undone."
         action={
           <Button variant="contained" color="error" onClick={handleConfirmDelete}>
-            Cancel Assignment
+            Delete Permanently
           </Button>
         }
       />
@@ -541,11 +631,11 @@ export function ShiftRosterListView({
       <ConfirmDialog
         open={confirmBulkDelete}
         onClose={() => setConfirmBulkDelete(false)}
-        title="Cancel Selected Shift Assignments"
-        content={`Are you sure you want to cancel ${selected.length} selected shift assignment(s)?`}
+        title="Delete Selected Shift Assignments"
+        content={`Are you sure you want to permanently delete ${selected.length} selected shift assignment(s)? This action cannot be undone.`}
         action={
           <Button variant="contained" color="error" onClick={handleConfirmBulkDelete}>
-            Cancel Assignments
+            Delete Permanently
           </Button>
         }
       />

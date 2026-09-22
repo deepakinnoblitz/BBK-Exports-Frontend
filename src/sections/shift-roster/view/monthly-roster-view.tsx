@@ -149,6 +149,7 @@ export function MonthlyRosterView() {
 
   // For summary counts
   const { data, total, refetch } = useShiftRoster(1, 100);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const activeCount = data.filter((d) => d.status === 'Active').length;
   const bulkRotationCount = data.filter((d) => ['Bulk', 'Rotation'].includes(d.assignment_type)).length;
@@ -188,6 +189,7 @@ export function MonthlyRosterView() {
               startIcon={<Iconify icon={"solar:refresh-bold" as any} />}
               onClick={() => {
                 refetch();
+                setRefreshTrigger((prev) => prev + 1);
                 setSnackbar({ open: true, message: 'Monthly Roster refreshed', severity: 'info' });
               }}
             >
@@ -266,6 +268,7 @@ export function MonthlyRosterView() {
             canEdit={false}
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
+            refreshTrigger={refreshTrigger}
           />
         )}
 
@@ -275,6 +278,7 @@ export function MonthlyRosterView() {
             canEdit={false}
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
+            refreshTrigger={refreshTrigger}
           />
         )}
       </Stack>

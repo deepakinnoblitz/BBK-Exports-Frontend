@@ -24,6 +24,7 @@ type Props = {
   selected?: boolean;
   onSelectRow?: VoidFunction;
   onEditRow: VoidFunction;
+  onCancelRow?: VoidFunction;
   onDeleteRow: VoidFunction;
   onViewHistory: VoidFunction;
   canEdit?: boolean;
@@ -36,6 +37,7 @@ export function ShiftRosterTableRow({
   selected = false,
   onSelectRow,
   onEditRow,
+  onCancelRow,
   onDeleteRow,
   onViewHistory,
   canEdit = true,
@@ -202,6 +204,14 @@ export function ShiftRosterTableRow({
             </IconButton>
           </Tooltip>
 
+          {status !== 'Cancelled' && displayEdit && onCancelRow && (
+            <Tooltip title="Cancel Assignment">
+              <IconButton size="small" onClick={onCancelRow} sx={{ color: 'warning.main' }}>
+                <Iconify icon="solar:close-circle-bold" />
+              </IconButton>
+            </Tooltip>
+          )}
+
           {displayEdit && (
             <Tooltip title="Edit Assignment">
               <IconButton size="small" onClick={onEditRow} sx={{ color: 'primary.main' }}>
@@ -211,7 +221,7 @@ export function ShiftRosterTableRow({
           )}
 
           {displayDelete && (
-            <Tooltip title="Cancel / Delete">
+            <Tooltip title="Delete Assignment">
               <IconButton size="small" onClick={onDeleteRow} sx={{ color: 'error.main' }}>
                 <Iconify icon="solar:trash-bin-trash-bold" />
               </IconButton>

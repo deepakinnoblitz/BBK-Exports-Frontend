@@ -62,6 +62,7 @@ export function ShiftRosterMonthlyView({
   selectedEmployee,
   onSelectEmployee,
   filterVariant = 'inline',
+  refreshTrigger,
 }: {
   canEdit?: boolean;
   selectedEmployees?: any[];
@@ -69,6 +70,7 @@ export function ShiftRosterMonthlyView({
   selectedEmployee?: any | null;
   onSelectEmployee?: (emp: any | null) => void;
   filterVariant?: 'drawer' | 'inline';
+  refreshTrigger?: number;
 }) {
   const [currentDate, setCurrentDate] = useState<dayjs.Dayjs>(dayjs());
   const [selectedDept, setSelectedDept] = useState('all');
@@ -139,6 +141,12 @@ export function ShiftRosterMonthlyView({
     selectedDept !== 'all' ? selectedDept : undefined,
     employeeFilterParam
   );
+
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      refetch();
+    }
+  }, [refreshTrigger, refetch]);
 
   const handlePrevMonth = () => {
     setCurrentDate((prev) => prev.subtract(1, 'month'));

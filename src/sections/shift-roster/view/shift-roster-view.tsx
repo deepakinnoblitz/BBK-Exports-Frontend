@@ -70,6 +70,7 @@ export function ShiftRosterView() {
   });
 
   const { refetch } = useShiftRoster(1, 10);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
@@ -87,6 +88,7 @@ export function ShiftRosterView() {
       severity: 'success',
     });
     refetch();
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   const handleBulkSuccess = () => {
@@ -96,6 +98,7 @@ export function ShiftRosterView() {
       severity: 'success',
     });
     refetch();
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   return (
@@ -123,6 +126,7 @@ export function ShiftRosterView() {
               startIcon={<Iconify icon={"solar:refresh-bold" as any} />}
               onClick={() => {
                 refetch();
+                setRefreshTrigger((prev) => prev + 1);
                 setSnackbar({ open: true, message: 'Shift Roster refreshed', severity: 'info' });
               }}
             >
@@ -211,6 +215,7 @@ export function ShiftRosterView() {
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
             filterVariant="drawer"
+            refreshTrigger={refreshTrigger}
           />
         )}
 
@@ -231,6 +236,7 @@ export function ShiftRosterView() {
             canEdit={canEdit}
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
+            refreshTrigger={refreshTrigger}
           />
         )}
       </Stack>

@@ -35,6 +35,7 @@ export function ShiftRosterCalendarView({
   onSelectEmployees,
   selectedEmployee,
   onSelectEmployee,
+  refreshTrigger,
 }: {
   canCreate?: boolean;
   canEdit?: boolean;
@@ -42,6 +43,7 @@ export function ShiftRosterCalendarView({
   onSelectEmployees?: (emps: any[]) => void;
   selectedEmployee?: any | null;
   onSelectEmployee?: (emp: any | null) => void;
+  refreshTrigger?: number;
 }) {
   const theme = useTheme();
   const calendarRef = useRef<FullCalendar>(null);
@@ -116,6 +118,12 @@ export function ShiftRosterCalendarView({
     activeEmployeeName,
     selectedDept !== 'all' ? selectedDept : undefined
   );
+
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      refetch();
+    }
+  }, [refreshTrigger, refetch]);
 
   const handlePrev = () => {
     const api = calendarRef.current?.getApi();
