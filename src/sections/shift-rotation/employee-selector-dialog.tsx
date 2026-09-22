@@ -45,6 +45,8 @@ type Props = {
   onClose: () => void;
   selectedIds: string[];
   onConfirm: (selectedIds: string[]) => void;
+  title?: string;
+  contextLabel?: string;
 };
 
 export function EmployeeSelectorDialog({
@@ -52,6 +54,8 @@ export function EmployeeSelectorDialog({
   onClose,
   selectedIds,
   onConfirm,
+  title = 'Select Target Assignees',
+  contextLabel = 'for this selection',
 }: Props) {
   // Local set of selected employee IDs
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -231,7 +235,7 @@ export function EmployeeSelectorDialog({
         <Stack direction="row" spacing={1.5} alignItems="center">
           <div>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Select Target Assignees
+              {title}
             </Typography>
           </div>
         </Stack>
@@ -668,7 +672,7 @@ export function EmployeeSelectorDialog({
                   fontSize: '0.85rem',
                 }}
               >
-                for this rotation
+                {contextLabel}
               </Typography>
             </Box>
           </Box>

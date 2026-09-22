@@ -2,14 +2,13 @@ import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Select from '@mui/material/Select';
 import { alpha } from '@mui/material/styles';
-import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
@@ -18,9 +17,7 @@ import TableBody from '@mui/material/TableBody';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import InputLabel from '@mui/material/InputLabel';
 import DialogTitle from '@mui/material/DialogTitle';
-import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
@@ -31,11 +28,14 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import { bulkAssignShifts, previewBulkAssignShifts } from 'src/api/shift-roster';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
+
+import { EmployeeSelectorDialog } from '../shift-rotation/employee-selector-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -48,13 +48,13 @@ type Props = {
 export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
   const [step, setStep] = useState<'form' | 'preview'>('form');
 
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
   const [shifts, setShifts] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
-  const [selectedDept, setSelectedDept] = useState('all');
-  const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
+  // Selected Assignees
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [openSelectorDialog, setOpenSelectorDialog] = useState(false);
+
   const [selectedShift, setSelectedShift] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState<dayjs.Dayjs | null>(dayjs());
   const [effectiveTo, setEffectiveTo] = useState<dayjs.Dayjs | null>(dayjs().add(6, 'day'));
@@ -74,7 +74,8 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
       setStep('form');
       setPreviewData(null);
       setErrorMessage(null);
-      setSelectedEmployees([]);
+      setSelectedEmployeeIds([]);
+      setOpenSelectorDialog(false);
       setSelectedShift('');
       setEffectiveFrom(dayjs());
       setEffectiveTo(dayjs().add(6, 'day'));
@@ -88,13 +89,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
   const loadDropdowns = async () => {
     try {
       setLoadingData(true);
-      const [empRes, deptRes, shiftRes] = await Promise.all([
-        getDoctypeList('Employee', ['name', 'employee_name', 'department', 'designation', 'shift']),
-        getDoctypeList('Department', ['name', 'department_name']),
-        getDoctypeList('Shift', ['name', 'shift_name', 'start_time', 'end_time']),
-      ]);
-      setEmployees(empRes || []);
-      setDepartments(deptRes || []);
+      const shiftRes = await getDoctypeList('Shift', ['name', 'shift_name', 'start_time', 'end_time']);
       setShifts(shiftRes || []);
     } catch (err) {
       console.error(err);
@@ -103,26 +98,8 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
     }
   };
 
-  const filteredEmployeesByDept = selectedDept === 'all'
-    ? employees
-    : employees.filter((e) => e.department === selectedDept);
-
-  const handleSelectAllDept = () => {
-    const newSelected = [...selectedEmployees];
-    filteredEmployeesByDept.forEach((emp) => {
-      if (!newSelected.some((e) => e.name === emp.name)) {
-        newSelected.push(emp);
-      }
-    });
-    setSelectedEmployees(newSelected);
-  };
-
-  const handleClearAll = () => {
-    setSelectedEmployees([]);
-  };
-
   const handlePreview = async () => {
-    if (selectedEmployees.length === 0) {
+    if (selectedEmployeeIds.length === 0) {
       setErrorMessage('Please select at least one employee.');
       return;
     }
@@ -140,7 +117,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
       setErrorMessage(null);
 
       const preview = await previewBulkAssignShifts({
-        employees: selectedEmployees.map((e) => e.name),
+        employees: selectedEmployeeIds,
         shift: selectedShift,
         effective_from: effectiveFrom.format('YYYY-MM-DD'),
         effective_to: effectiveTo.format('YYYY-MM-DD'),
@@ -163,7 +140,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
       setErrorMessage(null);
 
       await bulkAssignShifts({
-        employees: selectedEmployees.map((e) => e.name),
+        employees: selectedEmployeeIds,
         shift: selectedShift,
         effective_from: effectiveFrom!.format('YYYY-MM-DD'),
         effective_to: effectiveTo!.format('YYYY-MM-DD'),
@@ -229,113 +206,126 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
 
           {step === 'form' ? (
             <Stack spacing={3} sx={{ py: 1 }}>
-              {/* Department filter and select all / clear all helper buttons */}
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: '1fr auto' },
-                  gap: 1.5,
-                  alignItems: 'center',
-                }}
-              >
-                <TextField
-                  select
-                  fullWidth
-                  label="Filter by Department"
-                  value={selectedDept}
-                  onChange={(e) => setSelectedDept(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  <MenuItem value="all">All Departments</MenuItem>
-                  {departments.map((d) => (
-                    <MenuItem key={d.name} value={d.name}>
-                      {d.department_name || d.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ height: '100%' }}>
-                  <Button
-                    variant="outlined"
-                    onClick={handleSelectAllDept}
-                    startIcon={<Iconify icon={"solar:check-square-bold" as any} width={18} />}
+              {/* Target Assignees */}
+              <Box>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                  <Typography
+                    variant="subtitle2"
                     sx={{
-                      height: 54,
-                      px: 2,
-                      whiteSpace: 'nowrap',
-                      borderColor: '#08a3cd',
-                      color: '#08a3cd',
-                      fontWeight: 600,
-                      borderRadius: 1,
-                      '&:hover': {
-                        borderColor: '#068fb3',
-                        bgcolor: alpha('#08a3cd', 0.08),
-                      },
-                    }}
-                  >
-                    Select All ({filteredEmployeesByDept.length})
-                  </Button>
-
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    onClick={handleClearAll}
-                    disabled={selectedEmployees.length === 0}
-                    startIcon={<Iconify icon={"solar:close-square-bold" as any} width={18} />}
-                    sx={{
-                      height: 54,
-                      px: 2,
-                      whiteSpace: 'nowrap',
-                      fontWeight: 600,
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      fontSize: '12px',
                       color: 'text.secondary',
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                      '&:hover': {
-                        borderColor: 'text.primary',
-                        bgcolor: (theme) => alpha(theme.palette.grey[500], 0.08),
-                      },
+                      letterSpacing: 0.5,
                     }}
                   >
-                    Clear All
-                  </Button>
-                </Stack>
-              </Box>
+                     Target Assignees ({selectedEmployeeIds.length} selected)
+                  </Typography>
 
-              {/* Multi-employee selector */}
-              <Autocomplete
-                multiple
-                options={employees}
-                loading={loadingData}
-                getOptionLabel={(opt) => `${opt.employee_name || opt.name} (${opt.name})`}
-                isOptionEqualToValue={(option, value) => option.name === value.name}
-                value={selectedEmployees}
-                onChange={(_, val) => setSelectedEmployees(val)}
-                renderOption={(props, option, { selected: isSelected }) => (
-                  <li {...props} key={option.name}>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                        {option.employee_name || option.name}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
-                        ID: {option.name}
-                      </Typography>
+                  {selectedEmployeeIds.length > 0 && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      color="error"
+                      onClick={() => setSelectedEmployeeIds([])}
+                      sx={{ fontSize: '12px' }}
+                      startIcon={<Iconify icon={"solar:trash-bin-minimalistic-bold" as any} />}
+                    >
+                      Clear All
+                    </Button>
+                  )}
+                </Stack>
+
+                <Card
+                  variant="outlined"
+                  sx={{
+                    p: 2.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    bgcolor: selectedEmployeeIds.length > 0
+                      ? alpha(COMMON_COLORS.emerald.main, 0.04)
+                      : (theme) => alpha(theme.palette.grey[500], 0.04),
+                    borderColor: selectedEmployeeIds.length > 0
+                      ? alpha(COMMON_COLORS.emerald.main, 0.3)
+                      : 'divider',
+                    borderRadius: 1.5,
+                    gap: 2,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Box
+                      sx={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: selectedEmployeeIds.length > 0
+                          ? alpha(COMMON_COLORS.emerald.main, 0.12)
+                          : (theme) => alpha(theme.palette.grey[500], 0.12),
+                        color: selectedEmployeeIds.length > 0
+                          ? COMMON_COLORS.emerald.main
+                          : 'text.secondary',
+                      }}
+                    >
+                      <Iconify icon={"solar:users-group-rounded-bold" as any} width={24} />
                     </Box>
-                    {isSelected && (
-                      <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: 'primary.main', ml: 1 }} />
-                    )}
-                  </li>
-                )}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    required
-                    label={`Selected Employees (${selectedEmployees.length})`}
-                    placeholder={selectedEmployees.length === 0 ? "Select Employee(s)..." : ""}
-                    InputLabelProps={{ shrink: true }}
-                    sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
-                  />
-                )}
-              />
+
+                    <div>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          fontWeight: 800,
+                          color: selectedEmployeeIds.length > 0 ? COMMON_COLORS.emerald.darker : 'text.primary',
+                        }}
+                      >
+                        {selectedEmployeeIds.length === 0
+                          ? 'No Employees Selected'
+                          : `${selectedEmployeeIds.length} employees selected for bulk assignment`}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                        {selectedEmployeeIds.length === 0
+                          ? 'Filter by Department, Shift, and Line Order.'
+                          : 'Ready to receive the bulk shift assignment.'}
+                      </Typography>
+                    </div>
+                  </Stack>
+
+                  <Button
+                    size="small"
+                    variant={selectedEmployeeIds.length > 0 ? 'outlined' : 'contained'}
+                    onClick={() => setOpenSelectorDialog(true)}
+                    startIcon={<Iconify icon={"solar:filter-bold" as any} width={16} />}
+                    sx={{
+                      ...(selectedEmployeeIds.length === 0
+                        ? {
+                            bgcolor: COMMON_COLORS.primaryButton.bg,
+                            color: COMMON_COLORS.primaryButton.color,
+                            '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+                          }
+                        : {
+                            color: COMMON_COLORS.emerald.main,
+                            borderColor: COMMON_COLORS.emerald.main,
+                            '&:hover': {
+                              borderColor: COMMON_COLORS.emerald.darker,
+                              bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                            },
+                          }),
+                      px: 1.75,
+                      py: 0.6,
+                      fontSize: '0.8125rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {selectedEmployeeIds.length === 0
+                      ? 'Select Assignees (Dept / Shift / Line)'
+                      : `Manage Selection (${selectedEmployeeIds.length})`}
+                  </Button>
+                </Card>
+              </Box>
 
               {/* Shift Selector */}
               <Autocomplete
@@ -536,14 +526,14 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                 sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
                 startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <Iconify icon="solar:check-circle-bold" />}
               >
-                Apply Shift ({selectedEmployees.length} Employees)
+                Apply Shift ({selectedEmployeeIds.length} Employees)
               </Button>
             </>
           ) : (
             <Button
               variant="contained"
               onClick={handlePreview}
-              disabled={loadingPreview || selectedEmployees.length === 0 || !selectedShift}
+              disabled={loadingPreview || selectedEmployeeIds.length === 0 || !selectedShift}
               sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
               startIcon={loadingPreview ? <CircularProgress size={18} color="inherit" /> : <Iconify icon="solar:eye-bold" />}
             >
@@ -552,6 +542,16 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
           )}
         </DialogActions>
       </Dialog>
+
+      {openSelectorDialog && (
+        <EmployeeSelectorDialog
+          open={openSelectorDialog}
+          onClose={() => setOpenSelectorDialog(false)}
+          selectedIds={selectedEmployeeIds}
+          onConfirm={(ids) => setSelectedEmployeeIds(ids)}
+          contextLabel="for this assignment"
+        />
+      )}
     </LocalizationProvider>
   );
 }

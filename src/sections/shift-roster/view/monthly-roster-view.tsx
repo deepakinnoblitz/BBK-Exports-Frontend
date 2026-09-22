@@ -216,51 +216,51 @@ export function MonthlyRosterView() {
           <SummaryCard item={{ label: 'Bulk & Rotations', value: bulkRotationCount, indicator: 'blue' }} />
         </Box>
 
-        {/* View Switcher Pill styled like Employee Shift Assignment */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Box
-            sx={{
-              display: 'inline-flex',
-              bgcolor: alpha(theme.palette.grey[500], 0.06),
-              p: 0.5,
-              borderRadius: '24px',
-              border: `1px solid ${alpha(theme.palette.grey[500], 0.08)}`,
-            }}
-          >
-            {[
-              { value: 'monthly', label: 'Monthly Roster View', icon: 'material-symbols:grid-on' },
-              ...(isSingleEmployee
-                ? [{ value: 'calendar', label: 'Calendar View', icon: 'solar:calendar-bold' }]
-                : []),
-            ].map((tab) => {
-              const isActive = currentView === tab.value;
-              return (
-                <Button
-                  key={tab.value}
-                  onClick={() => handleViewChange(tab.value)}
-                  startIcon={<Iconify icon={tab.icon as any} width={16} />}
-                  sx={{
-                    borderRadius: '20px',
-                    px: 3,
-                    py: 0.75,
-                    fontSize: '0.825rem',
-                    fontWeight: isActive ? 700 : 600,
-                    color: isActive ? '#fff' : theme.palette.text.secondary,
-                    bgcolor: isActive ? '#08a3cd' : 'transparent',
-                    boxShadow: isActive ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
-                    textTransform: 'capitalize',
-                    transition: 'all 0.2s ease-in-out',
-                    '&:hover': {
-                      bgcolor: isActive ? '#08a3cd' : alpha(theme.palette.grey[500], 0.08),
-                    },
-                  }}
-                >
-                  {tab.label}
-                </Button>
-              );
-            })}
+        {/* View Switcher Pill styled like Employee Shift Assignment - only shown when Calendar View is available */}
+        {isSingleEmployee && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                bgcolor: alpha(theme.palette.grey[500], 0.06),
+                p: 0.5,
+                borderRadius: '24px',
+                border: `1px solid ${alpha(theme.palette.grey[500], 0.08)}`,
+              }}
+            >
+              {[
+                { value: 'monthly', label: 'Monthly Roster View', icon: 'material-symbols:grid-on' },
+                { value: 'calendar', label: 'Calendar View', icon: 'solar:calendar-bold' },
+              ].map((tab) => {
+                const isActive = currentView === tab.value;
+                return (
+                  <Button
+                    key={tab.value}
+                    onClick={() => handleViewChange(tab.value)}
+                    startIcon={<Iconify icon={tab.icon as any} width={16} />}
+                    sx={{
+                      borderRadius: '20px',
+                      px: 3,
+                      py: 0.75,
+                      fontSize: '0.825rem',
+                      fontWeight: isActive ? 700 : 600,
+                      color: isActive ? '#fff' : theme.palette.text.secondary,
+                      bgcolor: isActive ? '#08a3cd' : 'transparent',
+                      boxShadow: isActive ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                      textTransform: 'capitalize',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        bgcolor: isActive ? '#08a3cd' : alpha(theme.palette.grey[500], 0.08),
+                      },
+                    }}
+                  >
+                    {tab.label}
+                  </Button>
+                );
+              })}
+            </Box>
           </Box>
-        </Box>
+        )}
 
         {/* View Component Rendering */}
         {currentView === 'monthly' && (
@@ -268,6 +268,7 @@ export function MonthlyRosterView() {
             canEdit={false}
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
+            filterVariant="drawer"
             refreshTrigger={refreshTrigger}
           />
         )}
