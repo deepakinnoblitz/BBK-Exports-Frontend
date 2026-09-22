@@ -135,8 +135,8 @@ export function SettingsCurrency({ data, onChange }: Props) {
               borderRadius: 1.5,
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: (theme) => (theme.palette.mode === 'light' ? '#08a3cd14' : '#08a3cd29'),
-              color: '#08a3cd',
+              bgcolor: (theme) => (theme.palette.mode === 'light' ? '#05966914' : '#05966929'),
+              color: '#059669',
             }}
           >
             <Iconify icon="solar:letter-bold-duotone" width={28} />

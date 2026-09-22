@@ -416,7 +416,7 @@ export function SalesTargetEntryView() {
                             variant="contained"
                             startIcon={<Iconify icon="mingcute:add-line" />}
                             onClick={handleOpenCreate}
-                            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                         >
                             New Entry
                         </Button>
@@ -474,7 +474,7 @@ export function SalesTargetEntryView() {
                                     {loading ? (
                                         <TableRow>
                                             <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
-                                                <CircularProgress sx={{ color: '#08a3cd' }} />
+                                                <CircularProgress sx={{ color: '#059669' }} />
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -1033,7 +1033,7 @@ export function SalesTargetEntryView() {
                             variant="contained"
                             onClick={handleCreateLeadFromSubmit}
                             disabled={creatingLeadFrom || !newLeadFromName.trim()}
-                            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' }, borderRadius: 1 }}
+                            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' }, borderRadius: 1 }}
                         >
                             {creatingLeadFrom ? <CircularProgress size={24} color="inherit" /> : 'Create'}
                         </Button>
@@ -1085,7 +1085,7 @@ export function SalesTargetEntryView() {
                             variant="contained"
                             onClick={handleCreateServiceSubmit}
                             disabled={creatingService || !newServiceName.trim()}
-                            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' }, borderRadius: 1 }}
+                            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' }, borderRadius: 1 }}
                         >
                             {creatingService ? <CircularProgress size={24} color="inherit" /> : 'Create'}
                         </Button>

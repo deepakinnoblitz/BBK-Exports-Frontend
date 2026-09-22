@@ -218,7 +218,7 @@ export function PurchaseListView({ hideHeader }: Props) {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={totalHeadCols} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

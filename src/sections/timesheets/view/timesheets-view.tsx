@@ -661,7 +661,7 @@ export function TimesheetsView() {
                         variant="contained"
                         startIcon={<Iconify icon="mingcute:add-line" />}
                         onClick={handleOpenCreate}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         New Timesheet
                     </Button>
@@ -1008,7 +1008,7 @@ export function TimesheetsView() {
                     <Button
                         onClick={handleCreate}
                         variant="contained"
-                        sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                     >
                         {isEdit ? 'Update' : 'Create'}
                     </Button>
@@ -1309,7 +1309,7 @@ export function TimesheetsView() {
                         }}
                         variant="contained"
                         disabled={!newProjectName.trim() || creatingProject}
-                        sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                     >
                         {creatingProject ? 'Creating...' : 'Create'}
                     </Button>
@@ -1376,7 +1376,7 @@ export function TimesheetsView() {
                         }}
                         variant="contained"
                         disabled={!newActivityTypeName.trim() || creatingActivityType}
-                        sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                     >
                         {creatingActivityType ? 'Creating...' : 'Create'}
                     </Button>

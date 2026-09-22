@@ -316,9 +316,9 @@ export function WhatsAppCampaignsDetailsView() {
                                 borderRadius: 1.5,
                                 fontWeight: 600,
                                 textTransform: 'none',
-                                bgcolor: '#08a3cd',
+                                bgcolor: '#059669',
                                 color: 'common.white',
-                                '&:hover': { bgcolor: '#068fb3' }
+                                '&:hover': { bgcolor: '#047857' }
                             }}
                         >
                             Edit
@@ -338,7 +338,7 @@ export function WhatsAppCampaignsDetailsView() {
                         }}
                     >
                         <Stack spacing={1.5}>
-                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#08a3cd' }}>
+                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#059669' }}>
                                 <IoMdMail size={20} />
                                 <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Campaign Details</Typography>
                             </Stack>
@@ -364,7 +364,7 @@ export function WhatsAppCampaignsDetailsView() {
                         </Stack>
 
                         <Stack spacing={1.5}>
-                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#08a3cd' }}>
+                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#059669' }}>
                                 <IoMdPerson size={20} />
                                 <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Target Settings</Typography>
                             </Stack>
@@ -391,7 +391,7 @@ export function WhatsAppCampaignsDetailsView() {
                         </Stack>
 
                         <Stack spacing={1.5}>
-                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#08a3cd' }}>
+                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#059669' }}>
                                 <IoMdStats size={20} />
                                 <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Campaign Stats</Typography>
                             </Stack>
@@ -415,7 +415,7 @@ export function WhatsAppCampaignsDetailsView() {
                     </Box>
 
                     <Stack spacing={1.5}>
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#08a3cd' }}>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#059669' }}>
                             <IoMdPerson size={20} />
                             <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', color: 'text.secondary' }}>List of WhatsApp Recipients</Typography>
                         </Stack>
@@ -501,7 +501,7 @@ export function WhatsAppCampaignsDetailsView() {
                     </Stack>
 
                     <Stack spacing={1.5}>
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#08a3cd' }}>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#059669' }}>
                             <IoMdList size={20} />
                             <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', color: 'text.secondary' }}>List of WhatsApp Sends</Typography>
                         </Stack>

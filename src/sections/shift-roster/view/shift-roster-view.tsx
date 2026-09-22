@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -12,6 +11,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 
 import { useShiftRoster } from 'src/hooks/use-shift-roster';
 
+import { COMMON_COLORS } from 'src/theme';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
@@ -46,17 +46,13 @@ export function ShiftRosterView() {
 
   const isSingleEmployee = selectedEmployees.length === 1;
 
-  // If no single employee is selected and view is calendar, switch back to list view
+  // If no single employee is selected and view is calendar, switch back to monthly view
   useEffect(() => {
     if (!isSingleEmployee && currentView === 'calendar') {
-      setCurrentView('list');
-      setSearchParams({});
+      setCurrentView('monthly');
+      setSearchParams({ view: 'monthly' });
     }
   }, [isSingleEmployee, currentView, setSearchParams]);
-
-  // Dialogs
-  const [openCreateDialog, setOpenCreateDialog] = useState(false);
-  const [openBulkDialog, setOpenBulkDialog] = useState(false);
 
   // Snackbar State
   const [snackbar, setSnackbar] = useState<{
@@ -69,36 +65,37 @@ export function ShiftRosterView() {
     severity: 'success',
   });
 
-  const { refetch } = useShiftRoster(1, 10);
+  // Dialog State
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [openBulkDialog, setOpenBulkDialog] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // For summary counts
+  const { data = [], total, refetch } = useShiftRoster(1, 100);
+
+  const activeCount = data.filter((d) => d.status === 'Active').length;
+  const bulkRotationCount = data.filter((d) => ['Bulk', 'Rotation'].includes(d.assignment_type)).length;
+  const uniqueEmployees = new Set(data.map((d) => d.employee)).size;
 
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
-  const handleViewChange = (newView: string) => {
-    setCurrentView(newView as any);
-    setSearchParams(newView === 'monthly' ? { view: 'monthly' } : newView === 'calendar' ? { view: 'calendar' } : {});
-  };
-
   const handleCreateSuccess = () => {
-    setSnackbar({
-      open: true,
-      message: 'Shift assignment created successfully',
-      severity: 'success',
-    });
     refetch();
     setRefreshTrigger((prev) => prev + 1);
+    setSnackbar({ open: true, message: 'Shift assigned successfully', severity: 'success' });
   };
 
   const handleBulkSuccess = () => {
-    setSnackbar({
-      open: true,
-      message: 'Bulk shift assignments created successfully',
-      severity: 'success',
-    });
     refetch();
     setRefreshTrigger((prev) => prev + 1);
+    setSnackbar({ open: true, message: 'Bulk shifts assigned successfully', severity: 'success' });
+  };
+
+  const handleViewChange = (newView: string) => {
+    setCurrentView(newView as any);
+    setSearchParams(newView === 'list' ? {} : { view: newView });
   };
 
   return (
@@ -140,9 +137,9 @@ export function ShiftRosterView() {
                   startIcon={<Iconify icon="solar:users-group-rounded-bold" />}
                   onClick={() => setOpenBulkDialog(true)}
                   sx={{
-                    color: '#08a3cd',
-                    borderColor: '#08a3cd',
-                    '&:hover': { borderColor: '#068fb3', bgcolor: '#08a3cd08' },
+                    color: COMMON_COLORS.emerald.main,
+                    borderColor: COMMON_COLORS.emerald.main,
+                    '&:hover': { borderColor: COMMON_COLORS.emerald.dark, bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08) },
                   }}
                 >
                   Bulk Assign
@@ -152,7 +149,7 @@ export function ShiftRosterView() {
                   variant="contained"
                   startIcon={<Iconify icon="mingcute:add-line" />}
                   onClick={() => setOpenCreateDialog(true)}
-                  sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                  sx={{ bgcolor: COMMON_COLORS.primaryButton.bg, color: COMMON_COLORS.primaryButton.color, '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg } }}
                 >
                   New Assignment
                 </Button>
@@ -192,12 +189,12 @@ export function ShiftRosterView() {
                     fontSize: '0.825rem',
                     fontWeight: isActive ? 700 : 600,
                     color: isActive ? '#fff' : theme.palette.text.secondary,
-                    bgcolor: isActive ? '#08a3cd' : 'transparent',
-                    boxShadow: isActive ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                    bgcolor: isActive ? COMMON_COLORS.emerald.main : 'transparent',
+                    boxShadow: isActive ? `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.3)}` : 'none',
                     textTransform: 'capitalize',
                     transition: 'all 0.2s ease-in-out',
                     '&:hover': {
-                      bgcolor: isActive ? '#08a3cd' : alpha(theme.palette.grey[500], 0.08),
+                      bgcolor: isActive ? COMMON_COLORS.emerald.dark : alpha(theme.palette.grey[500], 0.08),
                     },
                   }}
                 >

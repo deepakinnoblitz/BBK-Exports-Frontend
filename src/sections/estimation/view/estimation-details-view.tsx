@@ -322,9 +322,9 @@ export function EstimationDetailsView() {
                                 borderRadius: 1.5,
                                 fontWeight: 600,
                                 textTransform: 'none',
-                                bgcolor: '#08a3cd',
+                                bgcolor: '#059669',
                                 color: 'common.white',
-                                '&:hover': { bgcolor: '#068fb3' }
+                                '&:hover': { bgcolor: '#047857' }
                             }}
                         >
                             Edit
@@ -346,7 +346,7 @@ export function EstimationDetailsView() {
                     >
                         {/* Customer Section */}
                         <Stack spacing={1.5}>
-                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#08a3cd' }}>
+                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#059669' }}>
                                 <IoMdPerson size={20} />
                                 <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Client Details</Typography>
                             </Stack>
@@ -369,7 +369,7 @@ export function EstimationDetailsView() {
 
                         {/* Document Logistics Section */}
                         <Stack spacing={1.5}>
-                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#08a3cd' }}>
+                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#059669' }}>
                                 <IoMdCalendar size={20} />
                                 <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Doc Logistics</Typography>
                             </Stack>
@@ -393,7 +393,7 @@ export function EstimationDetailsView() {
 
                         {/* Summary Stats Section */}
                         <Stack spacing={1.5}>
-                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#08a3cd' }}>
+                            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#059669' }}>
                                 <IoMdCash size={20} />
                                 <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Financial Summary</Typography>
                             </Stack>
@@ -418,7 +418,7 @@ export function EstimationDetailsView() {
 
                     {/* Table Section */}
                     <Box>
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2, color: '#08a3cd' }}>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2, color: '#059669' }}>
                             <IoMdList size={20} />
                             <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Line Items</Typography>
                         </Stack>
@@ -586,7 +586,7 @@ export function EstimationDetailsView() {
                                                     },
                                                 }}
                                             >
-                                                <IoMdLink size={18} style={{ marginRight: 8, color: '#08a3cd', flexShrink: 0 }} />
+                                                <IoMdLink size={18} style={{ marginRight: 8, color: '#059669', flexShrink: 0 }} />
                                                 <Typography variant="body2" noWrap sx={{ flexGrow: 1, fontWeight: 'fontWeightMedium' }}>{file.name || file.url.split('/').pop()}</Typography>
                                                 <IoMdDownload size={16} style={{ marginLeft: 8, color: '#919EAB' }} />
                                             </Stack>
@@ -622,8 +622,8 @@ export function EstimationDetailsView() {
                             <Divider sx={{ borderStyle: 'dashed' }} />
                             <Stack direction="row" justifyContent="space-between" alignItems="center">
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <IoMdWallet size={24} style={{ color: '#08a3cd' }} />
-                                    <Typography variant="subtitle1" sx={{ color: '#08a3cd' }}>Grand Total</Typography>
+                                    <IoMdWallet size={24} style={{ color: '#059669' }} />
+                                    <Typography variant="subtitle1" sx={{ color: '#059669' }}>Grand Total</Typography>
                                 </Stack>
                                 <Typography variant="h5" color="primary.main">{renderCurrency(grand_total, '20px')}</Typography>
                             </Stack>

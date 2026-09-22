@@ -437,7 +437,7 @@ export function AssetsView() {
                                 variant="contained"
                                 startIcon={<Iconify icon="mingcute:add-line" />}
                                 onClick={handleOpenCreate}
-                                sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                                sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                             >
                                 New Asset
                             </Button>
@@ -492,7 +492,7 @@ export function AssetsView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

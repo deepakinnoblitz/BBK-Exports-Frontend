@@ -22,7 +22,7 @@ export function SettingsLiveKit({ data, onChange }: Props) {
       fieldname: 'livekit_url',
       description: 'The WebSocket URL of your LiveKit server (e.g., wss://project.livekit.cloud).',
       icon: 'solar:link-bold-duotone',
-      color: '#08a3cd',
+      color: '#059669',
       placeholder: 'wss://...',
     },
     {

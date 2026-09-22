@@ -153,7 +153,7 @@ export function MeetingStatusView() {
             variant="contained"
             startIcon={<Iconify icon="mingcute:add-line" />}
             onClick={handleOpenCreate}
-            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
           >
             New Meeting Status
           </Button>
@@ -193,7 +193,7 @@ export function MeetingStatusView() {
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 10 }}>
-                      <CircularProgress sx={{ color: '#08a3cd' }} />
+                      <CircularProgress sx={{ color: '#059669' }} />
                     </TableCell>
                   </TableRow>
                 ) : (

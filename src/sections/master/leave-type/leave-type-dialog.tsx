@@ -235,7 +235,7 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
             <DialogContent dividers>
                 {fetching ? (
                     <Box sx={{ py: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <CircularProgress sx={{ color: '#08a3cd' }} />
+                        <CircularProgress sx={{ color: '#059669' }} />
                     </Box>
                 ) : (
                     <Box sx={{ py: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -490,7 +490,7 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                     fullWidth
                     disabled={loading || fetching} 
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-                    sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                    sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                 >
                     {id ? 'Save Changes' : 'Create'}
                 </Button>

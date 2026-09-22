@@ -141,9 +141,9 @@ export function EmailAutomationsDetailsView() {
                                 borderRadius: 1.5,
                                 fontWeight: 600,
                                 textTransform: 'none',
-                                bgcolor: '#08a3cd',
+                                bgcolor: '#059669',
                                 color: 'common.white',
-                                '&:hover': { bgcolor: '#068fb3' }
+                                '&:hover': { bgcolor: '#047857' }
                             }}
                         >
                             Edit
@@ -179,7 +179,7 @@ export function EmailAutomationsDetailsView() {
                                          label={for_status_change === 1 ? 'For Status Change' : 'For Campaigns'} 
                                          size="small" 
                                          color="primary" 
-                                         sx={{ borderRadius: 1, bgcolor: '#08a3cd', p: 1 }} 
+                                         sx={{ borderRadius: 1, bgcolor: '#059669', p: 1 }} 
                                      />
                                  </Stack>
                                  <Stack direction="row" justifyContent="space-between" alignItems="center">

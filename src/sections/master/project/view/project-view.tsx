@@ -147,7 +147,7 @@ export function ProjectView() {
             variant="contained"
             startIcon={<Iconify icon="mingcute:add-line" />}
             onClick={handleOpenCreate}
-            sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+            sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
           >
             New Project
           </Button>
@@ -187,7 +187,7 @@ export function ProjectView() {
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 10 }}>
-                      <CircularProgress sx={{ color: '#08a3cd' }} />
+                      <CircularProgress sx={{ color: '#059669' }} />
                     </TableCell>
                   </TableRow>
                 ) : (

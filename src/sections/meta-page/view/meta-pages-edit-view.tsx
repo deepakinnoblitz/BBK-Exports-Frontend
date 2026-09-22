@@ -44,7 +44,7 @@ export const CustomSwitch = styled((props: SwitchProps) => (
             transform: 'translateX(18px)',
             color: '#fff',
             '& + .MuiSwitch-track': {
-                backgroundColor: '#08a3cd',
+                backgroundColor: '#059669',
                 opacity: 1,
                 border: 0,
             },
@@ -181,7 +181,7 @@ export function MetaPagesEditView() {
     if (loading) {
         return (
             <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-                <CircularProgress sx={{ color: '#08a3cd' }} />
+                <CircularProgress sx={{ color: '#059669' }} />
             </DashboardContent>
         );
     }
@@ -209,7 +209,7 @@ export function MetaPagesEditView() {
                         variant="contained"
                         onClick={handleSave}
                         loading={isSaving}
-                        sx={{ borderRadius: 1.5, bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ borderRadius: 1.5, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         Save Changes
                     </LoadingButton>

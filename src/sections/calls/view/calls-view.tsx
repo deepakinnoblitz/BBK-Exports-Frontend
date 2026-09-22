@@ -174,14 +174,14 @@ export function CallsView() {
                                 boxShadow: 'none',
                             },
                             '&.fc-button-active': {
-                                backgroundColor: '#08a3cd',
+                                backgroundColor: '#059669',
                                 color: theme.palette.common.white,
                                 '&:hover': {
                                     backgroundColor: '#068eb1',
                                 },
                             },
                             '&.fc-today-button': {
-                                border: `1px solid #08a3cd`,
+                                border: `1px solid #059669`,
                                 '&:disabled': {
                                     opacity: 0.48,
                                 },
@@ -189,7 +189,7 @@ export function CallsView() {
                         },
                         '& .fc .fc-col-header-cell': {
                             py: 1.5,
-                            backgroundColor: '#08a3cd',
+                            backgroundColor: '#059669',
                             color: theme.palette.common.white,
                             '&:first-of-type': {
                                 borderTopLeftRadius: '12px',

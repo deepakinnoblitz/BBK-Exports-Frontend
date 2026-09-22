@@ -470,7 +470,7 @@ export function WhatsAppTemplateEditView() {
                         variant="contained"
                         onClick={handleSave}
                         loading={isSaving}
-                        sx={{ borderRadius: 1.5, bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ borderRadius: 1.5, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         Save Template
                     </LoadingButton>
@@ -776,9 +776,9 @@ export function WhatsAppTemplateEditView() {
                                             startIcon={<Iconify icon="mingcute:add-line" />}
                                             sx={{
                                                 borderRadius: 1,
-                                                bgcolor: '#08a3cd',
+                                                bgcolor: '#059669',
                                                 color: 'common.white',
-                                                '&:hover': { bgcolor: '#068fb3' },
+                                                '&:hover': { bgcolor: '#047857' },
                                             }}
                                         >
                                             Add Row
@@ -1057,7 +1057,7 @@ export function WhatsAppTemplateEditView() {
                                                     />
                                                 </Box>
                                             }
-                                            endIcon={<MdContentCopy size={16} color="#08a3cd" />}
+                                            endIcon={<MdContentCopy size={16} color="#059669" />}
                                             onClick={() => handleCopyVariable(item.variable)}
                                             sx={{
                                                 justifyContent: 'space-between',
@@ -1193,8 +1193,8 @@ export function WhatsAppTemplateEditView() {
                         onClick={handleCreateCategorySubmit}
                         disabled={creatingCategory || !newCategoryName.trim()}
                         sx={{
-                            bgcolor: '#08a3cd',
-                            '&:hover': { bgcolor: '#068fb3' },
+                            bgcolor: '#059669',
+                            '&:hover': { bgcolor: '#047857' },
                         }}
                     >
                         {creatingCategory ? (

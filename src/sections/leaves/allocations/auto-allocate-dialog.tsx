@@ -449,7 +449,7 @@ export default function AutoAllocateDialog({ open, onClose, onSuccess, onError }
                         loading={allocating}
                         onClick={handleAllocate}
                         startIcon={<Iconify icon="solar:calendar-add-bold" />}
-                        sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                     >
                         Allocate Now
                     </LoadingButton>

@@ -22,6 +22,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import {
   checkRosterConflict,
@@ -414,7 +415,7 @@ export function ShiftRosterDialog({
             fullWidth
             disabled={submitting}
             startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : null}
-            sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+            sx={{ bgcolor: COMMON_COLORS.primaryButton.bg, '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg } }}
           >
             {isEdit ? 'Save Changes' : 'Create'}
           </Button>

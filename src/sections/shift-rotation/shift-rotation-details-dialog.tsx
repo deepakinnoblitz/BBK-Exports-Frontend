@@ -120,7 +120,7 @@ export function ShiftRotationDetailsDialog({
       <DialogContent sx={{ m: 1.5, mt: 3 }}>
         {loading || !rotation ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
-            <CircularProgress sx={{ color: '#08a3cd' }} />
+            <CircularProgress sx={{ color: '#059669' }} />
           </Box>
         ) : (
           <Stack spacing={3}>

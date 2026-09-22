@@ -371,10 +371,10 @@ export function MissingTimesheets({ title, data, holidays, leave_dates = [], sx,
                                         sx={{
                                             borderRadius: 1,
                                             fontWeight: 800,
-                                            bgcolor: '#08a3cd',
+                                            bgcolor: '#059669',
                                             color: 'common.white',
                                             '&:hover': {
-                                                bgcolor: '#068fb3',
+                                                bgcolor: '#047857',
                                             }
                                         }}
                                     >

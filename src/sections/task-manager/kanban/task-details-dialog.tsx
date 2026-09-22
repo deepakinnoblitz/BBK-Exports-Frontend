@@ -431,7 +431,7 @@ export default function TaskDetailsDialog({ task: initialTask, open, onClose, on
                                         height: 20,
                                         px: 0.75,
                                         borderRadius: 10,
-                                        bgcolor: '#08a3cd',
+                                        bgcolor: '#059669',
                                         color: 'common.white',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -593,7 +593,7 @@ export default function TaskDetailsDialog({ task: initialTask, open, onClose, on
                                     variant="contained"
                                     startIcon={<Iconify icon="solar:pen-bold" />}
                                     onClick={onEdit}
-                                    sx={{ borderRadius: 1.5, fontWeight: 800, bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                                    sx={{ borderRadius: 1.5, fontWeight: 800, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                                 >
                                     Edit
                                 </Button>

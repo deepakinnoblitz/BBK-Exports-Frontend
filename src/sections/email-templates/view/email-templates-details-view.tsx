@@ -239,9 +239,9 @@ export function EmailTemplateDetailsView() {
                                 borderRadius: 1.5,
                                 fontWeight: 600,
                                 textTransform: 'none',
-                                bgcolor: '#08a3cd',
+                                bgcolor: '#059669',
                                 color: 'common.white',
-                                '&:hover': { bgcolor: '#068fb3' }
+                                '&:hover': { bgcolor: '#047857' }
                             }}
                         >
                             Edit
@@ -355,15 +355,15 @@ export function EmailTemplateDetailsView() {
                                                                 fontWeight: 600,
                                                                 ...(!isCodeView
                                                                     ? {
-                                                                          bgcolor: '#08a3cd',
+                                                                          bgcolor: '#059669',
                                                                           color: 'common.white',
                                                                           '&:hover': {
-                                                                              bgcolor: '#068fb3',
+                                                                              bgcolor: '#047857',
                                                                           },
                                                                       }
-                                                                    : { bgcolor: 'transparent', color: '#08a3cd', borderColor: '#08a3cd',
+                                                                    : { bgcolor: 'transparent', color: '#059669', borderColor: '#059669',
                                                                           '&:hover': {
-                                                                              borderColor: '#068fb3',
+                                                                              borderColor: '#047857',
                                                                               bgcolor: 'rgba(8, 163, 205, 0.08)',
                                                                           },
                                                                       }),
@@ -381,15 +381,15 @@ export function EmailTemplateDetailsView() {
                                                                 fontWeight: 600,
                                                                 ...(isCodeView
                                                                     ? {
-                                                                          bgcolor: '#08a3cd',
+                                                                          bgcolor: '#059669',
                                                                           color: 'common.white',
                                                                           '&:hover': {
-                                                                              bgcolor: '#068fb3',
+                                                                              bgcolor: '#047857',
                                                                           },
                                                                       }
-                                                                    : { bgcolor: 'transparent', color: '#08a3cd', borderColor: '#08a3cd',
+                                                                    : { bgcolor: 'transparent', color: '#059669', borderColor: '#059669',
                                                                           '&:hover': {
-                                                                              borderColor: '#068fb3',
+                                                                              borderColor: '#047857',
                                                                               bgcolor: 'rgba(8, 163, 205, 0.08)',
                                                                           },
                                                                       }),
@@ -405,11 +405,11 @@ export function EmailTemplateDetailsView() {
                                                         sx={{
                                                             textTransform: 'none',
                                                             fontWeight: 600,
-                                                            bgcolor: '#08a3cd',
+                                                            bgcolor: '#059669',
                                                             color: 'common.white',
                                                             pointerEvents: 'none',
                                                             '&:hover': {
-                                                                bgcolor: '#08a3cd',
+                                                                bgcolor: '#059669',
                                                             },
                                                         }}
                                                         startIcon={<IoMdDocument size={16} />}
@@ -454,18 +454,18 @@ export function EmailTemplateDetailsView() {
                                                                 fontWeight: 600,
                                                                 ...(!isCodeViewFooter
                                                                     ? {
-                                                                          bgcolor: '#08a3cd',
+                                                                          bgcolor: '#059669',
                                                                           color: 'common.white',
                                                                           '&:hover': {
-                                                                              bgcolor: '#068fb3',
+                                                                              bgcolor: '#047857',
                                                                           },
                                                                       }
                                                                     : {
                                                                           bgcolor: 'transparent',
-                                                                          color: '#08a3cd',
-                                                                          borderColor: '#08a3cd',
+                                                                          color: '#059669',
+                                                                          borderColor: '#059669',
                                                                           '&:hover': {
-                                                                              borderColor: '#068fb3',
+                                                                              borderColor: '#047857',
                                                                               bgcolor: 'rgba(8, 163, 205, 0.08)',
                                                                           },
                                                                       }),
@@ -483,18 +483,18 @@ export function EmailTemplateDetailsView() {
                                                                 fontWeight: 600,
                                                                 ...(isCodeViewFooter
                                                                     ? {
-                                                                          bgcolor: '#08a3cd',
+                                                                          bgcolor: '#059669',
                                                                           color: 'common.white',
                                                                           '&:hover': {
-                                                                              bgcolor: '#068fb3',
+                                                                              bgcolor: '#047857',
                                                                           },
                                                                       }
                                                                     : {
                                                                           bgcolor: 'transparent',
-                                                                          color: '#08a3cd',
-                                                                          borderColor: '#08a3cd',
+                                                                          color: '#059669',
+                                                                          borderColor: '#059669',
                                                                           '&:hover': {
-                                                                              borderColor: '#068fb3',
+                                                                              borderColor: '#047857',
                                                                               bgcolor: 'rgba(8, 163, 205, 0.08)',
                                                                           },
                                                                       }),
@@ -510,11 +510,11 @@ export function EmailTemplateDetailsView() {
                                                         sx={{
                                                             textTransform: 'none',
                                                             fontWeight: 600,
-                                                            bgcolor: '#08a3cd',
+                                                            bgcolor: '#059669',
                                                             color: 'common.white',
                                                             pointerEvents: 'none',
                                                             '&:hover': {
-                                                                bgcolor: '#08a3cd',
+                                                                bgcolor: '#059669',
                                                             },
                                                         }}
                                                         startIcon={<IoMdDocument size={16} />}

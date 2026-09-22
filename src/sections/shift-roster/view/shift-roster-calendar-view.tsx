@@ -326,7 +326,7 @@ export function ShiftRosterCalendarView({
               '& .MuiOutlinedInput-input': { py: 0, fontSize: '0.875rem' },
               '& fieldset': { borderColor: 'divider' },
               '&:hover fieldset': { borderColor: 'text.secondary' },
-              '&.Mui-focused fieldset': { borderColor: '#08a3cd' },
+              '&.Mui-focused fieldset': { borderColor: COMMON_COLORS.emerald.main },
             }}
           />
         </Stack>
@@ -349,7 +349,7 @@ export function ShiftRosterCalendarView({
               variant="text"
               size="small"
               onClick={handleToday}
-              sx={{ fontWeight: 700, color: '#08a3cd', px: 1 }}
+              sx={{ fontWeight: 700, color: COMMON_COLORS.emerald.main, px: 1 }}
             >
               Current Month
             </Button>
@@ -437,14 +437,14 @@ export function ShiftRosterCalendarView({
                     fontSize: '0.825rem',
                     fontWeight: isActive ? 700 : 600,
                     color: isActive ? '#fff' : theme.palette.text.secondary,
-                    bgcolor: isActive ? '#08a3cd' : 'transparent',
-                    boxShadow: isActive ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                    bgcolor: isActive ? COMMON_COLORS.emerald.main : 'transparent',
+                    boxShadow: isActive ? `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.3)}` : 'none',
                     textTransform: 'capitalize',
                     transition: theme.transitions.create(['background-color', 'color', 'box-shadow'], {
                       duration: theme.transitions.duration.shorter,
                     }),
                     '&:hover': {
-                      bgcolor: isActive ? '#08a3cd' : alpha(theme.palette.grey[500], 0.08),
+                      bgcolor: isActive ? COMMON_COLORS.emerald.dark : alpha(theme.palette.grey[500], 0.08),
                     },
                   }}
                 >
@@ -538,7 +538,7 @@ export function ShiftRosterCalendarView({
               justifyContent: 'flex-end',
             },
             '& .fc-day-today .fc-daygrid-day-number': {
-              bgcolor: '#08a3cd !important',
+              bgcolor: `${COMMON_COLORS.emerald.main} !important`,
               color: '#fff !important',
               borderRadius: '50%',
               width: '26px',
@@ -563,7 +563,7 @@ export function ShiftRosterCalendarView({
                 zIndex: 10,
               }}
             >
-              <CircularProgress sx={{ color: '#08a3cd' }} />
+              <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
             </Box>
           )}
 

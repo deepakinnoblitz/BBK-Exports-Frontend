@@ -615,7 +615,7 @@ export function LeadReportView() {
                                     {loading ? (
                                         <TableRow>
                                             <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
-                                                <CircularProgress sx={{ color: '#08a3cd' }} />
+                                                <CircularProgress sx={{ color: '#059669' }} />
                                             </TableCell>
                                         </TableRow>
                                     ) : (

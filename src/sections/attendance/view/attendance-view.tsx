@@ -834,7 +834,7 @@ export function AttendanceView() {
                                     variant="contained"
                                     startIcon={<Iconify icon="mingcute:add-line" />}
                                     onClick={handleOpenCreate}
-                                    sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                                    sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                                 >
                                     Mark Attendance
                                 </Button>
@@ -902,7 +902,7 @@ export function AttendanceView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={isSystemManager ? 11 : 10} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -1064,7 +1064,7 @@ export function AttendanceView() {
                             <Box sx={{ mt: 1 }}>
                                 {loadingDoc ? (
                                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                                        <CircularProgress size={32} sx={{ color: '#08a3cd' }} />
+                                        <CircularProgress size={32} sx={{ color: '#059669' }} />
                                     </Box>
                                 ) : (
                                     <BiometricPunchesTable
@@ -1080,7 +1080,7 @@ export function AttendanceView() {
                 </DialogContent>
 
                 <DialogActions sx={{ p: 2 }}>
-                    <Button variant="contained" onClick={handleCreate} disabled={creating} sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}>
+                    <Button variant="contained" onClick={handleCreate} disabled={creating} sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}>
                         {creating ? 'Saving...' : (currentAttendanceId ? 'Update Record' : 'Save Record')}
                     </Button>
                 </DialogActions>

@@ -300,7 +300,7 @@ export const UserView = forwardRef(
               variant="contained"
               startIcon={<Iconify icon="mingcute:add-line" />}
               onClick={handleOpenCreate}
-              sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+              sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
             >
               New User
             </Button>
@@ -354,7 +354,7 @@ export const UserView = forwardRef(
                   {loading ? (
                     <TableRow>
                       <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
-                        <CircularProgress sx={{ color: '#08a3cd' }} />
+                        <CircularProgress sx={{ color: '#059669' }} />
                       </TableCell>
                     </TableRow>
                   ) : (

@@ -53,7 +53,7 @@ export function SettingsNotifications({ data, onChange }: Props) {
       fieldname: 'task_notification',
       description: 'Get notified about task assignments, updates, and deadlines.',
       icon: 'solar:checklist-minimalistic-bold-duotone',
-      color: '#08a3cd',
+      color: '#059669',
     },
     */
     {

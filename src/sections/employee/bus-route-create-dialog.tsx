@@ -199,7 +199,7 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
                                 variant="contained"
                                 startIcon={<Iconify icon="solar:add-circle-bold" />}
                                 onClick={handleAddPoint}
-                                sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                                sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                             >
                                 Add Point
                             </Button>
@@ -382,7 +382,7 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
                     fullWidth
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-                    sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                    sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                 >
                     Create
                 </Button>

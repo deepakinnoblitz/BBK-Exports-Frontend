@@ -361,11 +361,11 @@ export function LeaveAllocationView() {
                             startIcon={<Iconify icon="solar:calendar-add-bold" />}
                             onClick={() => setOpenAutoAllocate(true)}
                             sx={{
-                                borderColor: '#08a3cd',
-                                color: '#08a3cd',
+                                borderColor: '#059669',
+                                color: '#059669',
                                 '&:hover': {
-                                    borderColor: '#068fb3',
-                                    bgcolor: (theme) => alpha('#08a3cd', 0.08)
+                                    borderColor: '#047857',
+                                    bgcolor: (theme) => alpha('#059669', 0.08)
                                 }
                             }}
                         >
@@ -377,7 +377,7 @@ export function LeaveAllocationView() {
                             variant="contained"
                             startIcon={<Iconify icon="mingcute:add-line" />}
                             onClick={() => setOpenCreate(true)}
-                            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                         >
                             New Allocation
                         </Button>
@@ -401,7 +401,7 @@ export function LeaveAllocationView() {
                             '&:last-of-type': {
                                 marginRight: 0,
                             },
-                            '&.Mui-selected': { color: '#08a3cd' },
+                            '&.Mui-selected': { color: '#059669' },
                         },
                     }}
                 >
@@ -468,7 +468,7 @@ export function LeaveAllocationView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -587,7 +587,7 @@ export function LeaveAllocationView() {
                                     {logLoading ? (
                                         <TableRow>
                                             <TableCell colSpan={8} align="center" sx={{ py: 12 }}>
-                                                <CircularProgress sx={{ color: '#08a3cd' }} />
+                                                <CircularProgress sx={{ color: '#059669' }} />
                                             </TableCell>
                                         </TableRow>
                                     ) : (

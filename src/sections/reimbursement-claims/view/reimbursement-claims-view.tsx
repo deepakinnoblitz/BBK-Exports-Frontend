@@ -767,9 +767,9 @@ export function ReimbursementClaimsView() {
                         startIcon={<Iconify icon="mingcute:add-line" />}
                         onClick={handleOpenCreate}
                         sx={{
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
-                            '&:hover': { bgcolor: '#068fb3' },
+                            '&:hover': { bgcolor: '#047857' },
                         }}
                     >
                         New Claim
@@ -1200,7 +1200,7 @@ export function ReimbursementClaimsView() {
                         onClick={handleCreate}
                         variant="contained"
                         loading={submitting}
-                        sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' }, px: 3 }}
+                        sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' }, px: 3 }}
                     >
                         {isEdit ? 'Update' : 'Create'}
                     </LoadingButton>

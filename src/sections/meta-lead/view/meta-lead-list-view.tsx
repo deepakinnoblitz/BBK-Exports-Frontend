@@ -265,7 +265,7 @@ export function MetaLeadListView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={TABLE_HEAD.length} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

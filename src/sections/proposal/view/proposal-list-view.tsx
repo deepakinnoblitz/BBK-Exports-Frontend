@@ -238,11 +238,11 @@ export function ProposalListView({ hideTitle, prospectId }: Props) {
                                     typography: 'subtitle2',
                                     fontWeight: 700,
                                     color: ProposalviewMode === 'proposallist' ? 'common.white' : 'text.secondary',
-                                    bgcolor: ProposalviewMode === 'proposallist' ? '#08a3cd' : 'transparent',
+                                    bgcolor: ProposalviewMode === 'proposallist' ? '#059669' : 'transparent',
                                     boxShadow: ProposalviewMode === 'proposallist' ? '0px 4px 10px rgba(8, 163, 205, 0.24)' : 'none',
                                     transition: 'all 0.2s',
                                     '&:hover': {
-                                        bgcolor: ProposalviewMode === 'proposallist' ? '#068fb3' : 'rgba(145, 158, 171, 0.08)',
+                                        bgcolor: ProposalviewMode === 'proposallist' ? '#047857' : 'rgba(145, 158, 171, 0.08)',
                                         color: ProposalviewMode === 'proposallist' ? 'common.white' : 'text.primary',
                                     }
                                 }}
@@ -260,11 +260,11 @@ export function ProposalListView({ hideTitle, prospectId }: Props) {
                                     typography: 'subtitle2',
                                     fontWeight: 700,
                                     color: ProposalviewMode === 'proposalkanban' ? 'common.white' : 'text.secondary',
-                                    bgcolor: ProposalviewMode === 'proposalkanban' ? '#08a3cd' : 'transparent',
+                                    bgcolor: ProposalviewMode === 'proposalkanban' ? '#059669' : 'transparent',
                                     boxShadow: ProposalviewMode === 'proposalkanban' ? '0px 4px 10px rgba(8, 163, 205, 0.24)' : 'none',
                                     transition: 'all 0.2s',
                                     '&:hover': {
-                                        bgcolor: ProposalviewMode === 'proposalkanban' ? '#068fb3' : 'rgba(145, 158, 171, 0.08)',
+                                        bgcolor: ProposalviewMode === 'proposalkanban' ? '#047857' : 'rgba(145, 158, 171, 0.08)',
                                         color: ProposalviewMode === 'proposalkanban' ? 'common.white' : 'text.primary',
                                     }
                                 }}
@@ -277,7 +277,7 @@ export function ProposalListView({ hideTitle, prospectId }: Props) {
                                 variant="contained"
                                 startIcon={<Iconify icon="mingcute:add-line" />}
                                 onClick={handleCreateNew}
-                                sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                                sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                             >
                                 New Proposal
                             </Button>
@@ -318,7 +318,7 @@ export function ProposalListView({ hideTitle, prospectId }: Props) {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

@@ -488,7 +488,7 @@ export function AssetRequestsView() {
                             setOpenSubmit(true);
                             if (isHR) setRequestType('Declaration');
                         }}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         {isHR ? 'New Declaration' : 'New Request'}
                     </Button>
@@ -578,7 +578,7 @@ export function AssetRequestsView() {
                                     {myLoading ? (
                                         <TableRow>
                                             <TableCell colSpan={isHR ? 9 : 8} align="center" sx={{ py: 10 }}>
-                                                <CircularProgress sx={{ color: '#08a3cd' }} />
+                                                <CircularProgress sx={{ color: '#059669' }} />
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -663,7 +663,7 @@ export function AssetRequestsView() {
                                                                 title={
                                                                     <Stack spacing={1.5} sx={{ p: 1.5, minWidth: 240 }}>
                                                                         <Stack direction="row" alignItems="center" spacing={1}>
-                                                                            <Iconify icon="solar:info-circle-bold" sx={{ color: '#08a3cd', width: 20, height: 20 }} />
+                                                                            <Iconify icon="solar:info-circle-bold" sx={{ color: '#059669', width: 20, height: 20 }} />
                                                                             <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
                                                                                 Request Details
                                                                             </Typography>
@@ -835,7 +835,7 @@ export function AssetRequestsView() {
                                     {hrLoading ? (
                                         <TableRow>
                                             <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                                                <CircularProgress sx={{ color: '#08a3cd' }} />
+                                                <CircularProgress sx={{ color: '#059669' }} />
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -918,7 +918,7 @@ export function AssetRequestsView() {
                                                                 title={
                                                                     <Stack spacing={1.5} sx={{ p: 1.5, minWidth: 240 }}>
                                                                         <Stack direction="row" alignItems="center" spacing={1}>
-                                                                            <Iconify icon="solar:info-circle-bold" sx={{ color: '#08a3cd', width: 20, height: 20 }} />
+                                                                            <Iconify icon="solar:info-circle-bold" sx={{ color: '#059669', width: 20, height: 20 }} />
                                                                             <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
                                                                                 Request Details
                                                                             </Typography>
@@ -1284,7 +1284,7 @@ export function AssetRequestsView() {
                         variant="contained"
                         loading={submitting}
                         onClick={handleSubmitRequest}
-                        sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                     >
                         Submit Request
                     </LoadingButton>

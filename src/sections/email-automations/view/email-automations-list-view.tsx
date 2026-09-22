@@ -166,9 +166,9 @@ export function EmailAutomationsListView() {
                     onClick={() => router.push('/email-automations/new')}
                     sx={{
                         borderRadius: 1.5,
-                        bgcolor: '#08a3cd',
+                        bgcolor: '#059669',
                         color: 'common.white',
-                        '&:hover': { bgcolor: '#068fb3' },
+                        '&:hover': { bgcolor: '#047857' },
                     }}
                 >
                     New Automation
@@ -208,7 +208,7 @@ export function EmailAutomationsListView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

@@ -133,7 +133,7 @@ export function MetaQueueDetailsView() {
     if (fetching) {
         return (
             <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-                <CircularProgress sx={{ color: '#08a3cd' }} />
+                <CircularProgress sx={{ color: '#059669' }} />
             </DashboardContent>
         );
     }
@@ -185,7 +185,7 @@ export function MetaQueueDetailsView() {
                 {/* Summary */}
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" spacing={1} mb={3} sx={{ color: 'text.secondary' }}>
-                        <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                        <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>Job Summary</Typography>
                     </Stack>
                     <Box sx={{ display: 'grid', columnGap: 4, rowGap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' } }}>
@@ -203,7 +203,7 @@ export function MetaQueueDetailsView() {
                 {/* Error Log */}
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" spacing={1} mb={3} sx={{ color: 'text.secondary' }}>
-                        <Iconify icon={"solar:danger-triangle-bold" as any} width={18} sx={{ color: item.last_error ? 'error.main' : '#08a3cd' }} />
+                        <Iconify icon={"solar:danger-triangle-bold" as any} width={18} sx={{ color: item.last_error ? 'error.main' : '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>Last Error</Typography>
                     </Stack>
                     <ErrorBlock value={item.last_error} />

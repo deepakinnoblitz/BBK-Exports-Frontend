@@ -16,6 +16,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useSalaryStructureComponents } from 'src/hooks/use-masters';
 
+import { COMMON_COLORS } from 'src/theme';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { deleteSalaryStructureComponent } from 'src/api/masters';
 
@@ -142,7 +143,7 @@ export function SalaryStructureComponentView() {
             variant="contained"
             startIcon={<Iconify icon="mingcute:add-line" />}
             onClick={handleOpenCreate}
-            sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+            sx={{ bgcolor: COMMON_COLORS.primaryButton.bg, color: COMMON_COLORS.primaryButton.color, '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg } }}
           >
             New Component
           </Button>
@@ -197,7 +198,7 @@ export function SalaryStructureComponentView() {
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
-                      <CircularProgress sx={{ color: '#08a3cd' }} />
+                      <CircularProgress sx={{ color: '#059669' }} />
                     </TableCell>
                   </TableRow>
                 ) : (

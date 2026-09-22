@@ -143,8 +143,8 @@ export function UserManagementView({ hideHeader = false }: { hideHeader?: boolea
           startIcon={<Iconify icon="mingcute:add-line" />}
           onClick={handleAddAction}
           sx={{
-            bgcolor: '#08a3cd',
-            '&:hover': { bgcolor: '#068fb3' },
+            bgcolor: '#059669',
+            '&:hover': { bgcolor: '#047857' },
             borderRadius: 1,
             textTransform: 'none',
             fontWeight: 600,
@@ -160,8 +160,8 @@ export function UserManagementView({ hideHeader = false }: { hideHeader?: boolea
           startIcon={<Iconify icon="mingcute:add-line" />}
           onClick={handleAddAction}
           sx={{
-            bgcolor: '#08a3cd',
-            '&:hover': { bgcolor: '#068fb3' },
+            bgcolor: '#059669',
+            '&:hover': { bgcolor: '#047857' },
             borderRadius: 1,
             textTransform: 'none',
             fontWeight: 600,

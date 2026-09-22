@@ -95,7 +95,7 @@ export function HRDocumentGenerationDetailsView({ id }: Props) {
         return (
             <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 15 }}>
-                    <CircularProgress sx={{ color: '#08a3cd' }} />
+                    <CircularProgress sx={{ color: '#059669' }} />
                 </Box>
             </DashboardContent>
         );
@@ -167,11 +167,11 @@ export function HRDocumentGenerationDetailsView({ id }: Props) {
                             borderRadius: 1.5,
                             fontWeight: 600,
                             textTransform: 'none',
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
                             px: 3,
                             '&:hover': {
-                                bgcolor: '#068fb3',
+                                bgcolor: '#047857',
                             },
                         }}
                     >
@@ -318,12 +318,12 @@ export function HRDocumentGenerationDetailsView({ id }: Props) {
                                             fontSize: '0.825rem',
                                             fontWeight: viewMode === 'rendered' ? 700 : 600,
                                             color: viewMode === 'rendered' ? '#fff' : 'text.secondary',
-                                            bgcolor: viewMode === 'rendered' ? '#08a3cd' : 'transparent',
-                                            boxShadow: viewMode === 'rendered' ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                                            bgcolor: viewMode === 'rendered' ? '#059669' : 'transparent',
+                                            boxShadow: viewMode === 'rendered' ? `0 2px 8px ${alpha('#059669', 0.3)}` : 'none',
                                             textTransform: 'capitalize',
                                             transition: 'all 0.2s ease-in-out',
                                             '&:hover': {
-                                                bgcolor: viewMode === 'rendered' ? '#08a3cd' : (theme) => alpha(theme.palette.grey[500], 0.12),
+                                                bgcolor: viewMode === 'rendered' ? '#059669' : (theme) => alpha(theme.palette.grey[500], 0.12),
                                             },
                                         }}
                                     >
@@ -339,12 +339,12 @@ export function HRDocumentGenerationDetailsView({ id }: Props) {
                                             fontSize: '0.825rem',
                                             fontWeight: viewMode === 'raw' ? 700 : 600,
                                             color: viewMode === 'raw' ? '#fff' : 'text.secondary',
-                                            bgcolor: viewMode === 'raw' ? '#08a3cd' : 'transparent',
-                                            boxShadow: viewMode === 'raw' ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                                            bgcolor: viewMode === 'raw' ? '#059669' : 'transparent',
+                                            boxShadow: viewMode === 'raw' ? `0 2px 8px ${alpha('#059669', 0.3)}` : 'none',
                                             textTransform: 'capitalize',
                                             transition: 'all 0.2s ease-in-out',
                                             '&:hover': {
-                                                bgcolor: viewMode === 'raw' ? '#08a3cd' : (theme) => alpha(theme.palette.grey[500], 0.12),
+                                                bgcolor: viewMode === 'raw' ? '#059669' : (theme) => alpha(theme.palette.grey[500], 0.12),
                                             },
                                         }}
                                     >

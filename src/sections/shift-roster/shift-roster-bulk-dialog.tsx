@@ -425,7 +425,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                     <Checkbox
                       checked={excludeWeeklyOffs}
                       onChange={(e) => setExcludeWeeklyOffs(e.target.checked)}
-                      sx={{ color: '#08a3cd', '&.Mui-checked': { color: '#08a3cd' } }}
+                      sx={{ color: COMMON_COLORS.emerald.main, '&.Mui-checked': { color: COMMON_COLORS.emerald.main } }}
                     />
                   }
                   label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Exclude Weekly Offs (Sundays)</Typography>}
@@ -436,7 +436,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                     <Checkbox
                       checked={excludeHolidays}
                       onChange={(e) => setExcludeHolidays(e.target.checked)}
-                      sx={{ color: '#08a3cd', '&.Mui-checked': { color: '#08a3cd' } }}
+                      sx={{ color: COMMON_COLORS.emerald.main, '&.Mui-checked': { color: COMMON_COLORS.emerald.main } }}
                     />
                   }
                   label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Exclude Company Holidays</Typography>}
@@ -450,7 +450,11 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                       color="error"
                     />
                   }
-                  label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Override existing shifts</Typography>}
+                  label={
+                    <Typography variant="body2" sx={{ fontWeight: 500, color: overrideConflicts ? 'error.main' : 'text.primary' }}>
+                      Override Existing Assignments (Force Overwrite)
+                    </Typography>
+                  }
                 />
               </Stack>
 
@@ -533,7 +537,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                 variant="contained"
                 onClick={handleApply}
                 disabled={submitting}
-                sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                 startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <Iconify icon="solar:check-circle-bold" />}
               >
                 Apply Shift ({selectedEmployeeIds.length} Employees)
@@ -544,7 +548,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
               variant="contained"
               onClick={handlePreview}
               disabled={loadingPreview || selectedEmployeeIds.length === 0 || !selectedShift}
-              sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+              sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
               startIcon={loadingPreview ? <CircularProgress size={18} color="inherit" /> : <Iconify icon="solar:eye-bold" />}
             >
               Preview Assignments

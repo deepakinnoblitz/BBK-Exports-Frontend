@@ -282,8 +282,8 @@ export function ProfileView() {
                                         fullWidth={{ xs: true, md: false } as any}
                                         onClick={handleSaveProfile}
                                         sx={{
-                                            bgcolor: '#08a3cd',
-                                            '&:hover': { bgcolor: '#068fb3' },
+                                            bgcolor: '#059669',
+                                            '&:hover': { bgcolor: '#047857' },
                                             borderRadius: 1,
                                             textTransform: 'none',
                                             fontWeight: 600,
@@ -483,8 +483,8 @@ export function ProfileView() {
                         onClick={handleChangePassword}
                         variant="contained"
                         sx={{
-                            bgcolor: '#08a3cd',
-                            '&:hover': { bgcolor: '#068fb3' },
+                            bgcolor: '#059669',
+                            '&:hover': { bgcolor: '#047857' },
                             borderRadius: 1,
                             textTransform: 'none',
                             fontWeight: 600,

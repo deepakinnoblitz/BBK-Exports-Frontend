@@ -705,9 +705,9 @@ export function TaskNewEditForm({ open, onClose, currentTask, onSuccess }: Props
                             px: 3,
                             borderRadius: 1,
                             fontWeight: 800,
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
-                            '&:hover': { bgcolor: '#068fb3' }
+                            '&:hover': { bgcolor: '#047857' }
                         }}
                     >
                         {currentTask ? 'Save Changes' : 'Create Task'}
@@ -797,7 +797,7 @@ export function TaskNewEditForm({ open, onClose, currentTask, onSuccess }: Props
                         }}
                         variant="contained"
                         disabled={!newProjectName.trim() || creatingProject}
-                        sx={{ bgcolor: '#08a3cd', fontWeight: 800, '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', fontWeight: 800, '&:hover': { bgcolor: '#047857' } }}
                     >
                         {creatingProject ? 'Creating...' : 'Create Project'}
                     </Button>
@@ -871,7 +871,7 @@ export function TaskNewEditForm({ open, onClose, currentTask, onSuccess }: Props
                         }}
                         variant="contained"
                         disabled={!newDepartmentName.trim() || creatingDepartment}
-                        sx={{ bgcolor: '#08a3cd', fontWeight: 800, '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', fontWeight: 800, '&:hover': { bgcolor: '#047857' } }}
                     >
                         {creatingDepartment ? 'Creating...' : 'Create Department'}
                     </Button>

@@ -433,7 +433,7 @@ export function EventsView() {
 
 
     const calendarEvents = events.map((event) => {
-        let eventColor = event.color || '#08a3cd';
+        let eventColor = event.color || '#059669';
 
         if (!event.color) {
             switch (event.status) {
@@ -445,13 +445,13 @@ export function EventsView() {
                     eventColor = theme.palette.error.main;
                     break;
                 case 'Scheduled':
-                    eventColor = '#08a3cd';
+                    eventColor = '#059669';
                     break;
                 case 'Open':
                     eventColor = theme.palette.warning.main;
                     break;
                 default:
-                    eventColor = '#08a3cd';
+                    eventColor = '#059669';
             }
         }
 
@@ -640,7 +640,7 @@ export function EventsView() {
         date: initialDateRef.current,
         mode: 'month',
         eventRenderer: ({ eventRecord, renderData, element }: any) => {
-            const color = eventRecord.data?.eventColor || eventRecord.eventColor || '#08a3cd';
+            const color = eventRecord.data?.eventColor || eventRecord.eventColor || '#059669';
 
             if (renderData) {
                 renderData.eventColor = color;
@@ -1156,12 +1156,12 @@ export function EventsView() {
                                     height: 32,
                                     fontSize: '0.82rem',
                                     '&.Mui-selected': {
-                                        bgcolor: '#08a3cd',
+                                        bgcolor: '#059669',
                                         color: '#fff',
                                         '&:hover': { bgcolor: '#068eb1' },
                                     },
                                     '&.MuiPickersDay-today:not(.Mui-selected)': {
-                                        borderColor: '#08a3cd',
+                                        borderColor: '#059669',
                                     },
                                 },
                                 '& .MuiDayCalendar-slideTransition': {
@@ -1459,7 +1459,7 @@ export function EventsView() {
                                         ends_on: endStr,
                                         status: 'Open',
                                         event_category: 'Event',
-                                        color: '#08a3cd',
+                                        color: '#059669',
                                         description: '',
                                     });
                                     handleOpenTypeDialog(startStr);

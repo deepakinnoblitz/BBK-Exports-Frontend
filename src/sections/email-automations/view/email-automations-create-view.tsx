@@ -421,9 +421,9 @@ export function EmailAutomationsCreateView() {
                             loading={isSaving}
                             sx={{
                                 borderRadius: 1.5,
-                                bgcolor: '#08a3cd',
+                                bgcolor: '#059669',
                                 color: 'common.white',
-                                '&:hover': { bgcolor: '#068fb3' },
+                                '&:hover': { bgcolor: '#047857' },
                             }}
                         >
                             Save Automation
@@ -892,7 +892,7 @@ export function EmailAutomationsCreateView() {
                                     onClick={() => setFilters([...filters, { field_name: '', operator: '=', value: '' }])}
                                     sx={{
                                         alignSelf: 'flex-start',
-                                        background: 'linear-gradient(135deg,#08a3cd,#08a3cd)',
+                                        background: 'linear-gradient(135deg,#059669,#059669)',
                                         borderRadius: 3,
                                         px: 2,
                                         py: 0.6,
@@ -900,7 +900,7 @@ export function EmailAutomationsCreateView() {
                                         fontWeight: 600,
                                         color: 'white',
                                         '&:hover': {
-                                            background: 'linear-gradient(135deg,#08a3cd,#08a3cd)',
+                                            background: 'linear-gradient(135deg,#059669,#059669)',
                                             boxShadow: '0 8px 10px rgba(124,58,237,.25)',
                                         }
                                     }}

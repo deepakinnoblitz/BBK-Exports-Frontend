@@ -508,7 +508,7 @@ export function EstimationCreateView() {
                     >
                         Go Back
                     </Button>
-                    <Button variant="contained" onClick={handleSave} loading={loading} sx={{ borderRadius: 1.5, bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}>
+                    <Button variant="contained" onClick={handleSave} loading={loading} sx={{ borderRadius: 1.5, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}>
                         Save Estimation
                     </Button>
                 </Stack>
@@ -557,7 +557,7 @@ export function EstimationCreateView() {
                                 <Button
                                     variant="contained"
                                     onClick={() => setContactDialogOpen(true)}
-                                    sx={{ height: 35, px: 2, bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                                    sx={{ height: 35, px: 2, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                                 >
                                     Edit
                                 </Button>
@@ -1121,8 +1121,8 @@ export function EstimationCreateView() {
                             <Divider />
                             <Stack direction="row" alignItems="center" justifyContent="space-between">
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <IoMdWallet size={24} style={{ color: '#08a3cd' }} />
-                                    <Typography variant="subtitle1" sx={{ color: '#08a3cd' }}>Grand Total</Typography>
+                                    <IoMdWallet size={24} style={{ color: '#059669' }} />
+                                    <Typography variant="subtitle1" sx={{ color: '#059669' }}>Grand Total</Typography>
                                 </Stack>
                                 <Typography variant="h6" color="primary" sx={{ width: 120, textAlign: 'right' }}>{renderCurrency(grandTotal, '20px')}</Typography>
                             </Stack>
@@ -1198,7 +1198,7 @@ export function EstimationCreateView() {
                                 <Button
                                     variant="contained"
                                     component="label"
-                                    sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                                    sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                                     size="small"
                                     startIcon={<Iconify icon={"solar:upload-bold" as any} />}
                                     disabled={uploading}
@@ -1324,7 +1324,7 @@ export function EstimationCreateView() {
                         variant="contained"
                         onClick={handleCreateItem}
                         disabled={creatingItem}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         {creatingItem ? <CircularProgress size={24} /> : 'Create'}
                     </Button>

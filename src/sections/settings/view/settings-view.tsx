@@ -179,8 +179,8 @@ export function SettingsView() {
           onClick={handleSave}
           disabled={saving}
           sx={{
-            bgcolor: '#08a3cd',
-            '&:hover': { bgcolor: '#068fb3' },
+            bgcolor: '#059669',
+            '&:hover': { bgcolor: '#047857' },
             borderRadius: 1,
             textTransform: 'none',
             fontWeight: 600,

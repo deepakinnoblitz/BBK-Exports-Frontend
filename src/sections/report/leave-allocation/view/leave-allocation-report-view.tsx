@@ -798,12 +798,12 @@ export function LeaveAllocationReportView() {
                                         fontSize: '0.825rem',
                                         fontWeight: isActive ? 700 : 600,
                                         color: isActive ? '#fff' : theme.palette.text.secondary,
-                                        bgcolor: isActive ? '#08a3cd' : 'transparent',
-                                        boxShadow: isActive ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                                        bgcolor: isActive ? '#059669' : 'transparent',
+                                        boxShadow: isActive ? `0 2px 8px ${alpha('#059669', 0.3)}` : 'none',
                                         textTransform: 'capitalize',
                                         transition: 'all 0.2s ease-in-out',
                                         '&:hover': {
-                                            bgcolor: isActive ? '#08a3cd' : alpha(theme.palette.grey[500], 0.08),
+                                            bgcolor: isActive ? '#059669' : alpha(theme.palette.grey[500], 0.08),
                                         }
                                     }}
                                 >
@@ -852,7 +852,7 @@ export function LeaveAllocationReportView() {
                                         {loading ? (
                                             <TableRow>
                                                 <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
-                                                    <CircularProgress sx={{ color: '#08a3cd' }} />
+                                                    <CircularProgress sx={{ color: '#059669' }} />
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
@@ -1031,7 +1031,7 @@ export function LeaveAllocationReportView() {
                                         {loading ? (
                                             <TableRow>
                                                 <TableCell colSpan={months.length + 1} align="center" sx={{ py: 10 }}>
-                                                    <CircularProgress sx={{ color: '#08a3cd' }} />
+                                                    <CircularProgress sx={{ color: '#059669' }} />
                                                 </TableCell>
                                             </TableRow>
                                         ) : (

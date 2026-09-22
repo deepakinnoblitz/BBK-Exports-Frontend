@@ -72,7 +72,7 @@ export function SettingsCompanyEmail({ data, onChange }: Props) {
                   size="small"
                   sx={{
                     borderRadius: 1,
-                    bgcolor: '#08a3cd',
+                    bgcolor: '#059669',
                     color: '#ffffff',
                     fontWeight: 'fontWeightBold',
                     '& .MuiChip-deleteIcon': {

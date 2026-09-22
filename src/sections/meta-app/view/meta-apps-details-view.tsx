@@ -71,7 +71,7 @@ export function MetaAppsDetailsView() {
     if (fetching) {
         return (
             <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-                <CircularProgress sx={{ color: '#08a3cd' }} />
+                <CircularProgress sx={{ color: '#059669' }} />
             </DashboardContent>
         );
     }
@@ -112,7 +112,7 @@ export function MetaAppsDetailsView() {
                                 {app.app_id}
                             </Typography>
                             {app.is_default ? (
-                                <Chip label="Default" size="small" sx={{ bgcolor: alpha('#08a3cd', 0.12), color: '#08a3cd', border: `1px solid ${alpha('#08a3cd', 0.3)}`, fontWeight: 700, fontSize: 10, borderRadius: '6px', height: 20 }} />
+                                <Chip label="Default" size="small" sx={{ bgcolor: alpha('#059669', 0.12), color: '#059669', border: `1px solid ${alpha('#059669', 0.3)}`, fontWeight: 700, fontSize: 10, borderRadius: '6px', height: 20 }} />
                             ) : null}
                         </Stack>
                     </Stack>
@@ -132,7 +132,7 @@ export function MetaAppsDetailsView() {
                             variant="contained"
                             onClick={() => navigate(`/lead-integration/meta-apps/${encodeURIComponent(id || '')}/edit`)}
                             startIcon={<IoMdCreate size={20} />}
-                            sx={{ borderRadius: 1.5, fontWeight: 600, textTransform: 'none', bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                            sx={{ borderRadius: 1.5, fontWeight: 600, textTransform: 'none', bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                         >
                             Edit
                         </Button>
@@ -172,13 +172,13 @@ export function MetaAppsDetailsView() {
                         </Typography>
                     </Stack>
                     <Stack direction="row" alignItems="center" spacing={1}>
-                        <Iconify icon={(app.signature_validation ? 'solar:shield-check-bold' : 'solar:shield-cross-bold') as any} sx={{ color: app.signature_validation ? '#08a3cd' : 'text.disabled' }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: app.signature_validation ? '#08a3cd' : 'text.secondary' }}>
+                        <Iconify icon={(app.signature_validation ? 'solar:shield-check-bold' : 'solar:shield-cross-bold') as any} sx={{ color: app.signature_validation ? '#059669' : 'text.disabled' }} />
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: app.signature_validation ? '#059669' : 'text.secondary' }}>
                             Signature Validation {app.signature_validation ? 'Enabled' : 'Disabled'}
                         </Typography>
                     </Stack>
                     <Stack direction="row" alignItems="center" spacing={1}>
-                        <Chip label={app.graph_api_version || 'v23.0'} size="small" sx={{ bgcolor: alpha('#08a3cd', 0.1), color: '#08a3cd', border: `1px solid ${alpha('#08a3cd', 0.3)}`, fontWeight: 700, fontSize: 11, borderRadius: '6px' }} />
+                        <Chip label={app.graph_api_version || 'v23.0'} size="small" sx={{ bgcolor: alpha('#059669', 0.1), color: '#059669', border: `1px solid ${alpha('#059669', 0.3)}`, fontWeight: 700, fontSize: 11, borderRadius: '6px' }} />
                     </Stack>
                 </Box>
 
@@ -234,7 +234,7 @@ export function MetaAppsDetailsView() {
                                         navigator.clipboard.writeText(app.oauth_redirect_uri || '');
                                         enqueueSnackbar('OAuth Redirect URI copied to clipboard!', { variant: 'success' });
                                     }}
-                                    sx={{ color: '#08a3cd' }}
+                                    sx={{ color: '#059669' }}
                                     title="Copy OAuth Redirect URI"
                                 >
                                     <Iconify icon={"solar:copy-bold" as any} width={18} />
@@ -277,7 +277,7 @@ export function MetaAppsDetailsView() {
                                         navigator.clipboard.writeText(app.webhook_url || '');
                                         enqueueSnackbar('Webhook URL copied to clipboard!', { variant: 'success' });
                                     }}
-                                    sx={{ color: '#08a3cd' }}
+                                    sx={{ color: '#059669' }}
                                     title="Copy Webhook URL"
                                 >
                                     <Iconify icon={"solar:copy-bold" as any} width={18} />

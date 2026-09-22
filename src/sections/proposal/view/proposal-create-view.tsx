@@ -383,9 +383,9 @@ export function ProposalCreateView() {
                         disabled={loading || uploading}
                         sx={{
                             borderRadius: 1.5,
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
-                            '&:hover': { bgcolor: '#068fb3' },
+                            '&:hover': { bgcolor: '#047857' },
                         }}
                     >
                         {loading ? <CircularProgress size={20} color="inherit" /> : 'Save Proposal'}
@@ -591,9 +591,9 @@ export function ProposalCreateView() {
                             onClick={handleAddAttachmentRow}
                             sx={{
                                 borderRadius: 1,
-                                bgcolor: '#08a3cd',
+                                bgcolor: '#059669',
                                 color: 'common.white',
-                                '&:hover': { bgcolor: '#068fb3' },
+                                '&:hover': { bgcolor: '#047857' },
                             }}
                         >
                             Add Row

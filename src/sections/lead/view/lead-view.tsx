@@ -1449,11 +1449,11 @@ export function LeadView() {
                   typography: 'subtitle2',
                   fontWeight: 700,
                   color: viewMode === 'list' ? 'common.white' : 'text.secondary',
-                  bgcolor: viewMode === 'list' ? '#08a3cd' : 'transparent',
+                  bgcolor: viewMode === 'list' ? '#059669' : 'transparent',
                   boxShadow: viewMode === 'list' ? '0px 4px 10px rgba(8, 163, 205, 0.24)' : 'none',
                   transition: 'all 0.2s',
                   '&:hover': {
-                    bgcolor: viewMode === 'list' ? '#068fb3' : 'rgba(145, 158, 171, 0.08)',
+                    bgcolor: viewMode === 'list' ? '#047857' : 'rgba(145, 158, 171, 0.08)',
                     color: viewMode === 'list' ? 'common.white' : 'text.primary',
                   }
                 }}
@@ -1471,11 +1471,11 @@ export function LeadView() {
                   typography: 'subtitle2',
                   fontWeight: 700,
                   color: viewMode === 'kanban' ? 'common.white' : 'text.secondary',
-                  bgcolor: viewMode === 'kanban' ? '#08a3cd' : 'transparent',
+                  bgcolor: viewMode === 'kanban' ? '#059669' : 'transparent',
                   boxShadow: viewMode === 'kanban' ? '0px 4px 10px rgba(8, 163, 205, 0.24)' : 'none',
                   transition: 'all 0.2s',
                   '&:hover': {
-                    bgcolor: viewMode === 'kanban' ? '#068fb3' : 'rgba(145, 158, 171, 0.08)',
+                    bgcolor: viewMode === 'kanban' ? '#047857' : 'rgba(145, 158, 171, 0.08)',
                     color: viewMode === 'kanban' ? 'common.white' : 'text.primary',
                   }
                 }}
@@ -1499,7 +1499,7 @@ export function LeadView() {
                 variant="contained"
                 startIcon={<Iconify icon="mingcute:add-line" />}
                 onClick={handleOpenCreate}
-                sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
               >
                 New Lead
               </Button>
@@ -1580,7 +1580,7 @@ export function LeadView() {
                   {loading ? (
                     <TableRow>
                       <TableCell colSpan={11} align="center" sx={{ py: 10 }}>
-                        <CircularProgress sx={{ color: '#08a3cd' }} />
+                        <CircularProgress sx={{ color: '#059669' }} />
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -1655,7 +1655,7 @@ export function LeadView() {
           </Card>
         ) : kanbanLoading && kanbanLeads.length === 0 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(118vh - 170px)' }}>
-            <CircularProgress sx={{ color: '#08a3cd' }} />
+            <CircularProgress sx={{ color: '#059669' }} />
           </Box>
         ) : (
           <LeadKanbanBoard
@@ -1908,7 +1908,7 @@ export function LeadView() {
             variant="contained"
             onClick={handleCreateLeadFromSubmit}
             disabled={creatingLeadFrom || !newLeadFromName.trim()}
-            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' }, borderRadius: 1 }}
+            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' }, borderRadius: 1 }}
           >
             {creatingLeadFrom ? <CircularProgress size={24} color="inherit" /> : 'Create'}
           </Button>
@@ -1949,7 +1949,7 @@ export function LeadView() {
             variant="contained"
             onClick={handleCreateServiceSubmit}
             disabled={creatingService || !newServiceName.trim()}
-            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' }, borderRadius: 1 }}
+            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' }, borderRadius: 1 }}
           >
             {creatingService ? <CircularProgress size={24} color="inherit" /> : 'Create'}
           </Button>

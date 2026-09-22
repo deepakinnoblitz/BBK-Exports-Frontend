@@ -1,8 +1,10 @@
+import type {
+    SalaryStructureComponent} from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
-import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Checkbox from '@mui/material/Checkbox';
@@ -16,14 +18,14 @@ import DialogActions from '@mui/material/DialogActions';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { COMMON_COLORS } from 'src/theme';
 import {
     fetchSalaryComponents,
 } from 'src/api/hr-management';
 import {
-    createSalaryStructureComponent,
-    updateSalaryStructureComponent,
     getSalaryStructureComponent,
-    SalaryStructureComponent,
+    createSalaryStructureComponent,
+    updateSalaryStructureComponent
 } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
@@ -248,7 +250,7 @@ export function SalaryStructureComponentDialog({ open, onClose, onSuccess, id }:
                     fullWidth
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-                    sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                    sx={{ bgcolor: COMMON_COLORS.primaryButton.bg, color: COMMON_COLORS.primaryButton.color, '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg } }}
                 >
                     {id ? 'Save Changes' : 'Create'}
                 </Button>
