@@ -16,47 +16,125 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 
-import { useAuth } from 'src/auth/auth-context';
-
-import { ShiftRosterDialog } from '../shift-roster-dialog';
-import { ShiftRosterListView } from './shift-roster-list-view';
-import { ShiftRosterBulkDialog } from '../shift-roster-bulk-dialog';
 import { ShiftRosterMonthlyView } from './shift-roster-monthly-view';
 import { ShiftRosterCalendarView } from './shift-roster-calendar-view';
 
 // ----------------------------------------------------------------------
 
-export function ShiftRosterView() {
+interface SummaryCardProps {
+  item: {
+    label: string;
+    value: number;
+    indicator: 'blue' | 'green' | 'red' | 'orange';
+  };
+}
+
+function SummaryCard({ item }: SummaryCardProps) {
+  const { label, value, indicator } = item;
+
+  const getColor = () => {
+    switch (indicator) {
+      case 'blue':
+        return {
+          bg: 'rgba(14, 165, 233, 0.08)',
+          border: 'rgba(14, 165, 233, 0.16)',
+          color: '#0284c7',
+          icon: 'solar:file-text-bold-duotone',
+        };
+      case 'green':
+        return {
+          bg: 'rgba(34, 197, 94, 0.08)',
+          border: 'rgba(34, 197, 94, 0.16)',
+          color: '#16a34a',
+          icon: 'solar:check-circle-bold-duotone',
+        };
+      case 'red':
+        return {
+          bg: 'rgba(239, 68, 68, 0.08)',
+          border: 'rgba(239, 68, 68, 0.16)',
+          color: '#dc2626',
+          icon: 'solar:close-circle-bold-duotone',
+        };
+      case 'orange':
+        return {
+          bg: 'rgba(249, 115, 22, 0.08)',
+          border: 'rgba(249, 115, 22, 0.16)',
+          color: '#ea580c',
+          icon: 'solar:clock-circle-bold-duotone',
+        };
+      default:
+        return {
+          bg: 'rgba(148, 163, 184, 0.08)',
+          border: 'rgba(148, 163, 184, 0.16)',
+          color: '#475569',
+          icon: 'solar:info-circle-bold-duotone',
+        };
+    }
+  };
+
+  const config = getColor();
+
+  return (
+    <Card
+      sx={{
+        p: 2,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        bgcolor: config.bg,
+        border: `1px solid ${config.border}`,
+        boxShadow: 'none',
+      }}
+    >
+      <Box
+        sx={{
+          width: 44,
+          height: 44,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: alpha(config.color, 0.1),
+          color: config.color,
+        }}
+      >
+        <Iconify icon={config.icon as any} width={24} />
+      </Box>
+
+      <Stack spacing={0.5}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+          {label}
+        </Typography>
+        <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 800 }}>
+          {value}
+        </Typography>
+      </Stack>
+    </Card>
+  );
+}
+
+// ----------------------------------------------------------------------
+
+export function MonthlyRosterView() {
   const theme = useTheme();
-  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
 
-  const actionPerms = user?.permissions?.actions?.shift_roster;
-  const hasCustomPerms = !!user?.permissions?.custom_permissions_assigned && !!actionPerms;
-  const canCreate = hasCustomPerms ? !!actionPerms?.create : true;
-  const canEdit = hasCustomPerms ? !!actionPerms?.edit : true;
-  const canDelete = hasCustomPerms ? !!actionPerms?.delete : true;
-
   const urlView = searchParams.get('view');
-  const [currentView, setCurrentView] = useState<'list' | 'calendar' | 'monthly'>(
-    urlView === 'monthly' ? 'monthly' : urlView === 'calendar' ? 'calendar' : 'list'
+  const [currentView, setCurrentView] = useState<'monthly' | 'calendar'>(
+    urlView === 'calendar' ? 'calendar' : 'monthly'
   );
 
   const isSingleEmployee = selectedEmployees.length === 1;
 
-  // If no single employee is selected and view is calendar, switch back to list view
+  // If no single employee is selected and view is calendar, switch back to monthly view
   useEffect(() => {
     if (!isSingleEmployee && currentView === 'calendar') {
-      setCurrentView('list');
+      setCurrentView('monthly');
       setSearchParams({});
     }
   }, [isSingleEmployee, currentView, setSearchParams]);
-
-  // Dialogs
-  const [openCreateDialog, setOpenCreateDialog] = useState(false);
-  const [openBulkDialog, setOpenBulkDialog] = useState(false);
 
   // Snackbar State
   const [snackbar, setSnackbar] = useState<{
@@ -69,7 +147,12 @@ export function ShiftRosterView() {
     severity: 'success',
   });
 
-  const { refetch } = useShiftRoster(1, 10);
+  // For summary counts
+  const { data, total, refetch } = useShiftRoster(1, 100);
+
+  const activeCount = data.filter((d) => d.status === 'Active').length;
+  const bulkRotationCount = data.filter((d) => ['Bulk', 'Rotation'].includes(d.assignment_type)).length;
+  const uniqueEmployees = new Set(data.map((d) => d.employee)).size;
 
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
@@ -77,25 +160,7 @@ export function ShiftRosterView() {
 
   const handleViewChange = (newView: string) => {
     setCurrentView(newView as any);
-    setSearchParams(newView === 'monthly' ? { view: 'monthly' } : newView === 'calendar' ? { view: 'calendar' } : {});
-  };
-
-  const handleCreateSuccess = () => {
-    setSnackbar({
-      open: true,
-      message: 'Shift assignment created successfully',
-      severity: 'success',
-    });
-    refetch();
-  };
-
-  const handleBulkSuccess = () => {
-    setSnackbar({
-      open: true,
-      message: 'Bulk shift assignments created successfully',
-      severity: 'success',
-    });
-    refetch();
+    setSearchParams(newView === 'calendar' ? { view: 'calendar' } : {});
   };
 
   return (
@@ -110,10 +175,10 @@ export function ShiftRosterView() {
         >
           <div>
             <Typography variant="h4" sx={{ fontWeight: 800 }}>
-              Employee Shift Assignment
+              Monthly Roster
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-              Manage date-wise shift assignments, rotations, and monthly workforce roster boards.
+              Monthly visual roster matrix and workforce shift schedule board.
             </Typography>
           </div>
 
@@ -123,41 +188,33 @@ export function ShiftRosterView() {
               startIcon={<Iconify icon={"solar:refresh-bold" as any} />}
               onClick={() => {
                 refetch();
-                setSnackbar({ open: true, message: 'Shift Roster refreshed', severity: 'info' });
+                setSnackbar({ open: true, message: 'Monthly Roster refreshed', severity: 'info' });
               }}
             >
               Refresh
             </Button>
-
-            {canCreate && (
-              <>
-                <Button
-                  variant="outlined"
-                  startIcon={<Iconify icon="solar:users-group-rounded-bold" />}
-                  onClick={() => setOpenBulkDialog(true)}
-                  sx={{
-                    color: '#08a3cd',
-                    borderColor: '#08a3cd',
-                    '&:hover': { borderColor: '#068fb3', bgcolor: '#08a3cd08' },
-                  }}
-                >
-                  Bulk Assign
-                </Button>
-
-                <Button
-                  variant="contained"
-                  startIcon={<Iconify icon="mingcute:add-line" />}
-                  onClick={() => setOpenCreateDialog(true)}
-                  sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
-                >
-                  New Assignment
-                </Button>
-              </>
-            )}
           </Stack>
         </Stack>
 
-        {/* View Switcher Pill styled like Leave Allocation Report */}
+        {/* Summary Stat Cards */}
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 3,
+            gridTemplateColumns: {
+              xs: 'repeat(1, 1fr)',
+              sm: 'repeat(2, 1fr)',
+              md: 'repeat(4, 1fr)',
+            },
+          }}
+        >
+          <SummaryCard item={{ label: 'Total Assignments', value: total, indicator: 'blue' }} />
+          <SummaryCard item={{ label: 'Active Shifts', value: activeCount, indicator: 'green' }} />
+          <SummaryCard item={{ label: 'Employees Assigned', value: uniqueEmployees, indicator: 'orange' }} />
+          <SummaryCard item={{ label: 'Bulk & Rotations', value: bulkRotationCount, indicator: 'blue' }} />
+        </Box>
+
+        {/* View Switcher Pill styled like Employee Shift Assignment */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Box
             sx={{
@@ -169,7 +226,6 @@ export function ShiftRosterView() {
             }}
           >
             {[
-              { value: 'list', label: 'List View', icon: 'solar:list-bold' },
               { value: 'monthly', label: 'Monthly Roster View', icon: 'material-symbols:grid-on' },
               ...(isSingleEmployee
                 ? [{ value: 'calendar', label: 'Calendar View', icon: 'solar:calendar-bold' }]
@@ -207,19 +263,7 @@ export function ShiftRosterView() {
         {/* View Component Rendering */}
         {currentView === 'monthly' && (
           <ShiftRosterMonthlyView
-            canEdit={canEdit}
-            selectedEmployees={selectedEmployees}
-            onSelectEmployees={setSelectedEmployees}
-            filterVariant="drawer"
-          />
-        )}
-
-        {currentView === 'list' && (
-          <ShiftRosterListView
-            onCreateNew={() => setOpenCreateDialog(true)}
-            canCreate={canCreate}
-            canEdit={canEdit}
-            canDelete={canDelete}
+            canEdit={false}
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
           />
@@ -227,31 +271,13 @@ export function ShiftRosterView() {
 
         {currentView === 'calendar' && (
           <ShiftRosterCalendarView
-            canCreate={canCreate}
-            canEdit={canEdit}
+            canCreate={false}
+            canEdit={false}
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
           />
         )}
       </Stack>
-
-      {/* Create Dialog */}
-      {openCreateDialog && (
-        <ShiftRosterDialog
-          open={openCreateDialog}
-          onClose={() => setOpenCreateDialog(false)}
-          onSuccess={handleCreateSuccess}
-        />
-      )}
-
-      {/* Bulk Assignment Dialog */}
-      {openBulkDialog && (
-        <ShiftRosterBulkDialog
-          open={openBulkDialog}
-          onClose={() => setOpenBulkDialog(false)}
-          onSuccess={handleBulkSuccess}
-        />
-      )}
 
       {/* Global Snackbar */}
       <Snackbar

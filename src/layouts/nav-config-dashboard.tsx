@@ -81,7 +81,7 @@ export const hrNavData = [
     children: [
       { title: 'Shift', path: '/shift' },
       { title: 'Employee Shift Assignment', path: '/shift-roster' },
-      // { title: 'Monthly Roster', path: '/shift-roster?view=monthly' },
+      { title: 'Monthly Roster', path: '/monthly-roster' },
       { title: 'Shift Rotation', path: '/shift-rotation' },
     ],
   },

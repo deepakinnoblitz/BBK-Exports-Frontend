@@ -29,18 +29,22 @@ type Props = {
   onOpen: VoidFunction;
   onClose: VoidFunction;
   filters: {
+    department?: string;
     employees?: any[];
     employee?: any | null;
     shift: string;
-    status: string;
-    fromDate: dayjs.Dayjs | null;
-    toDate: dayjs.Dayjs | null;
+    status?: string;
+    fromDate?: dayjs.Dayjs | null;
+    toDate?: dayjs.Dayjs | null;
   };
   onFilters: (update: any) => void;
   canReset: boolean;
   onResetFilters: VoidFunction;
   employeeOptions: any[];
   shiftOptions: any[];
+  departmentOptions?: any[];
+  hideDateFilters?: boolean;
+  hideStatusFilter?: boolean;
 };
 
 const STATUS_OPTIONS = [
@@ -59,6 +63,9 @@ export function ShiftRosterTableFiltersDrawer({
   onResetFilters,
   employeeOptions,
   shiftOptions,
+  departmentOptions,
+  hideDateFilters = false,
+  hideStatusFilter = false,
 }: Props) {
   const currentEmployees = useMemo(() => {
     if (filters.employees) return filters.employees;
@@ -146,6 +153,32 @@ export function ShiftRosterTableFiltersDrawer({
 
         <Scrollbar>
           <Stack spacing={3} sx={{ p: 3 }}>
+            {/* Department Filter (if available) */}
+            {departmentOptions && departmentOptions.length > 0 && (
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                  Department
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={filters.department || 'all'}
+                    onChange={(e) => onFilters({ department: e.target.value })}
+                    sx={{
+                      borderRadius: 1.5,
+                      bgcolor: 'background.neutral',
+                    }}
+                  >
+                    <MenuItem value="all">All Departments</MenuItem>
+                    {departmentOptions.map((d) => (
+                      <MenuItem key={d.name} value={d.name}>
+                        {d.department_name || d.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+            )}
+
             {/* Employee Filter */}
             <Stack spacing={1.5}>
               <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
@@ -216,72 +249,78 @@ export function ShiftRosterTableFiltersDrawer({
             </Stack>
 
             {/* Status Filter */}
-            <Stack spacing={1.5}>
-              <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
-                Status
-              </Typography>
-              <FormControl fullWidth size="small">
-                <Select
-                  value={filters.status}
-                  onChange={handleFilterStatus}
-                  sx={{
-                    borderRadius: 1.5,
-                    bgcolor: 'background.neutral',
-                  }}
-                >
-                  {STATUS_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Stack>
+            {!hideStatusFilter && (
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                  Status
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={filters.status || 'all'}
+                    onChange={handleFilterStatus}
+                    sx={{
+                      borderRadius: 1.5,
+                      bgcolor: 'background.neutral',
+                    }}
+                  >
+                    {STATUS_OPTIONS.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+            )}
 
             {/* Date Range Filters */}
-            <Stack spacing={1.5}>
-              <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
-                Effective From
-              </Typography>
-              <DatePicker
-                value={filters.fromDate}
-                onChange={(v) => onFilters({ fromDate: v })}
-                slotProps={{
-                  textField: {
-                    size: 'small',
-                    fullWidth: true,
-                    sx: {
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 1.5,
-                        bgcolor: 'background.neutral',
+            {!hideDateFilters && (
+              <>
+                <Stack spacing={1.5}>
+                  <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                    Effective From
+                  </Typography>
+                  <DatePicker
+                    value={filters.fromDate || null}
+                    onChange={(v) => onFilters({ fromDate: v })}
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        fullWidth: true,
+                        sx: {
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 1.5,
+                            bgcolor: 'background.neutral',
+                          },
+                        },
                       },
-                    },
-                  },
-                }}
-              />
-            </Stack>
+                    }}
+                  />
+                </Stack>
 
-            <Stack spacing={1.5}>
-              <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
-                Effective To
-              </Typography>
-              <DatePicker
-                value={filters.toDate}
-                onChange={(v) => onFilters({ toDate: v })}
-                slotProps={{
-                  textField: {
-                    size: 'small',
-                    fullWidth: true,
-                    sx: {
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 1.5,
-                        bgcolor: 'background.neutral',
+                <Stack spacing={1.5}>
+                  <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                    Effective To
+                  </Typography>
+                  <DatePicker
+                    value={filters.toDate || null}
+                    onChange={(v) => onFilters({ toDate: v })}
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        fullWidth: true,
+                        sx: {
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 1.5,
+                            bgcolor: 'background.neutral',
+                          },
+                        },
                       },
-                    },
-                  },
-                }}
-              />
-            </Stack>
+                    }}
+                  />
+                </Stack>
+              </>
+            )}
           </Stack>
         </Scrollbar>
       </Drawer>

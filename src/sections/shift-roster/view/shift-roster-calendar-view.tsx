@@ -3,8 +3,8 @@ import listPlugin from '@fullcalendar/list';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
-import { useRef, useState, useEffect } from 'react';
 import interactionPlugin from '@fullcalendar/interaction';
+import { useRef, useMemo, useState, useEffect } from 'react';
 
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
@@ -66,7 +66,14 @@ export function ShiftRosterCalendarView({
     onSelectEmployee?.(val.length === 1 ? val[0] : val.length > 0 ? val : null);
   };
 
-  const currentSelectedEmployee = selectedEmployees.length > 0 ? selectedEmployees[0] : null;
+  const currentSelectedEmployee = useMemo(() => {
+    if (selectedEmployees.length === 0) return null;
+    const first = selectedEmployees[0];
+    if (typeof first === 'string') {
+      return employees.find((e) => e.name === first) || { name: first, employee_name: first };
+    }
+    return first;
+  }, [selectedEmployees, employees]);
   const [selectedDept, setSelectedDept] = useState('all');
 
   // Calendar dates
@@ -149,16 +156,18 @@ export function ShiftRosterCalendarView({
   const handleDateClick = (arg: any) => {
     if (canCreate) {
       setDialogDate(arg.dateStr);
-      setDialogEmployee(selectedEmployee?.name || undefined);
+      setDialogEmployee(currentSelectedEmployee?.name || undefined);
       setOpenDialog(true);
     }
   };
 
   const handleEventClick = (info: any) => {
-    const event = info.event;
-    setDialogDate(dayjs(event.start).format('YYYY-MM-DD'));
-    setDialogEmployee(event.extendedProps?.employee);
-    setOpenDialog(true);
+    if (canEdit) {
+      const event = info.event;
+      setDialogDate(dayjs(event.start).format('YYYY-MM-DD'));
+      setDialogEmployee(event.extendedProps?.employee);
+      setOpenDialog(true);
+    }
   };
 
   return (

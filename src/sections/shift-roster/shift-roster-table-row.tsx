@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
+import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
@@ -20,6 +21,8 @@ import { useAuth } from 'src/auth/auth-context';
 type Props = {
   row: ShiftRoster;
   index: number;
+  selected?: boolean;
+  onSelectRow?: VoidFunction;
   onEditRow: VoidFunction;
   onDeleteRow: VoidFunction;
   onViewHistory: VoidFunction;
@@ -30,6 +33,8 @@ type Props = {
 export function ShiftRosterTableRow({
   row,
   index,
+  selected = false,
+  onSelectRow,
   onEditRow,
   onDeleteRow,
   onViewHistory,
@@ -80,11 +85,19 @@ export function ShiftRosterTableRow({
     <TableRow
       hover
       tabIndex={-1}
+      selected={selected}
       sx={{
         '& td, & th': { borderBottom: (t) => `1px solid ${t.palette.divider}`, px: 1.5, py: 1.25 },
         '&:last-child td, &:last-child th': { borderBottom: 0 },
       }}
     >
+      <TableCell padding="checkbox" sx={{ width: 48, px: 1 }}>
+        <Checkbox
+          checked={selected}
+          onClick={onSelectRow}
+          sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#08a3cd' } }}
+        />
+      </TableCell>
       {typeof index === 'number' && (
         <TableCell align="center" sx={{ width: 50, px: 1 }}>
           <Box

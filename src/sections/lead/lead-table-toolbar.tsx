@@ -188,7 +188,7 @@ export function LeadTableToolbar({
                       letterSpacing: 0.5,
                     }}
                   >
-                    ⌘ K
+                    Ctrl K
                   </Box>
                 )}
               </InputAdornment>
