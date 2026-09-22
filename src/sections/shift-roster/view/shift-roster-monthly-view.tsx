@@ -61,7 +61,7 @@ export function ShiftRosterMonthlyView({
   onSelectEmployees,
   selectedEmployee,
   onSelectEmployee,
-  filterVariant = 'inline',
+  filterVariant = 'drawer',
   refreshTrigger,
 }: {
   canEdit?: boolean;

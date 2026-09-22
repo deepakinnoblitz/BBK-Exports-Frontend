@@ -68,8 +68,8 @@ export function SalaryStructureComponentDialog({ open, onClose, onSuccess, id }:
                         const data = await getSalaryStructureComponent(id);
                         setComponentName(data.component_name || data.name || '');
                         setType(data.type || 'Earning');
-                        setPercentage(data.percentage != null ? String(data.percentage) : '');
-                        setStaticAmount(data.static_amount != null ? String(data.static_amount) : '');
+                        setPercentage(data.percentage != null && Number(data.percentage) > 0 ? String(data.percentage) : '');
+                        setStaticAmount(data.static_amount != null && Number(data.static_amount) > 0 ? String(data.static_amount) : '');
                         setIsDefault(!!data.is_default);
                     } catch (err) {
                         console.error('Failed to fetch component:', err);
@@ -121,8 +121,8 @@ export function SalaryStructureComponentDialog({ open, onClose, onSuccess, id }:
             const data: Partial<SalaryStructureComponent> = {
                 component_name: componentName,
                 type: type as any,
-                percentage: percentage !== '' ? parseFloat(percentage) : undefined,
-                static_amount: staticAmount !== '' ? parseFloat(staticAmount) : undefined,
+                percentage: percentage !== '' && !Number.isNaN(parseFloat(percentage)) ? parseFloat(percentage) : 0,
+                static_amount: staticAmount !== '' && !Number.isNaN(parseFloat(staticAmount)) ? parseFloat(staticAmount) : 0,
                 is_default: isDefault ? 1 : 0,
             };
 
