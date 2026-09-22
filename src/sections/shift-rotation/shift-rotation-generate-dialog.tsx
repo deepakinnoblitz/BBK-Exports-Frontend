@@ -5,20 +5,17 @@ import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Select from '@mui/material/Select';
 import { alpha } from '@mui/material/styles';
-import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import InputLabel from '@mui/material/InputLabel';
-import FormControl from '@mui/material/FormControl';
 import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -229,7 +226,7 @@ export function ShiftRotationGenerateDialog({
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 3 }}>
+        <DialogContent sx={{ m: 1.5 }}>
           <Stack spacing={3} sx={{ mt: 1 }}>
             {/* Step 1: Rotation Pattern Selection */}
             <Box>
@@ -238,72 +235,191 @@ export function ShiftRotationGenerateDialog({
                 sx={{
                   fontWeight: 800,
                   textTransform: 'uppercase',
-                  fontSize: '11px',
+                  fontSize: '12px',
+                  ml: 1,
                   color: 'text.secondary',
-                  mb: 1,
-                  ml: 1.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
+                  mb: 2.5,
                 }}
               >
                 1. Select Rotation Pattern
               </Typography>
 
-              <FormControl fullWidth size="small">
-                <InputLabel id="rotation-select-label">Shift Rotation Pattern</InputLabel>
-                <Select
-                  labelId="rotation-select-label"
-                  value={selectedName}
-                  label="Shift Rotation Pattern"
-                  onChange={(e) => setSelectedName(e.target.value)}
-                >
-                  {availableRotations.map((rot) => (
-                    <MenuItem key={rot.name} value={rot.name}>
-                      {rot.rotation_name || rot.name} — ({rot.frequency || 'Weekly'})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                fullWidth
+                size="medium"
+                options={availableRotations}
+                getOptionLabel={(rot) =>
+                  rot.rotation_name ? `${rot.rotation_name} — (${rot.frequency || 'Weekly'})` : rot.name
+                }
+                isOptionEqualToValue={(rot, val) => rot.name === val?.name}
+                value={availableRotations.find((r) => r.name === selectedName) || null}
+                onChange={(_, newVal) => setSelectedName(newVal ? newVal.name : '')}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Shift Rotation Pattern"
+                    placeholder="Search rotation pattern..."
+                    InputLabelProps={{ shrink: true }}
+                  />
+                )}
+              />
 
               {/* Sequence Steps Preview */}
               {rotationDetail && (
                 <Box
                   sx={{
-                    mt: 1.5,
-                    p: 2,
-                    borderRadius: 1.5,
-                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
-                    border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
+                    mt: 2,
+                    p: 2.25,
+                    borderRadius: 2,
+                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.05),
+                    border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.22)}`,
+                    borderLeft: `4px solid ${COMMON_COLORS.emerald.main}`,
+                    boxShadow: `0 2px 10px ${alpha(COMMON_COLORS.emerald.main, 0.06)}`,
                   }}
                 >
-                  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      Sequence Cycle ({rotationDetail.frequency || 'Weekly'} rotation)
-                    </Typography>
-                    <Label color={rotationDetail.status === 'Active' ? 'success' : 'default'}>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.75 }}>
+                    <Stack direction="row" alignItems="center" spacing={1.25}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          bgcolor: alpha(COMMON_COLORS.emerald.light, 1),
+                          color: COMMON_COLORS.emerald.darker,
+                        }}
+                      >
+                        <Iconify icon={"solar:repeat-bold" as any} width={18} />
+                      </Box>
+                      <div>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.9rem', color: 'text.primary' }}>
+                          Sequence Cycle ({rotationDetail.frequency || 'Daily'} rotation)
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', fontSize: '0.75rem' }}>
+                          {rotationDetail.sequences?.length || 0} sequential shift{(rotationDetail.sequences?.length || 0) === 1 ? '' : 's'} in continuous rotation
+                        </Typography>
+                      </div>
+                    </Stack>
+
+                    <Label
+                      variant="soft"
+                      color={rotationDetail.status === 'Active' ? 'success' : 'default'}
+                      sx={{ fontWeight: 800, textTransform: 'uppercase', px: 1.25 }}
+                    >
                       {(rotationDetail.status || 'Active').toUpperCase()}
                     </Label>
                   </Stack>
 
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.25}>
                     {rotationDetail.sequences && rotationDetail.sequences.length > 0 ? (
                       rotationDetail.sequences.map((seq, idx) => (
-                        <Chip
-                          key={idx}
-                          size="small"
-                          label={`Step ${seq.step_number || idx + 1}: ${seq.shift_name || seq.shift}`}
-                          sx={{
-                            fontWeight: 700,
-                            bgcolor: 'background.paper',
-                            border: (theme) => `1px solid ${theme.palette.divider}`,
-                          }}
-                        />
+                        <Stack key={idx} direction="row" alignItems="center" spacing={1.25}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1.25,
+                              px: 1.75,
+                              py: 0.9,
+                              borderRadius: 1.25,
+                              bgcolor: 'background.paper',
+                              border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+                              boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                borderColor: COMMON_COLORS.emerald.main,
+                                boxShadow: `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.12)}`,
+                              },
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                minWidth: 24,
+                                height: 24,
+                                borderRadius: '50%',
+                                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                                color: COMMON_COLORS.emerald.darker,
+                                border: `1.5px solid ${alpha(COMMON_COLORS.emerald.main, 0.4)}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                              }}
+                            >
+                              {seq.step_number || idx + 1}
+                            </Box>
+                            <div>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  display: 'block',
+                                  fontSize: '0.675rem',
+                                  fontWeight: 700,
+                                  textTransform: 'uppercase',
+                                  color: 'text.disabled',
+                                  letterSpacing: 0.5,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                Step {seq.step_number || idx + 1}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 800,
+                                  color: 'text.primary',
+                                  fontSize: '0.84rem',
+                                  lineHeight: 1.3,
+                                }}
+                              >
+                                {seq.shift_name || seq.shift}
+                              </Typography>
+                            </div>
+                          </Box>
+
+                          {idx < (rotationDetail.sequences?.length || 0) - 1 && (
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: COMMON_COLORS.emerald.main,
+                                opacity: 0.8,
+                              }}
+                            >
+                              <Iconify icon={"solar:arrow-right-linear" as any} width={18} />
+                            </Box>
+                          )}
+                        </Stack>
                       ))
                     ) : (
                       <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
                         No sequence steps configured in this rotation.
                       </Typography>
+                    )}
+
+                    {rotationDetail.sequences && rotationDetail.sequences.length > 1 && (
+                      <Box
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.6,
+                          px: 1.25,
+                          py: 0.7,
+                          borderRadius: 1,
+                          bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                          border: `1px dashed ${alpha(COMMON_COLORS.emerald.main, 0.4)}`,
+                          color: COMMON_COLORS.emerald.darker,
+                          fontSize: '0.725rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Iconify icon={"solar:restart-bold" as any} width={14} />
+                        Repeats Cycle
+                      </Box>
                     )}
                   </Stack>
                 </Box>
@@ -317,13 +433,10 @@ export function ShiftRotationGenerateDialog({
                 sx={{
                   fontWeight: 800,
                   textTransform: 'uppercase',
-                  fontSize: '11px',
+                  fontSize: '12px',
+                  ml: 1,
                   color: 'text.secondary',
-                  mb: 1,
-                  ml: 1.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
+                  mb: 2.5,
                 }}
               >
                 2. Generation Period (Date Range)
@@ -335,14 +448,14 @@ export function ShiftRotationGenerateDialog({
                   value={startDate}
                   onChange={(val) => setStartDate(val)}
                   format="DD-MMM-YYYY"
-                  slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                  slotProps={{ textField: { fullWidth: true, size: 'medium' } }}
                 />
                 <DatePicker
                   label="To Date *"
                   value={endDate}
                   onChange={(val) => setEndDate(val)}
                   format="DD-MMM-YYYY"
-                  slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                  slotProps={{ textField: { fullWidth: true, size: 'medium' } }}
                 />
               </Stack>
             </Box>
@@ -356,11 +469,9 @@ export function ShiftRotationGenerateDialog({
                     fontWeight: 800,
                     textTransform: 'uppercase',
                     fontSize: '12px',
-                    ml: 1.5,
+                    ml: 1,
                     color: 'text.secondary',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
+                    mb: 1
                   }}
                 >
                   3. Target Assignees ({selectedEmployeeIds.length} selected)
@@ -419,12 +530,18 @@ export function ShiftRotationGenerateDialog({
                   </Box>
 
                   <div>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 800,
+                        color: selectedEmployeeIds.length > 0 ? COMMON_COLORS.emerald.darker : 'text.primary',
+                      }}
+                    >
                       {selectedEmployeeIds.length === 0
                         ? 'No Employees Selected'
-                        : `${selectedEmployeeIds.length} Employees Selected`}
+                        : `${selectedEmployeeIds.length} employees selected for this rotation`}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                       {selectedEmployeeIds.length === 0
                         ? 'Filter by Department, Shift, and Line Order.'
                         : 'Ready to receive the recurring shift rotation schedule.'}
@@ -433,9 +550,10 @@ export function ShiftRotationGenerateDialog({
                 </Stack>
 
                 <Button
+                  size="small"
                   variant={selectedEmployeeIds.length > 0 ? 'outlined' : 'contained'}
                   onClick={() => setOpenSelectorDialog(true)}
-                  startIcon={<Iconify icon={"solar:filter-bold"  as any} />}
+                  startIcon={<Iconify icon={"solar:filter-bold" as any} width={16} />}
                   sx={{
                     ...(selectedEmployeeIds.length === 0
                       ? {
@@ -451,8 +569,9 @@ export function ShiftRotationGenerateDialog({
                             bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
                           },
                         }),
-                    px: 2,
-                    py: 1,
+                    px: 1.75,
+                    py: 0.6,
+                    fontSize: '0.8125rem',
                     fontWeight: 700,
                   }}
                 >
@@ -470,13 +589,10 @@ export function ShiftRotationGenerateDialog({
                 sx={{
                   fontWeight: 800,
                   textTransform: 'uppercase',
-                  fontSize: '12px',
+                  fontSize: '11px',
                   color: 'text.secondary',
+                  letterSpacing: 0.5,
                   mb: 1,
-                  ml: 1.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
                 }}
               >
                 4. Exclusions & Conflict Options

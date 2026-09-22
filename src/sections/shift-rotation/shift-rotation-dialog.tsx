@@ -6,14 +6,16 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -31,6 +33,13 @@ import {
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
+
+const formatTime = (time?: string) => {
+  if (!time) return '';
+  const normalized = time.includes(':') && time.split(':')[0].length === 1 ? `0${time}` : time;
+  const parsed = dayjs(`2000-01-01T${normalized}`);
+  return parsed.isValid() ? parsed.format('hh:mm A') : time;
+};
 
 type Props = {
   open: boolean;
@@ -335,21 +344,22 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                   }}
                 />
 
-                <TextField
-                  select
+                <Autocomplete
                   fullWidth
-                  label="Department"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  <MenuItem value="">All / None</MenuItem>
-                  {departments.map((d) => (
-                    <MenuItem key={d.name} value={d.name}>
-                      {d.department_name || d.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  options={departments}
+                  getOptionLabel={(d) => d.department_name || d.name || ''}
+                  isOptionEqualToValue={(opt, val) => opt.name === val?.name}
+                  value={departments.find((d) => d.name === department) || null}
+                  onChange={(_, val) => setDepartment(val ? val.name : '')}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Department"
+                      placeholder="All / None (Optional)"
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  )}
+                />
 
                 <TextField
                   select
@@ -368,28 +378,51 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
               <Box
                 sx={{
                   p: 2.5,
-                  borderRadius: 1.5,
-                  border: (theme) => `1px solid ${theme.palette.divider}`,
-                  bgcolor: 'background.neutral',
+                  borderRadius: 2,
+                  bgcolor: alpha(COMMON_COLORS.emerald.main, 0.05),
+                  border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.22)}`,
+                  boxShadow: `0 2px 10px ${alpha(COMMON_COLORS.emerald.main, 0.06)}`,
                 }}
               >
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Shift Sequence Pattern
-                  </Typography>
+                  <Stack direction="row" alignItems="center" spacing={1.25}>
+                    <Box
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                        color: COMMON_COLORS.emerald.darker,
+                      }}
+                    >
+                      <Iconify icon={"solar:repeat-bold" as any} width={18} />
+                    </Box>
+                    <div>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.925rem', color: 'text.primary' }}>
+                        Shift Sequence Pattern
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', fontSize: '0.75rem' }}>
+                        {sequences.length} sequential step{sequences.length === 1 ? '' : 's'} in continuous rotation cycle
+                      </Typography>
+                    </div>
+                  </Stack>
 
                   <Button
                     size="small"
-                    variant="outlined"
+                    variant="contained"
                     startIcon={<Iconify icon="solar:add-circle-bold" />}
                     onClick={handleAddSequence}
                     sx={{
                       borderRadius: 1,
-                      color: '#08a3cd',
-                      borderColor: '#08a3cd',
+                      bgcolor: COMMON_COLORS.emerald.main,
+                      color: '#fff',
+                      fontWeight: 700,
+                      px: 1.75,
                       '&:hover': {
-                        borderColor: '#068fb3',
-                        bgcolor: 'rgba(8, 163, 205, 0.08)',
+                        bgcolor: COMMON_COLORS.emerald.dark,
                       },
                     }}
                   >
@@ -397,51 +430,150 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                   </Button>
                 </Stack>
 
-                <Stack spacing={2}>
+                <Stack spacing={0}>
                   {sequences.map((seq, idx) => (
-                    <Stack key={idx} direction="row" spacing={2} alignItems="center">
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary', width: 65, flexShrink: 0 }}>
-                        Step {idx + 1}:
-                      </Typography>
-
-                      <TextField
-                        select
-                        fullWidth
-                        size="small"
-                        required
-                        label="Select Shift"
-                        value={seq.shift}
-                        onChange={(e) => handleSequenceShiftChange(idx, e.target.value)}
-                        InputLabelProps={{ shrink: true }}
+                    <Box key={idx}>
+                      <Box
                         sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.5,
+                          p: 2,
+                          borderRadius: 1.5,
                           bgcolor: 'background.paper',
-                          borderRadius: 1,
-                          '& .MuiFormLabel-asterisk': { color: 'red' },
+                          border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            borderColor: COMMON_COLORS.emerald.main,
+                            boxShadow: `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.12)}`,
+                          },
                         }}
                       >
-                        {shifts.map((s) => (
-                          <MenuItem key={s.name} value={s.name}>
-                            {s.shift_name || s.name}{' '}
-                            {s.start_time && s.end_time ? `(${String(s.start_time).slice(0, 5)} - ${String(s.end_time).slice(0, 5)})` : ''}
-                          </MenuItem>
-                        ))}
-                      </TextField>
+                        <Box
+                          sx={{
+                            minWidth: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                            color: COMMON_COLORS.emerald.darker,
+                            border: `1.5px solid ${alpha(COMMON_COLORS.emerald.main, 0.4)}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.8rem',
+                            fontWeight: 800,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {idx + 1}
+                        </Box>
 
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleRemoveSequence(idx)}
-                        disabled={sequences.length <= 1}
-                        sx={{
-                          color: sequences.length <= 1 ? 'text.disabled' : '#ff5630',
-                          '&:hover': { bgcolor: 'rgba(255, 86, 48, 0.08)' },
-                        }}
-                      >
-                        <Iconify icon={"solar:trash-bin-minimalistic-bold" as any} width={20} />
-                      </IconButton>
-                    </Stack>
+                        <Box sx={{ width: 60, flexShrink: 0 }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: 'block',
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              color: 'text.secondary',
+                              letterSpacing: 0.5,
+                            }}
+                          >
+                            Step {idx + 1}
+                          </Typography>
+                        </Box>
+
+                        <Autocomplete
+                          fullWidth
+                          size="small"
+                          options={shifts}
+                          getOptionLabel={(s) => {
+                            const time =
+                              s.start_time && s.end_time
+                                ? ` (${formatTime(s.start_time)} - ${formatTime(s.end_time)})`
+                                : '';
+                            return `${s.shift_name || s.name}${time}`;
+                          }}
+                          isOptionEqualToValue={(opt, val) => opt.name === val?.name}
+                          value={shifts.find((s) => s.name === seq.shift) || null}
+                          onChange={(_, val) => handleSequenceShiftChange(idx, val ? val.name : '')}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              required
+                              label="Select Shift"
+                              placeholder="Search shift..."
+                              InputLabelProps={{ shrink: true }}
+                              sx={{
+                                bgcolor: 'background.paper',
+                                '& .MuiFormLabel-asterisk': { color: 'red' },
+                              }}
+                            />
+                          )}
+                        />
+
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleRemoveSequence(idx)}
+                          disabled={sequences.length <= 1}
+                          sx={{
+                            color: sequences.length <= 1 ? 'text.disabled' : '#ff5630',
+                            '&:hover': { bgcolor: 'rgba(255, 86, 48, 0.08)' },
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Iconify icon={"solar:trash-bin-minimalistic-bold" as any} width={20} />
+                        </IconButton>
+                      </Box>
+
+                      {idx < sequences.length - 1 && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            py: 1,
+                            color: COMMON_COLORS.emerald.main,
+                          }}
+                        >
+                          <Iconify icon={"solar:arrow-down-linear" as any} width={20} />
+                        </Box>
+                      )}
+                    </Box>
                   ))}
                 </Stack>
+
+                {sequences.length > 1 && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      mt: 1.5,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.6,
+                        px: 1.25,
+                        py: 0.6,
+                        borderRadius: 1,
+                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                        border: `1px dashed ${alpha(COMMON_COLORS.emerald.main, 0.4)}`,
+                        color: COMMON_COLORS.emerald.darker,
+                        fontSize: '0.725rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Iconify icon={"solar:restart-bold" as any} width={14} />
+                      Cycle Repeats back to Step 1
+                    </Box>
+                  </Box>
+                )}
               </Box>
 
               {/* Exclusion Options */}

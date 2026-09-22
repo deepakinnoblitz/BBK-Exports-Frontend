@@ -180,28 +180,6 @@ export function EmployeeSelectorDialog({
     }
   };
 
-  // Bulk action: Deselect ALL filtered (across all pages)
-  const handleDeselectFiltered = async () => {
-    setBulkLoading(true);
-    try {
-      const allIds = await fetchSelectorEmployeeIds({
-        department: selectedDept?.name || 'all',
-        shift: selectedShift?.name || 'all',
-        line_order: selectedLine?.name || 'all',
-        search,
-        status: 'Active',
-      });
-      setSelected((prev) => {
-        const next = new Set(prev);
-        allIds.forEach((id) => next.delete(id));
-        return next;
-      });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setBulkLoading(false);
-    }
-  };
 
   // Clear all selections
   const handleClearAll = () => {
@@ -255,27 +233,10 @@ export function EmployeeSelectorDialog({
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               Select Target Assignees
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Filter by Department, Shift, and Line to batch assign workforce rotations.
-            </Typography>
           </div>
         </Stack>
 
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <Label
-            variant="filled"
-            sx={{
-              bgcolor: alpha(COMMON_COLORS.emerald.main, 0.15),
-              color: COMMON_COLORS.emerald.darker,
-              fontWeight: 700,
-              px: 1.5,
-              py: 2,
-              fontSize: '0.85rem',
-            }}
-          >
-            {selected.size} Selected
-          </Label>
-
           <IconButton onClick={onClose} size="small">
             <Iconify icon="mingcute:close-line" />
           </IconButton>
@@ -283,12 +244,13 @@ export function EmployeeSelectorDialog({
       </DialogTitle>
 
       {/* Main Content Area */}
-      <DialogContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <DialogContent sx={{ m: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {/* Filters Top Bar */}
         <Card
           variant="outlined"
           sx={{
             p: 2,
+            my: 2,
             bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04),
             borderColor: 'divider',
           }}
@@ -439,17 +401,6 @@ export function EmployeeSelectorDialog({
               }}
             >
               Select All Filtered ({totalCount})
-            </Button>
-
-            <Button
-              size="small"
-              variant="outlined"
-              color="inherit"
-              onClick={handleDeselectFiltered}
-              disabled={bulkLoading || totalCount === 0}
-              startIcon={<Iconify icon="solar:close-circle-bold" />}
-            >
-              Deselect Filtered
             </Button>
 
             {selected.size > 0 && (
@@ -666,15 +617,64 @@ export function EmployeeSelectorDialog({
           alignItems: 'center',
         }}
       >
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          <strong>{selected.size}</strong> employees selected for this rotation
-        </Typography>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1.25,
+              px: 2,
+              py: 0.85,
+              borderRadius: 1.5,
+              bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+              border: `1.5px solid ${alpha(COMMON_COLORS.emerald.main, 0.3)}`,
+              boxShadow: `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.08)}`,
+            }}
+          >
+            <Box
+              sx={{
+                minWidth: 24,
+                height: 24,
+                borderRadius: '50%',
+                bgcolor: COMMON_COLORS.emerald.main,
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.875rem',
+                fontWeight: 900,
+                boxShadow: `0 2px 6px ${alpha(COMMON_COLORS.emerald.main, 0.35)}`,
+              }}
+            >
+              {selected.size}
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: 900,
+                  color: COMMON_COLORS.emerald.darker,
+                  fontSize: '0.925rem',
+                  letterSpacing: 0.1,
+                }}
+              >
+                {selected.size === 1 ? 'Employee' : 'Employees'} selected
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'text.secondary',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                }}
+              >
+                for this rotation
+              </Typography>
+            </Box>
+          </Box>
+        </Stack>
 
         <Stack direction="row" spacing={1.5}>
-          <Button variant="outlined" color="inherit" onClick={onClose}>
-            Cancel
-          </Button>
-
           <Button
             variant="contained"
             onClick={handleConfirm}
