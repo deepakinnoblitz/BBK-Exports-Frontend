@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import Box from '@mui/material/Box';
 import Menu from '@mui/material/Menu';
 import Badge from '@mui/material/Badge';
+import Stack from '@mui/material/Stack';
 import Select from '@mui/material/Select';
 import Button from '@mui/material/Button';
 import Toolbar from '@mui/material/Toolbar';
@@ -29,6 +30,7 @@ type LeadTableToolbarProps = {
   filterName: string;
   onFilterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDelete?: VoidFunction;
+  onCancel?: VoidFunction;
   sortBy?: string;
   onSortChange?: (value: string) => void;
   // Filter Drawer Props
@@ -59,6 +61,7 @@ export function LeadTableToolbar({
   filterName,
   onFilterName,
   onDelete,
+  onCancel,
   sortBy = 'modified_desc',
   onSortChange,
   onOpenFilter,
@@ -130,9 +133,11 @@ export function LeadTableToolbar({
       }}
     >
       {numSelected > 0 ? (
-        <Typography component="div" variant="subtitle1">
-          {numSelected} selected
-        </Typography>
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <Typography component="div" variant="subtitle1">
+            {numSelected} selected
+          </Typography>
+        </Stack>
       ) : (
         <Box sx={{
           display: 'flex',
@@ -188,7 +193,7 @@ export function LeadTableToolbar({
                       letterSpacing: 0.5,
                     }}
                   >
-                    ⌘ K
+                    Ctrl K
                   </Box>
                 )}
               </InputAdornment>
@@ -248,11 +253,44 @@ export function LeadTableToolbar({
         width: { xs: '100%', md: 'auto' }
       }}>
         {numSelected > 0 ? (
-          <Tooltip title="Delete">
-            <IconButton onClick={onDelete}>
-              <Iconify icon="solar:trash-bin-trash-bold" />
-            </IconButton>
-          </Tooltip>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {onCancel && (
+              <Tooltip title="Cancel Selected Assignments">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="warning"
+                  startIcon={<Iconify icon="solar:close-circle-bold" width={18} />}
+                  onClick={onCancel}
+                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                >
+                  Cancel Selected
+                </Button>
+              </Tooltip>
+            )}
+            {onDelete && (
+              onCancel ? (
+                <Tooltip title="Delete Selected Assignments">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="error"
+                    startIcon={<Iconify icon="solar:trash-bin-trash-bold" width={18} />}
+                    onClick={onDelete}
+                    sx={{ textTransform: 'none', fontWeight: 700 }}
+                  >
+                    Delete Selected
+                  </Button>
+                </Tooltip>
+              ) : (
+                <Tooltip title="Delete">
+                  <IconButton color="primary" onClick={onDelete}>
+                    <Iconify icon="solar:trash-bin-trash-bold" />
+                  </IconButton>
+                </Tooltip>
+              )
+            )}
+          </Stack>
         ) : (
           <>
             {onOpenFilter && (

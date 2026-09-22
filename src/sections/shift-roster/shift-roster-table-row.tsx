@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
+import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
@@ -20,7 +21,10 @@ import { useAuth } from 'src/auth/auth-context';
 type Props = {
   row: ShiftRoster;
   index: number;
+  selected?: boolean;
+  onSelectRow?: VoidFunction;
   onEditRow: VoidFunction;
+  onCancelRow?: VoidFunction;
   onDeleteRow: VoidFunction;
   onViewHistory: VoidFunction;
   canEdit?: boolean;
@@ -30,7 +34,10 @@ type Props = {
 export function ShiftRosterTableRow({
   row,
   index,
+  selected = false,
+  onSelectRow,
   onEditRow,
+  onCancelRow,
   onDeleteRow,
   onViewHistory,
   canEdit = true,
@@ -80,11 +87,19 @@ export function ShiftRosterTableRow({
     <TableRow
       hover
       tabIndex={-1}
+      selected={selected}
       sx={{
         '& td, & th': { borderBottom: (t) => `1px solid ${t.palette.divider}`, px: 1.5, py: 1.25 },
         '&:last-child td, &:last-child th': { borderBottom: 0 },
       }}
     >
+      <TableCell padding="checkbox" sx={{ width: 48, px: 1 }}>
+        <Checkbox
+          checked={selected}
+          onClick={onSelectRow}
+          sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#08a3cd' } }}
+        />
+      </TableCell>
       {typeof index === 'number' && (
         <TableCell align="center" sx={{ width: 50, px: 1 }}>
           <Box
@@ -189,6 +204,14 @@ export function ShiftRosterTableRow({
             </IconButton>
           </Tooltip>
 
+          {status !== 'Cancelled' && displayEdit && onCancelRow && (
+            <Tooltip title="Cancel Assignment">
+              <IconButton size="small" onClick={onCancelRow} sx={{ color: 'warning.main' }}>
+                <Iconify icon="solar:close-circle-bold" />
+              </IconButton>
+            </Tooltip>
+          )}
+
           {displayEdit && (
             <Tooltip title="Edit Assignment">
               <IconButton size="small" onClick={onEditRow} sx={{ color: 'primary.main' }}>
@@ -198,7 +221,7 @@ export function ShiftRosterTableRow({
           )}
 
           {displayDelete && (
-            <Tooltip title="Cancel / Delete">
+            <Tooltip title="Delete Assignment">
               <IconButton size="small" onClick={onDeleteRow} sx={{ color: 'error.main' }}>
                 <Iconify icon="solar:trash-bin-trash-bold" />
               </IconButton>

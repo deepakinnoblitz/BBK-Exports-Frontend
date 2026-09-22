@@ -9,6 +9,7 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
 import TableRow from '@mui/material/TableRow';
+import Checkbox from '@mui/material/Checkbox';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -66,6 +67,7 @@ export function ShiftRosterListView({
   const [search, setSearch] = useState('');
   const [orderBy, setOrderBy] = useState('modified');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+  const [selected, setSelected] = useState<string[]>([]);
 
   // Filters State
   const [filters, setFilters] = useState<{
@@ -107,6 +109,8 @@ export function ShiftRosterListView({
   const [selectedRoster, setSelectedRoster] = useState<ShiftRoster | null>(null);
   const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<{ rosterId?: string; employee?: string }>({});
+  const [confirmBulkCancel, setConfirmBulkCancel] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
   // Snackbar State
   const [snackbar, setSnackbar] = useState<{
@@ -117,6 +121,11 @@ export function ShiftRosterListView({
     open: false,
     message: '',
     severity: 'success',
+  });
+
+  const [confirmCancel, setConfirmCancel] = useState<{ open: boolean; name: string | null }>({
+    open: false,
+    name: null,
   });
 
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; name: string | null }>({
@@ -245,19 +254,103 @@ export function ShiftRosterListView({
     return 'modified_desc';
   };
 
+  const handleSelectAllRows = (checked: boolean) => {
+    if (checked) {
+      setSelected(data.map((row) => row.name));
+    } else {
+      setSelected([]);
+    }
+  };
+
+  const handleSelectRow = (name: string) => {
+    const selectedIndex = selected.indexOf(name);
+    let newSelected: string[] = [];
+    if (selectedIndex === -1) {
+      newSelected = newSelected.concat(selected, name);
+    } else if (selectedIndex === 0) {
+      newSelected = newSelected.concat(selected.slice(1));
+    } else if (selectedIndex === selected.length - 1) {
+      newSelected = newSelected.concat(selected.slice(0, -1));
+    } else if (selectedIndex > 0) {
+      newSelected = newSelected.concat(
+        selected.slice(0, selectedIndex),
+        selected.slice(selectedIndex + 1)
+      );
+    }
+    setSelected(newSelected);
+  };
+
+  const handleBulkCancel = () => {
+    if (selected.length > 0) {
+      setConfirmBulkCancel(true);
+    }
+  };
+
+  const handleConfirmBulkCancel = async () => {
+    try {
+      await Promise.all(
+        selected.map((name) => deleteOrCancelRosterAssignment(name, 'Cancelled by user in bulk', false))
+      );
+      setSnackbar({
+        open: true,
+        message: `${selected.length} shift assignment(s) cancelled successfully`,
+        severity: 'success',
+      });
+      setSelected([]);
+      refetch();
+    } catch (e: any) {
+      setSnackbar({
+        open: true,
+        message: e?.message || 'Failed to cancel shift assignments',
+        severity: 'error',
+      });
+    } finally {
+      setConfirmBulkCancel(false);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selected.length > 0) {
+      setConfirmBulkDelete(true);
+    }
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    try {
+      await Promise.all(
+        selected.map((name) => deleteOrCancelRosterAssignment(name, 'Deleted by user in bulk', true))
+      );
+      setSnackbar({
+        open: true,
+        message: `${selected.length} shift assignment(s) deleted permanently`,
+        severity: 'success',
+      });
+      setSelected([]);
+      refetch();
+    } catch (e: any) {
+      setSnackbar({
+        open: true,
+        message: e?.message || 'Failed to delete shift assignments',
+        severity: 'error',
+      });
+    } finally {
+      setConfirmBulkDelete(false);
+    }
+  };
+
   const handleEdit = (row: ShiftRoster) => {
     setSelectedRoster(row);
     setOpenEditDialog(true);
   };
 
-  const handleDelete = (row: ShiftRoster) => {
-    setConfirmDelete({ open: true, name: row.name });
+  const handleCancel = (row: ShiftRoster) => {
+    setConfirmCancel({ open: true, name: row.name });
   };
 
-  const handleConfirmDelete = async () => {
-    if (confirmDelete.name) {
+  const handleConfirmCancel = async () => {
+    if (confirmCancel.name) {
       try {
-        await deleteOrCancelRosterAssignment(confirmDelete.name, 'Cancelled by user');
+        await deleteOrCancelRosterAssignment(confirmCancel.name, 'Cancelled by user', false);
         setSnackbar({
           open: true,
           message: 'Shift assignment cancelled successfully',
@@ -269,6 +362,34 @@ export function ShiftRosterListView({
         setSnackbar({
           open: true,
           message: e?.message || 'Failed to cancel shift assignment',
+          severity: 'error',
+        });
+      } finally {
+        setConfirmCancel({ open: false, name: null });
+      }
+    }
+  };
+
+  const handleDelete = (row: ShiftRoster) => {
+    setConfirmDelete({ open: true, name: row.name });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmDelete.name) {
+      try {
+        await deleteOrCancelRosterAssignment(confirmDelete.name, 'Deleted by user', true);
+        setSnackbar({
+          open: true,
+          message: 'Shift assignment deleted permanently',
+          severity: 'success',
+        });
+        setSelected((prev) => prev.filter((id) => id !== confirmDelete.name));
+        refetch();
+      } catch (e: any) {
+        console.error(e);
+        setSnackbar({
+          open: true,
+          message: e?.message || 'Failed to delete shift assignment',
           severity: 'error',
         });
       } finally {
@@ -291,12 +412,15 @@ export function ShiftRosterListView({
         }}
       >
         <ShiftRosterTableToolbar
-          numSelected={0}
+          numSelected={selected.length}
           filterName={search}
           onFilterName={(e: React.ChangeEvent<HTMLInputElement>) => {
             setSearch(e.target.value);
             setPage(0);
+            setSelected([]);
           }}
+          onCancel={handleBulkCancel}
+          onDelete={handleBulkDelete}
           searchPlaceholder="Search employee, shift..."
           sortOptions={sortOptions}
           sortBy={getSortByValue()}
@@ -310,6 +434,16 @@ export function ShiftRosterListView({
             <Table size="medium" sx={{ minWidth: 800, borderCollapse: 'collapse' }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: '#f4f6f8' }}>
+                  <TableCell padding="checkbox" sx={{ width: 48, px: 1 }}>
+                    <Checkbox
+                      indeterminate={selected.length > 0 && selected.length < data.length}
+                      checked={data.length > 0 && selected.length === data.length}
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                        handleSelectAllRows(event.target.checked)
+                      }
+                      sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#08a3cd' }, '&.MuiCheckbox-indeterminate': { color: '#08a3cd' } }}
+                    />
+                  </TableCell>
                   <TableCell align="center" sx={{ fontWeight: 700, color: 'text.secondary', width: 50, px: 1 }}>
                     S.No
                   </TableCell>
@@ -346,7 +480,7 @@ export function ShiftRosterListView({
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={11} align="center" sx={{ py: 10 }}>
                       <CircularProgress sx={{ color: '#08a3cd' }} />
                     </TableCell>
                   </TableRow>
@@ -357,9 +491,12 @@ export function ShiftRosterListView({
                         key={row.name}
                         index={page * rowsPerPage + index + 1}
                         row={row}
+                        selected={selected.includes(row.name)}
+                        onSelectRow={() => handleSelectRow(row.name)}
                         canEdit={canEdit}
                         canDelete={canDelete}
                         onEditRow={() => handleEdit(row)}
+                        onCancelRow={() => handleCancel(row)}
                         onDeleteRow={() => handleDelete(row)}
                         onViewHistory={() => handleViewHistory(row)}
                       />
@@ -369,7 +506,7 @@ export function ShiftRosterListView({
 
                     {empty && (
                       <TableRow>
-                        <TableCell colSpan={10}>
+                        <TableCell colSpan={11}>
                           <EmptyContent
                             title="No shift roster assignments found"
                             description="Click 'New Assignment' or 'Bulk Assign' to schedule employee shifts."
@@ -397,11 +534,15 @@ export function ShiftRosterListView({
           component="div"
           count={total}
           page={page}
-          onPageChange={(_, newPage) => setPage(newPage)}
+          onPageChange={(_, newPage) => {
+            setPage(newPage);
+            setSelected([]);
+          }}
           rowsPerPage={rowsPerPage}
           onRowsPerPageChange={(e) => {
             setRowsPerPage(parseInt(e.target.value, 10));
             setPage(0);
+            setSelected([]);
           }}
           rowsPerPageOptions={[10, 25, 50]}
         />
@@ -447,15 +588,54 @@ export function ShiftRosterListView({
         />
       )}
 
-      {/* Confirm Delete Dialog */}
+      {/* Confirm Single Cancel Dialog */}
       <ConfirmDialog
-        open={confirmDelete.open}
-        onClose={() => setConfirmDelete({ open: false, name: null })}
+        open={confirmCancel.open}
+        onClose={() => setConfirmCancel({ open: false, name: null })}
         title="Cancel Shift Assignment"
         content="Are you sure you want to cancel this shift roster assignment?"
         action={
-          <Button variant="contained" color="error" onClick={handleConfirmDelete}>
+          <Button variant="contained" color="warning" onClick={handleConfirmCancel}>
             Cancel Assignment
+          </Button>
+        }
+      />
+
+      {/* Confirm Bulk Cancel Dialog */}
+      <ConfirmDialog
+        open={confirmBulkCancel}
+        onClose={() => setConfirmBulkCancel(false)}
+        title="Cancel Selected Shift Assignments"
+        content={`Are you sure you want to cancel ${selected.length} selected shift assignment(s)?`}
+        action={
+          <Button variant="contained" color="warning" onClick={handleConfirmBulkCancel}>
+            Cancel Assignments
+          </Button>
+        }
+      />
+
+      {/* Confirm Single Delete Dialog */}
+      <ConfirmDialog
+        open={confirmDelete.open}
+        onClose={() => setConfirmDelete({ open: false, name: null })}
+        title="Delete Shift Assignment"
+        content="Are you sure you want to permanently delete this shift assignment? This action cannot be undone."
+        action={
+          <Button variant="contained" color="error" onClick={handleConfirmDelete}>
+            Delete Permanently
+          </Button>
+        }
+      />
+
+      {/* Confirm Bulk Delete Dialog */}
+      <ConfirmDialog
+        open={confirmBulkDelete}
+        onClose={() => setConfirmBulkDelete(false)}
+        title="Delete Selected Shift Assignments"
+        content={`Are you sure you want to permanently delete ${selected.length} selected shift assignment(s)? This action cannot be undone.`}
+        action={
+          <Button variant="contained" color="error" onClick={handleConfirmBulkDelete}>
+            Delete Permanently
           </Button>
         }
       />
