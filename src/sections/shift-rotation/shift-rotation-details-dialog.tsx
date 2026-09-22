@@ -1,38 +1,41 @@
-import type { ShiftRotation} from 'src/api/shift-rotation';
+import type { ShiftRotation } from 'src/api/shift-rotation';
 
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
-import TableRow from '@mui/material/TableRow';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
-import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { COMMON_COLORS } from 'src/theme';
+import { getDoctypeList } from 'src/api/leads';
 import { getShiftRotationDoc } from 'src/api/shift-rotation';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
-import { Scrollbar } from 'src/components/scrollbar';
 
 // ----------------------------------------------------------------------
+
+const formatTime = (time?: string) => {
+  if (!time) return '';
+  const normalized = time.includes(':') && time.split(':')[0].length === 1 ? `0${time}` : time;
+  const parsed = dayjs(`2000-01-01T${normalized}`);
+  return parsed.isValid() ? parsed.format('hh:mm A') : time;
+};
 
 type Props = {
   open: boolean;
   onClose: () => void;
   rotationName: string | null;
   onEdit?: () => void;
+  onGenerate?: (rotationName: string) => void;
   canEdit?: boolean;
 };
 
@@ -40,16 +43,25 @@ export function ShiftRotationDetailsDialog({
   open,
   onClose,
   rotationName,
+  onEdit,
+  onGenerate,
   canEdit = true,
 }: Props) {
   const [rotation, setRotation] = useState<ShiftRotation | null>(null);
+  const [shifts, setShifts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open && rotationName) {
       setLoading(true);
-      getShiftRotationDoc(rotationName)
-        .then((doc) => setRotation(doc))
+      Promise.all([
+        getShiftRotationDoc(rotationName),
+        getDoctypeList('Shift', ['name', 'shift_name', 'start_time', 'end_time']),
+      ])
+        .then(([doc, shiftList]) => {
+          setRotation(doc);
+          setShifts(shiftList || []);
+        })
         .catch((err) => console.error('Failed to load Shift Rotation:', err))
         .finally(() => setLoading(false));
     }
@@ -105,7 +117,7 @@ export function ShiftRotationDetailsDialog({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 3, mt: 1 }}>
+      <DialogContent sx={{ m: 1.5, mt: 3 }}>
         {loading || !rotation ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
             <CircularProgress sx={{ color: '#08a3cd' }} />
@@ -117,8 +129,9 @@ export function ShiftRotationDetailsDialog({
               sx={{
                 p: 2.5,
                 borderRadius: 2,
-                bgcolor: 'background.neutral',
-                border: (theme) => `1px solid ${theme.palette.divider}`,
+                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.05),
+                border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.22)}`,
+                boxShadow: `0 2px 10px ${alpha(COMMON_COLORS.emerald.main, 0.06)}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -126,32 +139,119 @@ export function ShiftRotationDetailsDialog({
                 gap: 2,
               }}
             >
-              <Box>
-                <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>
-                  {rotation.rotation_name}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
-                  Doc ID: <strong>{rotation.name}</strong> • Frequency: <strong>{rotation.frequency}</strong>
-                </Typography>
-              </Box>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Box
+                  sx={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                    color: COMMON_COLORS.emerald.darker,
+                    boxShadow: `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.15)}`,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Iconify icon={"solar:repeat-bold" as any} width={24} />
+                </Box>
 
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Label color={(rotation.status === 'Active' && 'success') || 'error'}>
-                  {(rotation.status || 'Active').toUpperCase()}
-                </Label>
-              </Box>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 900, color: 'text.primary', fontSize: '1.125rem', letterSpacing: -0.2 }}>
+                    {rotation.rotation_name}
+                  </Typography>
+
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 0.75 }}>
+                    <Box
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.6,
+                        px: 1,
+                        py: 0.35,
+                        borderRadius: 0.85,
+                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.1),
+                        color: COMMON_COLORS.emerald.darker,
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                      }}
+                    >
+                      <Iconify icon={"solar:calendar-linear" as any} width={13} />
+                      {rotation.frequency || 'Weekly'} Frequency
+                    </Box>
+
+                    {rotation.sequences && rotation.sequences.length > 0 && (
+                      <Box
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.6,
+                          px: 1,
+                          py: 0.35,
+                          borderRadius: 0.85,
+                          bgcolor: 'background.paper',
+                          border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+                          color: 'text.secondary',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Iconify icon={"solar:sort-from-top-to-bottom-bold" as any} width={13} />
+                        {rotation.sequences.length} Steps
+                      </Box>
+                    )}
+
+                    {rotation.department && (
+                      <Box
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.6,
+                          px: 1,
+                          py: 0.35,
+                          borderRadius: 0.85,
+                          bgcolor: 'background.paper',
+                          border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+                          color: 'text.secondary',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Iconify icon={"solar:buildings-linear" as any} width={13} />
+                        {rotation.department}
+                      </Box>
+                    )}
+                  </Stack>
+                </Box>
+              </Stack>
+
+              <Label
+                variant="soft"
+                color={(rotation.status === 'Active' && 'success') || 'default'}
+                sx={{
+                  px: 1.5,
+                  py: 0.75,
+                  fontWeight: 900,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  fontSize: '0.75rem',
+                }}
+              >
+                {(rotation.status || 'Active').toUpperCase()}
+              </Label>
             </Box>
 
             {/* General Information Grid */}
             <Box>
               <Typography
                 variant="subtitle2"
-                sx={{ fontWeight: 800, textTransform: 'uppercase', color: 'text.secondary', mb: 2, fontSize: '12px' }}
+                sx={{ fontWeight: 800, textTransform: 'uppercase', color: 'text.secondary', mb: 2, mx: 1.5, fontSize: '13px' }}
               >
                 Configuration Overview
               </Typography>
 
-              <Box sx={{ display: 'grid', gap: 2.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
+              <Box sx={{ display: 'grid', gap: 2.5, mx: 1.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
                 <DetailItem
                   label="Department"
                   value={rotation.department || 'All Departments'}
@@ -187,99 +287,179 @@ export function ShiftRotationDetailsDialog({
             <Divider sx={{ borderStyle: 'dashed' }} />
 
             {/* Shift Sequence Section */}
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 800, textTransform: 'uppercase', color: 'text.secondary', mb: 1.5, fontSize: '12px' }}
-              >
-                Shift Sequence ({rotation.sequences?.length || 0} Steps)
-              </Typography>
+            <Box
+              sx={{
+                p: 2.5,
+                borderRadius: 2,
+                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.05),
+                border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.22)}`,
+                boxShadow: `0 2px 10px ${alpha(COMMON_COLORS.emerald.main, 0.06)}`,
+              }}
+            >
+              <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 2 }}>
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                    color: COMMON_COLORS.emerald.darker,
+                  }}
+                >
+                  <Iconify icon={"solar:repeat-bold" as any} width={18} />
+                </Box>
+                <div>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.925rem', color: 'text.primary' }}>
+                    Shift Sequence Pattern
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', fontSize: '0.75rem' }}>
+                    {rotation.sequences?.length || 0} sequential step{(rotation.sequences?.length || 0) === 1 ? '' : 's'} in continuous rotation cycle
+                  </Typography>
+                </div>
+              </Stack>
 
               {rotation.sequences && rotation.sequences.length > 0 ? (
-                <TableContainer component={Scrollbar} sx={{ border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: 1.5 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'background.neutral' }}>
-                        <TableCell sx={{ fontWeight: 700, width: 80 }}>Step</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Shift</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rotation.sequences.map((seq, idx) => (
-                        <TableRow key={idx} hover>
-                          <TableCell sx={{ fontWeight: 700 }}>
+                <>
+                  <Stack spacing={0}>
+                    {rotation.sequences.map((seq, idx) => {
+                      const matchedShift = shifts.find((s) => s.name === seq.shift);
+                      const timeStr =
+                        matchedShift?.start_time && matchedShift?.end_time
+                          ? ` (${formatTime(matchedShift.start_time)} - ${formatTime(matchedShift.end_time)})`
+                          : '';
+
+                      return (
+                        <Box key={idx}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1.5,
+                              p: 2,
+                              borderRadius: 1.5,
+                              bgcolor: 'background.paper',
+                              border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+                              boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                            }}
+                          >
                             <Box
                               sx={{
-                                width: 24,
-                                height: 24,
+                                minWidth: 28,
+                                height: 28,
                                 borderRadius: '50%',
-                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                                color: 'primary.main',
+                                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                                color: COMMON_COLORS.emerald.darker,
+                                border: `1.5px solid ${alpha(COMMON_COLORS.emerald.main, 0.4)}`,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '0.75rem',
+                                fontSize: '0.8rem',
+                                fontWeight: 800,
+                                flexShrink: 0,
                               }}
                             >
                               {seq.step_number || idx + 1}
                             </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {seq.shift_name || seq.shift}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+
+                            <Box sx={{ width: 60, flexShrink: 0 }}>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  display: 'block',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  textTransform: 'uppercase',
+                                  color: 'text.secondary',
+                                  letterSpacing: 0.5,
+                                }}
+                              >
+                                Step {seq.step_number || idx + 1}
+                              </Typography>
+                            </Box>
+
+                            <Box
+                              sx={{
+                                flexGrow: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  color: 'text.secondary',
+                                  lineHeight: 1.3,
+                                }}
+                              >
+                                Assigned Shift
+                              </Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.primary', fontSize: '0.875rem', lineHeight: 1.4 }}>
+                                {seq.shift_name || seq.shift}
+                                {timeStr && (
+                                  <Box component="span" sx={{ fontWeight: 600, color: 'text.secondary', ml: 0.5 }}>
+                                    {timeStr}
+                                  </Box>
+                                )}
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          {idx < (rotation.sequences?.length || 0) - 1 && (
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                py: 1,
+                                color: COMMON_COLORS.emerald.main,
+                              }}
+                            >
+                              <Iconify icon={"solar:arrow-down-linear" as any} width={20} />
+                            </Box>
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+
+                  {(rotation.sequences?.length || 0) > 1 && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        mt: 1.75,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.6,
+                          px: 1.5,
+                          py: 0.7,
+                          borderRadius: 1,
+                          bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                          border: `1px dashed ${alpha(COMMON_COLORS.emerald.main, 0.4)}`,
+                          color: COMMON_COLORS.emerald.darker,
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Iconify icon={"solar:restart-bold" as any} width={14} />
+                        Cycle Repeats back to Step 1
+                      </Box>
+                    </Box>
+                  )}
+                </>
               ) : (
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
                   No shift sequence steps configured.
-                </Typography>
-              )}
-            </Box>
-
-            <Divider sx={{ borderStyle: 'dashed' }} />
-
-            {/* Assignees Section */}
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 800, textTransform: 'uppercase', color: 'text.secondary', mb: 1.5, fontSize: '12px' }}
-              >
-                Assigned Employees ({rotation.assignees?.length || 0})
-              </Typography>
-
-              {rotation.assignees && rotation.assignees.length > 0 ? (
-                <TableContainer component={Scrollbar} sx={{ border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: 1.5, maxHeight: 240 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'background.neutral' }}>
-                        <TableCell sx={{ fontWeight: 700, width: 60 }}>#</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Employee Name</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Employee ID</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Designation</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rotation.assignees.map((assignee, idx) => (
-                        <TableRow key={idx} hover>
-                          <TableCell sx={{ color: 'text.secondary' }}>{idx + 1}</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>{assignee.employee_name || assignee.employee}</TableCell>
-                          <TableCell sx={{ color: 'text.secondary' }}>{assignee.employee}</TableCell>
-                          <TableCell>{assignee.department || '-'}</TableCell>
-                          <TableCell>{assignee.designation || '-'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                  No specific employees assigned yet.
                 </Typography>
               )}
             </Box>

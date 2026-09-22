@@ -6,35 +6,40 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Select from '@mui/material/Select';
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
-import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import FormControl from '@mui/material/FormControl';
 import DialogTitle from '@mui/material/DialogTitle';
 import Autocomplete from '@mui/material/Autocomplete';
-import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import {
+  getShiftRotationDoc,
   createShiftRotation,
   updateShiftRotation,
-  getShiftRotationDoc,
-  generateRotationAssignments,
 } from 'src/api/shift-rotation';
 
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
+
+const formatTime = (time?: string) => {
+  if (!time) return '';
+  const normalized = time.includes(':') && time.split(':')[0].length === 1 ? `0${time}` : time;
+  const parsed = dayjs(`2000-01-01T${normalized}`);
+  return parsed.isValid() ? parsed.format('hh:mm A') : time;
+};
 
 type Props = {
   open: boolean;
@@ -53,7 +58,6 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
   // Masters
   const [shifts, setShifts] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
-  const [allEmployees, setAllEmployees] = useState<any[]>([]);
 
   // Form fields
   const [rotationName, setRotationName] = useState('');
@@ -72,10 +76,6 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
     { step_number: 2, shift: '' },
   ]);
 
-  // Assignees
-  const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
-  const [generateNow, setGenerateNow] = useState(false);
-
   useEffect(() => {
     if (open) {
       loadMasters();
@@ -89,14 +89,12 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
 
   const loadMasters = async () => {
     try {
-      const [shiftRes, deptRes, empRes] = await Promise.all([
+      const [shiftRes, deptRes] = await Promise.all([
         getDoctypeList('Shift', ['name', 'shift_name', 'start_time', 'end_time']),
         getDoctypeList('Department', ['name', 'department_name']),
-        getDoctypeList('Employee', ['name', 'employee_name', 'department', 'designation']),
       ]);
       setShifts(shiftRes || []);
       setDepartments(deptRes || []);
-      setAllEmployees(empRes || []);
     } catch (err) {
       console.error(err);
     }
@@ -121,16 +119,6 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
           ? doc.sequences.map((s, idx) => ({ step_number: s.step_number || idx + 1, shift: s.shift, shift_name: s.shift_name }))
           : [{ step_number: 1, shift: '' }]
       );
-
-      if (doc.assignees && doc.assignees.length > 0) {
-        const matched = doc.assignees.map((a) => {
-          const found = allEmployees.find((e) => e.name === a.employee);
-          return found || { name: a.employee, employee_name: a.employee_name };
-        });
-        setSelectedEmployees(matched);
-      } else {
-        setSelectedEmployees([]);
-      }
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to load rotation details');
     } finally {
@@ -152,8 +140,6 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
       { step_number: 1, shift: '' },
       { step_number: 2, shift: '' },
     ]);
-    setSelectedEmployees([]);
-    setGenerateNow(false);
     setErrorMessage(null);
   };
 
@@ -161,25 +147,40 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
     setSequences((prev) => [...prev, { step_number: prev.length + 1, shift: '' }]);
   };
 
-  const handleRemoveSequence = (idx: number) => {
+  const handleRemoveSequence = (index: number) => {
     if (sequences.length <= 1) return;
-    setSequences((prev) => prev.filter((_, i) => i !== idx).map((s, i) => ({ ...s, step_number: i + 1 })));
+    setSequences((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      return next.map((item, idx) => ({ ...item, step_number: idx + 1 }));
+    });
   };
 
-  const handleSequenceShiftChange = (idx: number, shiftVal: string) => {
-    const shiftObj = shifts.find((s) => s.name === shiftVal);
+  const handleSequenceShiftChange = (index: number, shiftValue: string) => {
+    const selected = shifts.find((s) => s.name === shiftValue);
     setSequences((prev) =>
-      prev.map((s, i) => (i === idx ? { ...s, shift: shiftVal, shift_name: shiftObj?.shift_name || shiftVal } : s))
+      prev.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              shift: shiftValue,
+              shift_name: selected?.shift_name || shiftValue,
+            }
+          : item
+      )
     );
   };
 
   const handleSubmit = async () => {
     if (!rotationName.trim()) {
-      setErrorMessage('Please enter a Rotation Name.');
+      setErrorMessage('Rotation Name is required.');
       return;
     }
-    if (!startDate || !startDate.isValid() || !endDate || !endDate.isValid()) {
-      setErrorMessage('Please select valid Start and End dates.');
+    if (!startDate || !endDate) {
+      setErrorMessage('Start Date and End Date are required.');
+      return;
+    }
+    if (endDate.isBefore(startDate)) {
+      setErrorMessage('End Date cannot be earlier than Start Date.');
       return;
     }
     if (sequences.some((s) => !s.shift)) {
@@ -207,23 +208,12 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
           shift: s.shift,
           shift_name: s.shift_name,
         })),
-        assignees: selectedEmployees.map((e) => ({
-          doctype: 'Shift Rotation Assignee',
-          employee: e.name,
-          employee_name: e.employee_name,
-          department: e.department,
-          designation: e.designation,
-        })),
       };
 
       if (isEdit && editName) {
         await updateShiftRotation(editName, payload);
       } else {
         await createShiftRotation(payload);
-      }
-
-      if (generateNow) {
-        await generateRotationAssignments(rotationName.trim());
       }
 
       onSuccess();
@@ -354,21 +344,22 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                   }}
                 />
 
-                <TextField
-                  select
+                <Autocomplete
                   fullWidth
-                  label="Department"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  <MenuItem value="">All / None</MenuItem>
-                  {departments.map((d) => (
-                    <MenuItem key={d.name} value={d.name}>
-                      {d.department_name || d.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  options={departments}
+                  getOptionLabel={(d) => d.department_name || d.name || ''}
+                  isOptionEqualToValue={(opt, val) => opt.name === val?.name}
+                  value={departments.find((d) => d.name === department) || null}
+                  onChange={(_, val) => setDepartment(val ? val.name : '')}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Department"
+                      placeholder="All / None (Optional)"
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  )}
+                />
 
                 <TextField
                   select
@@ -387,28 +378,51 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
               <Box
                 sx={{
                   p: 2.5,
-                  borderRadius: 1.5,
-                  border: (theme) => `1px solid ${theme.palette.divider}`,
-                  bgcolor: 'background.neutral',
+                  borderRadius: 2,
+                  bgcolor: alpha(COMMON_COLORS.emerald.main, 0.05),
+                  border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.22)}`,
+                  boxShadow: `0 2px 10px ${alpha(COMMON_COLORS.emerald.main, 0.06)}`,
                 }}
               >
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Shift Sequence Pattern
-                  </Typography>
+                  <Stack direction="row" alignItems="center" spacing={1.25}>
+                    <Box
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                        color: COMMON_COLORS.emerald.darker,
+                      }}
+                    >
+                      <Iconify icon={"solar:repeat-bold" as any} width={18} />
+                    </Box>
+                    <div>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.925rem', color: 'text.primary' }}>
+                        Shift Sequence Pattern
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', fontSize: '0.75rem' }}>
+                        {sequences.length} sequential step{sequences.length === 1 ? '' : 's'} in continuous rotation cycle
+                      </Typography>
+                    </div>
+                  </Stack>
 
                   <Button
                     size="small"
-                    variant="outlined"
+                    variant="contained"
                     startIcon={<Iconify icon="solar:add-circle-bold" />}
                     onClick={handleAddSequence}
                     sx={{
                       borderRadius: 1,
-                      color: '#08a3cd',
-                      borderColor: '#08a3cd',
+                      bgcolor: COMMON_COLORS.emerald.main,
+                      color: '#fff',
+                      fontWeight: 700,
+                      px: 1.75,
                       '&:hover': {
-                        borderColor: '#068fb3',
-                        bgcolor: 'rgba(8, 163, 205, 0.08)',
+                        bgcolor: COMMON_COLORS.emerald.dark,
                       },
                     }}
                   >
@@ -416,85 +430,151 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                   </Button>
                 </Stack>
 
-                <Stack spacing={2}>
+                <Stack spacing={0}>
                   {sequences.map((seq, idx) => (
-                    <Stack key={idx} direction="row" spacing={2} alignItems="center">
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary', width: 65, flexShrink: 0 }}>
-                        Step {idx + 1}:
-                      </Typography>
-
-                      <TextField
-                        select
-                        fullWidth
-                        size="small"
-                        required
-                        label="Select Shift"
-                        value={seq.shift}
-                        onChange={(e) => handleSequenceShiftChange(idx, e.target.value)}
-                        InputLabelProps={{ shrink: true }}
+                    <Box key={idx}>
+                      <Box
                         sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.5,
+                          p: 2,
+                          borderRadius: 1.5,
                           bgcolor: 'background.paper',
-                          borderRadius: 1,
-                          '& .MuiFormLabel-asterisk': { color: 'red' },
+                          border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            borderColor: COMMON_COLORS.emerald.main,
+                            boxShadow: `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.12)}`,
+                          },
                         }}
                       >
-                        {shifts.map((s) => (
-                          <MenuItem key={s.name} value={s.name}>
-                            {s.shift_name || s.name}{' '}
-                            {s.start_time && s.end_time ? `(${String(s.start_time).slice(0, 5)} - ${String(s.end_time).slice(0, 5)})` : ''}
-                          </MenuItem>
-                        ))}
-                      </TextField>
+                        <Box
+                          sx={{
+                            minWidth: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                            color: COMMON_COLORS.emerald.darker,
+                            border: `1.5px solid ${alpha(COMMON_COLORS.emerald.main, 0.4)}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.8rem',
+                            fontWeight: 800,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {idx + 1}
+                        </Box>
 
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleRemoveSequence(idx)}
-                        disabled={sequences.length <= 1}
-                        sx={{
-                          color: sequences.length <= 1 ? 'text.disabled' : '#ff5630',
-                          '&:hover': { bgcolor: 'rgba(255, 86, 48, 0.08)' },
-                        }}
-                      >
-                        <Iconify icon={"solar:trash-bin-minimalistic-bold" as any} width={20} />
-                      </IconButton>
-                    </Stack>
+                        <Box sx={{ width: 60, flexShrink: 0 }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: 'block',
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              color: 'text.secondary',
+                              letterSpacing: 0.5,
+                            }}
+                          >
+                            Step {idx + 1}
+                          </Typography>
+                        </Box>
+
+                        <Autocomplete
+                          fullWidth
+                          size="small"
+                          options={shifts}
+                          getOptionLabel={(s) => {
+                            const time =
+                              s.start_time && s.end_time
+                                ? ` (${formatTime(s.start_time)} - ${formatTime(s.end_time)})`
+                                : '';
+                            return `${s.shift_name || s.name}${time}`;
+                          }}
+                          isOptionEqualToValue={(opt, val) => opt.name === val?.name}
+                          value={shifts.find((s) => s.name === seq.shift) || null}
+                          onChange={(_, val) => handleSequenceShiftChange(idx, val ? val.name : '')}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              required
+                              label="Select Shift"
+                              placeholder="Search shift..."
+                              InputLabelProps={{ shrink: true }}
+                              sx={{
+                                bgcolor: 'background.paper',
+                                '& .MuiFormLabel-asterisk': { color: 'red' },
+                              }}
+                            />
+                          )}
+                        />
+
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleRemoveSequence(idx)}
+                          disabled={sequences.length <= 1}
+                          sx={{
+                            color: sequences.length <= 1 ? 'text.disabled' : '#ff5630',
+                            '&:hover': { bgcolor: 'rgba(255, 86, 48, 0.08)' },
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Iconify icon={"solar:trash-bin-minimalistic-bold" as any} width={20} />
+                        </IconButton>
+                      </Box>
+
+                      {idx < sequences.length - 1 && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            py: 1,
+                            color: COMMON_COLORS.emerald.main,
+                          }}
+                        >
+                          <Iconify icon={"solar:arrow-down-linear" as any} width={20} />
+                        </Box>
+                      )}
+                    </Box>
                   ))}
                 </Stack>
-              </Box>
 
-              {/* Assignees Selector */}
-              <Autocomplete
-                multiple
-                options={allEmployees}
-                getOptionLabel={(opt) => `${opt.employee_name || opt.name} (${opt.name})`}
-                isOptionEqualToValue={(option, value) => option.name === value.name}
-                value={selectedEmployees}
-                onChange={(_, val) => setSelectedEmployees(val)}
-                renderOption={(props, option, { selected: isSelected }) => (
-                  <li {...props} key={option.name}>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                        {option.employee_name || option.name}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
-                        ID: {option.name}
-                      </Typography>
+                {sequences.length > 1 && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      mt: 1.5,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.6,
+                        px: 1.25,
+                        py: 0.6,
+                        borderRadius: 1,
+                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                        border: `1px dashed ${alpha(COMMON_COLORS.emerald.main, 0.4)}`,
+                        color: COMMON_COLORS.emerald.darker,
+                        fontSize: '0.725rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Iconify icon={"solar:restart-bold" as any} width={14} />
+                      Cycle Repeats back to Step 1
                     </Box>
-                    {isSelected && (
-                      <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: '#08a3cd', ml: 1 }} />
-                    )}
-                  </li>
+                  </Box>
                 )}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={`Assigned Employees (${selectedEmployees.length})`}
-                    placeholder="Search and select employees..."
-                    InputLabelProps={{ shrink: true }}
-                  />
-                )}
-              />
+              </Box>
 
               {/* Exclusion Options */}
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
@@ -519,17 +599,6 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                   }
                   label="Exclude Holidays"
                 />
-
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={generateNow}
-                      onChange={(e) => setGenerateNow(e.target.checked)}
-                      color="secondary"
-                    />
-                  }
-                  label="Generate date-wise roster immediately"
-                />
               </Stack>
 
               {/* Description */}
@@ -540,9 +609,13 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                 onChange={(e) => setDescription(e.target.value)}
                 multiline
                 rows={2}
-                placeholder="Optional notes regarding this rotation..."
+                placeholder="Optional notes regarding this rotation pattern..."
                 InputLabelProps={{ shrink: true }}
               />
+
+              <Alert severity="info" sx={{ borderRadius: 1.5 }}>
+                <b>Rotation Pattern:</b> This template defines the shift sequence. To assign employees and generate date-wise shift schedules, use the <b>Generate Roster</b> action.
+              </Alert>
             </Stack>
           )}
         </DialogContent>
@@ -552,7 +625,12 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
             variant="contained"
             onClick={handleSubmit}
             disabled={submitting || loadingDoc}
-            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' }, px: 3 }}
+            sx={{
+              bgcolor: COMMON_COLORS.primaryButton.bg,
+              color: 'common.white',
+              '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+              px: 3,
+            }}
             startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
           >
             {isEdit ? 'Update' : 'Create'}

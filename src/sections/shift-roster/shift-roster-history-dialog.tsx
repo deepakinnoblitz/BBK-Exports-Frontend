@@ -72,7 +72,7 @@ export function ShiftRosterHistoryDialog({ open, onClose, rosterId, employee }: 
       open={open}
       onClose={onClose}
       fullWidth
-      maxWidth="md"
+      maxWidth="lg"
       PaperProps={{
         sx: {
           borderRadius: 2,
@@ -92,20 +92,6 @@ export function ShiftRosterHistoryDialog({ open, onClose, rosterId, employee }: 
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 1,
-              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-              color: 'primary.main',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Iconify icon="solar:history-bold-duotone" width={20} />
-          </Box>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             Shift Assignment History & Audit
           </Typography>
