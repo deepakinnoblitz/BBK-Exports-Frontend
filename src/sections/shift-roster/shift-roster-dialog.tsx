@@ -9,11 +9,8 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Select from '@mui/material/Select';
-import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
-import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -35,6 +32,13 @@ import {
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
+
+const formatTime = (time?: string) => {
+  if (!time) return '';
+  const normalized = time.includes(':') && time.split(':')[0].length === 1 ? `0${time}` : time;
+  const parsed = dayjs(`2000-01-01T${normalized}`);
+  return parsed.isValid() ? parsed.format('hh:mm A') : time;
+};
 
 type Props = {
   open: boolean;
@@ -281,7 +285,10 @@ export function ShiftRosterDialog({
               options={shifts}
               getOptionLabel={(option) => {
                 if (typeof option === 'string') return option;
-                const timeStr = option.start_time && option.end_time ? ` (${String(option.start_time).slice(0, 5)} - ${String(option.end_time).slice(0, 5)})` : '';
+                const timeStr =
+                  option.start_time && option.end_time
+                    ? ` (${formatTime(option.start_time)} - ${formatTime(option.end_time)})`
+                    : '';
                 return `${option.shift_name || option.name}${timeStr}`;
               }}
               value={shifts.find((s) => s.name === selectedShift) || null}
@@ -296,7 +303,7 @@ export function ShiftRosterDialog({
                     </Typography>
                     {option.start_time && option.end_time && (
                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {String(option.start_time).slice(0, 5)} - {String(option.end_time).slice(0, 5)}
+                        {formatTime(option.start_time)} - {formatTime(option.end_time)}
                       </Typography>
                     )}
                   </Box>
@@ -356,8 +363,8 @@ export function ShiftRosterDialog({
             </Box>
 
             {/* Assignment Type & Status */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-              <TextField
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 2 }}>
+              {/* <TextField
                 select
                 fullWidth
                 label="Assignment Type"
@@ -370,7 +377,7 @@ export function ShiftRosterDialog({
                 <MenuItem value="Rotation">Rotation</MenuItem>
                 <MenuItem value="Override">Override (Replace Conflicts)</MenuItem>
                 <MenuItem value="Shift Change">Shift Change</MenuItem>
-              </TextField>
+              </TextField> */}
 
               <TextField
                 select

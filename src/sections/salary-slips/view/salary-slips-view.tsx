@@ -137,7 +137,7 @@ export function SalarySlipsView() {
             const userInfo = await getCurrentUserInfo();
             if (userInfo) {
                 if (userInfo.roles) {
-                    const hrRoles = ['HR Manager', 'HR User', 'System Manager', 'Administrator'];
+                    const hrRoles = ['HR', 'System Manager', 'Administrator'];
                     setIsHR(userInfo.roles.some((role: string) => hrRoles.includes(role)));
                 }
                 if (userInfo.employee) {
