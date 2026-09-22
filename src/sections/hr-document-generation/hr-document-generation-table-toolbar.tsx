@@ -12,6 +12,8 @@ import IconButton from '@mui/material/IconButton';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
+import { COMMON_COLORS } from 'src/theme';
+
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
@@ -63,15 +65,26 @@ export function HRDocumentGenerationTableToolbar({
         handleSortClose();
     };
 
+    const handleClearSearch = () => {
+        onFilterName({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+    };
+
     const currentSortLabel = SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label || 'Sort';
 
     return (
         <Toolbar
             sx={{
-                height: 96,
+                height: { xs: 'auto', md: 96 },
                 display: 'flex',
+                flexDirection: { xs: 'column', md: 'row' },
+                alignItems: { xs: 'stretch', md: 'center' },
+                gap: { xs: 2, md: 0 },
+                py: { xs: 2, md: 0 },
+                p: (theme) => ({
+                    xs: theme.spacing(2, 2),
+                    md: theme.spacing(0, 1, 0, 3),
+                }),
                 justifyContent: 'space-between',
-                p: (theme) => theme.spacing(0, 1, 0, 3),
                 ...(numSelected > 0 && {
                     color: 'primary.main',
                     bgcolor: 'primary.lighter',
@@ -83,20 +96,98 @@ export function HRDocumentGenerationTableToolbar({
                     {numSelected} selected
                 </Typography>
             ) : (
-                <OutlinedInput
-                    value={filterName}
-                    onChange={onFilterName}
-                    placeholder="Search documents..."
-                    startAdornment={
-                        <InputAdornment position="start">
-                            <Iconify width={20} icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
-                        </InputAdornment>
-                    }
-                    sx={{ maxWidth: 480, width: 1 }}
-                />
+                <Box
+                    sx={{
+                        display: 'flex',
+                        gap: 2,
+                        alignItems: 'center',
+                        flexGrow: 1,
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        width: '100%',
+                    }}
+                >
+                    <OutlinedInput
+                        fullWidth
+                        value={filterName}
+                        onChange={onFilterName}
+                        placeholder="Search documents..."
+                        startAdornment={
+                            <InputAdornment position="start">
+                                <Iconify width={18} icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
+                            </InputAdornment>
+                        }
+                        endAdornment={
+                            <InputAdornment position="end">
+                                {filterName ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={handleClearSearch}
+                                        edge="end"
+                                        aria-label="clear search"
+                                        sx={{
+                                            p: 0.5,
+                                            color: 'text.disabled',
+                                            '&:hover': { color: 'text.primary' },
+                                        }}
+                                    >
+                                        <Iconify icon="solar:close-circle-bold" width={18} />
+                                    </IconButton>
+                                ) : (
+                                    <Box
+                                        sx={{
+                                            display: { xs: 'none', sm: 'inline-flex' },
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            px: 0.75,
+                                            py: 0.25,
+                                            borderRadius: '6px',
+                                            bgcolor: '#F1F5F9',
+                                            border: '1px solid',
+                                            borderColor: 'divider',
+                                            color: 'text.secondary',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600,
+                                            lineHeight: 1,
+                                            letterSpacing: 0.5,
+                                        }}
+                                    >
+                                        Ctrl K
+                                    </Box>
+                                )}
+                            </InputAdornment>
+                        }
+                        sx={{
+                            maxWidth: { xs: '100%', md: 480 },
+                            height: 50,
+                            borderRadius: 1.25,
+                            bgcolor: 'background.paper',
+                            '& .MuiOutlinedInput-input': {
+                                py: 0,
+                                fontSize: '0.875rem',
+                            },
+                            '& fieldset': {
+                                borderColor: 'divider',
+                            },
+                            '&:hover fieldset': {
+                                borderColor: 'text.secondary',
+                            },
+                            '&.Mui-focused fieldset': {
+                                borderColor: 'var(--btn-primary-bg, #059669)',
+                            },
+                        }}
+                    />
+                </Box>
             )}
 
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Box
+                sx={{
+                    display: 'flex',
+                    gap: 1,
+                    alignItems: 'center',
+                    justifyContent: { xs: 'flex-start', md: 'flex-end' },
+                    width: { xs: '100%', md: 'auto' },
+                }}
+            >
                 {numSelected > 0 ? (
                     <IconButton>
                         <Iconify icon="solar:trash-bin-trash-bold" />
@@ -106,50 +197,90 @@ export function HRDocumentGenerationTableToolbar({
                         {onOpenFilter && (
                             <Button
                                 disableRipple
-                                color="inherit"
                                 onClick={onOpenFilter}
-                                startIcon={
-                                    <Badge color="error" variant="dot" invisible={!canReset}>
-                                        <Iconify icon="ic:round-filter-list" />
-                                    </Badge>
-                                }
                                 sx={{
-                                    height: 40,
-                                    px: 2,
-                                    bgcolor: 'background.neutral',
-                                    border: '1px solid',
-                                    borderColor: 'divider',
-                                    borderRadius: 1,
-                                    fontWeight: 500,
+                                    flexGrow: { xs: 1, md: 0 },
+                                    flexShrink: 0,
+                                    whiteSpace: 'nowrap',
+                                    minWidth: 'fit-content',
+                                    height: 50,
+                                    px: 1.75,
+                                    bgcolor: COMMON_COLORS.filterButton.bg,
+                                    color: COMMON_COLORS.filterButton.color,
+                                    borderRadius: 1.25,
+                                    fontWeight: 700,
+                                    fontSize: '0.875rem',
+                                    textTransform: 'none',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                    boxShadow: 'none',
+                                    border: 'none',
+                                    transition: 'all 0.15s ease',
+                                    '&:hover': {
+                                        bgcolor: COMMON_COLORS.filterButton.hoverBg,
+                                        boxShadow: 'none',
+                                    },
                                 }}
                             >
-                                Filters
+                                <Badge
+                                    color="error"
+                                    variant="dot"
+                                    invisible={!canReset}
+                                    sx={{
+                                        '& .MuiBadge-badge': {
+                                            top: 2,
+                                            right: 2,
+                                        },
+                                    }}
+                                >
+                                    <Iconify icon={"solar:filter-linear" as any} width={18} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
+                                </Badge>
+                                <Box component="span" sx={{ whiteSpace: 'nowrap', display: 'inline', fontWeight: 700 }}>
+                                    Filters
+                                </Box>
+                                <Iconify icon={"eva:chevron-down-fill" as any} width={16} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
                             </Button>
                         )}
 
                         {onSortChange && (
                             <>
                                 <Button
-                                    variant="text"
-                                    color="inherit"
-                                    startIcon={<Iconify icon={"solar:sort-bold" as any} />}
                                     onClick={handleSortClick}
                                     sx={{
-                                        minWidth: 160,
-                                        height: 40,
-                                        px: 2,
-                                        color: 'text.primary',
-                                        bgcolor: 'background.neutral',
+                                        flexGrow: { xs: 1, md: 0 },
+                                        minWidth: { xs: '0', md: 175 },
+                                        height: 50,
+                                        px: 1.5,
+                                        py: 0.5,
+                                        bgcolor: COMMON_COLORS.sortButton.bg,
                                         border: '1px solid',
                                         borderColor: 'divider',
-                                        borderRadius: 1,
-                                        fontWeight: 500,
+                                        borderRadius: 1.25,
+                                        textTransform: 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: 1.25,
+                                        transition: 'all 0.15s ease',
                                         '&:hover': {
                                             bgcolor: 'action.hover',
+                                            borderColor: 'text.secondary',
                                         },
                                     }}
                                 >
-                                    {currentSortLabel}
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Iconify icon={"solar:sort-vertical-linear" as any} width={18} sx={{ color: COMMON_COLORS.sortButton.labelColor, flexShrink: 0 }} />
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+                                            <Typography component="span" sx={{ fontSize: '0.675rem', fontWeight: 500, color: COMMON_COLORS.sortButton.labelColor, lineHeight: 1.1 }}>
+                                                Sort by
+                                            </Typography>
+                                            <Typography component="span" sx={{ fontSize: '0.8125rem', fontWeight: 700, color: COMMON_COLORS.sortButton.valueColor, lineHeight: 1.2 }}>
+                                                {currentSortLabel}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                    <Iconify icon={"eva:chevron-down-fill" as any} width={16} sx={{ color: COMMON_COLORS.sortButton.labelColor, flexShrink: 0, ml: 1 }} />
                                 </Button>
 
                                 <Menu
@@ -193,9 +324,9 @@ export function HRDocumentGenerationTableToolbar({
                                 variant="contained"
                                 onClick={onCreateNew}
                                 sx={{
-                                    height: 40,
+                                    height: 50,
                                     px: 2,
-                                    borderRadius: 1.5,
+                                    borderRadius: 1.25,
                                     bgcolor: '#08a3cd',
                                     color: 'common.white',
                                     '&:hover': { bgcolor: '#068fb3' },
