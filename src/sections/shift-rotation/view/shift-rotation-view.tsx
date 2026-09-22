@@ -20,6 +20,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useShiftRotations } from 'src/hooks/use-shift-rotation';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
@@ -241,9 +242,12 @@ export function ShiftRotationView() {
                 startIcon={<Iconify icon="solar:play-bold" />}
                 onClick={handleOpenGenerateHeader}
                 sx={{
-                  color: '#08a3cd',
-                  borderColor: '#08a3cd',
-                  '&:hover': { borderColor: '#068fb3', bgcolor: '#08a3cd08' },
+                  color: COMMON_COLORS.emerald.main,
+                  borderColor: COMMON_COLORS.emerald.main,
+                  '&:hover': {
+                    borderColor: COMMON_COLORS.emerald.darker,
+                    bgcolor: 'rgba(5, 150, 105, 0.08)',
+                  },
                 }}
               >
                 Generate Roster
@@ -253,7 +257,11 @@ export function ShiftRotationView() {
                 variant="contained"
                 startIcon={<Iconify icon="mingcute:add-line" />}
                 onClick={handleCreate}
-                sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                sx={{
+                  bgcolor: COMMON_COLORS.primaryButton.bg,
+                  color: COMMON_COLORS.primaryButton.color,
+                  '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+                }}
               >
                 New Shift Rotation
               </Button>
@@ -306,7 +314,7 @@ export function ShiftRotationView() {
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                      <CircularProgress sx={{ color: '#08a3cd' }} />
+                      <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                     </TableCell>
                   </TableRow>
                 ) : (

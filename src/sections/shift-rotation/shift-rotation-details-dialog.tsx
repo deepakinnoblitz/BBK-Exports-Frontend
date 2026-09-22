@@ -1,4 +1,4 @@
-import type { ShiftRotation} from 'src/api/shift-rotation';
+import type { ShiftRotation } from 'src/api/shift-rotation';
 
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
+import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
@@ -20,6 +21,7 @@ import DialogContent from '@mui/material/DialogContent';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getShiftRotationDoc } from 'src/api/shift-rotation';
 
 import { Label } from 'src/components/label';
@@ -33,6 +35,7 @@ type Props = {
   onClose: () => void;
   rotationName: string | null;
   onEdit?: () => void;
+  onGenerate?: (rotationName: string) => void;
   canEdit?: boolean;
 };
 
@@ -40,6 +43,8 @@ export function ShiftRotationDetailsDialog({
   open,
   onClose,
   rotationName,
+  onEdit,
+  onGenerate,
   canEdit = true,
 }: Props) {
   const [rotation, setRotation] = useState<ShiftRotation | null>(null);
@@ -243,45 +248,50 @@ export function ShiftRotationDetailsDialog({
 
             <Divider sx={{ borderStyle: 'dashed' }} />
 
-            {/* Assignees Section */}
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 800, textTransform: 'uppercase', color: 'text.secondary', mb: 1.5, fontSize: '12px' }}
+            {/* Deployment & Generation Banner */}
+            <Box
+              sx={{
+                p: 2.5,
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.05),
+                borderRadius: 1.5,
+                border: (theme) => `1px dashed ${alpha(theme.palette.primary.main, 0.25)}`,
+              }}
+            >
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                alignItems={{ sm: 'center' }}
+                justifyContent="space-between"
+                spacing={2}
               >
-                Assigned Employees ({rotation.assignees?.length || 0})
-              </Typography>
-
-              {rotation.assignees && rotation.assignees.length > 0 ? (
-                <TableContainer component={Scrollbar} sx={{ border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: 1.5, maxHeight: 240 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'background.neutral' }}>
-                        <TableCell sx={{ fontWeight: 700, width: 60 }}>#</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Employee Name</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Employee ID</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Designation</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rotation.assignees.map((assignee, idx) => (
-                        <TableRow key={idx} hover>
-                          <TableCell sx={{ color: 'text.secondary' }}>{idx + 1}</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>{assignee.employee_name || assignee.employee}</TableCell>
-                          <TableCell sx={{ color: 'text.secondary' }}>{assignee.employee}</TableCell>
-                          <TableCell>{assignee.department || '-'}</TableCell>
-                          <TableCell>{assignee.designation || '-'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                  No specific employees assigned yet.
-                </Typography>
-              )}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                    Deploy this Rotation to Employees
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                    Select target employees, date range, and conflict rules to generate shift roster entries.
+                  </Typography>
+                </Box>
+                {onGenerate && rotation && (
+                  <Button
+                    variant="contained"
+                    size="medium"
+                    startIcon={<Iconify icon={"solar:play-bold" as any} />}
+                    onClick={() => {
+                      onClose();
+                      onGenerate(rotation.rotation_name);
+                    }}
+                    sx={{
+                      bgcolor: COMMON_COLORS.primaryButton.bg,
+                      color: 'common.white',
+                      '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+                      whiteSpace: 'nowrap',
+                      px: 2.5,
+                    }}
+                  >
+                    Generate Roster
+                  </Button>
+                )}
+              </Stack>
             </Box>
           </Stack>
         )}

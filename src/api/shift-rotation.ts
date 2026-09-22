@@ -134,13 +134,24 @@ export async function deleteShiftRotation(name: string) {
   return true;
 }
 
+export interface GenerateRotationPayload {
+  rotation_name: string;
+  employees?: string[];
+  start_date?: string;
+  end_date?: string;
+  exclude_weekly_offs?: boolean | number;
+  exclude_holidays?: boolean | number;
+  override_conflicts?: boolean | number;
+}
+
 // Generate Roster Entries from Rotation
-export async function generateRotationAssignments(rotation_name: string) {
+export async function generateRotationAssignments(params: string | GenerateRotationPayload) {
   const headers = await getAuthHeaders();
+  const payload = typeof params === 'string' ? { rotation_name: params } : params;
   const res = await frappeRequest('/api/method/company.company.shift_roster_api.generate_rotation_assignments', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ rotation_name }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
@@ -150,3 +161,67 @@ export async function generateRotationAssignments(rotation_name: string) {
   const json = await res.json();
   return json.message;
 }
+
+export interface FilterEmployeesParams {
+  department?: string;
+  shift?: string;
+  line_order?: string;
+  search?: string;
+  page?: number;
+  page_size?: number;
+  status?: string;
+}
+
+export interface SelectorEmployeeItem {
+  name: string;
+  employee_name: string;
+  department?: string;
+  shift?: string;
+  line_order?: string;
+  designation?: string;
+  status?: string;
+}
+
+export interface FilterEmployeesResponse {
+  employees: SelectorEmployeeItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// Fetch paginated employees for High-Volume Selector
+export async function fetchSelectorEmployees(params: FilterEmployeesParams): Promise<FilterEmployeesResponse> {
+  const query = new URLSearchParams();
+  if (params.department && params.department !== 'all') query.set('department', params.department);
+  if (params.shift && params.shift !== 'all') query.set('shift', params.shift);
+  if (params.line_order && params.line_order !== 'all') query.set('line_order', params.line_order);
+  if (params.search) query.set('search', params.search);
+  if (params.page) query.set('page', String(params.page));
+  if (params.page_size) query.set('page_size', String(params.page_size));
+  if (params.status) query.set('status', params.status);
+
+  const res = await frappeRequest(`/api/method/company.company.shift_roster_api.get_filtered_employees?${query.toString()}`);
+  if (!res.ok) {
+    await handleFrappeError(res, 'Failed to fetch employees');
+  }
+  const json = await res.json();
+  return json.message || { employees: [], total: 0, page: 1, page_size: 25 };
+}
+
+// Fetch all matching employee IDs for 'Select All Filtered'
+export async function fetchSelectorEmployeeIds(params: FilterEmployeesParams): Promise<string[]> {
+  const query = new URLSearchParams();
+  if (params.department && params.department !== 'all') query.set('department', params.department);
+  if (params.shift && params.shift !== 'all') query.set('shift', params.shift);
+  if (params.line_order && params.line_order !== 'all') query.set('line_order', params.line_order);
+  if (params.search) query.set('search', params.search);
+  if (params.status) query.set('status', params.status);
+
+  const res = await frappeRequest(`/api/method/company.company.shift_roster_api.get_filtered_employee_ids?${query.toString()}`);
+  if (!res.ok) {
+    await handleFrappeError(res, 'Failed to fetch employee IDs');
+  }
+  const json = await res.json();
+  return json.message || [];
+}
+

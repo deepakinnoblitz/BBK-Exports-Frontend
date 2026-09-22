@@ -6,16 +6,12 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
-import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import FormControl from '@mui/material/FormControl';
 import DialogTitle from '@mui/material/DialogTitle';
-import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -24,12 +20,12 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import {
+  getShiftRotationDoc,
   createShiftRotation,
   updateShiftRotation,
-  getShiftRotationDoc,
-  generateRotationAssignments,
 } from 'src/api/shift-rotation';
 
 import { Iconify } from 'src/components/iconify';
@@ -53,7 +49,6 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
   // Masters
   const [shifts, setShifts] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
-  const [allEmployees, setAllEmployees] = useState<any[]>([]);
 
   // Form fields
   const [rotationName, setRotationName] = useState('');
@@ -72,10 +67,6 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
     { step_number: 2, shift: '' },
   ]);
 
-  // Assignees
-  const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
-  const [generateNow, setGenerateNow] = useState(false);
-
   useEffect(() => {
     if (open) {
       loadMasters();
@@ -89,14 +80,12 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
 
   const loadMasters = async () => {
     try {
-      const [shiftRes, deptRes, empRes] = await Promise.all([
+      const [shiftRes, deptRes] = await Promise.all([
         getDoctypeList('Shift', ['name', 'shift_name', 'start_time', 'end_time']),
         getDoctypeList('Department', ['name', 'department_name']),
-        getDoctypeList('Employee', ['name', 'employee_name', 'department', 'designation']),
       ]);
       setShifts(shiftRes || []);
       setDepartments(deptRes || []);
-      setAllEmployees(empRes || []);
     } catch (err) {
       console.error(err);
     }
@@ -121,16 +110,6 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
           ? doc.sequences.map((s, idx) => ({ step_number: s.step_number || idx + 1, shift: s.shift, shift_name: s.shift_name }))
           : [{ step_number: 1, shift: '' }]
       );
-
-      if (doc.assignees && doc.assignees.length > 0) {
-        const matched = doc.assignees.map((a) => {
-          const found = allEmployees.find((e) => e.name === a.employee);
-          return found || { name: a.employee, employee_name: a.employee_name };
-        });
-        setSelectedEmployees(matched);
-      } else {
-        setSelectedEmployees([]);
-      }
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to load rotation details');
     } finally {
@@ -152,8 +131,6 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
       { step_number: 1, shift: '' },
       { step_number: 2, shift: '' },
     ]);
-    setSelectedEmployees([]);
-    setGenerateNow(false);
     setErrorMessage(null);
   };
 
@@ -161,25 +138,40 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
     setSequences((prev) => [...prev, { step_number: prev.length + 1, shift: '' }]);
   };
 
-  const handleRemoveSequence = (idx: number) => {
+  const handleRemoveSequence = (index: number) => {
     if (sequences.length <= 1) return;
-    setSequences((prev) => prev.filter((_, i) => i !== idx).map((s, i) => ({ ...s, step_number: i + 1 })));
+    setSequences((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      return next.map((item, idx) => ({ ...item, step_number: idx + 1 }));
+    });
   };
 
-  const handleSequenceShiftChange = (idx: number, shiftVal: string) => {
-    const shiftObj = shifts.find((s) => s.name === shiftVal);
+  const handleSequenceShiftChange = (index: number, shiftValue: string) => {
+    const selected = shifts.find((s) => s.name === shiftValue);
     setSequences((prev) =>
-      prev.map((s, i) => (i === idx ? { ...s, shift: shiftVal, shift_name: shiftObj?.shift_name || shiftVal } : s))
+      prev.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              shift: shiftValue,
+              shift_name: selected?.shift_name || shiftValue,
+            }
+          : item
+      )
     );
   };
 
   const handleSubmit = async () => {
     if (!rotationName.trim()) {
-      setErrorMessage('Please enter a Rotation Name.');
+      setErrorMessage('Rotation Name is required.');
       return;
     }
-    if (!startDate || !startDate.isValid() || !endDate || !endDate.isValid()) {
-      setErrorMessage('Please select valid Start and End dates.');
+    if (!startDate || !endDate) {
+      setErrorMessage('Start Date and End Date are required.');
+      return;
+    }
+    if (endDate.isBefore(startDate)) {
+      setErrorMessage('End Date cannot be earlier than Start Date.');
       return;
     }
     if (sequences.some((s) => !s.shift)) {
@@ -207,23 +199,12 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
           shift: s.shift,
           shift_name: s.shift_name,
         })),
-        assignees: selectedEmployees.map((e) => ({
-          doctype: 'Shift Rotation Assignee',
-          employee: e.name,
-          employee_name: e.employee_name,
-          department: e.department,
-          designation: e.designation,
-        })),
       };
 
       if (isEdit && editName) {
         await updateShiftRotation(editName, payload);
       } else {
         await createShiftRotation(payload);
-      }
-
-      if (generateNow) {
-        await generateRotationAssignments(rotationName.trim());
       }
 
       onSuccess();
@@ -463,39 +444,6 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                 </Stack>
               </Box>
 
-              {/* Assignees Selector */}
-              <Autocomplete
-                multiple
-                options={allEmployees}
-                getOptionLabel={(opt) => `${opt.employee_name || opt.name} (${opt.name})`}
-                isOptionEqualToValue={(option, value) => option.name === value.name}
-                value={selectedEmployees}
-                onChange={(_, val) => setSelectedEmployees(val)}
-                renderOption={(props, option, { selected: isSelected }) => (
-                  <li {...props} key={option.name}>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                        {option.employee_name || option.name}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
-                        ID: {option.name}
-                      </Typography>
-                    </Box>
-                    {isSelected && (
-                      <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: '#08a3cd', ml: 1 }} />
-                    )}
-                  </li>
-                )}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={`Assigned Employees (${selectedEmployees.length})`}
-                    placeholder="Search and select employees..."
-                    InputLabelProps={{ shrink: true }}
-                  />
-                )}
-              />
-
               {/* Exclusion Options */}
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
                 <FormControlLabel
@@ -519,17 +467,6 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                   }
                   label="Exclude Holidays"
                 />
-
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={generateNow}
-                      onChange={(e) => setGenerateNow(e.target.checked)}
-                      color="secondary"
-                    />
-                  }
-                  label="Generate date-wise roster immediately"
-                />
               </Stack>
 
               {/* Description */}
@@ -540,9 +477,13 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
                 onChange={(e) => setDescription(e.target.value)}
                 multiline
                 rows={2}
-                placeholder="Optional notes regarding this rotation..."
+                placeholder="Optional notes regarding this rotation pattern..."
                 InputLabelProps={{ shrink: true }}
               />
+
+              <Alert severity="info" sx={{ borderRadius: 1.5 }}>
+                <b>Rotation Pattern:</b> This template defines the shift sequence. To assign employees and generate date-wise shift schedules, use the <b>Generate Roster</b> action.
+              </Alert>
             </Stack>
           )}
         </DialogContent>
@@ -552,7 +493,12 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
             variant="contained"
             onClick={handleSubmit}
             disabled={submitting || loadingDoc}
-            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' }, px: 3 }}
+            sx={{
+              bgcolor: COMMON_COLORS.primaryButton.bg,
+              color: 'common.white',
+              '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+              px: 3,
+            }}
             startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
           >
             {isEdit ? 'Update' : 'Create'}
