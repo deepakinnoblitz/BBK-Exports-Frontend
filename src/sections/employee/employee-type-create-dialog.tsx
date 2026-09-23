@@ -158,7 +158,7 @@ export function EmployeeTypeCreateDialog({ open, onClose, onCreate, currentTypeN
                     onClick={handleSubmit}
                     variant="contained"
                     disabled={loading}
-                    sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                    sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                 >
                     {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Create'}
                 </Button>

@@ -450,7 +450,7 @@ export function PurchaseCreateView() {
                         >
                             Go Back
                         </Button>
-                        <Button variant="contained" color="primary" onClick={handleSave} loading={loading} sx={{ borderRadius: 1.5, bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}>
+                        <Button variant="contained" color="primary" onClick={handleSave} loading={loading} sx={{ borderRadius: 1.5, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}>
                             Save Purchase
                         </Button>
                     </Stack>
@@ -1165,7 +1165,7 @@ export function PurchaseCreateView() {
                             <Divider />
                             <Stack direction="row" alignItems="center" justifyContent="space-between">
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <IoMdWallet size={24} style={{ color: '#08a3cd' }} />
+                                    <IoMdWallet size={24} style={{ color: '#059669' }} />
                                     <Typography variant="subtitle1" sx={{ color: 'primary.main' }}>Grand Total</Typography>
                                 </Stack>
                                 <Typography variant="h6" color="primary" sx={{ width: 120, textAlign: 'right' }}>{renderCurrency(grandTotal, '20px')}</Typography>
@@ -1205,7 +1205,7 @@ export function PurchaseCreateView() {
                                 <Button
                                     variant="contained"
                                     component="label"
-                                    sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                                    sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                                     color="primary"
                                     size="small"
                                     startIcon={<Iconify icon={"solar:upload-bold" as any} />}
@@ -1305,7 +1305,7 @@ export function PurchaseCreateView() {
                         </Stack>
                     </DialogContent>
                     <DialogActions>
-                        <Button variant="contained" onClick={handleCreateItem} disabled={creatingItem} sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}>
+                        <Button variant="contained" onClick={handleCreateItem} disabled={creatingItem} sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}>
                             {creatingItem ? <CircularProgress size={24} /> : 'Create'}
                         </Button>
                     </DialogActions>

@@ -418,7 +418,7 @@ export function BadgesView() {
                   loadingBadges ? (
                     <TableRow>
                       <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
-                        <CircularProgress sx={{ color: '#08a3cd' }} />
+                        <CircularProgress sx={{ color: '#059669' }} />
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -468,7 +468,7 @@ export function BadgesView() {
                   loadingAssignments ? (
                     <TableRow>
                       <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
-                        <CircularProgress sx={{ color: '#08a3cd' }} />
+                        <CircularProgress sx={{ color: '#059669' }} />
                       </TableCell>
                     </TableRow>
                   ) : (

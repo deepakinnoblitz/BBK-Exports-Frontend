@@ -32,7 +32,7 @@ export const CustomSwitch = styled((props: SwitchProps) => (
             transform: 'translateX(16px)',
             color: '#fff',
             '& + .MuiSwitch-track': {
-                backgroundColor: '#08a3cd',
+                backgroundColor: '#059669',
                 opacity: 1,
                 border: 0,
             },
@@ -41,7 +41,7 @@ export const CustomSwitch = styled((props: SwitchProps) => (
             },
         },
         '&.Mui-focusVisible .MuiSwitch-thumb': {
-            color: '#08a3cd',
+            color: '#059669',
             border: '6px solid #fff',
         },
         '&.Mui-disabled .MuiSwitch-thumb': {
@@ -126,7 +126,7 @@ export function EmailSettingsView() {
                     <Button 
                         variant="contained" 
                         onClick={handleSave}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' }, borderRadius: 1.5 }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' }, borderRadius: 1.5 }}
                     >
                         Save Settings
                     </Button>

@@ -247,11 +247,11 @@ export function HRDocumentGenerationCreateView() {
                         startIcon={<Iconify icon="solar:document-text-bold" width={20} />}
                         sx={{
                             borderRadius: 1.5,
-                            borderColor: '#08a3cd',
-                            color: '#08a3cd',
+                            borderColor: '#059669',
+                            color: '#059669',
                             '&:hover': {
-                                borderColor: '#068fb3',
-                                bgcolor: (theme) => alpha('#08a3cd', 0.08),
+                                borderColor: '#047857',
+                                bgcolor: (theme) => alpha('#059669', 0.08),
                             },
                             textTransform: 'none',
                             fontWeight: 600,
@@ -268,9 +268,9 @@ export function HRDocumentGenerationCreateView() {
                         onClick={handleSave}
                         sx={{
                             borderRadius: 1.5,
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
-                            '&:hover': { bgcolor: '#068fb3' },
+                            '&:hover': { bgcolor: '#047857' },
                             textTransform: 'none',
                             fontWeight: 600,
                             px: 3,

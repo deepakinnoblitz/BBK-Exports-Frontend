@@ -92,7 +92,7 @@ function KeyValueTable({ title, jsonString, isLeadJson = false }: { title: strin
         return (
             <Card sx={{ p: 3 }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary', mb: 2 }}>
-                    <Iconify icon={"solar:code-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                    <Iconify icon={"solar:code-bold" as any} width={18} sx={{ color: '#059669' }} />
                     <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>{title}</Typography>
                 </Stack>
                 <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 1.5 }}>
@@ -211,7 +211,7 @@ function KeyValueTable({ title, jsonString, isLeadJson = false }: { title: strin
         <Card sx={{ p: 3 }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary' }}>
-                    <Iconify icon={"solar:code-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                    <Iconify icon={"solar:code-bold" as any} width={18} sx={{ color: '#059669' }} />
                     <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2, fontWeight: 700 }}>
                         {title}
                     </Typography>
@@ -431,7 +431,7 @@ export function MetaLeadDetailsView() {
     if (fetching) {
         return (
             <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-                <CircularProgress sx={{ color: '#08a3cd' }} />
+                <CircularProgress sx={{ color: '#059669' }} />
             </DashboardContent>
         );
     }
@@ -497,7 +497,7 @@ export function MetaLeadDetailsView() {
                 {/* Integration Details */}
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" spacing={1} mb={3} sx={{ color: 'text.secondary' }}>
-                        <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                        <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>Integration Details</Typography>
                     </Stack>
                     <Box sx={{ display: 'grid', columnGap: 4, rowGap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' } }}>
@@ -513,7 +513,7 @@ export function MetaLeadDetailsView() {
 
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" spacing={1} mb={3} sx={{ color: 'text.secondary' }}>
-                        <Iconify icon={"solar:info-circle-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                        <Iconify icon={"solar:info-circle-bold" as any} width={18} sx={{ color: '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>Information Details</Typography>
                     </Stack>
                     <Box sx={{ display: 'grid', columnGap: 4, rowGap: 3, mt: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' } }}>

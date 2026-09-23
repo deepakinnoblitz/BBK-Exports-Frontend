@@ -505,7 +505,7 @@ export function LeavesView() {
                         variant="contained"
                         startIcon={<Iconify icon="mingcute:add-line" />}
                         onClick={handleOpenCreate}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         New Application
                     </Button>
@@ -553,7 +553,7 @@ export function LeavesView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -1069,7 +1069,7 @@ export function LeavesView() {
                         variant="contained"
                         onClick={handleCreate}
                         disabled={creating || uploading || (balanceInfo && totalDays > balanceInfo.remaining) || false}
-                        sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                     >
                         {creating ? 'Submitting...' : 'Submit Application'}
                     </Button>

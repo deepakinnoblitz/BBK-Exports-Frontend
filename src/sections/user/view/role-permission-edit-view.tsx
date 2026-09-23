@@ -385,12 +385,12 @@ export function RolePermissionEditView({ name, onBack }: RolePermissionEditViewP
                             fontWeight: 600,
                             textTransform: 'none',
                             px: 2.5,
-                            borderColor: '#08a3cd',
-                            color: '#08a3cd',
+                            borderColor: '#059669',
+                            color: '#059669',
                             '&:hover': {
-                                bgcolor: (theme) => alpha('#08a3cd', 0.04),
-                                borderColor: '#068fb3',
-                                color: '#068fb3',
+                                bgcolor: (theme) => alpha('#059669', 0.04),
+                                borderColor: '#047857',
+                                color: '#047857',
                             }
                         }}
                     >
@@ -422,12 +422,12 @@ export function RolePermissionEditView({ name, onBack }: RolePermissionEditViewP
                         disabled={saving}
                         sx={{
                             borderRadius: 1.5,
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
                             textTransform: 'none',
                             fontWeight: 600,
                             px: 2.5,
-                            '&:hover': { bgcolor: '#068fb3' }
+                            '&:hover': { bgcolor: '#047857' }
                         }}
                     >
                         {saving ? <CircularProgress size={20} color="inherit" /> : 'Save Role Permission'}
@@ -488,16 +488,16 @@ export function RolePermissionEditView({ name, onBack }: RolePermissionEditViewP
                     <TableContainer sx={{ border: '1px solid rgba(224, 224, 224, 1)', borderRadius: 1 }}>
                         <Scrollbar>
                             <Table size="medium">
-                                <TableRow sx={{ bgcolor: '#08a3cd', position: 'sticky', top: 0, zIndex: 1 }}>
-                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Modules</TableCell>
-                                    <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Screens</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>All</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Add</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Edit</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>View</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Delete</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Export</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Import</TableCell>
+                                <TableRow sx={{ bgcolor: '#059669', position: 'sticky', top: 0, zIndex: 1 }}>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Modules</TableCell>
+                                    <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Screens</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>All</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Add</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Edit</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>View</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Delete</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Export</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Import</TableCell>
                                 </TableRow>
 
                                 <TableBody>

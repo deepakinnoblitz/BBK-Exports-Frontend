@@ -186,9 +186,9 @@ export function HRDocumentTemplateCreateView() {
                         loading={isSaving}
                         sx={{
                             borderRadius: 1.5,
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
-                            '&:hover': { bgcolor: '#068fb3' },
+                            '&:hover': { bgcolor: '#047857' },
                         }}
                     >
                         Save Template
@@ -459,7 +459,7 @@ export function HRDocumentTemplateCreateView() {
                                             />
                                         </Box>
                                     }
-                                    endIcon={<MdContentCopy size={16} color="#08a3cd" />}
+                                    endIcon={<MdContentCopy size={16} color="#059669" />}
                                     onClick={() => handleCopyVariable(item.variable)}
                                     sx={{
                                         justifyContent: 'space-between',

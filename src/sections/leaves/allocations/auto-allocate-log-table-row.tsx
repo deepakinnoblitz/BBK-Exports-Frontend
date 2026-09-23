@@ -150,7 +150,7 @@ export function AutoAllocateLogTableRow({ row, index, onView }: Props) {
 
             <TableCell align="right" sx={{ width: 80 }}>
                 <Tooltip title="View Details">
-                    <IconButton onClick={onView} size="small" sx={{ color: '#08a3cd', '&:hover': { bgcolor: alpha('#08a3cd', 0.08) } }}>
+                    <IconButton onClick={onView} size="small" sx={{ color: '#059669', '&:hover': { bgcolor: alpha('#059669', 0.08) } }}>
                         <Iconify icon="solar:eye-bold" width={20} />
                     </IconButton>
                 </Tooltip>

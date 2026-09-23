@@ -3,13 +3,15 @@ import type { CardProps } from '@mui/material/Card';
 import listPlugin from '@fullcalendar/list';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import interactionPlugin from '@fullcalendar/interaction';
 
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
 import { alpha, useTheme } from '@mui/material/styles';
 import { Box, Stack, Button, IconButton, Typography } from '@mui/material';
+
+import { COMMON_COLORS } from 'src/theme';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -200,8 +202,8 @@ export function EmployeeCalendar({ title, subheader, events, onDateChange, ...ot
                         zIndex: 1,
                     },
                     '& .fc .fc-col-header-cell': {
-                        bgcolor: 'rgb(8 163 205)',
-                        borderBottom: `2px solid ${alpha('#87CEEB', 0.4)}`,
+                        bgcolor: COMMON_COLORS.emerald.main,
+                        borderBottom: `2px solid ${COMMON_COLORS.emerald.dark}`,
                         py: 1,
                         '&:first-of-type': {
                             borderTopLeftRadius: 12,
@@ -333,14 +335,14 @@ export function EmployeeCalendar({ title, subheader, events, onDateChange, ...ot
                                             fontSize: '0.75rem',
                                             fontWeight: isActive ? 700 : 600,
                                             color: isActive ? '#fff' : theme.palette.text.secondary,
-                                            bgcolor: isActive ? '#08a3cd' : 'transparent',
-                                            boxShadow: isActive ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                                            bgcolor: isActive ? COMMON_COLORS.emerald.main : 'transparent',
+                                            boxShadow: isActive ? `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.3)}` : 'none',
                                             textTransform: 'capitalize',
                                             transition: theme.transitions.create(['background-color', 'color', 'box-shadow'], {
                                                 duration: theme.transitions.duration.shorter,
                                             }),
                                             '&:hover': {
-                                                bgcolor: isActive ? '#08a3cd' : alpha(theme.palette.grey[500], 0.08),
+                                                bgcolor: isActive ? COMMON_COLORS.emerald.dark : alpha(theme.palette.grey[500], 0.08),
                                             }
                                         }}
                                     >
@@ -442,14 +444,14 @@ export function EmployeeCalendar({ title, subheader, events, onDateChange, ...ot
                                         fontSize: '0.825rem',
                                         fontWeight: isActive ? 700 : 600,
                                         color: isActive ? '#fff' : theme.palette.text.secondary,
-                                        bgcolor: isActive ? '#08a3cd' : 'transparent',
-                                        boxShadow: isActive ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                                        bgcolor: isActive ? '#059669' : 'transparent',
+                                        boxShadow: isActive ? `0 2px 8px ${alpha('#059669', 0.3)}` : 'none',
                                         textTransform: 'capitalize',
                                         transition: theme.transitions.create(['background-color', 'color', 'box-shadow'], {
                                             duration: theme.transitions.duration.shorter,
                                         }),
                                         '&:hover': {
-                                            bgcolor: isActive ? '#08a3cd' : alpha(theme.palette.grey[500], 0.08),
+                                            bgcolor: isActive ? '#059669' : alpha(theme.palette.grey[500], 0.08),
                                         }
                                     }}
                                 >

@@ -367,7 +367,7 @@ export function SalarySlipsView() {
                                 setEditSlip(null);
                                 setOpenCreate(true);
                             }}
-                            sx={{ borderRadius: 1.5, height: 40, bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                            sx={{ borderRadius: 1.5, height: 40, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                         >
                             New Salary Slip
                         </Button>
@@ -424,7 +424,7 @@ export function SalarySlipsView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

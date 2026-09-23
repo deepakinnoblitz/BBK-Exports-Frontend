@@ -180,7 +180,7 @@ const Android12LoadingButton = styled(LoadingButton)(({ theme }) => ({
     boxShadow: 'none',
   },
   '&.MuiLoadingButton-loading': {
-    backgroundColor: '#08a3cd',
+    backgroundColor: '#059669',
     color: '#ffffff',
   },
   '& .MuiLoadingButton-loadingIndicator': {
@@ -555,9 +555,9 @@ export function UserFormDialog({
                 size="small"
                 disabled={uploading}
                 sx={{
-                  bgcolor: '#08a3cd',
+                  bgcolor: '#059669',
                   color: 'common.white',
-                  '&:hover': { bgcolor: '#068fb3' },
+                  '&:hover': { bgcolor: '#047857' },
                   textTransform: 'none',
                   borderRadius: 1.5,
                   px: 2,
@@ -1036,7 +1036,7 @@ export function UserFormDialog({
             variant="contained"
             onClick={handleSubmitWrapper}
             loading={isSubmitting}
-            sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+            sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
           >
             {selectedUser ? 'Update' : 'Create'}
           </Android12LoadingButton>
@@ -1076,15 +1076,15 @@ export function UserFormDialog({
               <TableContainer sx={{ border: '1px solid rgba(224, 224, 224, 1)', borderRadius: 1 }}>
                 <Scrollbar>
                   <Table size="medium">
-                      <TableRow sx={{ bgcolor: '#08a3cd' }}>
-                        <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Menu Name</TableCell>
-                        <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Access Name</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Add</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Edit</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>View</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Delete</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Export</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#08a3cd' }}>Import</TableCell>
+                      <TableRow sx={{ bgcolor: '#059669' }}>
+                        <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Menu Name</TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Access Name</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Add</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Edit</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>View</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Delete</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Export</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Import</TableCell>
                       </TableRow>
                     <TableBody>
                       {dialogPermissions.map((row: any, idx: number) => {

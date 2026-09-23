@@ -132,7 +132,7 @@ export default function AutoAllocateLogDetailsDialog({ open, onClose, logId }: P
             <DialogContent sx={{ my: 2.5, mx: 1.5 }}>
                 {loading ? (
                     <Box sx={{ py: 12, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <CircularProgress sx={{ color: '#08a3cd' }} />
+                        <CircularProgress sx={{ color: '#059669' }} />
                     </Box>
                 ) : !log ? (
                     <Box sx={{ py: 8, textAlign: 'center', color: 'text.secondary' }}>

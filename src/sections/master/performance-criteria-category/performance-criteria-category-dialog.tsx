@@ -144,7 +144,7 @@ export function PerformanceCriteriaCategoryDialog({ open, onClose, onSuccess, id
                     fullWidth
                     disabled={loading} 
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-                    sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                    sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                 >
                     {id ? 'Save Changes' : 'Create'}
                 </Button>

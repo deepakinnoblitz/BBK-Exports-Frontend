@@ -174,7 +174,7 @@ export function MetaAppsListView() {
                             variant="contained"
                             startIcon={<Iconify icon={"mingcute:add-line" as any} />}
                             onClick={handleCreateNew}
-                            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                         >
                             New Meta App
                         </Button>
@@ -293,7 +293,7 @@ export function MetaAppsListView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -373,9 +373,9 @@ export function MetaAppsListView() {
                                                         label={row.graph_api_version || 'v23.0'}
                                                         size="small"
                                                         sx={{
-                                                            bgcolor: alpha('#08a3cd', 0.1),
-                                                            color: '#08a3cd',
-                                                            border: `1px solid ${alpha('#08a3cd', 0.3)}`,
+                                                            bgcolor: alpha('#059669', 0.1),
+                                                            color: '#059669',
+                                                            border: `1px solid ${alpha('#059669', 0.3)}`,
                                                             fontWeight: 700,
                                                             fontSize: 11,
                                                             borderRadius: '6px',
@@ -454,9 +454,9 @@ export function MetaAppsListView() {
                                                             textTransform: 'uppercase',
                                                             ...(row.is_default
                                                                 ? {
-                                                                    bgcolor: alpha('#08a3cd', 0.12),
-                                                                    border: `1px solid ${alpha('#08a3cd', 0.35)}`,
-                                                                    color: '#08a3cd',
+                                                                    bgcolor: alpha('#059669', 0.12),
+                                                                    border: `1px solid ${alpha('#059669', 0.35)}`,
+                                                                    color: '#059669',
                                                                 }
                                                                 : {
                                                                     bgcolor: 'rgba(156, 163, 175, 0.15)',

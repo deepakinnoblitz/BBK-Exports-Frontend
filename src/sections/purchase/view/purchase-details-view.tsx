@@ -248,9 +248,9 @@ export function PurchaseDetailsView() {
                                 borderRadius: 1.5,
                                 fontWeight: 600,
                                 textTransform: 'none',
-                                bgcolor: '#08a3cd',
+                                bgcolor: '#059669',
                                 color: 'common.white',
-                                '&:hover': { bgcolor: '#068fb3' }
+                                '&:hover': { bgcolor: '#047857' }
                             }}
                         >
                             Edit Purchase
@@ -349,7 +349,7 @@ export function PurchaseDetailsView() {
                             <Stack spacing={2} sx={{ p: 2, borderRadius: 1.5, bgcolor: (theme) => alpha((balance_amount || 0) > 0 ? theme.palette.error.main : theme.palette.success.main, 0.04), border: (theme) => `1px solid ${alpha((balance_amount || 0) > 0 ? theme.palette.error.main : theme.palette.success.main, 0.12)}` }}>
                                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                                     <Stack direction="row" alignItems="center" spacing={1}>
-                                        <IoMdWallet size={18} style={{ color: '#08a3cd' }} />
+                                        <IoMdWallet size={18} style={{ color: '#059669' }} />
                                         <Typography variant="caption" color="text.secondary">Grand Total</Typography>
                                     </Stack>
                                     <Typography variant="subtitle1" color="primary.main">{renderCurrency(grand_total, '18px')}</Typography>
@@ -485,7 +485,7 @@ export function PurchaseDetailsView() {
                                                     },
                                                 }}
                                             >
-                                                <IoMdLink size={18} style={{ marginRight: 8, color: '#08a3cd' }} />
+                                                <IoMdLink size={18} style={{ marginRight: 8, color: '#059669' }} />
                                                 <Typography variant="body2" noWrap sx={{ flexGrow: 1, fontWeight: 'fontWeightMedium' }}>{file.name || file.url.split('/').pop()}</Typography>
                                                 <IoMdDownload size={16} style={{ marginLeft: 8, color: '#919EAB' }} />
                                             </Stack>
@@ -521,7 +521,7 @@ export function PurchaseDetailsView() {
                             <Divider sx={{ borderStyle: 'dashed' }} />
                             <Stack direction="row" justifyContent="space-between" alignItems="center">
                                 <Stack direction="row" alignItems="center" spacing={1.5}>
-                                    <IoMdWallet size={24} style={{ color: '#08a3cd' }} />
+                                    <IoMdWallet size={24} style={{ color: '#059669' }} />
                                     <Typography variant="subtitle1" sx={{ color: 'primary.main' }}>Grand Total</Typography>
                                 </Stack>
                                 <Typography variant="h6">{renderCurrency(grand_total, '20px')}</Typography>

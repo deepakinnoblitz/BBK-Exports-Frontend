@@ -173,9 +173,9 @@ export function HRDocumentTemplateListView() {
                         onClick={() => router.push('/hr-document-templates/new')}
                         sx={{
                             borderRadius: 1,
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
-                            '&:hover': { bgcolor: '#068fb3' },
+                            '&:hover': { bgcolor: '#047857' },
                         }}
                     >
                         New Template
@@ -210,7 +210,7 @@ export function HRDocumentTemplateListView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

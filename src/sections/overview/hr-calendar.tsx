@@ -3,13 +3,15 @@ import type { CardProps } from '@mui/material/Card';
 import listPlugin from '@fullcalendar/list';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import interactionPlugin from '@fullcalendar/interaction';
 
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
 import { alpha, useTheme } from '@mui/material/styles';
 import { Box, Stack, Button, IconButton, Typography } from '@mui/material';
+
+import { COMMON_COLORS } from 'src/theme';
 
 import { Iconify } from 'src/components/iconify';
 // ----------------------------------------------------------------------
@@ -219,10 +221,10 @@ export function HRCalendar({ title, subheader, events, onDateChange, ...other }:
                         padding: '8px',
                     },
                     '& .fc .fc-daygrid-day.fc-day-today': {
-                        bgcolor: alpha('#87CEEB', 0.15), // Light sky blue background for the cell
+                        bgcolor: COMMON_COLORS.emerald.lighter,
                         '& .fc-daygrid-day-number': {
-                            bgcolor: '#87CEEB', // Vibrant sky blue circle
-                            color: '#fff', // White number for contrast
+                            bgcolor: COMMON_COLORS.emerald.main,
+                            color: '#fff',
                             borderRadius: '50%',
                             width: 28,
                             height: 28,
@@ -233,8 +235,8 @@ export function HRCalendar({ title, subheader, events, onDateChange, ...other }:
                         },
                     },
                     '& .fc .fc-col-header-cell': {
-                        bgcolor: 'rgb(8 163 205)', // Sky blue background
-                        borderBottom: `2px solid ${alpha('#87CEEB', 0.4)}`,
+                        bgcolor: COMMON_COLORS.emerald.main,
+                        borderBottom: `2px solid ${COMMON_COLORS.emerald.dark}`,
                         py: 1.5,
                         '&:first-of-type': {
                             borderTopLeftRadius: 12,
@@ -408,14 +410,14 @@ export function HRCalendar({ title, subheader, events, onDateChange, ...other }:
                                         fontSize: '0.825rem',
                                         fontWeight: isActive ? 700 : 600,
                                         color: isActive ? '#fff' : theme.palette.text.secondary,
-                                        bgcolor: isActive ? '#08a3cd' : 'transparent',
-                                        boxShadow: isActive ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                                        bgcolor: isActive ? COMMON_COLORS.emerald.main : 'transparent',
+                                        boxShadow: isActive ? `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.3)}` : 'none',
                                         textTransform: 'capitalize',
                                         transition: theme.transitions.create(['background-color', 'color', 'box-shadow'], {
                                             duration: theme.transitions.duration.shorter,
                                         }),
                                         '&:hover': {
-                                            bgcolor: isActive ? '#08a3cd' : alpha(theme.palette.grey[500], 0.08),
+                                            bgcolor: isActive ? COMMON_COLORS.emerald.dark : alpha(theme.palette.grey[500], 0.08),
                                         }
                                     }}
                                 >

@@ -80,7 +80,7 @@ export function SalesTargetEntryDetailsDialog({ open, onClose, entry }: Props) {
                         height: 44,
                         borderRadius: 1.25,
                         bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-                        color: '#08a3cd',
+                        color: '#059669',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',

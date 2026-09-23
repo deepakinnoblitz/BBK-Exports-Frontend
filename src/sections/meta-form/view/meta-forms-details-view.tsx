@@ -100,7 +100,7 @@ export function MetaFormsDetailsView() {
     if (fetching) {
         return (
             <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-                <CircularProgress sx={{ color: '#08a3cd' }} />
+                <CircularProgress sx={{ color: '#059669' }} />
             </DashboardContent>
         );
     }
@@ -173,12 +173,12 @@ export function MetaFormsDetailsView() {
                             startIcon={<IoMdCreate size={20} />}
                             sx={{
                                 borderRadius: 1.5,
-                                bgcolor: '#08a3cd',
+                                bgcolor: '#059669',
                                 color: 'common.white',
                                 fontWeight: 600,
                                 textTransform: 'none',
                                 px: 2.5,
-                                '&:hover': { bgcolor: '#068fb3' }
+                                '&:hover': { bgcolor: '#047857' }
                             }}
                         >
                             Edit Form
@@ -192,7 +192,7 @@ export function MetaFormsDetailsView() {
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
                         <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary' }}>
-                            <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                            <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#059669' }} />
                             <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>
                                 Form settings
                             </Typography>
@@ -212,7 +212,7 @@ export function MetaFormsDetailsView() {
                 {/* Tracking Details */}
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary', mb: 3 }}>
-                        <Iconify icon={"solar:info-circle-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                        <Iconify icon={"solar:info-circle-bold" as any} width={18} sx={{ color: '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>
                             Campaign & Ad Info
                         </Typography>
@@ -230,7 +230,7 @@ export function MetaFormsDetailsView() {
                 {/* Field Mappings Grid */}
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary', mb: 3 }}>
-                        <Iconify icon={"solar:link-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                        <Iconify icon={"solar:link-bold" as any} width={18} sx={{ color: '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>
                             Field Mappings List
                         </Typography>
@@ -305,7 +305,7 @@ export function MetaFormsDetailsView() {
                 {/* Metadata */}
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary', mb: 3 }}>
-                        <Iconify icon={"solar:info-circle-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                        <Iconify icon={"solar:info-circle-bold" as any} width={18} sx={{ color: '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>
                             Record Information
                         </Typography>

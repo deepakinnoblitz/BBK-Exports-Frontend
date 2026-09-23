@@ -19,6 +19,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useShiftRoster } from 'src/hooks/use-shift-roster';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import { deleteOrCancelRosterAssignment } from 'src/api/shift-roster';
 
@@ -441,7 +442,7 @@ export function ShiftRosterListView({
                       onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                         handleSelectAllRows(event.target.checked)
                       }
-                      sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#08a3cd' }, '&.MuiCheckbox-indeterminate': { color: '#08a3cd' } }}
+                      sx={{ color: 'text.secondary', '&.Mui-checked': { color: COMMON_COLORS.emerald.main }, '&.MuiCheckbox-indeterminate': { color: COMMON_COLORS.emerald.main } }}
                     />
                   </TableCell>
                   <TableCell align="center" sx={{ fontWeight: 700, color: 'text.secondary', width: 50, px: 1 }}>
@@ -481,7 +482,7 @@ export function ShiftRosterListView({
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={11} align="center" sx={{ py: 10 }}>
-                      <CircularProgress sx={{ color: '#08a3cd' }} />
+                      <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                     </TableCell>
                   </TableRow>
                 ) : (

@@ -191,9 +191,9 @@ export function InvoiceListView({ hideHeader = false }: { hideHeader?: boolean }
                     onClick={handleCreateNew}
                     sx={{
                         ...(hideHeader && {
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
-                            '&:hover': { bgcolor: '#068fb3' }
+                            '&:hover': { bgcolor: '#047857' }
                         })
                     }}
                 >
@@ -235,7 +235,7 @@ export function InvoiceListView({ hideHeader = false }: { hideHeader?: boolean }
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

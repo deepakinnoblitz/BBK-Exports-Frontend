@@ -368,7 +368,7 @@ export function DealDetailsView() {
                                 textTransform: 'none',
                                 background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
                                 color: '#fff',
-                                '&:hover': { bgcolor: '#068fb3' }
+                                '&:hover': { bgcolor: '#047857' }
                             }}
                         >
                             Create Estimation

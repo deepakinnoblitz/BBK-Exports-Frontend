@@ -165,7 +165,7 @@ export function CallStatusDialog({ open, onClose, onSuccess, currentCallStatus }
           variant="contained"
           onClick={handleSubmit}
           disabled={loading}
-          sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+          sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
         >
           {loading ? (currentCallStatus ? 'Updating...' : 'Creating...') : (currentCallStatus ? 'Update' : 'Create')}
         </Button>

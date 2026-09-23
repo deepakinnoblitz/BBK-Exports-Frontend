@@ -190,7 +190,7 @@ export function TaxTypesDialog({ open, onClose, onSuccess, currentItem }: Props)
           variant="contained"
           onClick={handleSubmit}
           disabled={loading}
-          sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+          sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
         >
           {loading ? (currentItem ? 'Updating...' : 'Creating...') : (currentItem ? 'Update' : 'Create')}
         </Button>

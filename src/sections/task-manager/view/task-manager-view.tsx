@@ -278,11 +278,11 @@ export default function TaskManagerView() {
                                     },
                                     '&.Mui-selected': {
                                         color: '#fff !important',
-                                        bgcolor: '#08a3cd !important',
-                                        boxShadow: `0 2px 8px ${alpha('#08a3cd', 0.3)}`,
+                                        bgcolor: '#059669 !important',
+                                        boxShadow: `0 2px 8px ${alpha('#059669', 0.3)}`,
                                         fontWeight: 700,
                                         '&:hover': {
-                                            bgcolor: '#08a3cd !important',
+                                            bgcolor: '#059669 !important',
                                         },
                                     },
                                 },
@@ -303,7 +303,7 @@ export default function TaskManagerView() {
                                 variant="contained"
                                 startIcon={<Iconify icon="mingcute:add-line" />}
                                 onClick={() => setOpenForm(true)}
-                                sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                                sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                             >
                                 New Task
                             </Button>

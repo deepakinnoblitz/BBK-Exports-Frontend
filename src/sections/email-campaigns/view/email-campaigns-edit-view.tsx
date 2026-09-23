@@ -509,14 +509,14 @@ export function EmailCampaignsEditView() {
                     onClick={handlePreviewRecipients}
                     startIcon={<CiCalculator2 size={24} />}
                     sx={{
-                        background: 'linear-gradient(135deg,#08a3cd,#08a3cd)',
+                        background: 'linear-gradient(135deg,#059669,#059669)',
                         borderRadius: 3,
                         px: 2,
                         py: 0.6,
                         textTransform: 'none',
                         fontWeight: 600,
                         '&:hover': {
-                            background: 'linear-gradient(135deg,#08a3cd,#08a3cd)',
+                            background: 'linear-gradient(135deg,#059669,#059669)',
                             boxShadow: '0 8px 10px rgba(124,58,237,.25)',
                         },
                     }}
@@ -739,14 +739,14 @@ export function EmailCampaignsEditView() {
                     }
                     onClick={handleAddFilter}
                     sx={{
-                        background: 'linear-gradient(135deg,#08a3cd,#08a3cd)',
+                        background: 'linear-gradient(135deg,#059669,#059669)',
                         borderRadius: 3,
                         px: 1.5,
                         py: 0.6,
                         textTransform: 'none',
                         fontWeight: 600,
                         '&:hover': {
-                            background: 'linear-gradient(135deg,#08a3cd,#08a3cd)',
+                            background: 'linear-gradient(135deg,#059669,#059669)',
                             boxShadow: '0 8px 10px rgba(124,58,237,.25)',
                         },
                     }}

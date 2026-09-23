@@ -415,7 +415,7 @@ export function HolidaysView() {
                         variant="contained"
                         startIcon={<Iconify icon="mingcute:add-line" />}
                         onClick={handleOpenCreate}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         New Holiday List
                     </Button>

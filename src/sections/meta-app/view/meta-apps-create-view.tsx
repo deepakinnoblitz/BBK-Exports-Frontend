@@ -41,7 +41,7 @@ export const CustomSwitch = styled((props: SwitchProps) => (
             transform: 'translateX(18px)',
             color: '#fff',
             '& + .MuiSwitch-track': {
-                backgroundColor: '#08a3cd', // Match the #08a3cd theme color
+                backgroundColor: '#059669', // Match the #059669 theme color
                 opacity: 1,
                 border: 0,
             },
@@ -151,7 +151,7 @@ export function MetaAppsCreateView() {
                         variant="contained"
                         onClick={handleSave}
                         loading={isSaving}
-                        sx={{ borderRadius: 1.5, bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ borderRadius: 1.5, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         Save Meta App
                     </LoadingButton>
@@ -285,7 +285,7 @@ export function MetaAppsCreateView() {
                     <Divider />
 
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary' }}>
-                        <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                        <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>
                             Configuration
                         </Typography>

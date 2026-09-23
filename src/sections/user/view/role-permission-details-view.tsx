@@ -168,12 +168,12 @@ export function RolePermissionDetailsView({ name, onBack, onEdit }: RolePermissi
                         onClick={handleGoEdit}
                         sx={{
                             borderRadius: 1.5,
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
                             textTransform: 'none',
                             fontWeight: 600,
                             px: 2.5,
-                            '&:hover': { bgcolor: '#068fb3' }
+                            '&:hover': { bgcolor: '#047857' }
                         }}
                     >
                         Edit Details
@@ -212,7 +212,7 @@ export function RolePermissionDetailsView({ name, onBack, onEdit }: RolePermissi
                         <TableContainer sx={{ border: '1px solid rgba(224, 224, 224, 1)', borderRadius: 1 }}>
                             <Scrollbar>
                                 <Table size="medium">
-                                    <TableRow sx={{ bgcolor: '#08a3cd' }}>
+                                    <TableRow sx={{ bgcolor: '#059669' }}>
                                         <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)' }}>Menu Name</TableCell>
                                         <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)' }}>Access Name</TableCell>
                                         <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)' }}>Add</TableCell>

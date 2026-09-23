@@ -202,9 +202,9 @@ export function HRDocumentGenerationListView() {
                     onClick={() => router.push('/hr-document-generation/new')}
                     sx={{
                         borderRadius: 1,
-                        bgcolor: '#08a3cd',
+                        bgcolor: '#059669',
                         color: 'common.white',
-                        '&:hover': { bgcolor: '#068fb3' },
+                        '&:hover': { bgcolor: '#047857' },
                     }}
                 >
                     New Document
@@ -237,7 +237,7 @@ export function HRDocumentGenerationListView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

@@ -107,7 +107,7 @@ export function MetaWebhookLogDetailsView() {
     if (fetching) {
         return (
             <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-                <CircularProgress sx={{ color: '#08a3cd' }} />
+                <CircularProgress sx={{ color: '#059669' }} />
             </DashboardContent>
         );
     }
@@ -159,7 +159,7 @@ export function MetaWebhookLogDetailsView() {
                 {/* Summary */}
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" spacing={1} mb={3} sx={{ color: 'text.secondary' }}>
-                        <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                        <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>Summary</Typography>
                     </Stack>
                     <Box sx={{ display: 'grid', columnGap: 4, rowGap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' } }}>
@@ -175,7 +175,7 @@ export function MetaWebhookLogDetailsView() {
                 {/* Payload & Headers */}
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" spacing={1} mb={3} sx={{ color: 'text.secondary' }}>
-                        <Iconify icon={"solar:letter-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                        <Iconify icon={"solar:letter-bold" as any} width={18} sx={{ color: '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>Request Details</Typography>
                     </Stack>
                     <Stack spacing={3}>
@@ -187,7 +187,7 @@ export function MetaWebhookLogDetailsView() {
                 {/* Response */}
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" spacing={1} mb={3} sx={{ color: 'text.secondary' }}>
-                        <Iconify icon={"solar:chat-round-dots-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                        <Iconify icon={"solar:chat-round-dots-bold" as any} width={18} sx={{ color: '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>Response</Typography>
                     </Stack>
                     <JsonBlock label="Response Body" value={log.response} />

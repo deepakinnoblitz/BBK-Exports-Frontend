@@ -139,7 +139,7 @@ export function WhatsAppTemplateCategoryDialog({ open, onClose, onSuccess, curre
           variant="contained"
           onClick={handleSubmit}
           disabled={loading}
-          sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+          sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
         >
           {loading ? (currentCategory ? 'Updating...' : 'Creating...') : (currentCategory ? 'Update' : 'Create')}
         </Button>

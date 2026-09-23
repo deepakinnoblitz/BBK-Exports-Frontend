@@ -166,7 +166,7 @@ export function SettingsBiometric({ data, onChange, onRefresh }: Props) {
             variant="body2"
             sx={{
               fontWeight: 700,
-              color: isEnabled ? '#08a3cd' : 'text.secondary',
+              color: isEnabled ? '#059669' : 'text.secondary',
             }}
           >
             {isEnabled ? 'Enabled' : 'Disabled'}
@@ -544,8 +544,8 @@ export function SettingsBiometric({ data, onChange, onRefresh }: Props) {
                     )
                   }
                   sx={{
-                    bgcolor: '#08a3cd',
-                    '&:hover': { bgcolor: '#068fb3' },
+                    bgcolor: '#059669',
+                    '&:hover': { bgcolor: '#047857' },
                     borderRadius: 1,
                     textTransform: 'none',
                     fontWeight: 600,

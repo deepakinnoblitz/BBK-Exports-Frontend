@@ -9,13 +9,13 @@ import Badge from '@mui/material/Badge';
 import Button from '@mui/material/Button';
 import Select from '@mui/material/Select';
 import Tooltip from '@mui/material/Tooltip';
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TextField from '@mui/material/TextField';
-import { useTheme } from '@mui/material/styles';
 import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -311,7 +311,7 @@ export function ShiftRosterMonthlyView({
                 '& .MuiOutlinedInput-input': { py: 0, fontSize: '0.875rem' },
                 '& fieldset': { borderColor: 'divider' },
                 '&:hover fieldset': { borderColor: 'text.secondary' },
-                '&.Mui-focused fieldset': { borderColor: '#08a3cd' },
+                '&.Mui-focused fieldset': { borderColor: COMMON_COLORS.emerald.main },
               }}
             />
           </Stack>
@@ -334,7 +334,7 @@ export function ShiftRosterMonthlyView({
                 variant="text"
                 size="small"
                 onClick={handleToday}
-                sx={{ fontWeight: 700, color: '#08a3cd', px: 1 }}
+                sx={{ fontWeight: 700, color: COMMON_COLORS.emerald.main, px: 1 }}
               >
                 Current Month
               </Button>
@@ -426,7 +426,7 @@ export function ShiftRosterMonthlyView({
                 variant="text"
                 size="small"
                 onClick={handleToday}
-                sx={{ fontWeight: 700, color: '#08a3cd', px: 1 }}
+                sx={{ fontWeight: 700, color: '#059669', px: 1 }}
               >
                 Current Month
               </Button>
@@ -669,8 +669,8 @@ export function ShiftRosterMonthlyView({
                         px: 0.5,
                         minWidth: 42,
                         maxWidth: 42,
-                        bgcolor: isToday ? '#08a3cd15' : undefined,
-                        color: isToday ? '#08a3cd' : d.is_weekend ? 'text.secondary' : 'text.primary',
+                        bgcolor: isToday ? alpha(COMMON_COLORS.emerald.main, 0.08) : undefined,
+                        color: isToday ? COMMON_COLORS.emerald.main : d.is_weekend ? 'text.secondary' : 'text.primary',
                         borderRight: (t) => `1px solid ${t.palette.divider}`,
                         borderBottom: (t) => `1px solid ${t.palette.divider}`,
                       }}
@@ -691,7 +691,7 @@ export function ShiftRosterMonthlyView({
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={(data?.days?.length || 0) + 1} align="center" sx={{ py: 10 }}>
-                    <CircularProgress sx={{ color: '#08a3cd' }} />
+                    <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                   </TableCell>
                 </TableRow>
               ) : filteredEmployees.length === 0 ? (
@@ -773,7 +773,7 @@ export function ShiftRosterMonthlyView({
                             cursor: canEdit ? 'pointer' : 'default',
                             transition: 'background-color 0.15s ease',
                             '&:hover': {
-                              bgcolor: '#08a3cd15',
+                              bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
                             },
                           }}
                         >

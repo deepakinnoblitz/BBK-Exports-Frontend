@@ -66,7 +66,7 @@ export const CustomSwitch = styled((props: SwitchProps) => (
             transform: 'translateX(16px)',
             color: '#fff',
             '& + .MuiSwitch-track': {
-                backgroundColor: '#08a3cd',
+                backgroundColor: '#059669',
                 opacity: 1,
                 border: 0,
             },
@@ -75,7 +75,7 @@ export const CustomSwitch = styled((props: SwitchProps) => (
             },
         },
         '&.Mui-focusVisible .MuiSwitch-thumb': {
-            color: '#08a3cd',
+            color: '#059669',
             border: '6px solid #fff',
         },
         '&.Mui-disabled .MuiSwitch-thumb': {
@@ -337,7 +337,7 @@ export function AnnouncementsView() {
                         variant="contained"
                         startIcon={<Iconify icon="mingcute:add-line" />}
                         onClick={handleOpenCreate}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         New Announcement
                     </Button>
@@ -381,7 +381,7 @@ export function AnnouncementsView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

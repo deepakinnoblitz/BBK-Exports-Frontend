@@ -157,7 +157,7 @@ export function MetaPagesDetailsView() {
     if (fetching) {
         return (
             <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-                <CircularProgress sx={{ color: '#08a3cd' }} />
+                <CircularProgress sx={{ color: '#059669' }} />
             </DashboardContent>
         );
     }
@@ -253,7 +253,7 @@ export function MetaPagesDetailsView() {
                             variant="contained"
                             onClick={() => navigate(`/lead-integration/meta-pages/${encodeURIComponent(id || '')}/edit`)}
                             startIcon={<IoMdCreate size={20} />}
-                            sx={{ borderRadius: 1.5, fontWeight: 600, textTransform: 'none', bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                            sx={{ borderRadius: 1.5, fontWeight: 600, textTransform: 'none', bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                         >
                             Edit
                         </Button>
@@ -324,13 +324,13 @@ export function MetaPagesDetailsView() {
                                             onClick={() => handleOpenVerification('page')}
                                             startIcon={<Iconify icon="solar:eye-bold" />}
                                             sx={{
-                                                bgcolor: '#08a3cd',
+                                                bgcolor: '#059669',
                                                 color: '#ffffffff',
                                                 fontWeight: 700,
                                                 borderRadius: 1,
                                                 textTransform: 'none',
                                                 '&:hover': {
-                                                    bgcolor: '#08a3cd',
+                                                    bgcolor: '#059669',
                                                 }
                                             }}
                                         >
@@ -343,7 +343,7 @@ export function MetaPagesDetailsView() {
                                                 navigator.clipboard.writeText(page.page_access_token || '');
                                                 enqueueSnackbar('Page Access Token copied to clipboard!', { variant: 'success' });
                                             }}
-                                            sx={{ color: '#08a3cd' }}
+                                            sx={{ color: '#059669' }}
                                             title="Copy Token"
                                         >
                                             <Iconify icon={"solar:copy-bold" as any} width={16} />
@@ -383,13 +383,13 @@ export function MetaPagesDetailsView() {
                                                 onClick={() => handleOpenVerification('long')}
                                                 startIcon={<Iconify icon="solar:eye-bold" />}
                                                 sx={{
-                                                    bgcolor: alpha('#08a3cd', 0.08),
-                                                    color: '#08a3cd',
+                                                    bgcolor: alpha('#059669', 0.08),
+                                                    color: '#059669',
                                                     fontWeight: 700,
                                                     borderRadius: 1,
                                                     textTransform: 'none',
                                                     '&:hover': {
-                                                        bgcolor: alpha('#08a3cd', 0.16),
+                                                        bgcolor: alpha('#059669', 0.16),
                                                     }
                                                 }}
                                             >
@@ -402,7 +402,7 @@ export function MetaPagesDetailsView() {
                                                     navigator.clipboard.writeText(page.long_lived_token || '');
                                                     enqueueSnackbar('Long-lived Token copied to clipboard!', { variant: 'success' });
                                                 }}
-                                                sx={{ color: '#08a3cd' }}
+                                                sx={{ color: '#059669' }}
                                                 title="Copy Token"
                                             >
                                                 <Iconify icon={"solar:copy-bold" as any} width={16} />
@@ -458,7 +458,7 @@ export function MetaPagesDetailsView() {
                         loading={isValidating}
                         onClick={handleVerifyPassword}
                         variant="contained"
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         Verify
                     </LoadingButton>

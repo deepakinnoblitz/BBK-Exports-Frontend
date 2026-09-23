@@ -167,7 +167,7 @@ export function EmailTemplateListView() {
                             variant="contained"
                             startIcon={<Iconify icon={"mingcute:add-line" as any} />}
                             onClick={handleCreateNew}
-                            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                         >
                             New Template
                         </Button>
@@ -201,7 +201,7 @@ export function EmailTemplateListView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

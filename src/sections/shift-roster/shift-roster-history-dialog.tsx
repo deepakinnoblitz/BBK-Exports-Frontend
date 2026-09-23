@@ -18,6 +18,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { COMMON_COLORS } from 'src/theme';
 import { fetchRosterHistory } from 'src/api/shift-roster';
 
 import { Label } from 'src/components/label';
@@ -123,7 +124,7 @@ export function ShiftRosterHistoryDialog({ open, onClose, rosterId, employee }: 
       <DialogContent sx={{ p: 3, mt: 1 }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress sx={{ color: '#08a3cd' }} />
+            <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
           </Box>
         ) : historyList.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>

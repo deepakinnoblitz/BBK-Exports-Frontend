@@ -267,7 +267,7 @@ export function ShiftRotationDialog({ open, onClose, onSuccess, editName }: Prop
         <DialogContent dividers sx={{ p: 3 }}>
           {loadingDoc ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress sx={{ color: '#08a3cd' }} />
+              <CircularProgress sx={{ color: '#059669' }} />
             </Box>
           ) : (
             <Stack spacing={3} sx={{ py: 1 }}>

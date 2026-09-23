@@ -51,7 +51,7 @@ export const CustomSwitch = styled((props: SwitchProps) => (
             transform: 'translateX(16px)',
             color: '#fff',
             '& + .MuiSwitch-track': {
-                backgroundColor: '#08a3cd',
+                backgroundColor: '#059669',
                 opacity: 1,
                 border: 0,
             },
@@ -60,7 +60,7 @@ export const CustomSwitch = styled((props: SwitchProps) => (
             },
         },
         '&.Mui-focusVisible .MuiSwitch-thumb': {
-            color: '#08a3cd',
+            color: '#059669',
             border: '6px solid #fff',
         },
         '&.Mui-disabled .MuiSwitch-thumb': {
@@ -318,7 +318,7 @@ export function WhatsAppSettingsView() {
                             <Button
                                 variant="contained"
                                 onClick={handleSave}
-                                sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' }, borderRadius: 1.5 }}
+                                sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' }, borderRadius: 1.5 }}
                             >
                                 Save Settings
                             </Button>
@@ -430,7 +430,7 @@ export function WhatsAppSettingsView() {
                                                     }}
                                                     edge="end"
                                                 >
-                                                    <MdContentCopy size={18} color="#08a3cd" />
+                                                    <MdContentCopy size={18} color="#059669" />
                                                 </IconButton>
                                             </InputAdornment>
                                         ),
@@ -655,7 +655,7 @@ export function WhatsAppSettingsView() {
                                 variant="outlined"
                                 onClick={() => fileInputRef.current?.click()}
                                 startIcon={<Iconify icon="solar:upload-bold" />}
-                                sx={{ color: '#08a3cd', borderColor: '#08a3cd', '&:hover': { borderColor: '#068fb3', bgcolor: 'rgba(8, 163, 205, 0.04)' } }}
+                                sx={{ color: '#059669', borderColor: '#059669', '&:hover': { borderColor: '#047857', bgcolor: 'rgba(8, 163, 205, 0.04)' } }}
                             >
                                 Upload File
                             </Button>
@@ -668,7 +668,7 @@ export function WhatsAppSettingsView() {
                         onClick={handleSend}
                         variant="contained"
                         disabled={sendingMessage || uploadingFile}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         {sendingMessage ? 'Sending...' : 'Send'}
                     </Button>

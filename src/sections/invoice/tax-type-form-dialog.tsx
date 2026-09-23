@@ -117,7 +117,7 @@ export function TaxTypeFormDialog({ open, onClose, onSuccess, initialName = '' }
             </DialogContent>
 
             <DialogActions>
-                <Button onClick={handleSubmit} variant="contained" disabled={loading} sx={{fontWeight: 600, textTransform: 'none', bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}>
+                <Button onClick={handleSubmit} variant="contained" disabled={loading} sx={{fontWeight: 600, textTransform: 'none', bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}>
                     {loading ? <CircularProgress size={24} /> : 'Create'}
                 </Button>
             </DialogActions>

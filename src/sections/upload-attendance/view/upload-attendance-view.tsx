@@ -194,7 +194,7 @@ export function UploadAttendanceView() {
                     variant="contained"
                     startIcon={<Iconify icon="mingcute:add-line" />}
                     onClick={handleNewRecord}
-                    sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                    sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                 >
                     Upload Attendance
                 </Button>
@@ -238,7 +238,7 @@ export function UploadAttendanceView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

@@ -196,7 +196,7 @@ export function UploadAttendanceFormDialog({ open, onClose, onSubmit, currentDat
                     variant="contained"
                     onClick={handleSubmit}
                     disabled={uploading || !uploadDate}
-                    sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}
+                    sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
                 >
                     {uploading ? 'Saving...' : 'Save'}
                 </Button>

@@ -340,9 +340,9 @@ export function EmailTemplateCreateView() {
                         loading={isSaving}
                         sx={{
                             borderRadius: 1.5,
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
-                            '&:hover': { bgcolor: '#068fb3' },
+                            '&:hover': { bgcolor: '#047857' },
                         }}
                     >
                         Save Template
@@ -607,15 +607,15 @@ export function EmailTemplateCreateView() {
                                                 fontWeight: 600,
                                                 ...( !isHtmlModeEmail
                                                     ? {
-                                                        bgcolor: '#08a3cd',
+                                                        bgcolor: '#059669',
                                                         color: 'common.white',
                                                         '&:hover': {
-                                                            bgcolor: '#068fb3',
+                                                            bgcolor: '#047857',
                                                         },
                                                     }
-                                                    : { bgcolor: 'transparent', color: '#08a3cd', borderColor: '#08a3cd',
+                                                    : { bgcolor: 'transparent', color: '#059669', borderColor: '#059669',
                                                         '&:hover': {
-                                                            borderColor: '#068fb3',
+                                                            borderColor: '#047857',
                                                             bgcolor: 'rgba(8, 163, 205, 0.08)',
                                                         },
                                                     }),
@@ -634,15 +634,15 @@ export function EmailTemplateCreateView() {
                                                 fontWeight: 600,
                                                 ...(isHtmlModeEmail
                                                     ? {
-                                                        bgcolor: '#08a3cd',
+                                                        bgcolor: '#059669',
                                                         color: 'common.white',
                                                         '&:hover': {
-                                                            bgcolor: '#068fb3',
+                                                            bgcolor: '#047857',
                                                         },
                                                     }
-                                                    : { bgcolor: 'transparent', color: '#08a3cd', borderColor: '#08a3cd',
+                                                    : { bgcolor: 'transparent', color: '#059669', borderColor: '#059669',
                                                         '&:hover': {
-                                                            borderColor: '#068fb3',
+                                                            borderColor: '#047857',
                                                             bgcolor: 'rgba(8, 163, 205, 0.08)',
                                                         },
                                                     }),
@@ -704,15 +704,15 @@ export function EmailTemplateCreateView() {
                                                 fontWeight: 600,
                                                 ...( !isHtmlModeFooter
                                                     ? {
-                                                        bgcolor: '#08a3cd',
+                                                        bgcolor: '#059669',
                                                         color: 'common.white',
                                                         '&:hover': {
-                                                            bgcolor: '#068fb3',
+                                                            bgcolor: '#047857',
                                                         },
                                                     }
-                                                    : { bgcolor: 'transparent', color: '#08a3cd', borderColor: '#08a3cd',
+                                                    : { bgcolor: 'transparent', color: '#059669', borderColor: '#059669',
                                                         '&:hover': {
-                                                            borderColor: '#068fb3',
+                                                            borderColor: '#047857',
                                                             bgcolor: 'rgba(8, 163, 205, 0.08)',
                                                         },
                                                     }),
@@ -731,15 +731,15 @@ export function EmailTemplateCreateView() {
                                                 fontWeight: 600,
                                                 ...(isHtmlModeFooter
                                                     ? {
-                                                        bgcolor: '#08a3cd',
+                                                        bgcolor: '#059669',
                                                         color: 'common.white',
                                                         '&:hover': {
-                                                            bgcolor: '#068fb3',
+                                                            bgcolor: '#047857',
                                                         },
                                                     }
-                                                    : { bgcolor: 'transparent', color: '#08a3cd', borderColor: '#08a3cd',
+                                                    : { bgcolor: 'transparent', color: '#059669', borderColor: '#059669',
                                                         '&:hover': {
-                                                            borderColor: '#068fb3',
+                                                            borderColor: '#047857',
                                                             bgcolor: 'rgba(8, 163, 205, 0.08)',
                                                         },
                                                     }),
@@ -791,7 +791,7 @@ export function EmailTemplateCreateView() {
                             <Button
                                 variant="contained"
                                 component="label"
-                                sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                                sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                                 size="small"
                                 startIcon={<Iconify icon={"solar:upload-bold" as any} />}
                                 disabled={uploading}
@@ -934,7 +934,7 @@ export function EmailTemplateCreateView() {
                                             </Box>
                                         }
                                         endIcon={
-                                            <MdContentCopy size={16} color='#08a3cd' />
+                                            <MdContentCopy size={16} color='#059669' />
                                         }
                                         onClick={() => handleCopyVariable(item.variable)}
                                         sx={{
@@ -1076,10 +1076,10 @@ export function EmailTemplateCreateView() {
                         onClick={handleCreateCategorySubmit}
                         disabled={creatingCategory || !newCategoryName.trim()}
                         sx={{
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
                             '&:hover': {
-                                bgcolor: '#068fb3',
+                                bgcolor: '#047857',
                             },
                             borderRadius: 1,
                         }}

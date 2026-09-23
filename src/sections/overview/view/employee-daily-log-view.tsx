@@ -256,7 +256,7 @@ export function EmployeeDailyLogView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={12} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

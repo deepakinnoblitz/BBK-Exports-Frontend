@@ -248,7 +248,7 @@ export function AttendanceSyncDialog({ open, onClose, onSuccess }: Props) {
               variant="contained"
               size="large"
               onClick={handleClose}
-              sx={{ bgcolor: '#08a3cd', color: 'common.white', fontWeight: 700, '&:hover': { bgcolor: '#068fb3' } }}
+              sx={{ bgcolor: '#059669', color: 'common.white', fontWeight: 700, '&:hover': { bgcolor: '#047857' } }}
             >
               Done & Refresh Attendance
             </Button>
@@ -273,7 +273,7 @@ export function AttendanceSyncDialog({ open, onClose, onSuccess }: Props) {
           <DialogContent sx={{ px: 3, py: 3 }}>
             {loading ? (
               <Box sx={{ py: 6, textAlign: 'center' }}>
-                <CircularProgress size={48} sx={{ color: '#08a3cd', mb: 2.5 }} />
+                <CircularProgress size={48} sx={{ color: '#059669', mb: 2.5 }} />
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
                   Syncing Biometric Logs...
                 </Typography>
@@ -324,11 +324,11 @@ export function AttendanceSyncDialog({ open, onClose, onSuccess }: Props) {
                             transition: (theme) => theme.transitions.create(['all'], { duration: theme.transitions.duration.shorter }),
                             ...(preset.selected
                               ? {
-                                  bgcolor: '#08a3cd',
+                                  bgcolor: '#059669',
                                   color: 'common.white',
                                   boxShadow: '0 2px 8px 0 rgba(8, 163, 205, 0.35)',
                                   '&:hover': {
-                                    bgcolor: '#068fb3',
+                                    bgcolor: '#047857',
                                   },
                                 }
                               : {
@@ -389,7 +389,7 @@ export function AttendanceSyncDialog({ open, onClose, onSuccess }: Props) {
               onClick={handleStartSync}
               disabled={loading}
               startIcon={<Iconify icon={"solar:restart-bold" as any} />}
-              sx={{ bgcolor: '#08a3cd', color: 'common.white', fontWeight: 700, '&:hover': { bgcolor: '#068fb3' } }}
+              sx={{ bgcolor: '#059669', color: 'common.white', fontWeight: 700, '&:hover': { bgcolor: '#047857' } }}
             >
               Sync Now
             </Button>

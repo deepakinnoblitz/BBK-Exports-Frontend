@@ -48,7 +48,7 @@ function renderErrorMessage(error: any) {
           <Iconify
             icon={"solar:restart-square-bold-duotone" as any}
             width={120}
-            sx={{ mb: 3, color: '#08a3cd', opacity: 0.8 }}
+            sx={{ mb: 3, color: '#059669', opacity: 0.8 }}
           />
 
           <Typography variant="h3" sx={{ mb: 2, fontWeight: 800 }}>
@@ -68,8 +68,8 @@ function renderErrorMessage(error: any) {
               startIcon={<Iconify icon={"solar:refresh-bold" as any} />}
               sx={{
                 px: 5,
-                bgcolor: '#08a3cd',
-                '&:hover': { bgcolor: '#068fb3' },
+                bgcolor: '#059669',
+                '&:hover': { bgcolor: '#047857' },
                 boxShadow: `0 8px 16px rgba(8, 163, 205, 0.24)`
               }}
             >
@@ -102,7 +102,7 @@ function renderErrorMessage(error: any) {
             />
           <Typography variant="h3" sx={{ mb: 2 }}>{error.status}: {error.statusText}</Typography>
           <Typography sx={{ color: 'text.secondary', mb: 4 }}>{error.data}</Typography>
-          <Button component={RouterLink} href="/" variant="contained" size="large" sx={{ bgcolor: '#08a3cd' }}>
+          <Button component={RouterLink} href="/" variant="contained" size="large" sx={{ bgcolor: '#059669' }}>
             Go to Home
           </Button>
         </Box>
@@ -139,7 +139,7 @@ function renderErrorMessage(error: any) {
               size="large"
               onClick={() => window.location.reload()}
               startIcon={<Iconify icon={"solar:refresh-bold" as any} />}
-              sx={{ px: 4, bgcolor: '#08a3cd' }}
+              sx={{ px: 4, bgcolor: '#059669' }}
             >
               Try Again
             </Button>
@@ -156,7 +156,7 @@ function renderErrorMessage(error: any) {
     <Container className={errorBoundaryClasses.container}>
        <Box sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h3">Something went wrong</Typography>
-          <Button component={RouterLink} href="/" variant="contained" sx={{ mt: 4, bgcolor: '#08a3cd' }}>
+          <Button component={RouterLink} href="/" variant="contained" sx={{ mt: 4, bgcolor: '#059669' }}>
               Go to Home
           </Button>
        </Box>
@@ -176,7 +176,7 @@ const globalStyles = (theme: Theme) => {
   // Safe fallbacks for colors
   const bgColor = theme.palette.background.default || (isDark ? '#161c24' : '#ffffff');
   const paperColor = theme.palette.background.paper || (isDark ? '#212b36' : '#ffffff');
-  const primaryColor = '#08a3cd';
+  const primaryColor = '#059669';
 
   return {
     [`& .${errorBoundaryClasses.root}`]: {
@@ -201,7 +201,7 @@ const globalStyles = (theme: Theme) => {
         left: 0,
         right: 0,
         height: 6,
-        background: `linear-gradient(90deg, ${primaryColor} 0%, #068fb3 100%)`,
+        background: `linear-gradient(90deg, ${primaryColor} 0%, #047857 100%)`,
       }
     },
     [`& .${errorBoundaryClasses.details}`]: {

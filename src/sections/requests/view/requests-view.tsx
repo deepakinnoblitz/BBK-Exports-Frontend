@@ -451,7 +451,7 @@ export function RequestsView() {
             variant="contained"
             startIcon={<Iconify icon="mingcute:add-line" />}
             onClick={handleOpenCreate}
-            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
           >
             New Request
           </Button>
@@ -706,7 +706,7 @@ export function RequestsView() {
             onClick={handleCreate}
             variant="contained"
             disabled={submitting}
-            sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
           >
             {submitting ? 'Submitting...' : (isEdit ? 'Update' : 'Submit')}
           </Button>

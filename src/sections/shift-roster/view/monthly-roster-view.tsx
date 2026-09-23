@@ -12,6 +12,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 
 import { useShiftRoster } from 'src/hooks/use-shift-roster';
 
+import { COMMON_COLORS } from 'src/theme';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
@@ -245,12 +246,12 @@ export function MonthlyRosterView() {
                       fontSize: '0.825rem',
                       fontWeight: isActive ? 700 : 600,
                       color: isActive ? '#fff' : theme.palette.text.secondary,
-                      bgcolor: isActive ? '#08a3cd' : 'transparent',
-                      boxShadow: isActive ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                      bgcolor: isActive ? COMMON_COLORS.emerald.main : 'transparent',
+                      boxShadow: isActive ? `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.3)}` : 'none',
                       textTransform: 'capitalize',
                       transition: 'all 0.2s ease-in-out',
                       '&:hover': {
-                        bgcolor: isActive ? '#08a3cd' : alpha(theme.palette.grey[500], 0.08),
+                        bgcolor: isActive ? COMMON_COLORS.emerald.dark : alpha(theme.palette.grey[500], 0.08),
                       },
                     }}
                   >

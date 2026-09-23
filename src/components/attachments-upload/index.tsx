@@ -50,7 +50,7 @@ export function AttachmentsUpload({
         <Button
           variant="contained"
           component="label"
-          sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+          sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
           color="primary"
           size="small"
           startIcon={<Iconify icon={"solar:upload-bold" as any} />}

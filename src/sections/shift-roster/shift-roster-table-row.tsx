@@ -12,6 +12,8 @@ import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 
+import { COMMON_COLORS } from 'src/theme';
+
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
@@ -97,7 +99,7 @@ export function ShiftRosterTableRow({
         <Checkbox
           checked={selected}
           onClick={onSelectRow}
-          sx={{ color: 'text.secondary', '&.Mui-checked': { color: '#08a3cd' } }}
+          sx={{ color: 'text.secondary', '&.Mui-checked': { color: COMMON_COLORS.emerald.main } }}
         />
       </TableCell>
       {typeof index === 'number' && (
@@ -162,7 +164,7 @@ export function ShiftRosterTableRow({
               width: 8,
               height: 8,
               borderRadius: '50%',
-              bgcolor: '#08a3cd',
+              bgcolor: COMMON_COLORS.emerald.main,
               flexShrink: 0,
             }}
           />

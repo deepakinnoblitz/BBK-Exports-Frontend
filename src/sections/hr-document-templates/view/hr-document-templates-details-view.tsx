@@ -52,7 +52,7 @@ export function HRDocumentTemplateDetailsView({ id }: Props) {
         return (
             <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 15 }}>
-                    <CircularProgress sx={{ color: '#08a3cd' }} />
+                    <CircularProgress sx={{ color: '#059669' }} />
                 </Box>
             </DashboardContent>
         );
@@ -103,9 +103,9 @@ export function HRDocumentTemplateDetailsView({ id }: Props) {
                                 borderRadius: 1.5,
                                 fontWeight: 600,
                                 textTransform: 'none',
-                                bgcolor: '#08a3cd',
+                                bgcolor: '#059669',
                                 color: 'common.white',
-                                '&:hover': { bgcolor: '#068fb3' },
+                                '&:hover': { bgcolor: '#047857' },
                             }}
                         >
                             Edit

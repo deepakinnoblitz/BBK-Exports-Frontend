@@ -730,7 +730,7 @@ export default function CallDialog({ open, onClose, selectedCall, initialData, o
                                         setSelectedNote(null);
                                         setOpenNoteDialog(true);
                                     }}
-                                    sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' }, borderRadius: 2 }}
+                                    sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' }, borderRadius: 2 }}
                                 >
                                     Add Note
                                 </Button>
@@ -880,7 +880,7 @@ export default function CallDialog({ open, onClose, selectedCall, initialData, o
                         variant="contained"
                         onClick={handleCreateCallStatusSubmit}
                         disabled={creatingCallStatus || !newCallStatusName.trim()}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         {creatingCallStatus ? 'Creating...' : 'Create'}
                     </Button>

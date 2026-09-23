@@ -69,7 +69,7 @@ export function HRDocumentCategoryDetailsDialog({ open, onClose, id }: Props) {
             <DialogContent dividers>
                 {loading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
-                        <CircularProgress sx={{ color: '#08a3cd' }} />
+                        <CircularProgress sx={{ color: '#059669' }} />
                     </Box>
                 ) : category ? (
                     <Stack spacing={2.5} sx={{ py: 1 }}>

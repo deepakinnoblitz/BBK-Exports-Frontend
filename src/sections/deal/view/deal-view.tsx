@@ -709,11 +709,11 @@ export function DealView() {
                                             typography: 'subtitle2',
                                             fontWeight: 700,
                                             color: DealviewMode === 'deallist' ? 'common.white' : 'text.secondary',
-                                            bgcolor: DealviewMode === 'deallist' ? '#08a3cd' : 'transparent',
+                                            bgcolor: DealviewMode === 'deallist' ? '#059669' : 'transparent',
                                             boxShadow: DealviewMode === 'deallist' ? '0px 4px 10px rgba(8, 163, 205, 0.24)' : 'none',
                                             transition: 'all 0.2s',
                                             '&:hover': {
-                                                bgcolor: DealviewMode === 'deallist' ? '#068fb3' : 'rgba(145, 158, 171, 0.08)',
+                                                bgcolor: DealviewMode === 'deallist' ? '#047857' : 'rgba(145, 158, 171, 0.08)',
                                                 color: DealviewMode === 'deallist' ? 'common.white' : 'text.primary',
                                             }
                                         }}
@@ -731,11 +731,11 @@ export function DealView() {
                                             typography: 'subtitle2',
                                             fontWeight: 700,
                                             color: DealviewMode === 'dealkanban' ? 'common.white' : 'text.secondary',
-                                            bgcolor: DealviewMode === 'dealkanban' ? '#08a3cd' : 'transparent',
+                                            bgcolor: DealviewMode === 'dealkanban' ? '#059669' : 'transparent',
                                             boxShadow: DealviewMode === 'dealkanban' ? '0px 4px 10px rgba(8, 163, 205, 0.24)' : 'none',
                                             transition: 'all 0.2s',
                                             '&:hover': {
-                                                bgcolor: DealviewMode === 'dealkanban' ? '#068fb3' : 'rgba(145, 158, 171, 0.08)',
+                                                bgcolor: DealviewMode === 'dealkanban' ? '#047857' : 'rgba(145, 158, 171, 0.08)',
                                                 color: DealviewMode === 'dealkanban' ? 'common.white' : 'text.primary',
                                             }
                                         }}
@@ -749,7 +749,7 @@ export function DealView() {
                                         variant="contained"
                                         startIcon={<Iconify icon="mingcute:add-line" />}
                                         onClick={() => handleOpenCreate()}
-                                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                                     >
                                         New Prospect
                                     </Button>
@@ -818,7 +818,7 @@ export function DealView() {
                                                     {loading ? (
                                                         <TableRow>
                                                             <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
-                                                                <CircularProgress sx={{ color: '#08a3cd' }} />
+                                                                <CircularProgress sx={{ color: '#059669' }} />
                                                             </TableCell>
                                                         </TableRow>
                                                     ) : (

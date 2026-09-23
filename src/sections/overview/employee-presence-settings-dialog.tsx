@@ -508,13 +508,13 @@ export function EmployeePresenceSettingsDialog({ open, onClose }: Props) {
                                 fontSize: '0.8125rem',
                                 fontWeight: 700,
                                 textTransform: 'none',
-                                bgcolor: isSelected ? '#08a3cd' : 'transparent',
-                                color: isSelected ? '#ffffff' : '#08a3cd',
-                                border: '1px solid #08a3cd',
+                                bgcolor: isSelected ? '#059669' : 'transparent',
+                                color: isSelected ? '#ffffff' : '#059669',
+                                border: '1px solid #059669',
                                 boxShadow: isSelected ? '0px 2px 6px rgba(8, 163, 205, 0.2)' : 'none',
                                 '&:hover': {
-                                  bgcolor: isSelected ? '#068aa8' : alpha('#08a3cd', 0.08),
-                                  borderColor: '#08a3cd',
+                                  bgcolor: isSelected ? '#068aa8' : alpha('#059669', 0.08),
+                                  borderColor: '#059669',
                                 },
                               }}
                             >
@@ -589,7 +589,7 @@ export function EmployeePresenceSettingsDialog({ open, onClose }: Props) {
                                   sx={{
                                     borderRadius: 1,
                                     fontWeight: 600,
-                                    bgcolor: '#08a3cd',
+                                    bgcolor: '#059669',
                                     color: '#ffffff',
                                     '& .MuiChip-deleteIcon': {
                                       color: 'rgba(255, 255, 255, 0.7)',
@@ -732,7 +732,7 @@ export function EmployeePresenceSettingsDialog({ open, onClose }: Props) {
             disabled={loading || offlineThreshold <= breakThreshold || breakThreshold <= awayThreshold || awayThreshold <= idleThreshold}
             sx={{
               fontWeight: 700,
-              bgcolor: '#08a3cd',
+              bgcolor: '#059669',
               color: '#ffffff',
               boxShadow: '0px 4px 10px rgba(8, 163, 205, 0.24)',
               '&:hover': {

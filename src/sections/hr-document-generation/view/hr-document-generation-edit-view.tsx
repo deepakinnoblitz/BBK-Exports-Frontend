@@ -228,7 +228,7 @@ export function HRDocumentGenerationEditView({ id }: Props) {
         return (
             <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 15 }}>
-                    <CircularProgress sx={{ color: '#08a3cd' }} />
+                    <CircularProgress sx={{ color: '#059669' }} />
                 </Box>
             </DashboardContent>
         );
@@ -261,9 +261,9 @@ export function HRDocumentGenerationEditView({ id }: Props) {
                         onClick={handleUpdate}
                         sx={{
                             borderRadius: 1.5,
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
-                            '&:hover': { bgcolor: '#068fb3' },
+                            '&:hover': { bgcolor: '#047857' },
                             textTransform: 'none',
                             fontWeight: 600,
                             px: 3,
@@ -399,12 +399,12 @@ export function HRDocumentGenerationEditView({ id }: Props) {
                                         fontSize: '0.825rem',
                                         fontWeight: viewMode === 'override' ? 700 : 600,
                                         color: viewMode === 'override' ? '#fff' : 'text.secondary',
-                                        bgcolor: viewMode === 'override' ? '#08a3cd' : 'transparent',
-                                        boxShadow: viewMode === 'override' ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                                        bgcolor: viewMode === 'override' ? '#059669' : 'transparent',
+                                        boxShadow: viewMode === 'override' ? `0 2px 8px ${alpha('#059669', 0.3)}` : 'none',
                                         textTransform: 'capitalize',
                                         transition: 'all 0.2s ease-in-out',
                                         '&:hover': {
-                                            bgcolor: viewMode === 'override' ? '#08a3cd' : (theme) => alpha(theme.palette.grey[500], 0.12),
+                                            bgcolor: viewMode === 'override' ? '#059669' : (theme) => alpha(theme.palette.grey[500], 0.12),
                                         },
                                     }}
                                 >
@@ -420,12 +420,12 @@ export function HRDocumentGenerationEditView({ id }: Props) {
                                         fontSize: '0.825rem',
                                         fontWeight: viewMode === 'rendered' ? 700 : 600,
                                         color: viewMode === 'rendered' ? '#fff' : 'text.secondary',
-                                        bgcolor: viewMode === 'rendered' ? '#08a3cd' : 'transparent',
-                                        boxShadow: viewMode === 'rendered' ? `0 2px 8px ${alpha('#08a3cd', 0.3)}` : 'none',
+                                        bgcolor: viewMode === 'rendered' ? '#059669' : 'transparent',
+                                        boxShadow: viewMode === 'rendered' ? `0 2px 8px ${alpha('#059669', 0.3)}` : 'none',
                                         textTransform: 'capitalize',
                                         transition: 'all 0.2s ease-in-out',
                                         '&:hover': {
-                                            bgcolor: viewMode === 'rendered' ? '#08a3cd' : (theme) => alpha(theme.palette.grey[500], 0.12),
+                                            bgcolor: viewMode === 'rendered' ? '#059669' : (theme) => alpha(theme.palette.grey[500], 0.12),
                                         },
                                     }}
                                 >
@@ -458,7 +458,7 @@ export function HRDocumentGenerationEditView({ id }: Props) {
                             >
                                 {refreshingRender ? (
                                     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
-                                        <CircularProgress sx={{ color: '#08a3cd' }} />
+                                        <CircularProgress sx={{ color: '#059669' }} />
                                     </Box>
                                 ) : (
                                     <Stack spacing={3}>

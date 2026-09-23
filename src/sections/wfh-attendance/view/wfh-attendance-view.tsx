@@ -518,7 +518,7 @@ export function WFHAttendanceView() {
                         variant="contained"
                         startIcon={<Iconify icon="mingcute:add-line" />}
                         onClick={handleOpenCreate}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         New WFH Entry
                     </Button>
@@ -577,7 +577,7 @@ export function WFHAttendanceView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -680,7 +680,7 @@ export function WFHAttendanceView() {
                                             sx={{
                                                 p: 0.75,
                                                 borderRadius: 1,
-                                                bgcolor: '#08a3cd',
+                                                bgcolor: '#059669',
                                                 color: 'common.white',
                                                 display: 'flex'
                                             }}
@@ -711,7 +711,7 @@ export function WFHAttendanceView() {
                 </DialogContent>
 
                 <DialogActions>
-                    <Button variant="contained" onClick={handleCreate} disabled={creating} sx={{ bgcolor: '#08a3cd', '&:hover': { bgcolor: '#068fb3' } }}>
+                    <Button variant="contained" onClick={handleCreate} disabled={creating} sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}>
                         {creating ? 'Saving...' : (currentId ? 'Update Entry' : 'Submit')}
                     </Button>
                 </DialogActions>

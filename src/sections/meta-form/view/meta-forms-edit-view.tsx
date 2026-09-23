@@ -57,12 +57,12 @@ export const CustomSwitch = styled((props: SwitchProps) => (
             transform: 'translateX(18px)',
             color: '#fff',
             '& + .MuiSwitch-track': {
-                backgroundColor: '#08a3cd',
+                backgroundColor: '#059669',
                 opacity: 1,
                 border: 0,
             },
             '&.Mui-disabled + .MuiSwitch-track': {
-                backgroundColor: '#08a3cd',
+                backgroundColor: '#059669',
                 opacity: 1,
             },
         },
@@ -359,7 +359,7 @@ export function MetaFormsEditView() {
     if (loading) {
         return (
             <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-                <CircularProgress sx={{ color: '#08a3cd' }} />
+                <CircularProgress sx={{ color: '#059669' }} />
             </DashboardContent>
         );
     }
@@ -387,7 +387,7 @@ export function MetaFormsEditView() {
                         variant="contained"
                         onClick={handleSave}
                         loading={isSaving}
-                        sx={{ borderRadius: 1.5, bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ borderRadius: 1.5, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         Save Changes
                     </LoadingButton>
@@ -525,7 +525,7 @@ export function MetaFormsEditView() {
 
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary', mb: 3 }}>
-                        <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                        <Iconify icon={"solar:settings-bold" as any} width={18} sx={{ color: '#059669' }} />
                         <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>
                             Campaign & Ad Info (Optional tracking parameters)
                         </Typography>
@@ -550,7 +550,7 @@ export function MetaFormsEditView() {
                 <Card sx={{ p: 3 }}>
                     <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ color: 'text.secondary', mb: 3 }}>
                         <Stack direction="row" alignItems="center" spacing={1}>
-                            <Iconify icon={"solar:link-bold" as any} width={18} sx={{ color: '#08a3cd' }} />
+                            <Iconify icon={"solar:link-bold" as any} width={18} sx={{ color: '#059669' }} />
                             <Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 0.2 }}>
                                 Field Mappings
                             </Typography>
@@ -560,7 +560,7 @@ export function MetaFormsEditView() {
                             size="small"
                             onClick={handleAddMappingRow}
                             startIcon={<Iconify icon="mingcute:add-line" />}
-                            sx={{ color: '#08a3cd', borderColor: '#08a3cd', '&:hover': { bgcolor: alpha('#08a3cd', 0.08), borderColor: '#068fb3' } }}
+                            sx={{ color: '#059669', borderColor: '#059669', '&:hover': { bgcolor: alpha('#059669', 0.08), borderColor: '#047857' } }}
                         >
                             Add Field
                         </Button>
@@ -822,7 +822,7 @@ export function MetaFormsEditView() {
                         variant="contained"
                         onClick={handleCreateLeadFromSubmit}
                         disabled={creatingLeadFrom || !newLeadFromName.trim()}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' }, borderRadius: 1 }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' }, borderRadius: 1 }}
                     >
                         {creatingLeadFrom ? <CircularProgress size={24} color="inherit" /> : 'Create'}
                     </Button>

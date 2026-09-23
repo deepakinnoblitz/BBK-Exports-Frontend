@@ -136,12 +136,12 @@ export function JobApplicantDetailsDialog({ open, onClose, applicant }: Props) {
                 px: 1,
             }}
         >
-            <DetailItem icon="solar:letter-bold" iconColor="#08a3cd" label="Email" value={applicant.email_id} />
-            <DetailItem icon="solar:phone-bold" iconColor="#08a3cd" label="Phone" value={applicant.phone_number || '-'} />
-            <DetailItem icon="solar:share-bold" iconColor="#08a3cd" label="Source" value={applicant.source || '-'} />
+            <DetailItem icon="solar:letter-bold" iconColor="#059669" label="Email" value={applicant.email_id} />
+            <DetailItem icon="solar:phone-bold" iconColor="#059669" label="Phone" value={applicant.phone_number || '-'} />
+            <DetailItem icon="solar:share-bold" iconColor="#059669" label="Source" value={applicant.source || '-'} />
             <DetailItem
                 icon="solar:wad-of-money-bold"
-                iconColor="#08a3cd"
+                iconColor="#059669"
                 label="Expected Salary"
                 value={
                     applicant.lower_range ? (

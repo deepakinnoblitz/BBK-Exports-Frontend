@@ -201,9 +201,9 @@ export function EstimationListView({ hideTitle }: Props) {
                     onClick={handleCreateNew}
                     sx={{
                         ...(hideTitle && {
-                            bgcolor: '#08a3cd',
+                            bgcolor: '#059669',
                             color: 'common.white',
-                            '&:hover': { bgcolor: '#068fb3' }
+                            '&:hover': { bgcolor: '#047857' }
                         })
                     }}
                 >
@@ -241,7 +241,7 @@ export function EstimationListView({ hideTitle }: Props) {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

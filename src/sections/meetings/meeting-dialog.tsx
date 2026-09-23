@@ -910,7 +910,7 @@ export default function MeetingDialog({ open, onClose, selectedMeeting, initialD
                         variant="contained"
                         onClick={handleCreateMeetingStatusSubmit}
                         disabled={creatingMeetingStatus || !newMeetingStatusName.trim()}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         {creatingMeetingStatus ? 'Creating...' : 'Create'}
                     </Button>

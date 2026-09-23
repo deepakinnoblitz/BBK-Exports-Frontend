@@ -219,7 +219,7 @@ export default function CRMExpenseTrackerView() {
                         variant="contained"
                         startIcon={<Iconify icon="mingcute:add-line" />}
                         onClick={() => handleOpenDialog()}
-                        sx={{ bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         Add Expense Tracker
                     </Button>
@@ -269,7 +269,7 @@ export default function CRMExpenseTrackerView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#08a3cd' }} />
+                                            <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (

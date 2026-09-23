@@ -398,7 +398,7 @@ export function ProposalEditView() {
                         variant="contained"
                         onClick={handleSave}
                         disabled={loading || uploading}
-                        sx={{ borderRadius: 1.5, bgcolor: '#08a3cd', color: 'common.white', '&:hover': { bgcolor: '#068fb3' } }}
+                        sx={{ borderRadius: 1.5, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
                     >
                         {loading ? <CircularProgress size={20} color="inherit" /> : 'Update Proposal'}
                     </Button>
@@ -493,9 +493,9 @@ export function ProposalEditView() {
                             onClick={handleAddAttachmentRow} 
                             sx={{
                                 borderRadius: 1,
-                                bgcolor: '#08a3cd',
+                                bgcolor: '#059669',
                                 color: 'common.white',
-                                '&:hover': { bgcolor: '#068fb3' },
+                                '&:hover': { bgcolor: '#047857' },
                             }}>
                             Add Row
                         </Button>
