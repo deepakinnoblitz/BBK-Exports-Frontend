@@ -550,29 +550,6 @@ export function ShiftRosterMonthlyView({
                 width: 26,
                 height: 22,
                 borderRadius: '6px',
-                bgcolor: '#f1f5f9',
-                color: '#64748b',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              WO
-            </Box>
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-              Weekly Off
-            </Typography>
-          </Stack>
-
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Box
-              sx={{
-                width: 26,
-                height: 22,
-                borderRadius: '6px',
                 bgcolor: '#fee2e2',
                 color: '#ef4444',
                 border: '1px solid #fca5a5',
@@ -701,7 +678,7 @@ export function ShiftRosterMonthlyView({
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredEmployees.map((emp) => (
+                filteredEmployees.map((emp, empIndex) => (
                   <TableRow key={emp.employee} hover sx={{ '& td': { py: 1.2 } }}>
                     {/* Sticky Employee Column */}
                     <TableCell
@@ -725,6 +702,74 @@ export function ShiftRosterMonthlyView({
 
                     {/* Day Shift Cells */}
                     {data?.days?.map((d) => {
+                      const isFullHoliday = d.is_holiday && !filteredEmployees.some((e) => e.shifts?.[d.date]?.source === 'ROSTER');
+
+                      if (isFullHoliday) {
+                        if (empIndex === 0) {
+                          return (
+                            <TableCell
+                              key={d.date}
+                              rowSpan={filteredEmployees.length}
+                              align="center"
+                              onClick={() => canEdit && handleCellClick(emp.employee, d.date)}
+                              sx={{
+                                px: 0.5,
+                                py: 1,
+                                minWidth: 42,
+                                maxWidth: 42,
+                                verticalAlign: 'middle',
+                                bgcolor: 'rgba(244, 63, 94, 0.08)',
+                                borderRight: (t) => `1px solid ${t.palette.divider}`,
+                                borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                                cursor: canEdit ? 'pointer' : 'default',
+                                transition: 'background-color 0.15s ease',
+                                '&:hover': {
+                                  bgcolor: 'rgba(244, 63, 94, 0.14)',
+                                },
+                              }}
+                            >
+                              <Tooltip
+                                title={
+                                  <span style={{ whiteSpace: 'pre-line' }}>
+                                    {`Holiday: ${d.holiday_name || 'Public Holiday'}\n${d.date}`}
+                                  </span>
+                                }
+                                arrow
+                              >
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    height: '100%',
+                                    width: '100%',
+                                    minHeight: 80,
+                                  }}
+                                >
+                                  <Typography
+                                    sx={{
+                                      fontWeight: 800,
+                                      fontSize: '0.72rem',
+                                      letterSpacing: 2.5,
+                                      color: '#9f1239',
+                                      textTransform: 'uppercase',
+                                      writingMode: 'vertical-rl',
+                                      transform: 'rotate(180deg)',
+                                      display: 'inline-block',
+                                      whiteSpace: 'nowrap',
+                                      userSelect: 'none',
+                                    }}
+                                  >
+                                    Holiday
+                                  </Typography>
+                                </Box>
+                              </Tooltip>
+                            </TableCell>
+                          );
+                        }
+                        return null;
+                      }
+
                       const cell = emp.shifts?.[d.date];
                       const isToday = d.date === todayStr;
                       const isHoliday = d.is_holiday;
@@ -737,24 +782,19 @@ export function ShiftRosterMonthlyView({
                         border: '1px dashed #cbd5e1',
                       };
 
-                      if (cell?.shift) {
+                      if (isHoliday && cell?.source !== 'ROSTER') {
+                        chipCode = 'H';
+                        chipStyle = { bg: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' };
+                      } else if (cell?.shift) {
                         const pal = shiftColorMap[cell.shift] || { bg: '#e0f2fe', color: '#0284c7', border: '#bae6fd' };
                         chipCode = getShiftShortCode(cell.shift_name || cell.shift);
                         chipStyle = pal;
-                      } else if (isHoliday) {
-                        chipCode = 'H';
-                        chipStyle = { bg: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' };
-                      } else if (isWeeklyOff) {
-                        chipCode = 'WO';
-                        chipStyle = { bg: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1' };
                       }
 
-                      const tooltipText = cell?.shift
+                      const tooltipText = (isHoliday && cell?.source !== 'ROSTER')
+                        ? `Holiday: ${d.holiday_name || 'Public Holiday'}\n${d.date}`
+                        : cell?.shift
                         ? `${cell.shift_name || cell.shift}\n${d.date}\nSource: ${cell.source || 'ROSTER'}`
-                        : isHoliday
-                        ? `Holiday: ${d.holiday_name || 'Public Holiday'}`
-                        : isWeeklyOff
-                        ? 'Weekly Off'
                         : `Unassigned\n${d.date}`;
 
                       return (
