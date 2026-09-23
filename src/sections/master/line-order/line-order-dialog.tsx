@@ -128,7 +128,7 @@ export function LineOrderDialog({ open, onClose, onSuccess, id }: Props) {
             }}
         >
             <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h6">{id ? 'Edit Line Order' : 'New Line Order'}</Typography>
+                <Typography variant="h6">{id ? 'Edit Line' : 'New Line'}</Typography>
                 <Iconify icon="mingcute:close-line" onClick={onClose} sx={{ cursor: 'pointer', color: 'text.disabled' }} />
             </DialogTitle>
 

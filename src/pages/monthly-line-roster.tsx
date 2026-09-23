@@ -1,14 +1,14 @@
 import { CONFIG } from 'src/config-global';
 
-import { LineOrderView } from 'src/sections/master/line-order/view';
+import { MonthlyLineRosterView } from 'src/sections/line-roster/view';
 
 // ----------------------------------------------------------------------
 
 export default function Page() {
   return (
     <>
-      <title>{`Line List - ${CONFIG.appName}`}</title>
-      <LineOrderView />
+      <title>{`Monthly Line Roster - ${CONFIG.appName}`}</title>
+      <MonthlyLineRosterView />
     </>
   );
 }
