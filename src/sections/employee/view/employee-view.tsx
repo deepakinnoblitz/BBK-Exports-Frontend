@@ -2632,6 +2632,7 @@ export function EmployeeView() {
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
                                             {renderField('employee_id', 'Employee ID', 'text', [], {}, true)}
                                             {renderField('employee_name', 'Employee Name', 'text', [], {}, true)}
+                                            {renderField('father_husband_name', 'Father/Husband Name')}
                                             {renderField('email', 'Email', 'text', [], {}, true)}
                                             {renderField('personal_email', 'Personal Email')}
                                             {renderField('phone', 'Personal Phone Number', 'phone')}

@@ -232,6 +232,7 @@ export function EmployeeDetailsView() {
                                             <DetailItem label="Blood Group" value={employee.blood_group} icon="solar:drop-bold" />
                                             <DetailItem label="Gender" value={employee.sex} icon="solar:user-bold" />
                                             <DetailItem label="Marital Status" value={employee.marital_status} icon="solar:heart-bold" />
+                                            <DetailItem label="Father/Husband Name" value={employee.father_husband_name} icon="solar:user-bold" />
                                             <DetailItem label="Qualification" value={employee.qualification} icon="solar:diploma-bold" />
                                             <DetailItem label="Aadhar Number" value={employee.aadhar_number} icon="solar:card-bold" />
                                             <DetailItem label="Line Order" value={employee.line_order} icon="solar:settings-minimalistic-bold" />
