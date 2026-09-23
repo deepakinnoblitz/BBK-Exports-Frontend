@@ -1,15 +1,13 @@
 import type { CardProps } from '@mui/material/Card';
 
-import dayjs, { Dayjs } from 'dayjs';
-import { FaFilter } from "react-icons/fa";
-import { useState, useEffect, useCallback } from 'react';
+import { FaFilter } from 'react-icons/fa';
+import dayjs, { type Dayjs } from 'dayjs';
+import { useMemo, useState, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Select from '@mui/material/Select';
-import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
@@ -19,7 +17,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { Iconify } from 'src/components/iconify';
-import { Chart, useChart } from 'src/components/chart';
+import { EChartsBarChart, type ChartConfig } from 'src/components/evilcharts/charts/echarts-bar-chart';
 
 // ----------------------------------------------------------------------
 
@@ -32,15 +30,30 @@ type Props = CardProps & {
     loading?: boolean;
 };
 
-// ----------------------------------------------------------------------
 // Custom pill-style select trigger label map
-
 const FILTER_LABELS: Record<string, string> = {
     'Last 7 Days': 'Last 7 Days',
     'This Month': 'This Month',
     'Last Month': 'Last Month',
     Custom: 'Custom Range',
 };
+
+const chartConfig = {
+    present: {
+        label: 'Present',
+        colors: {
+            light: ['#047857', '#10b981'],
+            dark: ['#10b981', '#34d399'],
+        },
+    },
+    absent: {
+        label: 'Absent',
+        colors: {
+            light: ['#be123c', '#f43f5e'],
+            dark: ['#f43f5e', '#fb7185'],
+        },
+    },
+} satisfies ChartConfig;
 
 // ----------------------------------------------------------------------
 
@@ -49,7 +62,7 @@ function EmptyState() {
     return (
         <Box
             sx={{
-                height: 260,
+                height: 280,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -64,18 +77,18 @@ function EmptyState() {
         >
             <Box
                 sx={{
-                    width: 72,
-                    height: 72,
+                    width: 64,
+                    height: 64,
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     bgcolor: alpha(theme.palette.primary.main, 0.08),
-                    color: alpha(theme.palette.primary.main, 0.5),
+                    color: alpha(theme.palette.primary.main, 0.6),
                     mb: 0.5,
                 }}
             >
-                <Iconify icon={`solar:chart-bold-duotone` as any} width={36} />
+                <Iconify icon={"solar:chart-bold-duotone" as any} width={32} />
             </Box>
             <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="subtitle1" fontWeight={700} color="text.primary">
@@ -106,163 +119,22 @@ export function WeeklyPresentAbsentChart({
     const [startDate, setStartDate] = useState<Dayjs | null>(dayjs().subtract(6, 'day'));
     const [endDate, setEndDate] = useState<Dayjs | null>(dayjs());
 
-    // Animate chart on filter change
-    const [chartKey, setChartKey] = useState(0);
-    useEffect(() => {
-        setChartKey((k) => k + 1);
-    }, [data]);
+    // Trend calculations
+    const totalPresent = useMemo(() => data.reduce((s, d) => s + (d.present || 0), 0), [data]);
+    const totalAbsent = useMemo(() => data.reduce((s, d) => s + (d.absent || 0), 0), [data]);
 
-    // Trend calculation (present vs absent overall)
-    const totalPresent = data.reduce((s, d) => s + (d.present || 0), 0);
-    const totalAbsent = data.reduce((s, d) => s + (d.absent || 0), 0);
-    const total = totalPresent + totalAbsent;
-    const presentRate = total > 0 ? Math.round((totalPresent / total) * 100) : null;
-    const isPositive = presentRate !== null && presentRate >= 70;
-
-    // Chart data
-    const categories = data.map((item) => {
+    // Transform API data for EChartsBarChart
+    const chartData = useMemo(() => data.map((item) => {
         const date = new Date(item.date);
-        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        return `${dateStr} ${item.day}`;
-    });
-    const presentSeries = data.map((item) => item.present || 0);
-    const absentSeries = data.map((item) => item.absent || 0);
-    const maxVal = Math.max(...presentSeries, ...absentSeries, 0);
-    const yMax = maxVal === 0 ? 10 : Math.ceil((maxVal * 1.4) / 5) * 5;
-
-    const chartOptions = useChart({
-        chart: {
-            type: 'bar',
-            toolbar: { show: false },
-            background: 'transparent',
-            stacked: false,
-            animations: {
-                enabled: true,
-                speed: 600,
-                animateGradually: { enabled: true, delay: 80 },
-                dynamicAnimation: { enabled: true, speed: 400 },
-            },
-        },
-        // Use CSS gradient via ApexCharts fill
-        colors: ['#38cb6e', '#f15757'],
-        plotOptions: {
-            bar: {
-                borderRadius: data.length > 15 ? 4 : 7,
-                borderRadiusApplication: 'end',
-                columnWidth: data.length > 15 ? '75%' : '45%',
-                dataLabels: { position: 'top' },
-            },
-        },
-        stroke: {
-            show: false,
-        },
-        fill: {
-            type: 'solid',
-            opacity: 1,
-        },
-        dataLabels: {
-            enabled: true,
-            offsetY: -22,
-            style: {
-                fontSize: '12px',
-                fontWeight: 900,
-                colors: ['#00A76F', '#FF5630'], // Matches bar series colors
-            },
-            background: {
-                enabled: false,
-            },
-        },
-        xaxis: {
-            categories,
-            labels: {
-                rotate: data.length > 10 ? -40 : 0,
-                style: {
-                    colors: theme.palette.text.secondary,
-                    fontSize: data.length > 10 ? '10px' : '11px',
-                    fontWeight: 500,
-                    fontFamily: theme.typography.fontFamily,
-                },
-            },
-            axisBorder: { show: false },
-            axisTicks: { show: false },
-        },
-        yaxis: {
-            min: 0,
-            max: yMax,
-            title: {
-                text: 'Employees',
-                offsetX: -5,
-                style: {
-                    color: theme.palette.text.disabled,
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    fontFamily: theme.typography.fontFamily,
-                },
-            },
-            labels: {
-                padding: 20,
-                formatter: (value: number) => Math.round(value).toString(),
-                style: {
-                    colors: theme.palette.text.secondary,
-                    fontSize: '11px',
-                    fontFamily: theme.typography.fontFamily,
-                },
-            },
-        },
-        tooltip: {
-            theme: theme.palette.mode,
-            shared: true,
-            intersect: false,
-            custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
-                const label = w.globals.labels[dataPointIndex];
-                const present = series[0]?.[dataPointIndex] ?? 0;
-                const absent = series[1]?.[dataPointIndex] ?? 0;
-                // Removed isHoliday check as holidays are skipped
-                
-                const bg = theme.palette.mode === 'dark' ? '#1C252E' : '#fff';
-                const border = alpha(theme.palette.grey[500], 0.16);
-                const text = theme.palette.text.primary;
-                const sub = theme.palette.text.secondary;
-                return `
-                  <div style="
-                    background:${bg};
-                    border:1px solid ${border};
-                    border-radius:12px;
-                    padding:12px 16px;
-                    box-shadow:0 8px 24px ${alpha('#000', 0.12)};
-                    min-width:160px;
-                    font-family:${theme.typography.fontFamily};
-                  ">
-                    <div style="font-size:11px;font-weight:600;color:${sub};margin-bottom:8px;letter-spacing:0.5px;text-transform:uppercase;">${label}</div>
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-                      <span style="width:10px;height:10px;border-radius:50%;background:#00A76F;display:inline-block;"></span>
-                      <span style="font-size:13px;color:${text};font-weight:600;">Present &nbsp;<strong>${present}</strong></span>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                      <span style="width:10px;height:10px;border-radius:50%;background:#FF5630;display:inline-block;"></span>
-                      <span style="font-size:13px;color:${text};font-weight:600;">Absent &nbsp;<strong>${absent}</strong></span>
-                    </div>
-                  </div>
-                `;
-            },
-        },
-        legend: { show: false }, // We render a custom legend
-        grid: {
-            borderColor: alpha(theme.palette.grey[500], 0.1),
-            strokeDashArray: 4,
-            xaxis: { lines: { show: false } },
-            yaxis: { lines: { show: true } },
-            padding: { top: 4, right: 8, bottom: 0, left: 8 },
-        },
-        states: {
-            hover: {
-                filter: { type: 'lighten', value: 0.1 } as any,
-            },
-            active: {
-                filter: { type: 'darken', value: 0.1 } as any,
-            },
-        },
-    });
+        const dateStr = !Number.isNaN(date.getTime())
+            ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            : item.date;
+        return {
+            label: `${dateStr} ${item.day}`,
+            present: item.present || 0,
+            absent: item.absent || 0,
+        };
+    }), [data]);
 
     const handleFilterChange = useCallback(
         (value: string) => {
@@ -289,12 +161,6 @@ export function WeeklyPresentAbsentChart({
         }
     };
 
-    const subheader =
-        filter === 'Custom' && startDate && endDate
-            ? `${startDate.format('MMM D')} – ${endDate.format('MMM D, YYYY')}`
-            : subheaderProp || filter;
-
-    // Pill-shaped date picker field styles
     const pillDatePickerSx = {
         width: { xs: '100%', sm: 148 },
         '& .MuiOutlinedInput-root': {
@@ -326,18 +192,13 @@ export function WeeklyPresentAbsentChart({
             sx={[
                 {
                     p: 3,
-                    borderRadius: '16px',
-                    background:
-                        theme.palette.mode === 'dark'
-                            ? `linear-gradient(135deg, ${alpha(theme.palette.grey[900], 0.95)} 0%, ${alpha(theme.palette.grey[800], 0.8)} 100%)`
-                            : 'linear-gradient(135deg, #f8fafc 0%, #ffffff 60%)',
-                    boxShadow: `0 2px 12px ${alpha(theme.palette.grey[500], 0.1)}, 0 1px 3px ${alpha(theme.palette.grey[500], 0.08)}`,
-                    border: `1px solid ${alpha(theme.palette.grey[500], 0.1)}`,
-                    // borderTop: `3px solid ${theme.palette.success.main}`,
-                    transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+                    borderRadius: '20px',
+                    bgcolor: 'background.paper',
+                    boxShadow: '0 4px 20px 0 rgba(0, 0, 0, 0.05)',
+                    border: `1px solid ${alpha(theme.palette.grey[500], 0.12)}`,
+                    transition: 'box-shadow 0.3s ease',
                     '&:hover': {
-                        boxShadow: `0 12px 32px ${alpha(theme.palette.grey[500], 0.18)}, 0 2px 8px ${alpha(theme.palette.grey[500], 0.1)}`,
-                        transform: 'translateY(-2px)',
+                        boxShadow: '0 8px 30px 0 rgba(0, 0, 0, 0.08)',
                     },
                     overflow: 'visible',
                 },
@@ -345,91 +206,92 @@ export function WeeklyPresentAbsentChart({
             ]}
             {...other}
         >
-            {/* ── Header ── */}
+            {/* ── Top Header ── */}
             <Box
                 sx={{
-                    mb: 3,
+                    mb: 2.5,
                     display: 'flex',
-                    flexDirection: { xs: 'column', md: 'row' },
-                    alignItems: { xs: 'flex-start', md: 'center' },
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'flex-start', sm: 'center' },
                     justifyContent: 'space-between',
                     gap: 2,
                 }}
             >
-                {/* Left: Title + subheader + trend badge */}
-                <Box>
-                    <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
-                        <Typography
-                            variant="h6"
-                            sx={{ fontWeight: 800, letterSpacing: '-0.3px', lineHeight: 1.3 }}
-                        >
-                            {title}
-                        </Typography>
+                {/* Left: Clean Title */}
+                <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.3px', lineHeight: 1.3 }}>
+                    {title}
+                </Typography>
 
-                        {/* {presentRate !== null && (
-                            <Tooltip
-                                title={`${presentRate}% attendance rate`}
-                                arrow
-                                placement="top"
-                            >
-                                <Chip
-                                    size="small"
-                                    icon={
-                                        <Iconify
-                                            icon={
-                                                isPositive
-                                                    ? 'solar:arrow-up-bold' as any
-                                                    : 'solar:arrow-down-bold' as any
-                                            }
-                                            width={13}
-                                        />
-                                    }
-                                    label={`${presentRate}%`}
-                                    sx={{
-                                        height: 22,
-                                        fontSize: '11px',
-                                        fontWeight: 700,
-                                        borderRadius: '10px',
-                                        bgcolor: isPositive
-                                            ? alpha(theme.palette.success.main, 0.12)
-                                            : alpha(theme.palette.error.main, 0.12),
-                                        color: isPositive
-                                            ? theme.palette.success.dark
-                                            : theme.palette.error.dark,
-                                        '& .MuiChip-icon': {
-                                            color: isPositive
-                                                ? theme.palette.success.dark
-                                                : theme.palette.error.dark,
-                                        },
-                                    }}
-                                />
-                            </Tooltip>
-                        )} */}
-                    </Stack>
-
-                    <Stack direction="row" alignItems="center" spacing={0.6} mt={0.5}>
-                        <Iconify
-                            icon={`solar:calendar-linear` as any}
-                            width={14}
-                            sx={{ color: 'text.disabled' }}
-                        />
-                        <Typography variant="caption" color="text.disabled" fontWeight={500}>
-                            {subheader}
-                        </Typography>
-                    </Stack>
-                </Box>
-
-                {/* Right: Filters */}
+                {/* Right: Filters & KPI Summary Badges */}
                 <Box
                     sx={{
                         display: 'flex',
-                        gap: 1.2,
+                        gap: 2,
                         alignItems: 'center',
                         flexWrap: 'wrap',
-                        width: { xs: '100%', md: 'auto' },
                     }}
                 >
-                    {/* Custom date pickers */}
+                    {data.length > 0 && (
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Stack direction="row" alignItems="center" spacing={0.75}>
+                                <Box
+                                    sx={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: '50%',
+                                        bgcolor: '#047857',
+                                        boxShadow: '0 0 6px rgba(16, 185, 129, 0.6)',
+                                    }}
+                                />
+                                <Typography variant="caption" fontWeight={600} color="text.secondary">
+                                    Present
+                                </Typography>
+                                <Typography
+                                    variant="caption"
+                                    fontWeight={700}
+                                    color="#047857"
+                                    sx={{
+                                        bgcolor: alpha('#10b981', 0.12),
+                                        px: 0.8,
+                                        py: 0.2,
+                                        borderRadius: '6px',
+                                    }}
+                                >
+                                    {totalPresent}
+                                </Typography>
+                            </Stack>
+
+                            <Stack direction="row" alignItems="center" spacing={0.75}>
+                                <Box
+                                    sx={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: '50%',
+                                        bgcolor: '#be123c',
+                                        boxShadow: '0 0 6px rgba(244, 63, 94, 0.6)',
+                                    }}
+                                />
+                                <Typography variant="caption" fontWeight={600} color="text.secondary">
+                                    Absent
+                                </Typography>
+                                <Typography
+                                    variant="caption"
+                                    fontWeight={700}
+                                    color="#be123c"
+                                    sx={{
+                                        bgcolor: alpha('#f43f5e', 0.12),
+                                        px: 0.8,
+                                        py: 0.2,
+                                        borderRadius: '6px',
+                                    }}
+                                >
+                                    {totalAbsent}
+                                </Typography>
+                            </Stack>
+                        </Stack>
+                    )}
+
+                    {/* Custom range date pickers */}
                     {filter === 'Custom' && (
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <Box
@@ -466,17 +328,14 @@ export function WeeklyPresentAbsentChart({
                         </LocalizationProvider>
                     )}
 
-                    {/* Pill select */}
+                    {/* Filter Selector */}
                     <Select
                         size="small"
                         value={filter}
                         onChange={(e) => handleFilterChange(e.target.value)}
-                        startAdornment={
-                            <FaFilter size={30} style={{ paddingRight: 10 }}
-                            />
-                        }
+                        startAdornment={<FaFilter size={13} style={{ marginRight: 8, color: '#64748B' }} />}
                         sx={{
-                            minWidth: 160,
+                            minWidth: 145,
                             height: 36,
                             borderRadius: '20px',
                             fontWeight: 600,
@@ -505,65 +364,11 @@ export function WeeklyPresentAbsentChart({
                 </Box>
             </Box>
 
-            {/* ── Custom Legend ── */}
-            {data.length > 0 && (
-                <Stack direction="row" justifyContent="flex-end" spacing={2.5} sx={{ mb: 1.5, pr: 1 }}>
-                    {[
-                        {
-                            label: 'Present',
-                            from: '#38cb6e',
-                            to: '#86EFAC',
-                            count: totalPresent,
-                        },
-                        {
-                            label: 'Absent',
-                            from: '#FF5630',
-                            to: '#FFB4A2',
-                            count: totalAbsent,
-                        },
-                    ].map((item) => (
-                        <Stack key={item.label} direction="row" alignItems="center" spacing={0.8}>
-                            <Box
-                                sx={{
-                                    width: 10,
-                                    height: 10,
-                                    borderRadius: '50%',
-                                    bgcolor: item.label === 'Present' ? '#38cb6e' : '#f15757',
-                                    flexShrink: 0,
-                                    boxShadow: `0 2px 6px ${alpha(item.from, 0.4)}`,
-                                }}
-                            />
-                            <Typography
-                                variant="caption"
-                                fontWeight={600}
-                                color="text.secondary"
-                                sx={{ userSelect: 'none' }}
-                            >
-                                {item.label}
-                            </Typography>
-                            <Typography
-                                variant="caption"
-                                fontWeight={700}
-                                color="text.primary"
-                                sx={{
-                                    bgcolor: alpha(theme.palette.grey[500], 0.08),
-                                    px: 0.8,
-                                    py: 0.2,
-                                    borderRadius: '6px',
-                                }}
-                            >
-                                {item.count}
-                            </Typography>
-                        </Stack>
-                    ))}
-                </Stack>
-            )}
-
-            {/* ── Chart or Empty State ── */}
+            {/* ── Chart Container ── */}
             {loading ? (
                 <Box
                     sx={{
-                        height: 260,
+                        height: 320,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -572,25 +377,26 @@ export function WeeklyPresentAbsentChart({
                     <CircularProgress color="primary" />
                 </Box>
             ) : data.length > 0 ? (
-                <Box
-                    key={chartKey}
-                    sx={{
-                        animation: 'chartFadeIn 0.5s ease forwards',
-                        '@keyframes chartFadeIn': {
-                            from: { opacity: 0, transform: 'translateY(10px)' },
-                            to: { opacity: 1, transform: 'translateY(0)' },
-                        },
-                    }}
-                >
-                    <Chart
-                        type="bar"
-                        series={[
-                            { name: 'Present', data: presentSeries },
-                            { name: 'Absent', data: absentSeries },
-                        ]}
-                        options={chartOptions}
-                        sx={{ height: 260 }}
-                    />
+                <Box sx={{ width: '100%', height: 320 }}>
+                    <EChartsBarChart data={chartData} config={chartConfig} height={320}>
+                        <EChartsBarChart.Grid />
+                        <EChartsBarChart.XAxis dataKey="label" />
+                        <EChartsBarChart.YAxis label="Employees" />
+                        <EChartsBarChart.Tooltip />
+                        <EChartsBarChart.Bar
+                            dataKey="present"
+                            variant="default"
+                            isClickable
+                            radius={[6, 6, 0, 0]}
+                        />
+                        <EChartsBarChart.Bar
+                            dataKey="absent"
+                            variant="default"
+                            glowing
+                            isClickable
+                            radius={[6, 6, 0, 0]}
+                        />
+                    </EChartsBarChart>
                 </Box>
             ) : (
                 <EmptyState />

@@ -216,7 +216,7 @@ export function HRDashboardView() {
                 {/* Weekly Present/Absent Chart */}
                 <Grid size={{ xs: 12 }}>
                     <WeeklyPresentAbsentChart
-                        title="Weekly Present / Absent"
+                        title="Attendance Summary (Present & Absent)"
                         data={data.weekly_present_absent}
                         filter={attendanceFilter}
                         loading={loading || chartLoading}
