@@ -135,12 +135,46 @@ export function LineRosterMonthlyView({
     return selectedEmployees.map((e) => (typeof e === 'string' ? e : e.name));
   }, [selectedEmployees]);
 
-  const { data, loading, refetch } = useMonthlyLineRoster(
+  const { data, loading, loadingMore, hasMore, totalCount, refetch, loadMore } = useMonthlyLineRoster(
     month,
     year,
     selectedDept !== 'all' ? selectedDept : undefined,
     employeeFilterParam
   );
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (sentinelRef.current && hasMore && !loading && !loadingMore) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+            loadMore();
+          }
+        },
+        { root: null, rootMargin: '350px', threshold: 0.1 }
+      );
+      observer.observe(sentinelRef.current);
+      return () => observer.disconnect();
+    }
+    return undefined;
+  }, [hasMore, loading, loadingMore, loadMore]);
+
+  useEffect(() => {
+    if (hasMore && !loading && !loadingMore) {
+      const handleScroll = () => {
+        const scrollY = window.scrollY || window.pageYOffset;
+        const viewportHeight = window.innerHeight;
+        const docHeight = document.documentElement.scrollHeight;
+        if (scrollY + viewportHeight >= docHeight - 350) {
+          loadMore();
+        }
+      };
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+    return undefined;
+  }, [hasMore, loading, loadingMore, loadMore]);
 
   useEffect(() => {
     if (refreshTrigger !== undefined && refreshTrigger > 0) {
@@ -632,7 +666,7 @@ export function LineRosterMonthlyView({
                     borderBottom: (t) => `1px solid ${t.palette.divider}`,
                   }}
                 >
-                  Employee ({filteredEmployees.length})
+                  Employee ({filteredEmployees.length}{totalCount ? ` of ${totalCount}` : ''})
                 </TableCell>
 
                 {data?.days?.map((d) => {
@@ -846,6 +880,38 @@ export function LineRosterMonthlyView({
                     })}
                   </TableRow>
                 ))
+              )}
+
+              {/* Sentinel and Load More row */}
+              {hasMore && (
+                <TableRow>
+                  <TableCell
+                    colSpan={(data?.days?.length || 31) + 1}
+                    align="center"
+                    sx={{ py: 2, bgcolor: 'background.neutral' }}
+                  >
+                    <Box ref={sentinelRef} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
+                      {loadingMore ? (
+                        <Stack direction="row" spacing={1.5} alignItems="center">
+                          <CircularProgress size={20} color="primary" />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                            Loading more employees... ({filteredEmployees.length} of {totalCount})
+                          </Typography>
+                        </Stack>
+                      ) : (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => loadMore()}
+                          startIcon={<Iconify icon={"solar:alt-arrow-down-linear" as any} />}
+                          sx={{ fontWeight: 700 }}
+                        >
+                          Load More ({Math.min(50, totalCount - filteredEmployees.length)} remaining)
+                        </Button>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>
