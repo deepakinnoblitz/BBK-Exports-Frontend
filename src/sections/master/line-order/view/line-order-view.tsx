@@ -113,10 +113,10 @@ export function LineOrderView() {
     if (confirmDelete.id) {
       try {
         await deleteLineOrder(confirmDelete.id);
-        setSnackbar({ open: true, message: 'Line Order deleted successfully', severity: 'success' });
+        setSnackbar({ open: true, message: 'Line deleted successfully', severity: 'success' });
         refetch();
       } catch (error: any) {
-        setSnackbar({ open: true, message: error.message || 'Failed to delete line order', severity: 'error' });
+        setSnackbar({ open: true, message: error.message || 'Failed to delete line', severity: 'error' });
       } finally {
         setConfirmDelete({ open: false, id: null });
       }
@@ -126,7 +126,7 @@ export function LineOrderView() {
   return (
     <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 5 }}>
-        <Typography variant="h4">Line Order List</Typography>
+        <Typography variant="h4">Line List</Typography>
         {canCreate && (
           <Button
             variant="contained"
@@ -134,7 +134,7 @@ export function LineOrderView() {
             onClick={handleOpenCreate}
             sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
           >
-            New Line Order
+            New Line
           </Button>
         )}
       </Stack>
@@ -147,7 +147,7 @@ export function LineOrderView() {
             setFilterName(event.target.value);
             setPage(0);
           }}
-          searchPlaceholder="Search line orders..."
+          searchPlaceholder="Search lines..."
           sortOptions={SORT_OPTIONS}
           sortBy={`${orderBy}_${order}`}
           onSortChange={handleSortChange}
@@ -201,7 +201,7 @@ export function LineOrderView() {
 
                     {empty && (
                       <MasterEmptyState
-                        masterName="Line Order"
+                        masterName="Line"
                         colSpan={TABLE_HEAD.length + 1}
                       />
                     )}
@@ -236,7 +236,7 @@ export function LineOrderView() {
         onSuccess={() => {
           setSnackbar({
             open: true,
-            message: `Line Order ${selectedId ? 'updated' : 'created'} successfully`,
+            message: `Line ${selectedId ? 'updated' : 'created'} successfully`,
             severity: 'success',
           });
           refetch();
@@ -258,7 +258,7 @@ export function LineOrderView() {
         open={confirmDelete.open}
         onClose={() => setConfirmDelete({ open: false, id: null })}
         title="Delete"
-        content="Are you sure you want to delete this line order?"
+        content="Are you sure you want to delete this line?"
         action={
           <Button variant="contained" color="error" onClick={handleConfirmDelete}>
             Delete

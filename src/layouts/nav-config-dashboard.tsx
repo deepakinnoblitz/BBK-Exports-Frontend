@@ -14,7 +14,7 @@ import { FaTasks, FaWhatsapp, FaHandshake } from "react-icons/fa";
 import { MdContacts, MdOutlineLaptopWindows } from "react-icons/md";
 import { HiOutlineSpeakerphone, HiOutlineDocumentText } from "react-icons/hi";
 import { RiAppsLine, RiUserAddLine, RiMailSendLine, RiCalendarScheduleLine  } from "react-icons/ri";
-import { LuUsersRound, LuCalendarCheck2, LuFileSpreadsheet, LuUserRoundSearch } from "react-icons/lu";
+import { LuUsersRound, LuCalendarCheck2, LuFileSpreadsheet, LuUserRoundSearch, LuLayers } from "react-icons/lu";
 
 import { Iconify } from 'src/components/iconify';
 
@@ -83,6 +83,17 @@ export const hrNavData = [
       { title: 'Employee Shift Assignment', path: '/shift-roster' },
       { title: 'Monthly Roster', path: '/monthly-roster' },
       { title: 'Shift Rotation', path: '/shift-rotation' },
+    ],
+  },
+  {
+    title: 'Line Management',
+    path: '/line-roster',
+    icon: <LuLayers size={18} />,
+    children: [
+      { title: 'Line', path: '/line-order' },
+      { title: 'Employee Line Assignment', path: '/line-roster' },
+      { title: 'Monthly Roster', path: '/monthly-line-roster' },
+      { title: 'Line Rotation', path: '/line-rotation' },
     ],
   },
   {
@@ -207,7 +218,7 @@ export const hrNavData = [
       { title: 'Employee Type', path: '/employee-type' },
       // { title: 'Project', path: '/project' },
       // { title: 'Activity Type', path: '/activity-type' },
-      { title: 'Line Order', path: '/line-order' },
+      { title: 'Line', path: '/line-order' },
       { title: 'Shift', path: '/shift' },
       { title: 'Bus - Travel Route', path: '/bus-travel-route' },
       { title: 'Claim Type', path: '/claim-type' },
@@ -518,6 +529,9 @@ export function getNavData(user: any = null, view?: 'HR' | 'CRM', settings?: any
         if (lower === 'shift management' || lower === 'employee shift roster' || lower === 'employee shift assignment' || lower === 'monthly roster') return 'shift_roster';
         if (lower === 'shift rotation') return 'shift_rotation';
         if (lower === 'shift master') return 'master_shift';
+        if (lower === 'line management' || lower === 'employee line roster' || lower === 'employee line assignment' || lower === 'monthly line roster') return 'line_roster';
+        if (lower === 'line rotation') return 'line_rotation';
+        if (lower === 'line order' || lower === 'line' || lower === 'line master') return 'master_line_order';
         return lower.replace(/\s+/g, '_');
       };
 

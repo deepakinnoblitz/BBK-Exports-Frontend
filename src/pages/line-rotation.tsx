@@ -1,14 +1,14 @@
 import { CONFIG } from 'src/config-global';
 
-import { LineOrderView } from 'src/sections/master/line-order/view';
+import { LineRotationView } from 'src/sections/line-rotation/view';
 
 // ----------------------------------------------------------------------
 
 export default function Page() {
   return (
     <>
-      <title>{`Line List - ${CONFIG.appName}`}</title>
-      <LineOrderView />
+      <title>{`Line Rotation - ${CONFIG.appName}`}</title>
+      <LineRotationView />
     </>
   );
 }
