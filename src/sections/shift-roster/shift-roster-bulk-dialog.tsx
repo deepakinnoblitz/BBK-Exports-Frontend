@@ -419,7 +419,16 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
               </Box>
 
               {/* Checkbox Options */}
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 3 }} sx={{ py: 0.5, flexWrap: 'wrap' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  flexWrap: 'wrap',
+                  rowGap: 1.5,
+                  columnGap: 3,
+                  py: 0.5,
+                }}
+              >
                 <FormControlLabel
                   control={
                     <Checkbox
@@ -456,7 +465,7 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                     </Typography>
                   }
                 />
-              </Stack>
+              </Box>
 
               {/* Reason */}
               <TextField
