@@ -29,6 +29,10 @@ export default defineConfig(({ mode }) => ({
         find: /^src(.+)/,
         replacement: path.resolve(process.cwd(), 'src/$1'),
       },
+      {
+        find: /^@\/(.+)/,
+        replacement: path.resolve(process.cwd(), 'src/$1'),
+      },
     ],
   },
 
