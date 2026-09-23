@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -11,6 +12,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import { createDepartment } from 'src/api/hr-management';
 
@@ -146,11 +148,10 @@ export function DepartmentCreateDialog({ open, onClose, onCreate, currentDepartm
                             label="Status"
                             value={status}
                             onChange={(e) => setStatus(e.target.value)}
-                            SelectProps={{ native: true }}
                             InputLabelProps={{ shrink: true }}
                         >
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
+                            <MenuItem value="Active">Active</MenuItem>
+                            <MenuItem value="Inactive">Inactive</MenuItem>
                         </TextField>
                     </Box>
 
@@ -185,6 +186,7 @@ export function DepartmentCreateDialog({ open, onClose, onCreate, currentDepartm
                     variant="contained"
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+                    sx={{ bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', '&:hover': { bgcolor: COMMON_COLORS.emerald.dark } }}
                 >
                     Create
                 </Button>

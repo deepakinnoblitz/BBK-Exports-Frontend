@@ -11,6 +11,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import { createDesignation } from 'src/api/masters';
 
@@ -157,7 +158,7 @@ export function DesignationCreateDialog({
                     variant="contained"
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-                    sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
+                    sx={{ bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', '&:hover': { bgcolor: COMMON_COLORS.emerald.dark } }}
                 >
                     Create
                 </Button>

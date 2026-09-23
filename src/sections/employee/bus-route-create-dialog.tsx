@@ -26,9 +26,11 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { COMMON_COLORS } from 'src/theme';
 import { createBusTravelRoute } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
+
 
 // ----------------------------------------------------------------------
 
@@ -199,7 +201,7 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
                                 variant="contained"
                                 startIcon={<Iconify icon="solar:add-circle-bold" />}
                                 onClick={handleAddPoint}
-                                sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
+                                sx={{ bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', '&:hover': { bgcolor: COMMON_COLORS.emerald.dark } }}
                             >
                                 Add Point
                             </Button>
@@ -382,7 +384,7 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
                     fullWidth
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-                    sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
+                    sx={{ bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', '&:hover': { bgcolor: COMMON_COLORS.emerald.dark } }}
                 >
                     Create
                 </Button>
