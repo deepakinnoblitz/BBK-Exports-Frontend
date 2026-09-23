@@ -446,9 +446,16 @@ export function ShiftRosterListView({
 
         <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
           <Scrollbar>
-            <Table size="medium" sx={{ minWidth: 800, borderCollapse: 'collapse' }}>
+            <Table
+              size="medium"
+              sx={{
+                minWidth: 800,
+                borderCollapse: 'collapse',
+                '& td, & th': { borderBottom: (t) => `1px solid ${t.palette.divider}` },
+              }}
+            >
               <TableHead>
-                <TableRow sx={{ bgcolor: '#f4f6f8' }}>
+                <TableRow sx={{ bgcolor: '#f4f6f8', '& th': { borderBottom: (t) => `1px solid ${t.palette.divider}` } }}>
                   <TableCell padding="checkbox" sx={{ width: 48, px: 1 }}>
                     <Checkbox
                       indeterminate={selected.length > 0 && selected.length < data.length}

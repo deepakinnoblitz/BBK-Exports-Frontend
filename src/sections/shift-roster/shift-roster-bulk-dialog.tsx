@@ -486,9 +486,18 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
               )}
 
               <TableContainer sx={{ maxHeight: 380, border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 1.5 }}>
-                <Table size="small" stickyHeader>
+                <Table
+                  size="small"
+                  stickyHeader
+                  sx={{
+                    borderCollapse: 'collapse',
+                    '& td, & th': {
+                      borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+                    },
+                  }}
+                >
                   <TableHead>
-                    <TableRow sx={{ bgcolor: 'background.neutral' }}>
+                    <TableRow sx={{ '& th': { borderBottom: (theme) => `1px solid ${theme.palette.divider}`, bgcolor: 'background.neutral', fontWeight: 700 } }}>
                       <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Shift</TableCell>
@@ -498,7 +507,15 @@ export function ShiftRosterBulkDialog({ open, onClose, onSuccess }: Props) {
                   </TableHead>
                   <TableBody>
                     {(Array.isArray(previewData) ? previewData : previewData?.preview || []).map((item: any, idx: number) => (
-                      <TableRow key={idx} hover>
+                      <TableRow
+                        key={idx}
+                        hover
+                        sx={{
+                          '& td, & th': {
+                            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+                          },
+                        }}
+                      >
                         <TableCell>
                           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{item.employee_name || item.employee}</Typography>
                           <Typography variant="caption" sx={{ color: 'text.secondary' }}>{item.employee}</Typography>
