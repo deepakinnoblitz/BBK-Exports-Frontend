@@ -885,7 +885,7 @@ export function AttendanceView() {
                                 hideCheckbox
                                 showIndex
                                 headLabel={[
-                                    { id: 'employee_name', label: 'Employee', minWidth: { xs: 140, md: 180 }, sx: { display: { xs: 'none', md: 'table-cell' } } },
+                                    { id: 'employee_name', label: 'Employee', width: 200, minWidth: { xs: 140, md: 180 }, sx: { maxWidth: 200, display: { xs: 'none', md: 'table-cell' } } },
                                     { id: 'attendance_date', label: 'Date', minWidth: { xs: 100, md: 120 } },
                                     { id: 'status', label: 'Status', minWidth: { xs: 80, md: 90 } },
                                     { id: 'attendance_source', label: 'Source', minWidth: { xs: 80, md: 100 } },
