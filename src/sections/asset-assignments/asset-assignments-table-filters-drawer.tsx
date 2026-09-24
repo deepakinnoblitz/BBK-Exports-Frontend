@@ -138,6 +138,26 @@ export function AssetAssignmentsTableFiltersDrawer({
                     const employee = employees.find((e) => e.name === option);
                     return employee ? `${employee.employee_name} (${employee.name})` : option;
                 }}
+                filterOptions={(opts, state) => {
+                    const input = state.inputValue.toLowerCase().trim();
+                    if (!input) {
+                        const selectedEmp = filters.employee && filters.employee !== 'all' ? [filters.employee] : [];
+                        const first50 = opts.filter(
+                            (opt) => opt !== 'all' && !selectedEmp.includes(opt)
+                        ).slice(0, 50);
+                        return ['all', ...selectedEmp, ...first50];
+                    }
+                    const filtered = opts.filter((opt) => {
+                        if (opt === 'all') return 'all employees'.includes(input);
+                        const employee = employees.find((e: any) => e.name === opt);
+                        if (!employee) return opt.toLowerCase().includes(input);
+                        return (
+                            Boolean(employee.employee_name && employee.employee_name.toLowerCase().includes(input)) ||
+                            Boolean(employee.name && employee.name.toLowerCase().includes(input))
+                        );
+                    });
+                    return filtered.slice(0, 50);
+                }}
                 value={filters.employee}
                 onChange={(event, newValue) => handleFilterEmployee(newValue)}
                 renderInput={(params) => (
