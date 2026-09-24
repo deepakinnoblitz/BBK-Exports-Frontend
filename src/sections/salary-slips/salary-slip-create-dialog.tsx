@@ -260,7 +260,7 @@ export default function SalarySlipCreateDialog({ open, onClose, onSuccess, onErr
                             const inputValue = state.inputValue.trim().toLowerCase();
                             if (!inputValue) return options;
 
-                            const cleanInput = inputValue.replace(/^(emp)?0*/i, '');
+                            const cleanInput = inputValue.replace(/^(bepl|emp)?0*/i, '');
 
                             return options.filter((option) => {
                                 const name = (option.name || '').toLowerCase();
@@ -272,8 +272,8 @@ export default function SalarySlipCreateDialog({ open, onClose, onSuccess, onErr
                                 }
 
                                 if (cleanInput) {
-                                    const cleanName = name.replace(/^(emp)?0*/i, '');
-                                    const cleanEmpId = empId.replace(/^(emp)?0*/i, '');
+                                    const cleanName = name.replace(/^(bepl|emp)?0*/i, '');
+                                    const cleanEmpId = empId.replace(/^(bepl|emp)?0*/i, '');
                                     if (cleanName === cleanInput || cleanEmpId === cleanInput) {
                                         return true;
                                     }

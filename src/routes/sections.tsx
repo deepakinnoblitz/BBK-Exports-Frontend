@@ -179,7 +179,9 @@ export const CRMExpenseTrackerPage = lazy(() => import('src/pages/crm-expense-tr
 export const ExpenseTrackerPage = lazy(() => import('src/pages/expense-tracker'));
 export const ReimbursementClaimsPage = lazy(() => import('src/pages/reimbursement-claims'));
 const RenewalTrackerPage = lazy(() => import('src/pages/renewals-tracker'));
-const SalarySlipsPage = lazy(() => import('src/pages/salary-slips'));
+export const SalarySlipListPage = lazy(() => import('src/pages/salary-slips/list'));
+export const SalarySlipDetailsPage = lazy(() => import('src/pages/salary-slips/details'));
+export const SalarySlipEditPage = lazy(() => import('src/pages/salary-slips/edit'));
 const JobOpeningsPage = lazy(() => import('src/pages/job-openings'));
 const JobApplicantsPage = lazy(() => import('src/pages/job-applicants'));
 const InterviewPage = lazy(() => import('src/pages/interviews'));
@@ -543,7 +545,14 @@ export const routesSection: RouteObject[] = [
       { path: 'holidays', element: <RolePermissionGuard actionKey="holidays"><HolidaysPage /></RolePermissionGuard> },
       { path: 'reimbursement-claims', element: <RolePermissionGuard actionKey="reimbursement_claims"><ReimbursementClaimsPage /></RolePermissionGuard> },
       { path: 'renewals-tracker', element: <RenewalTrackerPage /> },
-      { path: 'salary-slips', element: <RolePermissionGuard actionKey="salary_slips"><SalarySlipsPage /></RolePermissionGuard> },
+      {
+        path: 'salary-slips',
+        children: [
+          { index: true, element: <RolePermissionGuard actionKey="salary_slips"><SalarySlipListPage /></RolePermissionGuard> },
+          { path: ':id/edit', element: <RolePermissionGuard actionKey="salary_slips"><SalarySlipEditPage /></RolePermissionGuard> },
+          { path: ':id', element: <RolePermissionGuard actionKey="salary_slips"><SalarySlipDetailsPage /></RolePermissionGuard> },
+        ],
+      },
       { path: 'job-openings', element: <RolePermissionGuard actionKey="job_openings"><JobOpeningsPage /></RolePermissionGuard> },
       { path: 'job-applicants', element: <RolePermissionGuard actionKey="job_applicants"><JobApplicantsPage /></RolePermissionGuard> },
       { path: 'interviews', element: <RolePermissionGuard actionKey="interviews"><InterviewPage /></RolePermissionGuard> },
