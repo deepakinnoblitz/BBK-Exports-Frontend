@@ -95,6 +95,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                 <SubHeader title="Employee Information" />
                 <InfoRow label="Employee Name" value={data.employee_name} />
                 <InfoRow label="Employee ID" value={data.employee_id || data.employee} />
+                <InfoRow label="Father / Husband Name" value={data.father_husband_name || '-'} />
 
                 <SubHeader title="Contact Details" />
                 <InfoRow label="Official Email" value={data.email || '-'} />

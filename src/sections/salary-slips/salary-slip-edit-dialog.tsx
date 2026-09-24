@@ -299,6 +299,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 <SubHeader title="Employee Information" />
                 <InfoRow label="Employee Name" value={formData.employee_name || '-'} />
                 <InfoRow label="Employee ID" value={formData.employee || '-'} />
+                <InfoRow label="Father / Husband Name" value={formData.father_husband_name || '-'} />
 
                 <SubHeader title="Contact Details" />
                 <InfoRow label="Official Email" value={formData.email || '-'} />

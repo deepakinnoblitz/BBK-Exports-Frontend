@@ -4,6 +4,7 @@ export interface SalarySlip {
     name: string;
     employee: string;
     employee_name: string;
+    father_husband_name?: string;
     department?: string;
     designation?: string;
     pay_period_start: string;
