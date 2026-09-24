@@ -2,7 +2,6 @@ import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -176,10 +175,11 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                     gap: 1,
                     bgcolor: (theme) => alpha(theme.palette.info.main, 0.04),
                     border: (theme) => `1px solid ${alpha(theme.palette.info.main, 0.12)}`,
-                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
                 }}
             >
                 <InfoRow label="Calc Source" value={data.calc_source} />
+                <InfoRow label="Basis" value={data.working_days_basis === 'Fixed Number of Days' ? `Fixed (${data.total_working_days}d)` : 'Actual Month'} />
                 <InfoRow label="Holiday Handling" value={data.holiday_handling?.includes('Exclude') ? 'Excluded' : 'Included'} />
                 <InfoRow label="Monthly Base" value={`${data.total_working_days} Days`} />
             </Box>
