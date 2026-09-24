@@ -13,6 +13,7 @@ import Checkbox from '@mui/material/Checkbox';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import LoadingButton from '@mui/lab/LoadingButton';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -133,6 +134,11 @@ export function ShiftRosterListView({
     open: false,
     name: null,
   });
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isBulkCancelling, setIsBulkCancelling] = useState(false);
 
   useEffect(() => {
     loadMasters();
@@ -289,6 +295,7 @@ export function ShiftRosterListView({
 
   const handleConfirmBulkCancel = async () => {
     try {
+      setIsBulkCancelling(true);
       await Promise.all(
         selected.map((name) => deleteOrCancelRosterAssignment(name, 'Cancelled by user in bulk', false))
       );
@@ -306,6 +313,7 @@ export function ShiftRosterListView({
         severity: 'error',
       });
     } finally {
+      setIsBulkCancelling(false);
       setConfirmBulkCancel(false);
     }
   };
@@ -318,6 +326,7 @@ export function ShiftRosterListView({
 
   const handleConfirmBulkDelete = async () => {
     try {
+      setIsBulkDeleting(true);
       await Promise.all(
         selected.map((name) => deleteOrCancelRosterAssignment(name, 'Deleted by user in bulk', true))
       );
@@ -335,6 +344,7 @@ export function ShiftRosterListView({
         severity: 'error',
       });
     } finally {
+      setIsBulkDeleting(false);
       setConfirmBulkDelete(false);
     }
   };
@@ -351,6 +361,7 @@ export function ShiftRosterListView({
   const handleConfirmCancel = async () => {
     if (confirmCancel.name) {
       try {
+        setIsCancelling(true);
         await deleteOrCancelRosterAssignment(confirmCancel.name, 'Cancelled by user', false);
         setSnackbar({
           open: true,
@@ -366,6 +377,7 @@ export function ShiftRosterListView({
           severity: 'error',
         });
       } finally {
+        setIsCancelling(false);
         setConfirmCancel({ open: false, name: null });
       }
     }
@@ -378,6 +390,7 @@ export function ShiftRosterListView({
   const handleConfirmDelete = async () => {
     if (confirmDelete.name) {
       try {
+        setIsDeleting(true);
         await deleteOrCancelRosterAssignment(confirmDelete.name, 'Deleted by user', true);
         setSnackbar({
           open: true,
@@ -394,6 +407,7 @@ export function ShiftRosterListView({
           severity: 'error',
         });
       } finally {
+        setIsDeleting(false);
         setConfirmDelete({ open: false, name: null });
       }
     }
@@ -432,9 +446,16 @@ export function ShiftRosterListView({
 
         <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
           <Scrollbar>
-            <Table size="medium" sx={{ minWidth: 800, borderCollapse: 'collapse' }}>
+            <Table
+              size="medium"
+              sx={{
+                minWidth: 800,
+                borderCollapse: 'collapse',
+                '& td, & th': { borderBottom: (t) => `1px solid ${t.palette.divider}` },
+              }}
+            >
               <TableHead>
-                <TableRow sx={{ bgcolor: '#f4f6f8' }}>
+                <TableRow sx={{ bgcolor: '#f4f6f8', '& th': { borderBottom: (t) => `1px solid ${t.palette.divider}` } }}>
                   <TableCell padding="checkbox" sx={{ width: 48, px: 1 }}>
                     <Checkbox
                       indeterminate={selected.length > 0 && selected.length < data.length}
@@ -595,10 +616,11 @@ export function ShiftRosterListView({
         onClose={() => setConfirmCancel({ open: false, name: null })}
         title="Cancel Shift Assignment"
         content="Are you sure you want to cancel this shift roster assignment?"
+        isLoading={isCancelling}
         action={
-          <Button variant="contained" color="warning" onClick={handleConfirmCancel}>
+          <LoadingButton variant="contained" color="warning" loading={isCancelling} onClick={handleConfirmCancel}>
             Cancel Assignment
-          </Button>
+          </LoadingButton>
         }
       />
 
@@ -608,10 +630,11 @@ export function ShiftRosterListView({
         onClose={() => setConfirmBulkCancel(false)}
         title="Cancel Selected Shift Assignments"
         content={`Are you sure you want to cancel ${selected.length} selected shift assignment(s)?`}
+        isLoading={isBulkCancelling}
         action={
-          <Button variant="contained" color="warning" onClick={handleConfirmBulkCancel}>
+          <LoadingButton variant="contained" color="warning" loading={isBulkCancelling} onClick={handleConfirmBulkCancel}>
             Cancel Assignments
-          </Button>
+          </LoadingButton>
         }
       />
 
@@ -621,10 +644,11 @@ export function ShiftRosterListView({
         onClose={() => setConfirmDelete({ open: false, name: null })}
         title="Delete Shift Assignment"
         content="Are you sure you want to permanently delete this shift assignment? This action cannot be undone."
+        isLoading={isDeleting}
         action={
-          <Button variant="contained" color="error" onClick={handleConfirmDelete}>
+          <LoadingButton variant="contained" color="error" loading={isDeleting} onClick={handleConfirmDelete}>
             Delete Permanently
-          </Button>
+          </LoadingButton>
         }
       />
 
@@ -634,10 +658,11 @@ export function ShiftRosterListView({
         onClose={() => setConfirmBulkDelete(false)}
         title="Delete Selected Shift Assignments"
         content={`Are you sure you want to permanently delete ${selected.length} selected shift assignment(s)? This action cannot be undone.`}
+        isLoading={isBulkDeleting}
         action={
-          <Button variant="contained" color="error" onClick={handleConfirmBulkDelete}>
+          <LoadingButton variant="contained" color="error" loading={isBulkDeleting} onClick={handleConfirmBulkDelete}>
             Delete Permanently
-          </Button>
+          </LoadingButton>
         }
       />
 

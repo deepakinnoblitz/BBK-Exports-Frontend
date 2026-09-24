@@ -6,6 +6,7 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Snackbar from '@mui/material/Snackbar';
+import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -15,6 +16,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import { createDepartment, updateDepartment, renameDepartment, getDepartment, Department } from 'src/api/masters';
 
@@ -236,11 +238,10 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
                             label="Status"
                             value={status}
                             onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive')}
-                            SelectProps={{ native: true }}
                             InputLabelProps={{ shrink: true }}
                         >
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
+                            <MenuItem value="Active">Active</MenuItem>
+                            <MenuItem value="Inactive">Inactive</MenuItem>
                         </TextField>
                     </Box>
 
@@ -275,6 +276,7 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
                     variant="contained"
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+                    sx={{ bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', '&:hover': { bgcolor: COMMON_COLORS.emerald.dark } }}
                 >
                     {id ? 'Save Changes' : 'Create'}
                 </Button>

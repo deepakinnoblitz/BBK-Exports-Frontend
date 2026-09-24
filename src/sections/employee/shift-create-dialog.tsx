@@ -17,6 +17,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { COMMON_COLORS } from 'src/theme';
 import { createShift } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
@@ -247,7 +248,7 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
                     variant="contained"
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-                    sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
+                    sx={{ bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', '&:hover': { bgcolor: COMMON_COLORS.emerald.dark } }}
                 >
                     Create
                 </Button>

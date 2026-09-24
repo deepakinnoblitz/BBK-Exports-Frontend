@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
@@ -10,6 +11,7 @@ import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getShift, Shift } from 'src/api/masters';
 
 import { Label } from 'src/components/label';
@@ -86,16 +88,6 @@ export function ShiftDetailsDialog({ open, onClose, shiftId }: Props) {
     return `${mins} mins`;
   };
 
-  const renderStatus = (status?: string) => (
-    <Label
-      variant="soft"
-      color={status === 'Inactive' ? 'error' : 'success'}
-      sx={{ textTransform: 'uppercase', fontWeight: 800 }}
-    >
-      {status || 'Active'}
-    </Label>
-  );
-
   return (
     <Dialog
       open={open}
@@ -112,74 +104,99 @@ export function ShiftDetailsDialog({ open, onClose, shiftId }: Props) {
       <DialogTitle
         sx={{
           m: 0,
-          p: 2.5,
+          px: 3,
+          py: 2,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          bgcolor: 'background.neutral',
+          borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 800 }}>
-          Shift Profile
-        </Typography>
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            Shift Details
+          </Typography>
+        </Stack>
+
         <IconButton
           onClick={onClose}
           sx={{
-            color: (theme) => theme.palette.grey[500],
-            bgcolor: 'background.paper',
-            boxShadow: (theme) => theme.customShadows?.z1,
+            color: 'text.disabled',
+            '&:hover': {
+              color: 'text.primary',
+              bgcolor: (theme) => alpha(theme.palette.grey[500], 0.12),
+            },
           }}
         >
-          <Iconify icon="mingcute:close-line" />
+          <Iconify icon="mingcute:close-line" width={20} />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 4, m: 2, mt: 4 }}>
+      <DialogContent sx={{ m: 1.5, mt: 3, p: 2.5 }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
-            <Iconify icon={'svg-spinners:12-dots-scale-rotate' as any} width={40} sx={{ color: 'primary.main' }} />
+            <Iconify icon={'svg-spinners:12-dots-scale-rotate' as any} width={40} sx={{ color: COMMON_COLORS.emerald.main }} />
           </Box>
         ) : shift ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {/* Header Info */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <Box
-                sx={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: (theme) =>
-                    `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.primary.main} 100%)`,
-                  color: 'white',
-                  flexShrink: 0,
-                  position: 'relative',
-                  boxShadow: (theme) => theme.customShadows?.z8 || theme.shadows[8],
-                }}
-              >
-                <Iconify icon={'solar:clock-circle-bold' as any} width={32} />
-              </Box>
-              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
-                  {shift.shift_name || shift.name}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                  {shift.start_time && shift.end_time
-                    ? `${formatTime(shift.start_time)} - ${formatTime(shift.end_time)}`
-                    : 'Flexible Timings'}
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                {renderStatus(shift.status)}
-                <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.disabled', fontWeight: 700 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+            {/* Header Banner Card */}
+            <Box
+              sx={{
+                p: 2.5,
+                borderRadius: 2,
+                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.05),
+                border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.22)}`,
+                boxShadow: `0 2px 10px ${alpha(COMMON_COLORS.emerald.main, 0.06)}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 2,
+              }}
+            >
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Box
+                  sx={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                    color: COMMON_COLORS.emerald.darker,
+                    boxShadow: `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.15)}`,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Iconify icon={"solar:clock-circle-bold" as any} width={24} />
+                </Box>
+
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1.3 }}>
+                    {shift.shift_name || shift.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mt: 0.25 }}>
+                    {shift.start_time && shift.end_time
+                      ? `${formatTime(shift.start_time)} - ${formatTime(shift.end_time)}`
+                      : 'Flexible Timings'}
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Label
+                  variant="soft"
+                  color={shift.status === 'Inactive' ? 'error' : 'success'}
+                  sx={{ textTransform: 'uppercase', fontWeight: 800 }}
+                >
+                  {shift.status || 'Active'}
+                </Label>
+                <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 700 }}>
                   ID: {shift.name}
                 </Typography>
-              </Box>
+              </Stack>
             </Box>
-
-            <Divider sx={{ borderStyle: 'dashed' }} />
 
             {/* Shift Timing & Schedule */}
             <Box>
@@ -187,7 +204,7 @@ export function ShiftDetailsDialog({ open, onClose, shiftId }: Props) {
               <Box
                 sx={{
                   display: 'grid',
-                  gap: 3,
+                  gap: 2.5,
                   gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
                 }}
               >
@@ -213,7 +230,7 @@ export function ShiftDetailsDialog({ open, onClose, shiftId }: Props) {
               <Box
                 sx={{
                   display: 'grid',
-                  gap: 3,
+                  gap: 2.5,
                   gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
                 }}
               >
@@ -252,7 +269,7 @@ export function ShiftDetailsDialog({ open, onClose, shiftId }: Props) {
                   color: 'text.secondary',
                   lineHeight: 1.6,
                   whiteSpace: 'pre-line',
-                  p: 3,
+                  p: 2.5,
                   bgcolor: 'background.neutral',
                   borderRadius: 1.5,
                   border: (theme) => `1px solid ${theme.palette.divider}`,
@@ -279,15 +296,15 @@ export function ShiftDetailsDialog({ open, onClose, shiftId }: Props) {
 
 function SectionHeader({ title, icon, noMargin = false }: { title: string; icon?: string; noMargin?: boolean }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: noMargin ? 0 : 3 }}>
-      {icon && <Iconify icon={icon as any} width={22} sx={{ color: 'primary.main' }} />}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: noMargin ? 0 : 2.5 }}>
+      {icon && <Iconify icon={icon as any} width={20} sx={{ color: COMMON_COLORS.emerald.main }} />}
       <Typography
-        variant="h6"
+        variant="subtitle1"
         sx={{
-          fontWeight: 900,
+          fontWeight: 800,
           textTransform: 'uppercase',
-          letterSpacing: 1,
-          fontSize: '0.875rem',
+          letterSpacing: 0.8,
+          fontSize: '0.8125rem',
           color: 'text.primary',
         }}
       >
@@ -311,14 +328,14 @@ function DetailItem({
   isStatus?: boolean;
 }) {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
       <Typography
         variant="caption"
         sx={{ color: 'text.disabled', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}
       >
         {label}
       </Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
         {icon && (
           <Box
             sx={{
@@ -328,8 +345,8 @@ function DetailItem({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-              color: 'primary.main',
+              bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+              color: COMMON_COLORS.emerald.main,
             }}
           >
             <Iconify icon={icon as any} width={18} />

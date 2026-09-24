@@ -11,6 +11,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { COMMON_COLORS } from 'src/theme';
 import { createEmployeeType } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
@@ -158,7 +159,7 @@ export function EmployeeTypeCreateDialog({ open, onClose, onCreate, currentTypeN
                     onClick={handleSubmit}
                     variant="contained"
                     disabled={loading}
-                    sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
+                    sx={{ bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', '&:hover': { bgcolor: COMMON_COLORS.emerald.dark } }}
                 >
                     {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Create'}
                 </Button>

@@ -140,9 +140,18 @@ export function LineRosterHistoryDialog({ open, onClose, rosterId, employee }: P
                 borderRadius: 1.5,
               }}
             >
-              <Table size="small" stickyHeader>
+              <Table
+                size="small"
+                stickyHeader
+                sx={{
+                  borderCollapse: 'collapse',
+                  '& td, & th': {
+                    borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+                  },
+                }}
+              >
                 <TableHead>
-                  <TableRow>
+                  <TableRow sx={{ '& th': { borderBottom: (theme) => `1px solid ${theme.palette.divider}`, bgcolor: 'background.neutral', fontWeight: 700 } }}>
                     <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Employee</TableCell>
                     <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Effective Period</TableCell>
                     <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Line Change</TableCell>
@@ -154,7 +163,15 @@ export function LineRosterHistoryDialog({ open, onClose, rosterId, employee }: P
                 </TableHead>
                 <TableBody>
                   {paginatedList.map((row) => (
-                    <TableRow key={row.name} hover>
+                    <TableRow
+                      key={row.name}
+                      hover
+                      sx={{
+                        '& td, & th': {
+                          borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+                        },
+                      }}
+                    >
                       <TableCell>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{row.employee_name || row.employee}</Typography>
                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>{row.employee}</Typography>

@@ -44,6 +44,7 @@ import { useEmployees } from 'src/hooks/useEmployees';
 
 import { fNumber } from 'src/utils/format-number';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import { uploadFile } from 'src/api/data-import';
 import { getBusTravelRoute } from 'src/api/masters';
@@ -2157,11 +2158,17 @@ export function EmployeeView() {
                     </Typography>
                     <Button
                         size="small"
-                        color="info"
                         variant="text"
                         startIcon={<Iconify icon="solar:add-circle-bold" />}
                         onClick={() => handleAddSalaryRow(type)}
-                        sx={{ fontWeight: 700 }}
+                        sx={{
+                            color: COMMON_COLORS.emerald.main,
+                            fontWeight: 700,
+                            '&:hover': {
+                                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                color: COMMON_COLORS.emerald.dark,
+                            }
+                        }}
                     >
                         Add Row
                     </Button>
@@ -2176,13 +2183,13 @@ export function EmployeeView() {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ py: 1.5, bgcolor: '#059669', color: 'common.white', fontWeight: 700, width: '60%' }}>
+                                <TableCell sx={{ py: 1.5, bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', fontWeight: 700, width: '60%' }}>
                                     Component Name *
                                 </TableCell>
-                                <TableCell align="right" sx={{ py: 1.5, bgcolor: '#059669', color: 'common.white', fontWeight: 700, width: '35%' }}>
+                                <TableCell align="right" sx={{ py: 1.5, bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', fontWeight: 700, width: '35%' }}>
                                     Amount
                                 </TableCell>
-                                <TableCell width={48} sx={{ py: 1.5, bgcolor: '#059669' }} />
+                                <TableCell width={48} sx={{ py: 1.5, bgcolor: COMMON_COLORS.emerald.main }} />
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -2254,11 +2261,17 @@ export function EmployeeView() {
                     <Typography variant="h6" sx={{ color: 'primary.main' }}>Documents</Typography>
                     <Button
                         size="small"
-                        color="info"
                         variant="text"
                         startIcon={<Iconify icon="solar:add-circle-bold" />}
                         onClick={handleAddDocumentRow}
-                        sx={{ fontWeight: 700 }}
+                        sx={{
+                            color: COMMON_COLORS.emerald.main,
+                            fontWeight: 700,
+                            '&:hover': {
+                                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                color: COMMON_COLORS.emerald.dark,
+                            }
+                        }}
                     >
                         Add Document
                     </Button>
@@ -2273,16 +2286,16 @@ export function EmployeeView() {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ py: 1.5, bgcolor: '#059669', color: 'common.white', fontWeight: 700, width: '30%' }}>
+                                <TableCell sx={{ py: 1.5, bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', fontWeight: 700, width: '30%' }}>
                                     Title *
                                 </TableCell>
-                                <TableCell sx={{ py: 1.5, bgcolor: '#059669', color: 'common.white', fontWeight: 700, width: '30%' }}>
+                                <TableCell sx={{ py: 1.5, bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', fontWeight: 700, width: '30%' }}>
                                     Attachment *
                                 </TableCell>
-                                <TableCell sx={{ py: 1.5, bgcolor: '#059669', color: 'common.white', fontWeight: 700, width: '35%' }}>
+                                <TableCell sx={{ py: 1.5, bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', fontWeight: 700, width: '35%' }}>
                                     Description
                                 </TableCell>
-                                <TableCell width={48} sx={{ py: 1.5, bgcolor: '#059669' }} />
+                                <TableCell width={48} sx={{ py: 1.5, bgcolor: COMMON_COLORS.emerald.main }} />
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -2446,9 +2459,9 @@ export function EmployeeView() {
                         startIcon={<Iconify icon="mingcute:add-line" />}
                         onClick={handleOpenCreate}
                         sx={{
-                            bgcolor: 'var(--btn-primary-bg, #059669)',
-                            color: 'var(--btn-primary-color, common.white)',
-                            '&:hover': { bgcolor: 'var(--btn-primary-hover, #047857)' },
+                            bgcolor: COMMON_COLORS.primaryButton.bg,
+                            color: COMMON_COLORS.primaryButton.color,
+                            '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
                         }}
                     >
                         New Employee
@@ -2589,6 +2602,7 @@ export function EmployeeView() {
                             '& .MuiTabs-indicator': {
                                 height: 3,
                                 borderRadius: '3px 3px 0 0',
+                                bgcolor: COMMON_COLORS.emerald.main,
                             },
                             '& .MuiTab-root': {
                                 py: 2,
@@ -2597,7 +2611,7 @@ export function EmployeeView() {
                                 fontSize: '0.875rem',
                                 color: 'text.secondary',
                                 '&.Mui-selected': {
-                                    color: 'primary.main',
+                                    color: COMMON_COLORS.emerald.main,
                                 },
                                 '& .MuiTab-iconWrapper': {
                                     mr: '10px !important',
@@ -2705,11 +2719,11 @@ export function EmployeeView() {
                                                             height: 32,
                                                             fontSize: '0.75rem',
                                                             fontWeight: 700,
-                                                            bgcolor: (theme) => alpha(theme.palette.primary.main, 1),
+                                                            bgcolor: COMMON_COLORS.emerald.main,
                                                             color: 'common.white',
                                                             boxShadow: (theme) => theme.customShadows.z8,
                                                             '&:hover': {
-                                                                bgcolor: (theme) => theme.palette.primary.dark,
+                                                                bgcolor: COMMON_COLORS.emerald.dark,
                                                                 boxShadow: (theme) => theme.customShadows.z16,
                                                             }
                                                         }}
@@ -2781,7 +2795,7 @@ export function EmployeeView() {
                         variant="contained"
                         onClick={handleCreate}
                         loading={creating}
-                        sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
+                        sx={{ bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', '&:hover': { bgcolor: COMMON_COLORS.emerald.dark } }}
                     >
                         {currentEmployeeId ? 'Update Employee' : 'Create Employee'}
                     </LoadingButton>

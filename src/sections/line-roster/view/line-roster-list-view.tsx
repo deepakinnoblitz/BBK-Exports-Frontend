@@ -13,6 +13,7 @@ import Checkbox from '@mui/material/Checkbox';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import LoadingButton from '@mui/lab/LoadingButton';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -112,6 +113,12 @@ export function LineRosterListView({
   const [historyTarget, setHistoryTarget] = useState<{ rosterId?: string; employee?: string }>({});
   const [confirmBulkCancel, setConfirmBulkCancel] = useState(false);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+
+  // Loading States for Actions
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isBulkCancelling, setIsBulkCancelling] = useState(false);
 
   // Snackbar State
   const [snackbar, setSnackbar] = useState<{
@@ -289,6 +296,7 @@ export function LineRosterListView({
 
   const handleConfirmBulkCancel = async () => {
     try {
+      setIsBulkCancelling(true);
       await Promise.all(
         selected.map((name) => deleteOrCancelLineRosterAssignment(name, 'Cancelled by user in bulk', false))
       );
@@ -306,6 +314,7 @@ export function LineRosterListView({
         severity: 'error',
       });
     } finally {
+      setIsBulkCancelling(false);
       setConfirmBulkCancel(false);
     }
   };
@@ -318,6 +327,7 @@ export function LineRosterListView({
 
   const handleConfirmBulkDelete = async () => {
     try {
+      setIsBulkDeleting(true);
       await Promise.all(
         selected.map((name) => deleteOrCancelLineRosterAssignment(name, 'Deleted by user in bulk', true))
       );
@@ -335,6 +345,7 @@ export function LineRosterListView({
         severity: 'error',
       });
     } finally {
+      setIsBulkDeleting(false);
       setConfirmBulkDelete(false);
     }
   };
@@ -346,12 +357,14 @@ export function LineRosterListView({
   const handleConfirmCancel = async () => {
     if (confirmCancel.name) {
       try {
+        setIsCancelling(true);
         await deleteOrCancelLineRosterAssignment(confirmCancel.name, 'Cancelled by user', false);
         setSnackbar({ open: true, message: 'Line assignment cancelled successfully', severity: 'success' });
         refetch();
       } catch (err: any) {
         setSnackbar({ open: true, message: err.message || 'Failed to cancel assignment', severity: 'error' });
       } finally {
+        setIsCancelling(false);
         setConfirmCancel({ open: false, name: null });
       }
     }
@@ -364,12 +377,14 @@ export function LineRosterListView({
   const handleConfirmDelete = async () => {
     if (confirmDelete.name) {
       try {
+        setIsDeleting(true);
         await deleteOrCancelLineRosterAssignment(confirmDelete.name, 'Deleted by user', true);
         setSnackbar({ open: true, message: 'Line assignment deleted permanently', severity: 'success' });
         refetch();
       } catch (err: any) {
         setSnackbar({ open: true, message: err.message || 'Failed to delete assignment', severity: 'error' });
       } finally {
+        setIsDeleting(false);
         setConfirmDelete({ open: false, name: null });
       }
     }
@@ -413,9 +428,16 @@ export function LineRosterListView({
 
         <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
           <Scrollbar>
-            <Table size="medium" sx={{ minWidth: 800, borderCollapse: 'collapse' }}>
+            <Table
+              size="medium"
+              sx={{
+                minWidth: 800,
+                borderCollapse: 'collapse',
+                '& td, & th': { borderBottom: (t) => `1px solid ${t.palette.divider}` },
+              }}
+            >
               <TableHead>
-                <TableRow sx={{ bgcolor: '#f4f6f8' }}>
+                <TableRow sx={{ bgcolor: '#f4f6f8', '& th': { borderBottom: (t) => `1px solid ${t.palette.divider}` } }}>
                   <TableCell padding="checkbox" sx={{ width: 48, px: 1 }}>
                     <Checkbox
                       indeterminate={selected.length > 0 && selected.length < data.length}
@@ -466,11 +488,6 @@ export function LineRosterListView({
                       />
                     ))}
 
-                    <TableEmptyRows
-                      height={68}
-                      emptyRows={data.length < 5 ? 5 - data.length : 0}
-                    />
-
                     {notFound && <TableNoData searchQuery={search} />}
 
                     {empty && (
@@ -484,6 +501,13 @@ export function LineRosterListView({
                           />
                         </TableCell>
                       </TableRow>
+                    )}
+
+                    {!empty && !notFound && (
+                      <TableEmptyRows
+                        height={68}
+                        emptyRows={data.length < 5 ? 5 - data.length : 0}
+                      />
                     )}
                   </>
                 )}
@@ -545,29 +569,17 @@ export function LineRosterListView({
         lineOptions={lines}
       />
 
-      {/* Confirm Cancel Dialog */}
+      {/* Confirm Single Cancel Dialog */}
       <ConfirmDialog
         open={confirmCancel.open}
         onClose={() => setConfirmCancel({ open: false, name: null })}
-        title="Cancel Assignment"
-        content="Are you sure you want to cancel this line assignment? It will become inactive but remain in audit logs."
+        title="Cancel Line Assignment"
+        content="Are you sure you want to cancel this line roster assignment?"
+        isLoading={isCancelling}
         action={
-          <Button variant="contained" color="warning" onClick={handleConfirmCancel}>
+          <LoadingButton variant="contained" color="warning" loading={isCancelling} onClick={handleConfirmCancel}>
             Cancel Assignment
-          </Button>
-        }
-      />
-
-      {/* Confirm Permanent Delete Dialog */}
-      <ConfirmDialog
-        open={confirmDelete.open}
-        onClose={() => setConfirmDelete({ open: false, name: null })}
-        title="Delete Permanently"
-        content="Are you sure you want to permanently delete this line assignment?"
-        action={
-          <Button variant="contained" color="error" onClick={handleConfirmDelete}>
-            Delete
-          </Button>
+          </LoadingButton>
         }
       />
 
@@ -575,12 +587,27 @@ export function LineRosterListView({
       <ConfirmDialog
         open={confirmBulkCancel}
         onClose={() => setConfirmBulkCancel(false)}
-        title="Cancel Selected Assignments"
+        title="Cancel Selected Line Assignments"
         content={`Are you sure you want to cancel ${selected.length} selected line assignment(s)?`}
+        isLoading={isBulkCancelling}
         action={
-          <Button variant="contained" color="warning" onClick={handleConfirmBulkCancel}>
-            Cancel {selected.length} Records
-          </Button>
+          <LoadingButton variant="contained" color="warning" loading={isBulkCancelling} onClick={handleConfirmBulkCancel}>
+            Cancel Assignments
+          </LoadingButton>
+        }
+      />
+
+      {/* Confirm Single Delete Dialog */}
+      <ConfirmDialog
+        open={confirmDelete.open}
+        onClose={() => setConfirmDelete({ open: false, name: null })}
+        title="Delete Line Assignment"
+        content="Are you sure you want to permanently delete this line assignment? This action cannot be undone."
+        isLoading={isDeleting}
+        action={
+          <LoadingButton variant="contained" color="error" loading={isDeleting} onClick={handleConfirmDelete}>
+            Delete Permanently
+          </LoadingButton>
         }
       />
 
@@ -588,12 +615,13 @@ export function LineRosterListView({
       <ConfirmDialog
         open={confirmBulkDelete}
         onClose={() => setConfirmBulkDelete(false)}
-        title="Delete Selected Assignments Permanently"
-        content={`Are you sure you want to permanently delete ${selected.length} selected line assignment(s)?`}
+        title="Delete Selected Line Assignments"
+        content={`Are you sure you want to permanently delete ${selected.length} selected line assignment(s)? This action cannot be undone.`}
+        isLoading={isBulkDeleting}
         action={
-          <Button variant="contained" color="error" onClick={handleConfirmBulkDelete}>
-            Delete {selected.length} Records
-          </Button>
+          <LoadingButton variant="contained" color="error" loading={isBulkDeleting} onClick={handleConfirmBulkDelete}>
+            Delete Permanently
+          </LoadingButton>
         }
       />
 
