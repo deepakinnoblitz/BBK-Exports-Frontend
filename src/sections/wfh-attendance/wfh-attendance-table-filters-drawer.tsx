@@ -197,14 +197,15 @@ export function WFHAttendanceTableFiltersDrawer({
                         ).slice(0, 50);
                         return ['all', ...selectedEmp, ...first50];
                     }
+                    const terms = input.split(/\s+/).filter(Boolean);
                     const filtered = opts.filter((opt) => {
                         if (opt === 'all') return 'all employees'.includes(input);
                         const emp = options.employees.find((e: any) => e.name === opt);
                         if (!emp) return opt.toLowerCase().includes(input);
-                        return (
-                            Boolean(emp.employee_name && emp.employee_name.toLowerCase().includes(input)) ||
-                            Boolean(emp.name && emp.name.toLowerCase().includes(input))
-                        );
+                        const fullName = emp.employee_name || '';
+                        const empId = emp.name || '';
+                        const combined = `${fullName} ${empId} (${empId})`.toLowerCase();
+                        return terms.every((term: string) => combined.includes(term));
                     });
                     return filtered.slice(0, 50);
                 }}

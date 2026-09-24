@@ -199,10 +199,12 @@ export function LineRosterTableFiltersDrawer({
                     const unselectedFirst50 = opts.filter((opt) => !selectedIds.has(opt.name)).slice(0, 50);
                     return [...selectedOpts, ...unselectedFirst50];
                   }
+                  const terms = input.split(/\s+/).filter(Boolean);
                   const filtered = opts.filter((opt) => {
-                    const nameMatch = opt.employee_name && opt.employee_name.toLowerCase().includes(input);
-                    const idMatch = opt.name && opt.name.toLowerCase().includes(input);
-                    return Boolean(nameMatch || idMatch);
+                    const fullName = opt.employee_name || '';
+                    const empId = opt.name || '';
+                    const combined = `${fullName} ${empId} (${empId})`.toLowerCase();
+                    return terms.every((term: string) => combined.includes(term));
                   });
                   return filtered.slice(0, 50);
                 }}

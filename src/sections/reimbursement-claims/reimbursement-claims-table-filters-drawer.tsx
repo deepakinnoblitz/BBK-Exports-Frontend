@@ -210,14 +210,15 @@ export function ReimbursementClaimsTableFiltersDrawer({
                         ).slice(0, 50);
                         return ['all', ...selectedEmp, ...first50];
                     }
+                    const terms = input.split(/\s+/).filter(Boolean);
                     const filtered = opts.filter((opt) => {
                         if (opt === 'all') return 'all employees'.includes(input);
                         const employee = employees.find((e: any) => e.name === opt);
                         if (!employee) return opt.toLowerCase().includes(input);
-                        return (
-                            Boolean(employee.employee_name && employee.employee_name.toLowerCase().includes(input)) ||
-                            Boolean(employee.name && employee.name.toLowerCase().includes(input))
-                        );
+                        const fullName = employee.employee_name || '';
+                        const empId = employee.name || '';
+                        const combined = `${fullName} ${empId} (${empId})`.toLowerCase();
+                        return terms.every((term: string) => combined.includes(term));
                     });
                     return filtered.slice(0, 50);
                 }}
