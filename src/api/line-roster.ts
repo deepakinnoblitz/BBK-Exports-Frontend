@@ -56,6 +56,8 @@ export interface MonthlyLineRosterResponse {
   days: MonthlyLineRosterDay[];
   employees: MonthlyLineRosterEmployee[];
   lines: any[];
+  total_count?: number;
+  has_more?: boolean;
 }
 
 // Fetch list of line roster records
@@ -202,6 +204,8 @@ export async function fetchMonthlyLineRoster(params: {
   year: number;
   department?: string;
   employee?: string | string[];
+  start?: number;
+  limit?: number;
 }): Promise<MonthlyLineRosterResponse> {
   const headers = await getAuthHeaders();
   const res = await frappeRequest('/api/method/company.company.line_roster_api.get_monthly_roster', {

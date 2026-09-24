@@ -58,6 +58,8 @@ export interface MonthlyRosterResponse {
   days: MonthlyRosterDay[];
   employees: MonthlyRosterEmployee[];
   shifts: any[];
+  total_count?: number;
+  has_more?: boolean;
 }
 
 // Fetch list of shift roster records
@@ -203,6 +205,8 @@ export async function fetchMonthlyRoster(params: {
   year: number;
   department?: string;
   employee?: string | string[];
+  start?: number;
+  limit?: number;
 }): Promise<MonthlyRosterResponse> {
   const headers = await getAuthHeaders();
   const res = await frappeRequest('/api/method/company.company.shift_roster_api.get_monthly_roster', {

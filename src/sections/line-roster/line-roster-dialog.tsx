@@ -13,12 +13,12 @@ import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
-import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { COMMON_COLORS } from 'src/theme';
@@ -32,6 +32,10 @@ import {
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
+
+const filterEmployees = createFilterOptions<any>({
+  stringify: (opt) => `${opt.employee_name || ''} ${opt.name || ''} ${opt.line_order || ''}`,
+});
 
 type Props = {
   open: boolean;
@@ -242,24 +246,43 @@ export function LineRosterDialog({
               loading={loadingData}
               disabled={isEdit}
               getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
+              filterOptions={filterEmployees}
               isOptionEqualToValue={(option, value) => option?.name === value?.name}
               value={selectedEmployee}
               onChange={(_, val) => setSelectedEmployee(val)}
-              renderOption={(props, option, { selected: isSelected }) => (
-                <li {...props} key={option.name}>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                      {option.employee_name || option.name}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
-                      ID: {option.name}
-                    </Typography>
-                  </Box>
-                  {isSelected && (
-                    <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: 'primary.main', ml: 1 }} />
-                  )}
-                </li>
-              )}
+              renderOption={(props, option, { selected: isSelected }) => {
+                const lineName = lines.find((l) => l.name === option.line_order)?.line_name || option.line_order;
+
+                return (
+                  <li {...props} key={option.name}>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                        {option.employee_name || option.name}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', mt: 0.25 }}>
+                        <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
+                          ID: {option.name}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
+                          •
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: lineName ? 'text.secondary' : 'text.disabled',
+                            fontWeight: 600,
+                          }}
+                        >
+                          LINE: {lineName || '—'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    {isSelected && (
+                      <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: 'primary.main', ml: 1 }} />
+                    )}
+                  </li>
+                );
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}

@@ -1,6 +1,8 @@
+import type { LineRoster, MonthlyLineRosterResponse } from 'src/api/line-roster';
+
 import { useState, useEffect, useCallback } from 'react';
 
-import { fetchLineRosterList, fetchMonthlyLineRoster, fetchCalendarLineRoster, LineRoster, MonthlyLineRosterResponse } from 'src/api/line-roster';
+import { fetchLineRosterList, fetchMonthlyLineRoster, fetchCalendarLineRoster } from 'src/api/line-roster';
 
 export function useLineRoster(
   page: number = 1,
@@ -65,29 +67,89 @@ export function useLineRoster(
   return { data, total, loading, error, refetch: fetchData };
 }
 
-export function useMonthlyLineRoster(month: number, year: number, department?: string, employee?: string | string[]) {
+export function useMonthlyLineRoster(
+  month: number,
+  year: number,
+  department?: string,
+  employee?: string | string[],
+  pageSize: number = 50
+) {
   const [data, setData] = useState<MonthlyLineRosterResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetchMonthlyLineRoster({ month, year, department, employee });
+      const res = await fetchMonthlyLineRoster({
+        month,
+        year,
+        department,
+        employee,
+        start: 0,
+        limit: pageSize,
+      });
       setData(res);
+      setHasMore(!!res?.has_more);
+      setTotalCount(res?.total_count || res?.employees?.length || 0);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch Monthly Line Roster');
     } finally {
       setLoading(false);
     }
-  }, [month, year, department, JSON.stringify(employee)]);
+  }, [month, year, department, JSON.stringify(employee), pageSize]);
+
+  const loadMore = useCallback(async () => {
+    if (loading || loadingMore || !hasMore || !data) return;
+    try {
+      setLoadingMore(true);
+      const currentCount = data.employees.length;
+      const res = await fetchMonthlyLineRoster({
+        month,
+        year,
+        department,
+        employee,
+        start: currentCount,
+        limit: pageSize,
+      });
+      if (res?.employees?.length) {
+        setData((prev) => {
+          if (!prev) return res;
+          const existingIds = new Set(prev.employees.map((e) => e.employee));
+          const newEmps = res.employees.filter((e) => !existingIds.has(e.employee));
+          return {
+            ...res,
+            employees: [...prev.employees, ...newEmps],
+          };
+        });
+      }
+      setHasMore(!!res?.has_more);
+      setTotalCount(res?.total_count || totalCount);
+    } catch (err: any) {
+      console.error('Failed to load more line roster employees', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loading, loadingMore, hasMore, data, month, year, department, JSON.stringify(employee), pageSize, totalCount]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  return { data, loading, error, refetch: fetchData };
+  return {
+    data,
+    loading,
+    loadingMore,
+    hasMore,
+    totalCount,
+    error,
+    refetch: fetchData,
+    loadMore,
+  };
 }
 
 export function useCalendarLineRoster(startDate: string, endDate: string, employee?: string | string[], department?: string) {

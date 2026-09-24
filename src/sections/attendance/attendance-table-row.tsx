@@ -119,12 +119,20 @@ export function AttendanceTableRow({
                 </TableCell>
             )}
 
-            <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-                <Box>
-                    <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
+            <TableCell sx={{ width: 200, maxWidth: 200, display: { xs: 'none', md: 'table-cell' } }}>
+                <Box sx={{ maxWidth: 200 }}>
+                    <Typography
+                        variant="subtitle2"
+                        sx={{
+                            fontWeight: 700,
+                            whiteSpace: 'normal',
+                            wordBreak: 'break-word',
+                            lineHeight: 1.3,
+                        }}
+                    >
                         {row.employeeName}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                         {row.employee}
                     </Typography>
                 </Box>

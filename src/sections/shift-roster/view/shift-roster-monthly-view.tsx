@@ -135,12 +135,46 @@ export function ShiftRosterMonthlyView({
     return selectedEmployees.map((e) => (typeof e === 'string' ? e : e.name));
   }, [selectedEmployees]);
 
-  const { data, loading, refetch } = useMonthlyRoster(
+  const { data, loading, loadingMore, hasMore, totalCount, refetch, loadMore } = useMonthlyRoster(
     month,
     year,
     selectedDept !== 'all' ? selectedDept : undefined,
     employeeFilterParam
   );
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (sentinelRef.current && hasMore && !loading && !loadingMore) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+            loadMore();
+          }
+        },
+        { root: null, rootMargin: '350px', threshold: 0.1 }
+      );
+      observer.observe(sentinelRef.current);
+      return () => observer.disconnect();
+    }
+    return undefined;
+  }, [hasMore, loading, loadingMore, loadMore]);
+
+  useEffect(() => {
+    if (hasMore && !loading && !loadingMore) {
+      const handleScroll = () => {
+        const scrollY = window.scrollY || window.pageYOffset;
+        const viewportHeight = window.innerHeight;
+        const docHeight = document.documentElement.scrollHeight;
+        if (scrollY + viewportHeight >= docHeight - 350) {
+          loadMore();
+        }
+      };
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+    return undefined;
+  }, [hasMore, loading, loadingMore, loadMore]);
 
   useEffect(() => {
     if (refreshTrigger !== undefined && refreshTrigger > 0) {
@@ -550,29 +584,6 @@ export function ShiftRosterMonthlyView({
                 width: 26,
                 height: 22,
                 borderRadius: '6px',
-                bgcolor: '#f1f5f9',
-                color: '#64748b',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              WO
-            </Box>
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-              Weekly Off
-            </Typography>
-          </Stack>
-
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Box
-              sx={{
-                width: 26,
-                height: 22,
-                borderRadius: '6px',
                 bgcolor: '#fee2e2',
                 color: '#ef4444',
                 border: '1px solid #fca5a5',
@@ -653,7 +664,7 @@ export function ShiftRosterMonthlyView({
                     borderBottom: (t) => `1px solid ${t.palette.divider}`,
                   }}
                 >
-                  Employee ({filteredEmployees.length})
+                  Employee ({filteredEmployees.length}{totalCount ? ` of ${totalCount}` : ''})
                 </TableCell>
 
                 {data?.days?.map((d) => {
@@ -701,7 +712,7 @@ export function ShiftRosterMonthlyView({
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredEmployees.map((emp) => (
+                filteredEmployees.map((emp, empIndex) => (
                   <TableRow key={emp.employee} hover sx={{ '& td': { py: 1.2 } }}>
                     {/* Sticky Employee Column */}
                     <TableCell
@@ -725,6 +736,74 @@ export function ShiftRosterMonthlyView({
 
                     {/* Day Shift Cells */}
                     {data?.days?.map((d) => {
+                      const isFullHoliday = d.is_holiday && !filteredEmployees.some((e) => e.shifts?.[d.date]?.source === 'ROSTER');
+
+                      if (isFullHoliday) {
+                        if (empIndex === 0) {
+                          return (
+                            <TableCell
+                              key={d.date}
+                              rowSpan={filteredEmployees.length}
+                              align="center"
+                              onClick={() => canEdit && handleCellClick(emp.employee, d.date)}
+                              sx={{
+                                px: 0.5,
+                                py: 1,
+                                minWidth: 42,
+                                maxWidth: 42,
+                                verticalAlign: 'middle',
+                                bgcolor: 'rgba(244, 63, 94, 0.08)',
+                                borderRight: (t) => `1px solid ${t.palette.divider}`,
+                                borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                                cursor: canEdit ? 'pointer' : 'default',
+                                transition: 'background-color 0.15s ease',
+                                '&:hover': {
+                                  bgcolor: 'rgba(244, 63, 94, 0.14)',
+                                },
+                              }}
+                            >
+                              <Tooltip
+                                title={
+                                  <span style={{ whiteSpace: 'pre-line' }}>
+                                    {`Holiday: ${d.holiday_name || 'Public Holiday'}\n${d.date}`}
+                                  </span>
+                                }
+                                arrow
+                              >
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    height: '100%',
+                                    width: '100%',
+                                    minHeight: 80,
+                                  }}
+                                >
+                                  <Typography
+                                    sx={{
+                                      fontWeight: 800,
+                                      fontSize: '0.72rem',
+                                      letterSpacing: 2.5,
+                                      color: '#9f1239',
+                                      textTransform: 'uppercase',
+                                      writingMode: 'vertical-rl',
+                                      transform: 'rotate(180deg)',
+                                      display: 'inline-block',
+                                      whiteSpace: 'nowrap',
+                                      userSelect: 'none',
+                                    }}
+                                  >
+                                    Holiday
+                                  </Typography>
+                                </Box>
+                              </Tooltip>
+                            </TableCell>
+                          );
+                        }
+                        return null;
+                      }
+
                       const cell = emp.shifts?.[d.date];
                       const isToday = d.date === todayStr;
                       const isHoliday = d.is_holiday;
@@ -737,24 +816,19 @@ export function ShiftRosterMonthlyView({
                         border: '1px dashed #cbd5e1',
                       };
 
-                      if (cell?.shift) {
+                      if (isHoliday && cell?.source !== 'ROSTER') {
+                        chipCode = 'H';
+                        chipStyle = { bg: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' };
+                      } else if (cell?.shift) {
                         const pal = shiftColorMap[cell.shift] || { bg: '#e0f2fe', color: '#0284c7', border: '#bae6fd' };
                         chipCode = getShiftShortCode(cell.shift_name || cell.shift);
                         chipStyle = pal;
-                      } else if (isHoliday) {
-                        chipCode = 'H';
-                        chipStyle = { bg: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' };
-                      } else if (isWeeklyOff) {
-                        chipCode = 'WO';
-                        chipStyle = { bg: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1' };
                       }
 
-                      const tooltipText = cell?.shift
+                      const tooltipText = (isHoliday && cell?.source !== 'ROSTER')
+                        ? `Holiday: ${d.holiday_name || 'Public Holiday'}\n${d.date}`
+                        : cell?.shift
                         ? `${cell.shift_name || cell.shift}\n${d.date}\nSource: ${cell.source || 'ROSTER'}`
-                        : isHoliday
-                        ? `Holiday: ${d.holiday_name || 'Public Holiday'}`
-                        : isWeeklyOff
-                        ? 'Weekly Off'
                         : `Unassigned\n${d.date}`;
 
                       return (
@@ -803,6 +877,38 @@ export function ShiftRosterMonthlyView({
                     })}
                   </TableRow>
                 ))
+              )}
+
+              {/* Sentinel and Load More row */}
+              {hasMore && (
+                <TableRow>
+                  <TableCell
+                    colSpan={(data?.days?.length || 31) + 1}
+                    align="center"
+                    sx={{ py: 2, bgcolor: 'background.neutral' }}
+                  >
+                    <Box ref={sentinelRef} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
+                      {loadingMore ? (
+                        <Stack direction="row" spacing={1.5} alignItems="center">
+                          <CircularProgress size={20} color="primary" />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                            Loading more employees... ({filteredEmployees.length} of {totalCount})
+                          </Typography>
+                        </Stack>
+                      ) : (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => loadMore()}
+                          startIcon={<Iconify icon={"solar:alt-arrow-down-linear" as any} />}
+                          sx={{ fontWeight: 700 }}
+                        >
+                          Load More ({Math.min(50, totalCount - filteredEmployees.length)} remaining)
+                        </Button>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>
