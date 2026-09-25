@@ -25,6 +25,7 @@ import { getPresenceSettings, updatePresenceSettings } from 'src/api/presence';
 import { fetchEmployeesList, type EmployeeOption } from 'src/api/hr-document-generation';
 
 import { Iconify } from 'src/components/iconify';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
 
@@ -530,6 +531,7 @@ export function EmployeePresenceSettingsDialog({ open, onClose }: Props) {
                             multiple
                             disableCloseOnSelect
                             options={employeeOptions}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => `${option.employee_name} (${option.name})`}
                             value={employeeOptions.filter((opt) => trackedEmployees.includes(opt.name))}
                             onChange={(_, newValue) => {

@@ -39,6 +39,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { fDate } from 'src/utils/format-time';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { runReport } from 'src/api/reports';
 import { getDoctypeList } from 'src/api/leads';
@@ -684,6 +685,7 @@ export function LeaveAllocationReportView() {
                             size="small"
                             sx={{ flexGrow: 1, minWidth: 350 }}
                             options={employeeOptions}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => `${option.employee_name} (${option.name})`}
                             isOptionEqualToValue={(option, value) => option.name === value.name}
                             value={employeeOptions.filter((opt) => employee.includes(opt.name))}

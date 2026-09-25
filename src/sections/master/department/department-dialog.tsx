@@ -21,6 +21,7 @@ import { getDoctypeList } from 'src/api/leads';
 import { createDepartment, updateDepartment, renameDepartment, getDepartment, Department } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 // ----------------------------------------------------------------------
 
@@ -193,6 +194,7 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
                         <Autocomplete
                             fullWidth
                             options={employeeOptions}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => option.employee_name || option.name || ''}
                             value={departmentHead}
                             isOptionEqualToValue={(option, value) => option?.name === value?.name}

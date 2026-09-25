@@ -31,6 +31,7 @@ import {
 } from 'src/api/shift-roster';
 
 import { Iconify } from 'src/components/iconify';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 // ----------------------------------------------------------------------
 
@@ -247,6 +248,7 @@ export function ShiftRosterDialog({
             {/* Employee Selector */}
             <Autocomplete
               options={employees}
+              filterOptions={filterEmployeeOptions}
               loading={loadingData}
               disabled={isEdit}
               getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}

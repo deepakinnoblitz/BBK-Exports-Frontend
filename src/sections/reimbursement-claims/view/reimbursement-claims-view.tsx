@@ -34,6 +34,7 @@ import { useSocket } from 'src/hooks/use-socket';
 import { useReimbursementClaims } from 'src/hooks/useReimbursementClaims';
 
 import { frappeRequest } from 'src/utils/csrf';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { fetchEmployees } from 'src/api/employees';
 import { markAsRead } from 'src/api/unread-counts';
@@ -938,6 +939,7 @@ export function ReimbursementClaimsView() {
                         <Autocomplete
                             fullWidth
                             options={employees}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => option.employee_name || option.name || option.employee_id || ''}
                             value={employees.find((emp) => emp.name === employee) || null}
                             disabled={isEdit || !isHR}

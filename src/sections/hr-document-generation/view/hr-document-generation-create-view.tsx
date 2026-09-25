@@ -31,6 +31,7 @@ import {
 
 import { Iconify } from 'src/components/iconify';
 import { RichTextEditor } from 'src/components/rich-text-editor/rich-text-editor';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 // ----------------------------------------------------------------------
 
@@ -290,6 +291,7 @@ export function HRDocumentGenerationCreateView() {
                     <Autocomplete
                         fullWidth
                         options={employees}
+                        filterOptions={filterEmployeeOptions}
                         getOptionLabel={(option) => (option.employee_name ? `${option.employee_name} (${option.name})` : option.name || '')}
                         isOptionEqualToValue={(option, value) => option.name === value.name}
                         value={selectedEmployee}

@@ -34,6 +34,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { fDate } from 'src/utils/format-time';
 import { frappeRequest } from 'src/utils/csrf';
 import { fNumber } from 'src/utils/format-number';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { getDoctypeList } from 'src/api/leads';
 import { getHRSettings } from 'src/api/hr-management';
@@ -618,6 +619,7 @@ export function SalarySlipReportView() {
                             size="small"
                             sx={{ flexGrow: 1, minWidth: 200 }}
                             options={[{ name: 'all', employee_name: 'All Employees' }, ...employeeOptions]}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => option.name === 'all' ? option.employee_name : `${option.employee_name} (${option.name})`}
                             value={employee === 'all' ? { name: 'all', employee_name: 'All Employees' } : (employeeOptions.find((opt) => opt.name === employee) || null)}
                             onChange={(event, newValue) => {

@@ -33,6 +33,7 @@ import {
 } from 'src/api/hr-document-generation';
 
 import { Iconify } from 'src/components/iconify';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 import { RichTextEditor } from 'src/components/rich-text-editor/rich-text-editor';
 
 // ----------------------------------------------------------------------
@@ -283,6 +284,7 @@ export function HRDocumentGenerationEditView({ id }: Props) {
                     <Autocomplete
                         fullWidth
                         options={employees}
+                        filterOptions={filterEmployeeOptions}
                         getOptionLabel={(option) => (option.employee_name ? `${option.employee_name} (${option.name})` : option.name || '')}
                         isOptionEqualToValue={(option, value) => option.name === value.name}
                         value={selectedEmployee}

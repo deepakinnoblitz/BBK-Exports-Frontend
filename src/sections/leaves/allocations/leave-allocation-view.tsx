@@ -48,6 +48,7 @@ import {
 } from 'src/api/leave-allocations';
 
 import { Iconify } from 'src/components/iconify';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
@@ -669,6 +670,7 @@ export function LeaveAllocationView() {
                         <Autocomplete
                             fullWidth
                             options={employeeOptions}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(opt) => `${opt.employee_name} (${opt.name})`}
                             value={employeeOptions.find((opt) => opt.name === employee) || null}
                             onChange={(event, newValue) => {

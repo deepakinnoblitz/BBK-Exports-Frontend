@@ -42,6 +42,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useSocket } from 'src/hooks/use-socket';
 import { useUnreadCountsContext } from 'src/hooks/unread-counts-context';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { frappeRequest } from 'src/utils/csrf';
 
@@ -1090,6 +1091,7 @@ export function AssetRequestsView() {
                             <Autocomplete
                                 fullWidth
                                 options={employees}
+                                filterOptions={filterEmployeeOptions}
                                 getOptionLabel={(o: any) => `${o.employee_name} (${o.name})`}
                                 onChange={(_, val) => setTargetEmployee(val)}
                                 renderOption={(props, option: any) => (

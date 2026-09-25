@@ -43,6 +43,7 @@ import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
 
 import { useAuth } from 'src/auth/auth-context';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { LeavesTableRow } from '../leaves-table-row';
 import { TableNoData } from '../../lead/table-no-data';
@@ -749,6 +750,7 @@ export function LeavesView() {
                             <Autocomplete
                                 fullWidth
                                 options={employeeOptions}
+                                filterOptions={filterEmployeeOptions}
                                 getOptionLabel={(option) => {
                                     if (typeof option === 'string') {
                                         const emp = employeeOptions.find((e) => e.name === option);

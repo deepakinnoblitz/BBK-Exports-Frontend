@@ -30,12 +30,9 @@ import {
 } from 'src/api/line-roster';
 
 import { Iconify } from 'src/components/iconify';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 // ----------------------------------------------------------------------
-
-const filterEmployees = createFilterOptions<any>({
-  stringify: (opt) => `${opt.employee_name || ''} ${opt.name || ''} ${opt.line_order || ''}`,
-});
 
 type Props = {
   open: boolean;
@@ -246,7 +243,7 @@ export function LineRosterDialog({
               loading={loadingData}
               disabled={isEdit}
               getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
-              filterOptions={filterEmployees}
+              filterOptions={filterEmployeeOptions}
               isOptionEqualToValue={(option, value) => option?.name === value?.name}
               value={selectedEmployee}
               onChange={(_, val) => setSelectedEmployee(val)}

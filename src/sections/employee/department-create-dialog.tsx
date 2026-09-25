@@ -17,6 +17,7 @@ import { getDoctypeList } from 'src/api/leads';
 import { createDepartment } from 'src/api/hr-management';
 
 import { Iconify } from 'src/components/iconify';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 // ----------------------------------------------------------------------
 
@@ -128,6 +129,7 @@ export function DepartmentCreateDialog({ open, onClose, onCreate, currentDepartm
                         <Autocomplete
                             fullWidth
                             options={employeeOptions}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => option.employee_name || option.name || ''}
                             value={departmentHead}
                             onChange={(event, newValue) => {

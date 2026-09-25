@@ -40,6 +40,7 @@ import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
 
 import { useAuth } from 'src/auth/auth-context';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { TableNoData } from '../../lead/table-no-data';
 import { TableEmptyRows } from '../../lead/table-empty-rows';
@@ -1002,6 +1003,7 @@ export function AttendanceView() {
                             <Autocomplete
                                 fullWidth
                                 options={employeeOptions}
+                                filterOptions={filterEmployeeOptions}
                                 getOptionLabel={(option) => option.employee_name || option.name || ''}
                                 value={employeeOptions.find((opt) => opt.name === formData.employee) || null}
                                 onChange={(event, newValue) => {

@@ -28,6 +28,7 @@ import { getDoctypeList } from 'src/api/leads';
 import { createSalarySlip, updateSalarySlip, previewSalarySlip, generateSalarySlipFromEmployee } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { SalarySlipPreviewDialog } from './salary-slip-preview-dialog';
 
@@ -219,6 +220,7 @@ export default function SalarySlipCreateDialog({ open, onClose, onSuccess, onErr
                     <Autocomplete
                         fullWidth
                         options={employees}
+                        filterOptions={filterEmployeeOptions}
                         getOptionLabel={(option) => {
                             // Handle both object (when selecting) and string (initial value)
                             if (typeof option === 'string') {

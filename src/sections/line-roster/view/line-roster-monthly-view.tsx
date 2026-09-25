@@ -31,6 +31,7 @@ import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 
 import { Iconify } from 'src/components/iconify';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { LineRosterDialog } from '../line-roster-dialog';
 import { LineRosterTableFiltersDrawer } from '../line-roster-table-filters-drawer';
@@ -501,6 +502,7 @@ export function LineRosterMonthlyView({
               disableCloseOnSelect
               size="small"
               options={selectedDept === 'all' ? employees : employees.filter((e) => e.department === selectedDept)}
+              filterOptions={filterEmployeeOptions}
               getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
               isOptionEqualToValue={(option, value) => option?.name === value?.name}
               value={employees.filter((opt) =>

@@ -39,6 +39,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { useAssetAssignments } from 'src/hooks/useAssetAssignments';
 
 import { frappeRequest } from 'src/utils/csrf';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
@@ -566,6 +567,7 @@ export function AssetAssignmentsView() {
                             <Autocomplete
                                 fullWidth
                                 options={employees}
+                                filterOptions={filterEmployeeOptions}
                                 getOptionLabel={(option) => `${option.employee_name} (${option.name})`}
                                 value={selectedEmployee}
                                 onChange={(event, newValue) => setSelectedEmployee(newValue)}

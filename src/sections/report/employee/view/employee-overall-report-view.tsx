@@ -40,6 +40,7 @@ import { fDate } from 'src/utils/format-time';
 import { frappeRequest } from 'src/utils/csrf';
 import { fNumber } from 'src/utils/format-number';
 import { stringToColor, stringToDarkColor } from 'src/utils/color-utils';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { runReport } from 'src/api/reports';
 import { getDoctypeList } from 'src/api/leads';
@@ -1523,6 +1524,7 @@ export function EmployeeOverallReportView() {
               size="small"
               sx={{ flexGrow: 1, minWidth: 350 }}
               options={employeeOptions}
+              filterOptions={filterEmployeeOptions}
               getOptionLabel={(option) => `${option.employee_name} (${option.name})`}
               isOptionEqualToValue={(option, value) => option.name === value.name}
               value={employeeOptions.filter((emp) =>
