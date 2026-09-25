@@ -1,26 +1,30 @@
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { IoMdArrowBack, IoMdCheckmarkCircle } from 'react-icons/io';
 
 import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
-import Divider from '@mui/material/Divider';
 import Popover from '@mui/material/Popover';
+import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
+import Snackbar from '@mui/material/Snackbar';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
 import InputAdornment from '@mui/material/InputAdornment';
+import CircularProgress from '@mui/material/CircularProgress';
+
+import { useRouter } from 'src/routes/hooks';
 
 import { fNumber } from 'src/utils/format-number';
 
 import { getHRSettings } from 'src/api/hr-management';
-import { saveSalarySlip } from 'src/api/salary-slips';
+import { DashboardContent } from 'src/layouts/dashboard';
+import { saveSalarySlip, getSalarySlipWithDetails } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -28,87 +32,40 @@ import { Scrollbar } from 'src/components/scrollbar';
 // ----------------------------------------------------------------------
 
 type Props = {
-    open: boolean;
-    onClose: () => void;
-    slip: any;
-    onSuccess: (message: string) => void;
+    id?: string;
 };
 
-export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) {
+export function SalarySlipEditView({ id: propId }: Props) {
+    const params = useParams();
+    const router = useRouter();
+    const id = propId || params.id;
+
+    const [loading, setLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [formData, setFormData] = useState<any>(null);
+
     const [hrSettings, setHRSettings] = useState<any>({
         default_currency: 'INR',
         currency_symbol: '₹',
         default_locale: 'en-IN',
     });
 
-    const [formData, setFormData] = useState<any>(null);
-    const [isSaving, setIsSaving] = useState(false);
-
-    // Store base amounts to allow re-proration during edit
     const [baseEarnings, setBaseEarnings] = useState<any[]>([]);
     const [baseDeductions, setBaseDeductions] = useState<any[]>([]);
-    const [popoverState, setPopoverState] = useState<{ el: HTMLElement | null, type: string | null }>({ el: null, type: null });
+    const [popoverState, setPopoverState] = useState<{ el: HTMLElement | null; type: string | null }>({
+        el: null,
+        type: null,
+    });
 
-    const handleOpenPopover = (event: React.MouseEvent<HTMLElement>, type: string) => {
-        setPopoverState({ el: event.currentTarget, type });
-    };
-
-    const handleClosePopover = () => {
-        setPopoverState(prev => ({ ...prev, el: null }));
-    };
-
-    const getPopoverTitle = () => {
-        switch (popoverState.type) {
-            case 'present': return 'Present Days';
-            case 'physical': return 'Physical Attendance Days';
-            case 'absent': return 'Absent Days';
-            case 'half_day': return 'Half Days';
-            case 'holiday': return 'Holidays';
-            case 'unpaid_leave': return 'Unpaid Leaves';
-            case 'paid_leave': return 'Paid Leaves';
-            case 'lop': return 'LOP Days';
-            default: return 'Attendance Breakdown';
-        }
-    };
-
-    const getFilteredBreakdown = () => {
-        const bd = formData?.days_breakdown || [];
-        switch (popoverState.type) {
-            case 'present': return bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Holiday'));
-            case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
-            case 'absent': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
-            case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
-            case 'holiday': return bd.filter((d: any) => d.status.includes('Holiday'));
-            case 'unpaid_leave': return bd.filter((d: any) => d.status.includes('Unpaid Leave'));
-            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave'));
-            case 'lop': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
-            default: return bd;
-        }
-    };
-
-    const formatHoursToHrMin = (decimalHours: number) => {
-        const hours = Math.floor(decimalHours);
-        const mins = Math.round((decimalHours - hours) * 60);
-        return `${hours}hr ${mins}mins`;
-    };
-
-    const renderInfoAction = (type: string) => (
-        <IconButton
-            size="small"
-            onClick={(e) => handleOpenPopover(e, type)}
-            sx={{
-                p: 0,
-                color: 'info.main',
-                '&:hover': { bgcolor: (theme) => alpha(theme.palette.info.main, 0.08) }
-            }}
-        >
-            <Iconify icon={"solar:info-circle-linear" as any} width={16} />
-        </IconButton>
-    );
-
-    useEffect(() => {
-        getHRSettings().then(setHRSettings).catch(console.error);
-    }, []);
+    const [snackbar, setSnackbar] = useState<{
+        open: boolean;
+        message: string;
+        severity: 'success' | 'error';
+    }>({
+        open: false,
+        message: '',
+        severity: 'success',
+    });
 
     function recalculateTotals(data: any) {
         const getNum = (v: any) => parseFloat(v) || 0;
@@ -116,34 +73,26 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
 
         const workingDays = getNum(data.total_working_days) || 1;
         const periodDays = getNum(data.total_days_in_period) || 0;
-        const prorationFactor = periodDays / (getNum(baseEarnings[0]?.total_working_days) || workingDays) || (periodDays / workingDays);
-        
-        // Actually, proration factor should probably be 1 on load if we are using the amounts directly
         const currentProration = periodDays / workingDays;
 
         // 1. Prorate individual components to the period (only if they haven't been manually edited)
         const updatedEarnings = (data.earnings || baseEarnings).map((item: any, idx: number) => {
             const baseItem = baseEarnings[idx] || item;
             const baseAmount = getNum(baseItem.base_amount || baseItem.amount);
-            
-            // If it's the first time and we don't have isManual, we assume it's NOT manual if it matches the current calculation
-            // However, we don't know the original proration factor of the loaded slip.
-            // Safe bet: items are manual if they are explicitly marked, or if we just want to preserve whatever was loaded.
             const isManual = item.isManual ?? false;
 
             if (isManual) return { ...item, isManual: true };
-            
+
             return {
                 ...item,
                 amount: round(baseAmount * currentProration).toFixed(2),
-                isManual: false
+                isManual: false,
             };
         });
 
         const updatedDeductions = (data.deductions || baseDeductions).map((item: any, idx: number) => {
             const baseItem = baseDeductions[idx] || item;
             const baseAmount = getNum(baseItem.base_amount || baseItem.amount);
-            
             const isManual = item.isManual ?? false;
 
             if (isManual) return { ...item, isManual: true };
@@ -151,7 +100,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
             return {
                 ...item,
                 amount: round(baseAmount * currentProration).toFixed(2),
-                isManual: false
+                isManual: false,
             };
         });
 
@@ -162,8 +111,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         // 3. Calculate LOP based on absent days relative to month base
         const lopDays = getNum(data.lop_days);
         const autoLopAmount = round((grossPay / (currentProration || 1)) * (lopDays / workingDays));
-        
-        // Manual LOP detection: if isManualLop is not set, we check if current lop differs significantly from auto
+
         const isManualLop = data.isManualLop ?? (data.lop !== undefined && Math.abs(getNum(data.lop) - autoLopAmount) > 0.1);
         const lopAmount = isManualLop ? getNum(data.lop) : autoLopAmount;
 
@@ -195,7 +143,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
             // Smart linking logic
             if (field === 'actual_present_days') {
                 updated.lop_days = Math.max(0, totalPeriod - numValue);
-                updated.half_day_count = (numValue % 1 === 0.5) ? 1 : 0;
+                updated.half_day_count = numValue % 1 === 0.5 ? 1 : 0;
                 updated.isManualLop = false;
             } else if (field === 'lop_days') {
                 updated.actual_present_days = Math.max(0, totalPeriod - numValue);
@@ -208,8 +156,6 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
             }
 
             const result = recalculateTotals(updated);
-            // Preserve the raw string value for the field currently being edited
-            // to allow decimal typing (e.g., "9333.")
             return { ...result, [field]: value };
         });
     }
@@ -221,7 +167,6 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
             const updated = { ...prev, [listName]: newList };
             const result = recalculateTotals(updated);
 
-            // Preserve the raw string value for the specific component amount
             const finalResults = { ...result };
             finalResults[listName] = [...(result[listName] || [])];
             finalResults[listName][index] = { ...finalResults[listName][index], amount: value };
@@ -231,39 +176,149 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
     }
 
     useEffect(() => {
-        if (open && slip) {
-            const data = JSON.parse(JSON.stringify(slip));
-            // Ensure initial load is also formatted and calculated
-            setFormData(recalculateTotals(data));
+        getHRSettings().then(setHRSettings).catch(console.error);
 
-            setBaseEarnings(data.earnings || []);
-            setBaseDeductions(data.deductions || []);
+        if (id) {
+            setLoading(true);
+            getSalarySlipWithDetails(id)
+                .then((data) => {
+                    setBaseEarnings(data.earnings || []);
+                    setBaseDeductions(data.deductions || []);
+                    setFormData(recalculateTotals(data));
+                })
+                .catch((err) => {
+                    console.error('Failed to load salary slip:', err);
+                    setSnackbar({ open: true, message: 'Failed to load salary slip', severity: 'error' });
+                })
+                .finally(() => setLoading(false));
         }
-    }, [open, slip]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
-    if (!formData) return null;
+    const handleOpenPopover = (event: React.MouseEvent<HTMLElement>, type: string) => {
+        setPopoverState({ el: event.currentTarget, type });
+    };
+
+    const handleClosePopover = () => {
+        setPopoverState((prev) => ({ ...prev, el: null }));
+    };
+
+    const getPopoverTitle = () => {
+        switch (popoverState.type) {
+            case 'present':
+                return 'Present Days';
+            case 'physical':
+                return 'Physical Attendance Days';
+            case 'absent':
+                return 'Absent Days';
+            case 'half_day':
+                return 'Half Days';
+            case 'holiday':
+                return 'Holidays';
+            case 'unpaid_leave':
+                return 'Unpaid Leaves';
+            case 'paid_leave':
+                return 'Paid Leaves';
+            case 'lop':
+                return 'LOP Days';
+            default:
+                return 'Attendance Breakdown';
+        }
+    };
+
+    const getFilteredBreakdown = () => {
+        const bd = formData?.days_breakdown || [];
+        switch (popoverState.type) {
+            case 'present':
+                return bd.filter(
+                    (d: any) =>
+                        d.status.includes('Work') ||
+                        d.status.includes('Paid Leave') ||
+                        d.status.includes('Holiday')
+                );
+            case 'physical':
+                return bd.filter((d: any) => d.status.includes('Work'));
+            case 'absent':
+                return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
+            case 'half_day':
+                return bd.filter((d: any) => d.status.includes('(0.5)'));
+            case 'holiday':
+                return bd.filter((d: any) => d.status.includes('Holiday'));
+            case 'unpaid_leave':
+                return bd.filter((d: any) => d.status.includes('Unpaid Leave'));
+            case 'paid_leave':
+                return bd.filter((d: any) => d.status.includes('Paid Leave'));
+            case 'lop':
+                return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
+            default:
+                return bd;
+        }
+    };
+
+    const formatHoursToHrMin = (decimalHours: number) => {
+        const hours = Math.floor(decimalHours);
+        const mins = Math.round((decimalHours - hours) * 60);
+        return `${hours}hr ${mins}mins`;
+    };
+
+    const renderInfoAction = (type: string) => (
+        <IconButton
+            size="small"
+            onClick={(e) => handleOpenPopover(e, type)}
+            sx={{
+                p: 0,
+                color: 'info.main',
+                '&:hover': { bgcolor: (theme) => alpha(theme.palette.info.main, 0.08) },
+            }}
+        >
+            <Iconify icon={'solar:info-circle-linear' as any} width={16} />
+        </IconButton>
+    );
 
     async function handleSave() {
         try {
             setIsSaving(true);
             await saveSalarySlip(formData);
-            onSuccess('Salary Slip updated successfully');
-            onClose();
+            setSnackbar({ open: true, message: 'Salary Slip updated successfully', severity: 'success' });
+            setTimeout(() => {
+                router.push(`/salary-slips/${id}`);
+            }, 600);
         } catch (error: any) {
-            console.error(error);
-        } finally {
+            console.error('Failed to save salary slip:', error);
+            setSnackbar({
+                open: true,
+                message: error.message || 'Failed to update salary slip',
+                severity: 'error',
+            });
             setIsSaving(false);
         }
     }
-
-
 
     const formatDate = (date: string) => {
         if (!date) return '-';
         return dayjs(date).format('DD-MM-YYYY');
     };
 
-    // ── Header ────────────────────────────────────────────────────────────────
+    if (loading) {
+        return (
+            <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <CircularProgress />
+            </DashboardContent>
+        );
+    }
+
+    if (!formData) {
+        return (
+            <DashboardContent maxWidth={false}>
+                <Typography variant="h4">Salary slip not found</Typography>
+                <Button onClick={() => router.push('/salary-slips')} sx={{ mt: 3 }}>
+                    Go back to list
+                </Button>
+            </DashboardContent>
+        );
+    }
+
+    // ── Header (Exact Dialog UI) ──────────────────────────────────────────────
     const renderHeader = (
         <Box
             sx={{
@@ -284,6 +339,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         </Box>
     );
 
+    // ── Employee Details (Exact Dialog UI) ────────────────────────────────────
     const renderEmployeeDetails = (
         <Box sx={{ mb: 4 }}>
             <Box
@@ -306,7 +362,6 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 <InfoRow label="Personal Email" value={formData.personal_email || '-'} />
                 <InfoRow label="Employee Phone Number" value={formData.phone_number || '-'} />
 
-
                 <SubHeader title="Job Details" />
                 <InfoRow label="Department" value={formData.department || '-'} />
                 <InfoRow label="Designation" value={formData.designation || '-'} />
@@ -322,10 +377,10 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         </Box>
     );
 
-    // ── Attendance Summary ────────────────────────────────────────────────────
+    // ── Attendance Summary (Exact Dialog UI) ──────────────────────────────────
     const renderAttendanceSummary = (
         <Box sx={{ mb: 4 }}>
-            <SectionHeader title="Attendance Summary" icon={"solar:calendar-date-bold" as any} color="warning.main" />
+            <SectionHeader title="Attendance Summary" icon={'solar:calendar-date-bold' as any} color="warning.main" />
             <Box
                 sx={{
                     p: 2.5,
@@ -406,7 +461,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         </Box>
     );
 
-    // ── Salary Breakdown ────────────────────────────────────────────────────
+    // ── Salary Breakdown (Exact Dialog UI) ────────────────────────────────────
     const renderSalaryBreakdown = (
         <Box sx={{ mb: 4 }}>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
@@ -419,7 +474,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                         border: (theme) => `1px solid ${alpha(theme.palette.success.main, 0.12)}`,
                     }}
                 >
-                    <SectionHeader title="Earnings" icon={"solar:wad-of-money-bold" as any} color="success.main" />
+                    <SectionHeader title="Earnings" icon={'solar:wad-of-money-bold' as any} color="success.main" />
 
                     <Stack spacing={2}>
                         {(formData.earnings || []).map((item: any, idx: number) => (
@@ -450,7 +505,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                         border: (theme) => `1px solid ${alpha(theme.palette.error.main, 0.12)}`,
                     }}
                 >
-                    <SectionHeader title="Deductions" icon={"solar:hand-money-bold" as any} color="error.main" />
+                    <SectionHeader title="Deductions" icon={'solar:hand-money-bold' as any} color="error.main" />
 
                     <Stack spacing={2}>
                         {(formData.deductions || []).map((item: any, idx: number) => (
@@ -481,7 +536,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         </Box>
     );
 
-    // ── Net Pay Summary ───────────────────────────────────────────────────────
+    // ── Net Pay Summary (Exact Dialog UI) ─────────────────────────────────────
     const renderNetPay = (
         <Box
             sx={{
@@ -513,51 +568,70 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         </Box>
     );
 
+    const filteredBreakdown = getFilteredBreakdown();
+
     return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" PaperProps={{ sx: { borderRadius: 2, boxShadow: (themeVar) => themeVar.customShadows.z24, } }}>
-            <DialogTitle
+        <DashboardContent maxWidth={false}>
+            {/* Top Heading and Button Style like Invoice Page */}
+            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={4} mt={2} className="no-print">
+                <Typography variant="h4">Edit Salary Slip: {formData.name}</Typography>
+                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                    <Button
+                        variant="outlined"
+                        color="inherit"
+                        onClick={() => router.push(`/salary-slips/${id}`)}
+                        startIcon={<IoMdArrowBack size={20} />}
+                        sx={{
+                            borderRadius: 1.5,
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            px: 2.5,
+                            '&:hover': {
+                                bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04),
+                                borderColor: 'text.primary',
+                            },
+                        }}
+                    >
+                        Go Back
+                    </Button>
+
+                    <LoadingButton
+                        variant="contained"
+                        loading={isSaving}
+                        onClick={handleSave}
+                        startIcon={<IoMdCheckmarkCircle size={20} />}
+                        sx={{
+                            borderRadius: 1.5,
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            bgcolor: '#059669',
+                            color: 'common.white',
+                            '&:hover': { bgcolor: '#047857' },
+                        }}
+                    >
+                        Save Changes
+                    </LoadingButton>
+                </Stack>
+            </Stack>
+
+            {/* Exactly the Dialog UI rendered inside a full width Card on page */}
+            <Card
                 sx={{
-                    m: 0,
-                    p: 2.5,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderBottom: (theme) => `1px solid ${theme.palette.divider}`
+                    p: { xs: 2.5, sm: 4 },
+                    width: 1,
+                    borderRadius: 2,
+                    boxShadow: (themeVar) => themeVar.customShadows?.z16,
                 }}
             >
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                    Edit Salary Slip: {formData.employee_name} - {dayjs(formData.pay_period_start).format('MMMM YYYY')}
-                </Typography>
-                <IconButton onClick={onClose} sx={{ color: 'text.secondary' }}>
-                    <Iconify icon={"mingcute:close-line" as any} />
-                </IconButton>
+                {renderHeader}
+                {renderEmployeeDetails}
+                {renderAttendanceSummary}
+                <Divider sx={{ my: 4, borderStyle: 'dashed' }} />
+                {renderSalaryBreakdown}
+                {renderNetPay}
+            </Card>
 
-            </DialogTitle>
-
-            <Scrollbar sx={{ maxHeight: '80vh' }}>
-                <DialogContent sx={{ p: 4 }}>
-                    {renderHeader}
-                    {renderEmployeeDetails}
-
-                    {renderAttendanceSummary}
-                    <Divider sx={{ my: 4, borderStyle: 'dashed' }} />
-                    {renderSalaryBreakdown}
-                    {renderNetPay}
-                </DialogContent>
-            </Scrollbar>
-
-            <DialogActions sx={{ p: 2.5 }}>
-                <LoadingButton
-                    variant="contained"
-                    color="primary"
-                    loading={isSaving}
-                    onClick={handleSave}
-                    sx={{ px: 4, borderRadius: 1.5 }}
-                >
-                    Save Changes
-                </LoadingButton>
-            </DialogActions>
-
+            {/* Attendance Breakdown Popover */}
             <Popover
                 open={Boolean(popoverState.el)}
                 anchorEl={popoverState.el}
@@ -574,59 +648,114 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 </Typography>
                 <Scrollbar>
                     <Stack spacing={1.5}>
-                        {getFilteredBreakdown().length > 0 ? getFilteredBreakdown().map((day: any, idx: number) => {
-                            let colorStr = 'text.secondary';
-                            if (day.status.includes('Work') && day.status.includes('Absent')) colorStr = 'warning.main';
-                            else if (day.status.includes('Absent')) colorStr = 'error.main';
-                            else if (day.status.includes('Work')) colorStr = 'success.main';
-                            else if (day.status.includes('Holiday')) colorStr = 'info.main';
-                            else if (day.status.includes('Leave')) colorStr = 'warning.main';
+                        {filteredBreakdown.length > 0 ? (
+                            filteredBreakdown.map((day: any, idx: number) => {
+                                let colorStr = 'text.secondary';
+                                if (day.status.includes('Work') && day.status.includes('Absent')) colorStr = 'warning.main';
+                                else if (day.status.includes('Absent')) colorStr = 'error.main';
+                                else if (day.status.includes('Work')) colorStr = 'success.main';
+                                else if (day.status.includes('Holiday')) colorStr = 'info.main';
+                                else if (day.status.includes('Leave')) colorStr = 'warning.main';
 
-                            return (
-                                <Box
-                                    key={idx}
-                                    sx={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        py: 1,
-                                        px: 1.5,
-                                        borderRadius: 1,
-                                        transition: 'background-color 0.2s',
-                                        '&:hover': { bgcolor: 'action.hover' },
-                                        ...(idx !== getFilteredBreakdown().length - 1 && {
-                                            borderBottom: (theme) => `1px dashed ${theme.palette.divider}`
-                                        })
-                                    }}
-                                >
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                        {dayjs(day.date).format('DD-MM-YYYY - dddd')}
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-                                        <Typography variant="caption" sx={{ color: colorStr, fontWeight: 700, px: 1, py: 0.25, borderRadius: 0.5, bgcolor: (theme) => alpha(theme.palette[colorStr.replace('.main', '') as 'success' | 'info' | 'warning' | 'error']?.main || theme.palette.text.secondary, 0.12) }}>
-                                            {(() => {
-                                                if ((popoverState.type === 'absent' || popoverState.type === 'lop') && day.status.includes('Work') && day.status.includes('Absent')) return 'Half Day Absent';
-                                                if (['present', 'physical', 'half_day'].includes(popoverState.type || '') && day.status.includes('Work') && day.status.includes('Absent')) return 'Present Half Day';
-                                                return day.status.replaceAll('(1.0)', 'Full Day').replaceAll('(0.5)', 'Half Day').replace('Work', 'Present');
-                                            })()}
+                                return (
+                                    <Box
+                                        key={idx}
+                                        sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            py: 1,
+                                            px: 1.5,
+                                            borderRadius: 1,
+                                            transition: 'background-color 0.2s',
+                                            '&:hover': { bgcolor: 'action.hover' },
+                                            ...(idx !== filteredBreakdown.length - 1 && {
+                                                borderBottom: (theme) => `1px dashed ${theme.palette.divider}`,
+                                            }),
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                            {dayjs(day.date).format('DD-MM-YYYY - dddd')}
                                         </Typography>
-                                        {day.hours ? (
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                                                {formatHoursToHrMin(day.hours)}
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                                            <Typography
+                                                variant="caption"
+                                                sx={{
+                                                    color: colorStr,
+                                                    fontWeight: 700,
+                                                    px: 1,
+                                                    py: 0.25,
+                                                    borderRadius: 0.5,
+                                                    bgcolor: (theme) =>
+                                                        alpha(
+                                                            theme.palette[
+                                                                colorStr.replace('.main', '') as 'success' | 'info' | 'warning' | 'error'
+                                                            ]?.main || theme.palette.text.secondary,
+                                                            0.12
+                                                        ),
+                                                }}
+                                            >
+                                                {(() => {
+                                                    if (
+                                                        (popoverState.type === 'absent' || popoverState.type === 'lop') &&
+                                                        day.status.includes('Work') &&
+                                                        day.status.includes('Absent')
+                                                    )
+                                                        return 'Half Day Absent';
+                                                    if (
+                                                        ['present', 'physical', 'half_day'].includes(popoverState.type || '') &&
+                                                        day.status.includes('Work') &&
+                                                        day.status.includes('Absent')
+                                                    )
+                                                        return 'Present Half Day';
+                                                    return day.status
+                                                        .replaceAll('(1.0)', 'Full Day')
+                                                        .replaceAll('(0.5)', 'Half Day')
+                                                        .replace('Work', 'Present');
+                                                })()}
                                             </Typography>
-                                        ) : null}
+                                            {day.hours ? (
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                                                    {formatHoursToHrMin(day.hours)}
+                                                </Typography>
+                                            ) : null}
+                                        </Box>
                                     </Box>
-                                </Box>
-                            );
-                        }) : (
-                            <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic', textAlign: 'center', display: 'block', mt: 1 }}>
+                                );
+                            })
+                        ) : (
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.disabled', fontStyle: 'italic', textAlign: 'center', display: 'block', mt: 1 }}
+                            >
                                 No days found for this category
                             </Typography>
                         )}
                     </Stack>
                 </Scrollbar>
             </Popover>
-        </Dialog>
+
+            {/* Snackbar Notification */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <Box
+                    sx={{
+                        bgcolor: snackbar.severity === 'error' ? 'error.main' : 'success.main',
+                        color: 'common.white',
+                        px: 2,
+                        py: 1.5,
+                        borderRadius: 1,
+                        boxShadow: (t) => t.customShadows?.z8,
+                    }}
+                >
+                    <Typography variant="subtitle2">{snackbar.message}</Typography>
+                </Box>
+            </Snackbar>
+        </DashboardContent>
     );
 }
 
@@ -684,7 +813,17 @@ function SubHeader({ title }: { title: string }) {
     );
 }
 
-function SleekEditRow({ label, value, onChange, action }: { label: string; value: number; onChange: (val: string) => void; action?: React.ReactNode }) {
+function SleekEditRow({
+    label,
+    value,
+    onChange,
+    action,
+}: {
+    label: string;
+    value: number;
+    onChange: (val: string) => void;
+    action?: React.ReactNode;
+}) {
     return (
         <Box
             sx={{
@@ -710,7 +849,6 @@ function SleekEditRow({ label, value, onChange, action }: { label: string; value
                 onFocus={(e) => e.target.select()}
                 onChange={(e) => {
                     const val = e.target.value;
-                    // Strip leading zero if it's followed by another digit (e.g., 013 -> 13)
                     const cleanVal = val.replace(/^0+(?=\d)/, '');
                     onChange(cleanVal);
                 }}
@@ -744,7 +882,17 @@ function SleekEditRow({ label, value, onChange, action }: { label: string; value
     );
 }
 
-function EditAmountRow({ label, amount, hrSettings, onChange }: { label: string; amount: any; hrSettings: any; onChange: (val: string) => void }) {
+function EditAmountRow({
+    label,
+    amount,
+    hrSettings,
+    onChange,
+}: {
+    label: string;
+    amount: any;
+    hrSettings: any;
+    onChange: (val: string) => void;
+}) {
     return (
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
@@ -819,13 +967,26 @@ function EditAmountRow({ label, amount, hrSettings, onChange }: { label: string;
     );
 }
 
-function TotalRow({ label, amount, color, hrSettings }: { label: string; amount: number; color?: string; hrSettings: any }) {
+function TotalRow({
+    label,
+    amount,
+    color,
+    hrSettings,
+}: {
+    label: string;
+    amount: number;
+    color?: string;
+    hrSettings: any;
+}) {
     return (
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="subtitle2" sx={{ color: color || 'text.primary', fontWeight: 700 }}>
                 {label}
             </Typography>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: color || 'inherit', display: 'flex', alignItems: 'center' }}>
+            <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 800, color: color || 'inherit', display: 'flex', alignItems: 'center' }}
+            >
                 <Box component="span" sx={{ fontFamily: "'Arial', sans-serif", mr: 0.5, fontSize: '0.9em' }}>
                     {hrSettings.currency_symbol}
                 </Box>

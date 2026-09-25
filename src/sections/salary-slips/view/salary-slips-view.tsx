@@ -1,6 +1,6 @@
 import type { SalarySlip } from 'src/api/salary-slips';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
@@ -17,12 +17,14 @@ import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { useRouter } from 'src/routes/hooks';
+
 import { useSalarySlips } from 'src/hooks/useSalarySlips';
 
 import { getDoctypeList } from 'src/api/leads';
 import { getCurrentUserInfo } from 'src/api/auth';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getSalarySlip, deleteSalarySlip, submitSalarySlip, getSalarySlipWithDetails } from 'src/api/salary-slips';
+import { deleteSalarySlip, submitSalarySlip } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -34,12 +36,10 @@ import { TableEmptyRows } from 'src/sections/lead/table-empty-rows';
 import { SalarySlipTableRow } from 'src/sections/salary-slips/salary-slip-table-row';
 import { LeadTableHead as SalarySlipTableHead } from 'src/sections/lead/lead-table-head';
 import { LeadTableToolbar as SalarySlipTableToolbar } from 'src/sections/lead/lead-table-toolbar';
-import { SalarySlipDetailsDialog } from 'src/sections/report/salary-slips/salary-slip-details-dialog';
 
 import { useAuth } from 'src/auth/auth-context';
 
 import SalarySlipCreateDialog from '../salary-slip-create-dialog';
-import { SalarySlipEditDialog } from '../salary-slip-edit-dialog';
 import { SalarySlipFiltersDrawer } from '../salary-slip-filters-drawer';
 import SalarySlipAutoAllocateDialog from '../salary-slip-auto-allocate-dialog';
 
@@ -54,6 +54,7 @@ const SORT_OPTIONS = [
 ];
 
 export function SalarySlipsView() {
+    const router = useRouter();
     const { user } = useAuth();
     const hasCustomPerms = user?.permissions?.custom_permissions_assigned && (user?.permissions?.actions?.salary_slips || user?.permissions?.actions?.my_salary_slip);
     const actionPerms = user?.permissions?.actions?.salary_slips || user?.permissions?.actions?.my_salary_slip;
@@ -172,19 +173,9 @@ export function SalarySlipsView() {
         filters.pay_period_end !== null ||
         !!filterName;
 
-    const activeFiltersCount = Object.values(filters).filter(v => v !== 'all' && v !== null).length;
-
-
     // Dialog state
     const [openCreate, setOpenCreate] = useState(false);
-    const [openEdit, setOpenEdit] = useState(false);
     const [openAutoAllocate, setOpenAutoAllocate] = useState(false);
-
-
-
-    // View state
-    const [openView, setOpenView] = useState(false);
-    const [viewSlip, setViewSlip] = useState<any>(null);
     const [editSlip, setEditSlip] = useState<SalarySlip | null>(null);
 
 
@@ -238,34 +229,13 @@ export function SalarySlipsView() {
         );
     };
 
-    const handleViewRow = useCallback(async (row: any) => {
-        try {
-            const enrichedData = await getSalarySlipWithDetails(row.name);
-            setViewSlip(enrichedData);
-            setOpenView(true);
-        } catch (error: any) {
-            setSnackbar({
-                open: true,
-                message: error.message || 'Failed to load record',
-                severity: 'error',
-            });
-        }
-    }, []);
+    const handleViewRow = useCallback((row: any) => {
+        router.push(`/salary-slips/${row.name}`);
+    }, [router]);
 
-    const handleEditRow = useCallback(async (row: any) => {
-        try {
-            const enrichedData = await getSalarySlipWithDetails(row.name);
-            setEditSlip(enrichedData);
-            setOpenEdit(true);
-        } catch (error: any) {
-
-            setSnackbar({
-                open: true,
-                message: error.message || 'Failed to load record',
-                severity: 'error',
-            });
-        }
-    }, []);
+    const handleEditRow = useCallback((row: any) => {
+        router.push(`/salary-slips/${row.name}/edit`);
+    }, [router]);
 
     const handleDeleteRow = useCallback((name: string) => {
         setDeleteDialog({ open: true, slipName: name });
@@ -492,14 +462,6 @@ export function SalarySlipsView() {
                 />
             </Card>
 
-            {/* View Dialog */}
-            <SalarySlipDetailsDialog
-                key={viewSlip?.name || 'view'}
-                open={openView}
-                onClose={() => setOpenView(false)}
-                slip={viewSlip}
-            />
-
             {/* Snackbar */}
             <Snackbar
                 open={snackbar.open}
@@ -511,22 +473,6 @@ export function SalarySlipsView() {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
-
-            <SalarySlipEditDialog
-                key={editSlip?.name || 'edit'}
-                open={openEdit}
-                onClose={() => {
-                    setOpenEdit(false);
-                    setEditSlip(null);
-                }}
-                slip={editSlip}
-                onSuccess={async (message) => {
-                    setSnackbar({ open: true, message, severity: 'success' });
-                    // Small delay to ensure DB commit is visible to the next fetch
-                    await new Promise((resolve) => setTimeout(resolve, 500));
-                    refetch();
-                }}
-            />
 
             <SalarySlipCreateDialog
                 open={openCreate}

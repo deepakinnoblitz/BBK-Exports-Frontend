@@ -6,7 +6,7 @@ import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
 import FormControl from '@mui/material/FormControl';
-import { Box, Stack, Divider, InputAdornment, alpha } from '@mui/material';
+import { Box, Stack, Divider, InputAdornment } from '@mui/material';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -28,6 +28,60 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
           </Stack>
           
           <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: (data.salary_working_days_basis === 'Fixed Number of Days') ? 6 : 12 }}>
+              <FormControl fullWidth>
+                <InputLabel id="salary-working-days-basis-label">Working Days Basis</InputLabel>
+                <Select
+                  labelId="salary-working-days-basis-label"
+                  id="salary_working_days_basis"
+                  value={data.salary_working_days_basis || 'Actual Days in Month'}
+                  label="Working Days Basis"
+                  onChange={(e) => onChange('salary_working_days_basis', e.target.value)}
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <Iconify icon={"solar:calendar-date-bold" as any} sx={{ color: 'text.disabled', ml: 1 }} />
+                    </InputAdornment>
+                  }
+                >
+                  <MenuItem value="Actual Days in Month">Actual Days in Month (Dynamic)</MenuItem>
+                  <MenuItem value="Fixed Number of Days">Fixed Number of Days (Standard)</MenuItem>
+                </Select>
+                <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Iconify icon={"solar:info-circle-bold" as any} width={16} />
+                  Choose whether the monthly divisor is based on calendar days or a fixed number of days.
+                </Typography>
+              </FormControl>
+            </Grid>
+
+            {data.salary_working_days_basis === 'Fixed Number of Days' && (
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Fixed Working Days"
+                  value={data.salary_fixed_working_days ?? '26'}
+                  onChange={(e) => onChange('salary_fixed_working_days', e.target.value)}
+                  placeholder="26"
+                  helperText="Standard working days per month used as the divisor for daily wage and LOP."
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Iconify icon={"solar:calculator-minimalistic-bold" as any} sx={{ color: 'text.disabled', ml: 1 }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: <InputAdornment position="end">days</InputAdornment>,
+                    },
+                    htmlInput: {
+                      min: 1,
+                      max: 31,
+                      step: 0.5,
+                    },
+                  }}
+                />
+              </Grid>
+            )}
+
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
                 <InputLabel id="salary-calculation-source-label">Calculation Source</InputLabel>
