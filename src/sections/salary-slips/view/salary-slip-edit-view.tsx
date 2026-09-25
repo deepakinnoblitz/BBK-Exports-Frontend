@@ -67,6 +67,61 @@ export function SalarySlipEditView({ id: propId }: Props) {
         severity: 'success',
     });
 
+    function calculateDynamicRules(data: any, grossPay: number) {
+        const getNum = (v: any) => parseFloat(v) || 0;
+        const round = (val: number) => Math.round(val * 100) / 100;
+
+        const empType = (data.employee_type || '').toLowerCase();
+        const designation = (data.designation || '').toLowerCase();
+        const isWorker = empType.includes('worker') || designation.includes('worker');
+        const isNorthIndian = empType.includes('north indian') || designation.includes('north indian');
+
+        const otHours = getNum(data.ot_hours);
+        let otAmount = 0;
+
+        if (isWorker) {
+            const multiplier = getNum(hrSettings.workers_ot_rate_multiplier) || 2.0;
+            // Formula: Gross / 26 / 8 * OT Hours * Multiplier
+            otAmount = round((grossPay / 26 / 8) * otHours * multiplier);
+        } else if (isNorthIndian) {
+            const rate = getNum(hrSettings.north_indian_ot_rate) || 100.0;
+            // Formula: 100 / Per Hour
+            otAmount = round(rate * otHours);
+        }
+
+        // Attendance Bonus (Full Present = ₹1,500 for Workers)
+        const lopDays = getNum(data.lop_days);
+        let attendanceBonus = 0;
+        if (isWorker && lopDays <= 0) {
+            attendanceBonus = getNum(hrSettings.workers_attendance_bonus) || 1500;
+        }
+
+        // PT Calculation
+        let ptAmount = 0;
+        const ptFrequency = hrSettings.pt_deduction_frequency || 'Half-Yearly Deduction';
+        let ptApplicable = true;
+
+        if (ptFrequency === 'Half-Yearly Deduction') {
+            const halfYearlyMonths = (hrSettings.pt_half_yearly_months || 'April, September')
+                .split(',')
+                .map((m: string) => m.trim().toLowerCase());
+            const slipDate = data.start_date || data.end_date || data.posting_date;
+            const monthName = slipDate ? dayjs(slipDate).format('MMMM').toLowerCase() : '';
+            ptApplicable = halfYearlyMonths.includes(monthName);
+        }
+
+        if (ptApplicable) {
+            if (grossPay <= 20000) ptAmount = 0;
+            else if (grossPay <= 30000) ptAmount = 155;
+            else if (grossPay <= 45000) ptAmount = 375;
+            else if (grossPay <= 60000) ptAmount = 750;
+            else if (grossPay <= 75000) ptAmount = 1115;
+            else ptAmount = 1250;
+        }
+
+        return { otAmount, attendanceBonus, ptAmount };
+    }
+
     function recalculateTotals(data: any) {
         const getNum = (v: any) => parseFloat(v) || 0;
         const round = (val: number) => Math.round(val * 100) / 100;
@@ -106,28 +161,57 @@ export function SalarySlipEditView({ id: propId }: Props) {
 
         // 2. Sum up totals
         const grossPay = round(updatedEarnings.reduce((acc: number, curr: any) => acc + getNum(curr.amount), 0));
-        const deductionsTotal = round(updatedDeductions.reduce((acc: number, curr: any) => acc + getNum(curr.amount), 0));
+
+        // Dynamic rules for OT, Attendance Bonus, and PT
+        const { otAmount, attendanceBonus, ptAmount } = calculateDynamicRules(data, grossPay);
+
+        // Update OT / Bonus in earnings if present and not manual
+        const finalEarnings = updatedEarnings.map((item: any) => {
+            const name = (item.component_name || item.salary_component || '').toLowerCase();
+            if (name.includes('overtime') || name.includes('ot amount') || name === 'ot') {
+                if (!item.isManual && otAmount > 0) return { ...item, amount: otAmount.toFixed(2) };
+            }
+            if (name.includes('attendance bonus') || name.includes('present bonus')) {
+                if (!item.isManual) return { ...item, amount: attendanceBonus.toFixed(2) };
+            }
+            return item;
+        });
+
+        // Update PT in deductions if present and not manual
+        const finalDeductions = updatedDeductions.map((item: any) => {
+            const name = (item.component_name || item.salary_component || '').toLowerCase();
+            if (name.includes('professional tax') || name.includes('pt') || name.includes('prof tax')) {
+                if (!item.isManual) return { ...item, amount: ptAmount.toFixed(2) };
+            }
+            return item;
+        });
+
+        const finalGrossPay = round(finalEarnings.reduce((acc: number, curr: any) => acc + getNum(curr.amount), 0));
+        const deductionsTotal = round(finalDeductions.reduce((acc: number, curr: any) => acc + getNum(curr.amount), 0));
 
         // 3. Calculate LOP based on absent days relative to month base
         const lopDays = getNum(data.lop_days);
-        const autoLopAmount = round((grossPay / (currentProration || 1)) * (lopDays / workingDays));
+        const autoLopAmount = round((finalGrossPay / (currentProration || 1)) * (lopDays / workingDays));
 
         const isManualLop = data.isManualLop ?? (data.lop !== undefined && Math.abs(getNum(data.lop) - autoLopAmount) > 0.1);
         const lopAmount = isManualLop ? getNum(data.lop) : autoLopAmount;
 
         const totalDeductions = round(deductionsTotal + lopAmount);
-        const netPay = round(grossPay - totalDeductions);
+        const netPay = round(finalGrossPay - totalDeductions);
 
         return {
             ...data,
-            earnings: updatedEarnings,
-            deductions: updatedDeductions,
-            gross_pay: grossPay.toFixed(2),
-            grand_gross_pay: grossPay.toFixed(2),
+            earnings: finalEarnings,
+            deductions: finalDeductions,
+            gross_pay: finalGrossPay.toFixed(2),
+            grand_gross_pay: finalGrossPay.toFixed(2),
             lop: lopAmount.toFixed(2),
             total_deduction: totalDeductions.toFixed(2),
             net_pay: netPay.toFixed(2),
             grand_net_pay: netPay.toFixed(2),
+            ot_amount: otAmount.toFixed(2),
+            attendance_bonus: attendanceBonus.toFixed(2),
+            pt_amount: ptAmount.toFixed(2),
             isManualLop,
         };
     }
@@ -455,6 +539,11 @@ export function SalarySlipEditView({ id: propId }: Props) {
                         value={formData.lop_days}
                         onChange={(val) => handleInputChange('lop_days', val)}
                         action={renderInfoAction('lop')}
+                    />
+                    <SleekEditRow
+                        label="Overtime Hours (OT)"
+                        value={formData.ot_hours || 0}
+                        onChange={(val) => handleInputChange('ot_hours', val)}
                     />
                 </Box>
             </Box>

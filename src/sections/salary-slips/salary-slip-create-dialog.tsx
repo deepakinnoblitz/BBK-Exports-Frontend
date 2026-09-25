@@ -21,12 +21,12 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { useRouter } from 'src/routes/hooks';
+
 import { getDoctypeList } from 'src/api/leads';
-import { updateSalarySlip, previewSalarySlip, generateSalarySlipFromEmployee } from 'src/api/salary-slips';
+import { updateSalarySlip, generateSalarySlipFromEmployee } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
-
-import { SalarySlipPreviewDialog } from './salary-slip-preview-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -38,15 +38,12 @@ interface Props {
     slip?: SalarySlip | null;
 }
 
-
 export default function SalarySlipCreateDialog({ open, onClose, onSuccess, onError, slip }: Props) {
+    const router = useRouter();
 
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [previewData, setPreviewData] = useState<any>(null);
-    const [openPreview, setOpenPreview] = useState(false);
-    const [previewLoading, setPreviewLoading] = useState(false);
 
     const [formData, setFormData] = useState({
         employee: '',
@@ -129,60 +126,17 @@ export default function SalarySlipCreateDialog({ open, onClose, onSuccess, onErr
         }
     }, [open]);
 
-    const handlePreview = async () => {
-        try {
-            if (!formData.employee) {
-                onError('Please select an employee');
-                return;
-            }
-
-            setPreviewLoading(true);
-            const data = await previewSalarySlip(
-                formData.employee,
-                formData.pay_period_start.format('YYYY-MM-DD'),
-                formData.pay_period_end.format('YYYY-MM-DD')
-            );
-            setPreviewData(data);
-            setOpenPreview(true);
-        } catch (error: any) {
-            onError(error.message || 'Failed to preview salary slip');
-        } finally {
-            setPreviewLoading(false);
+    const handlePreview = () => {
+        if (!formData.employee) {
+            onError('Please select an employee');
+            return;
         }
+
+        const fromStr = formData.pay_period_start.format('YYYY-MM-DD');
+        const toStr = formData.pay_period_end.format('YYYY-MM-DD');
+        onClose();
+        router.push(`/salary-slips/preview?employee=${encodeURIComponent(formData.employee)}&from=${fromStr}&to=${toStr}`);
     };
-
-    const handleConfirmCreate = async () => {
-        setOpenPreview(false);
-
-        try {
-            if (!formData.employee) {
-                onError('Please select an employee');
-                return;
-            }
-
-            setSubmitting(true);
-
-            // Extract year and month from pay_period_start
-            const year = formData.pay_period_start.year();
-            const month = formData.pay_period_start.month() + 1; // dayjs months are 0-indexed
-
-            const result = await generateSalarySlipFromEmployee(
-                formData.employee,
-                year,
-                month,
-                formData.pay_period_start.format('YYYY-MM-DD'),
-                formData.pay_period_end.format('YYYY-MM-DD')
-            );
-
-
-            onSuccess(result || 'Salary slip generated successfully');
-            handleClose();
-        } catch (error: any) {
-            onError(error.message || 'Failed to generate salary slip');
-        } finally {
-            setSubmitting(false);
-        }
-    }
 
     const handleSubmit = async () => {
         try {
@@ -416,17 +370,16 @@ export default function SalarySlipCreateDialog({ open, onClose, onSuccess, onErr
 
             <DialogActions sx={{ p: 2.5, pt: 0 }}>
                 {!slip && (
-                    <LoadingButton
+                    <Button
                         variant="outlined"
                         color="primary"
-                        loading={previewLoading}
                         onClick={handlePreview}
                         disabled={!formData.employee}
                         startIcon={<Iconify icon="solar:eye-bold" />}
                         sx={{ borderRadius: 1.5, height: 40 }}
                     >
                         Preview
-                    </LoadingButton>
+                    </Button>
                 )}
                 <LoadingButton
                     variant="contained"
@@ -437,13 +390,6 @@ export default function SalarySlipCreateDialog({ open, onClose, onSuccess, onErr
                     {slip ? 'Update' : 'Generate'}
                 </LoadingButton>
             </DialogActions>
-
-            <SalarySlipPreviewDialog
-                open={openPreview}
-                onClose={() => setOpenPreview(false)}
-                onConfirm={handleConfirmCreate}
-                data={previewData}
-            />
         </Dialog>
     );
 }

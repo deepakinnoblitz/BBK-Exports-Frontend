@@ -104,6 +104,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
 
 
                 <SubHeader title="Job Details" />
+                <InfoRow label="Employee Type" value={data.employee_type || '-'} />
                 <InfoRow label="Department" value={data.department || '-'} />
                 <InfoRow label="Designation" value={data.designation || '-'} />
                 <InfoRow label="Date of Joining" value={formatDate(data.date_of_joining)} />
@@ -120,7 +121,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
 
     const renderAttendanceSummary = (
         <Box sx={{ mb: 4 }}>
-            <SectionHeader title="Attendance Summary" icon="solar:calendar-date-bold" color="warning.main" />
+            <SectionHeader title="Attendance & Overtime Summary" icon="solar:calendar-date-bold" color="warning.main" />
             <Box
                 sx={{
                     p: 3,
@@ -133,7 +134,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                 }}
             >
                 <InfoRow label="Pay Period Days" value={data.total_days_in_period || 0} />
-                <Box /> {/* Column 2 Spacer */}
+                <InfoRow label="Overtime (OT) Hours" value={data.ot_hours ? `${data.ot_hours} hrs` : '0 hrs'} />
                 <Box sx={{ gridColumn: { md: 'span 2' } }}>
                     <InfoRow label="Calculation Base (Month)" value={data.total_working_days || 0} />
                 </Box>
@@ -528,45 +529,6 @@ function SubHeader({ title }: { title: string }) {
                 }}
             >
                 {title}
-            </Typography>
-        </Box>
-    );
-}
-
-function PremiumDetailItem({ icon, label, value, sub, color }: { icon: string; label: string; value: string | number; sub: string; color?: string }) {
-    return (
-        <Box sx={{
-            p: 2,
-            borderRadius: 2,
-            bgcolor: 'background.paper',
-            border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-            boxShadow: (theme) => `0 2px 4px 0 ${alpha(theme.palette.common.black, 0.02)}`,
-            transition: (theme) => theme.transitions.create(['box-shadow', 'transform']),
-            '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: (theme) => `0 8px 16px -4px ${alpha(theme.palette.common.black, 0.08)}`,
-            }
-        }}>
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
-                <Box sx={{
-                    p: 0.75,
-                    borderRadius: 1,
-                    bgcolor: (theme) => color ? alpha(theme.palette[color.split('.')[0] as 'primary'].main, 0.1) : 'background.neutral',
-                    color: color || 'text.secondary',
-                    display: 'flex'
-                }}>
-                    <Iconify icon={icon as any} width={18} />
-                </Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
-                    {label}
-                </Typography>
-            </Stack>
-
-            <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.5 }}>
-                {value}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic', display: 'block' }}>
-                {sub}
             </Typography>
         </Box>
     );
