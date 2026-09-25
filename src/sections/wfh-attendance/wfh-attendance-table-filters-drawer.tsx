@@ -188,6 +188,27 @@ export function WFHAttendanceTableFiltersDrawer({
                     const emp = options.employees.find((e) => e.name === option);
                     return emp ? `${emp.employee_name} (${emp.name})` : option;
                 }}
+                filterOptions={(opts: any[], state: any) => {
+                    const input = state.inputValue.toLowerCase().trim();
+                    if (!input) {
+                        const selectedEmp = filters.employee && filters.employee !== 'all' ? [filters.employee] : [];
+                        const first50 = opts.filter(
+                            (opt) => opt !== 'all' && !selectedEmp.includes(opt)
+                        ).slice(0, 50);
+                        return ['all', ...selectedEmp, ...first50];
+                    }
+                    const terms = input.split(/\s+/).filter(Boolean);
+                    const filtered = opts.filter((opt) => {
+                        if (opt === 'all') return 'all employees'.includes(input);
+                        const emp = options.employees.find((e: any) => e.name === opt);
+                        if (!emp) return opt.toLowerCase().includes(input);
+                        const fullName = emp.employee_name || '';
+                        const empId = emp.name || '';
+                        const combined = `${fullName} ${empId} (${empId})`.toLowerCase();
+                        return terms.every((term: string) => combined.includes(term));
+                    });
+                    return filtered.slice(0, 50);
+                }}
                 value={filters.employee || 'all'}
                 onChange={(event: any, newValue: any) => {
                     handleFilterChange('employee', newValue || 'all');

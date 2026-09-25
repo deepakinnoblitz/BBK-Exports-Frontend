@@ -216,11 +216,14 @@ export async function deleteLead(name: string) {
 }
 
 
-export async function getDoctypeList(doctype: string, fields?: string[], filters?: Record<string, any>) {
+export async function getDoctypeList(doctype: string, fields?: string[], filters?: Record<string, any>, limit?: number) {
     const params: any = {
         doctype,
-        limit_page_length: '1000',
     };
+
+    if (limit !== undefined) {
+        params.limit = limit.toString();
+    }
 
     if (fields) {
         params.fields = JSON.stringify(fields);

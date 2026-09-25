@@ -191,6 +191,23 @@ export function LineRosterTableFiltersDrawer({
                 size="small"
                 options={employeeOptions}
                 getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
+                filterOptions={(opts, state) => {
+                  const input = state.inputValue.toLowerCase().trim();
+                  if (!input) {
+                    const selectedIds = new Set(currentEmployees.map((ce: any) => (typeof ce === 'string' ? ce : ce?.name)));
+                    const selectedOpts = opts.filter((opt) => selectedIds.has(opt.name));
+                    const unselectedFirst50 = opts.filter((opt) => !selectedIds.has(opt.name)).slice(0, 50);
+                    return [...selectedOpts, ...unselectedFirst50];
+                  }
+                  const terms = input.split(/\s+/).filter(Boolean);
+                  const filtered = opts.filter((opt) => {
+                    const fullName = opt.employee_name || '';
+                    const empId = opt.name || '';
+                    const combined = `${fullName} ${empId} (${empId})`.toLowerCase();
+                    return terms.every((term: string) => combined.includes(term));
+                  });
+                  return filtered.slice(0, 50);
+                }}
                 isOptionEqualToValue={(option, value) => option?.name === value?.name}
                 value={employeeOptions.filter((opt) =>
                   currentEmployees.some((ce: any) => (typeof ce === 'string' ? ce === opt.name : ce?.name === opt.name))
