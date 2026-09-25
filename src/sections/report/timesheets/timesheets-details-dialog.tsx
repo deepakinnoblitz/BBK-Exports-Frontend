@@ -1,6 +1,6 @@
 import { FaUser } from "react-icons/fa6";
 import { useState, useEffect } from 'react';
-import { LuUser, LuCalendar, LuHistory } from 'react-icons/lu';
+import { LuHistory, LuCalendar } from 'react-icons/lu';
 
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';

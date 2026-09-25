@@ -1,7 +1,7 @@
 import { useSnackbar } from 'notistack';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { IoMdArrowBack, IoMdCreate } from 'react-icons/io';
+import { IoMdCreate, IoMdArrowBack } from 'react-icons/io';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -9,7 +9,6 @@ import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
-import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
@@ -20,7 +19,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { getMetaForm } from 'src/api/meta-form';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { fetchMetaPages, getMetaPage } from 'src/api/meta-page';
+import { getMetaPage, fetchMetaPages } from 'src/api/meta-page';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';

@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-    IoMdArrowBack, IoMdSettings, IoMdMail, IoMdStats, IoMdDocument, IoMdLink, IoMdCode, IoMdCreate
+    IoMdMail, IoMdLink, IoMdCode, IoMdCreate, IoMdSettings, IoMdDocument, IoMdArrowBack
 } from "react-icons/io";
 
 import Box from '@mui/material/Box';

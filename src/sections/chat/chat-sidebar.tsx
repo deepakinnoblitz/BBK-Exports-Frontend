@@ -16,7 +16,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import ListItemButton from '@mui/material/ListItemButton';
 
 import { stripHtml } from 'src/utils/string';
-import { fDateTime, fToChatTime } from 'src/utils/format-time';
+import { fToChatTime } from 'src/utils/format-time';
 import { stringToColor, stringToDarkColor } from 'src/utils/color-utils';
 
 import { Iconify } from 'src/components/iconify';

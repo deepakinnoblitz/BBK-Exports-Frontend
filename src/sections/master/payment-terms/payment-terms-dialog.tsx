@@ -1,3 +1,5 @@
+import type { PaymentTerm } from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -12,7 +14,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 
-import { createPaymentTerm, updatePaymentTerm, PaymentTerm } from 'src/api/masters';
+import { createPaymentTerm, updatePaymentTerm } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 

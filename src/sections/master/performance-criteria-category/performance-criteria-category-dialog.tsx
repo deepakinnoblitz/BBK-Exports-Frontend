@@ -1,6 +1,9 @@
+import type { 
+    EvaluationTraitCategory 
+} from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
-import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -14,11 +17,10 @@ import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { 
+    getEvaluationTraitCategory, 
     createEvaluationTraitCategory, 
     updateEvaluationTraitCategory, 
-    renameEvaluationTraitCategory, 
-    getEvaluationTraitCategory, 
-    EvaluationTraitCategory 
+    renameEvaluationTraitCategory 
 } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';

@@ -1,6 +1,8 @@
+import type { LineRotation } from 'src/api/line-rotation';
+
 import { useState, useEffect, useCallback } from 'react';
 
-import { fetchLineRotationList, getLineRotationDoc, LineRotation } from 'src/api/line-rotation';
+import { fetchLineRotationList } from 'src/api/line-rotation';
 
 export function useLineRotations(
   page: number = 1,

@@ -2,24 +2,17 @@ import { useState, useEffect } from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-    IoMdArrowBack, IoMdSettings, IoMdCalendar, IoMdCreate
+    IoMdCreate, IoMdSettings, IoMdCalendar, IoMdArrowBack
 } from "react-icons/io";
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import { alpha } from '@mui/material/styles';
-import TableRow from '@mui/material/TableRow';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
-
-import { frappeRequest } from 'src/utils/csrf';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getWhatsAppTemplate } from 'src/api/whatsapp-template';

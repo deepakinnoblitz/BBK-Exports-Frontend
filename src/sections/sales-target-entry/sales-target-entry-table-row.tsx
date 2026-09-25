@@ -1,3 +1,5 @@
+import type { SalesTargetEntry } from 'src/api/sales-target-entry';
+
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import { alpha } from '@mui/material/styles';
@@ -8,8 +10,6 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 
 import { fCurrency } from 'src/utils/format-number';
-
-import { SalesTargetEntry } from 'src/api/sales-target-entry';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';

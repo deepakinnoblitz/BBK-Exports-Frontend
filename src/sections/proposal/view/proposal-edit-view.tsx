@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { FaFileUpload } from "react-icons/fa";
 import { IoMdArrowBack } from 'react-icons/io';
 import { RiUploadCloud2Line } from "react-icons/ri";
-import { useState, useEffect, useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -16,7 +16,6 @@ import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
-import MenuItem from '@mui/material/MenuItem';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
@@ -35,10 +34,10 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { getProposal } from 'src/api/proposal';
 import { uploadFile } from 'src/api/data-import';
-import { getDoctypeList, getLead } from 'src/api/leads';
+import { getLead, getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getProposal, createProposal } from 'src/api/proposal';
 
 import { Iconify } from 'src/components/iconify';
 import { RichTextEditor } from 'src/components/rich-text-editor/rich-text-editor';

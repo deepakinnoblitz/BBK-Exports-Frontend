@@ -1,20 +1,17 @@
 import { IoList } from "react-icons/io5";
 import { MuiTelInput } from 'mui-tel-input';
+import { useNavigate } from 'react-router-dom';
 import { IoMdCloudDownload } from "react-icons/io";
 import { TbLayoutKanbanFilled } from "react-icons/tb";
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
-import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
-import Tabs from '@mui/material/Tabs';
 import Alert from '@mui/material/Alert';
 import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Select from '@mui/material/Select';
 import { IconButton } from '@mui/material';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
@@ -26,7 +23,6 @@ import TextField from '@mui/material/TextField';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
-import FormControl from '@mui/material/FormControl';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
@@ -43,10 +39,9 @@ import { getFriendlyErrorMessage } from 'src/utils/error-handler';
 import { CONFIG } from 'src/config-global';
 import { DashboardContent } from 'src/layouts/dashboard';
 import locationData from 'src/assets/data/location_data.json';
-import { getLead, createLead, updateLead, deleteLead, convertLead, getDoctypeList, getWorkflowStates, getWorkflowActions, applyWorkflowAction, createLeadFrom, createService, type ConvertLeadResponse } from 'src/api/leads';
+import { getLead, createLead, updateLead, deleteLead, convertLead, createService, getDoctypeList, createLeadFrom, getWorkflowStates, getWorkflowActions, applyWorkflowAction, type ConvertLeadResponse } from 'src/api/leads';
 
 import { Iconify } from 'src/components/iconify';
-import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
 

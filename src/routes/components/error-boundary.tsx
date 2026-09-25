@@ -1,6 +1,5 @@
-import type { Theme, CSSObject } from '@mui/material/styles';
+import type { Theme } from '@mui/material/styles';
 
-import { varAlpha } from 'minimal-shared/utils';
 import { useRouteError, isRouteErrorResponse } from 'react-router';
 
 import Box from '@mui/material/Box';

@@ -1,3 +1,5 @@
+import type { EvaluationAutomationRule } from 'src/api/employee-evaluation';
+
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
@@ -7,8 +9,6 @@ import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import { alpha, styled } from '@mui/material/styles';
-
-import { EvaluationAutomationRule } from 'src/api/employee-evaluation';
 
 import { Iconify } from 'src/components/iconify';
 

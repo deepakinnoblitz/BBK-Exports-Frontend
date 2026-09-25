@@ -22,6 +22,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import {
@@ -31,7 +33,6 @@ import {
 } from 'src/api/shift-roster';
 
 import { Iconify } from 'src/components/iconify';
-import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 // ----------------------------------------------------------------------
 

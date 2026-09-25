@@ -21,10 +21,10 @@ import { Scrollbar } from 'src/components/scrollbar';
 
 import { TableNoData } from '../table-no-data';
 import { TableEmptyRows } from '../table-empty-rows';
+import { applyFilter, getComparator } from '../utils';
 import { PurchaseTableRow } from '../purchase-table-row';
 import { PurchaseTableHead } from '../purchase-table-head';
 import { PurchaseTableToolbar } from '../purchase-table-toolbar';
-import { emptyRows, applyFilter, getComparator } from '../utils';
 
 // ----------------------------------------------------------------------
 

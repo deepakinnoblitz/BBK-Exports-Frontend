@@ -4,10 +4,8 @@ import utc from 'dayjs/plugin/utc';
 
 dayjs.extend(utc);
 
-import { LuFilter } from "react-icons/lu";
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiPhoneCall, FiCalendar, FiCheckSquare } from 'react-icons/fi';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
@@ -24,18 +22,17 @@ import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { Box, Card, Grid, Stack, Alert, Button, Snackbar, IconButton, Typography, CircularProgress, Popover, Divider, InputAdornment, Badge } from '@mui/material';
+import { Box, Card, Grid, Stack, Alert, Button, Popover, Divider, Snackbar, IconButton, Typography, InputAdornment } from '@mui/material';
 
 import { stripHtml } from 'src/utils/string';
 
 import { CONFIG } from 'src/config-global';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getToDo, deleteToDo, type ToDo } from 'src/api/todo';
-import { getCall, deleteCall, type Call } from 'src/api/calls';
-import { getMeeting, deleteMeeting, type Meeting } from 'src/api/meetings';
+import { getToDo, type ToDo, deleteToDo } from 'src/api/todo';
+import { getCall, type Call, deleteCall } from 'src/api/calls';
+import { getMeeting, type Meeting, deleteMeeting } from 'src/api/meetings';
 import { fetchEvents, updateEvent, createEvent, deleteEvent, type CalendarEvent } from 'src/api/events';
 
-import { Loader } from 'src/components/loader';
 import { Iconify } from 'src/components/iconify';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
 
@@ -47,7 +44,7 @@ import { EventDetailsDialog } from 'src/sections/events/event-details-dialog';
 import { useAuth } from 'src/auth/auth-context';
 
 import { CustomCalendar } from '../components/custom-calendar';
-import { getEventChipColor, getEventStatus, getEventType } from '../utils/event-color';
+import { getEventType, getEventStatus, getEventChipColor } from '../utils/event-color';
 // ----------------------------------------------------------------------
 
 const INITIAL_EVENT_STATE: Partial<CalendarEvent> = {

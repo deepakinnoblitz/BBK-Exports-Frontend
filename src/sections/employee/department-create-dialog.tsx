@@ -12,12 +12,13 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import { createDepartment } from 'src/api/hr-management';
 
 import { Iconify } from 'src/components/iconify';
-import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 // ----------------------------------------------------------------------
 

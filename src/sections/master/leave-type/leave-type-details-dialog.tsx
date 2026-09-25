@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaMoneyBill, FaSortNumericUp, FaArrowRight, FaSyncAlt, FaLock } from 'react-icons/fa';
+import { FaLock, FaSyncAlt, FaMoneyBill, FaArrowRight, FaSortNumericUp } from 'react-icons/fa';
 
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';

@@ -1,18 +1,18 @@
+import type { HRDocumentCategoryMaster } from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { getHRDocumentCategoryMaster, HRDocumentCategoryMaster } from 'src/api/masters';
+import { getHRDocumentCategoryMaster } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 

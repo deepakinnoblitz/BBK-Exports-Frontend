@@ -126,7 +126,7 @@ export async function updateEmployeeEvaluationTrait(name: string, data: Partial<
         headers: await getAuthHeaders(),
         body: JSON.stringify({
             doctype: 'Evaluation Trait',
-            name: name,
+            name,
             fieldname: data
         })
     });
@@ -146,7 +146,7 @@ export async function deleteEmployeeEvaluationTrait(name: string) {
         headers: await getAuthHeaders(),
         body: JSON.stringify({
             doctype: 'Evaluation Trait',
-            name: name
+            name
         })
     });
 
@@ -204,7 +204,7 @@ export async function updateEmployeeEvaluationTraitCategory(name: string, data: 
         headers: await getAuthHeaders(),
         body: JSON.stringify({
             doctype: 'Evaluation Trait Category',
-            name: name,
+            name,
             fieldname: data
         })
     });
@@ -224,7 +224,7 @@ export async function deleteEmployeeEvaluationTraitCategory(name: string) {
         headers: await getAuthHeaders(),
         body: JSON.stringify({
             doctype: 'Evaluation Trait Category',
-            name: name
+            name
         })
     });
 
@@ -429,7 +429,7 @@ export async function cancelEmployeeEvaluationEvent(name: string) {
         headers: await getAuthHeaders(),
         body: JSON.stringify({
             doctype: 'Employee Evaluation',
-            name: name
+            name
         })
     });
 
@@ -447,7 +447,7 @@ export async function deleteEmployeeEvaluationEvent(name: string) {
         method: 'POST',
         headers: await getAuthHeaders(),
         body: JSON.stringify({
-            name: name
+            name
         })
     });
 
@@ -466,7 +466,7 @@ export async function updateEmployeeEvaluationEvent(name: string, data: Partial<
         headers: await getAuthHeaders(),
         body: JSON.stringify({
             doctype: 'Employee Evaluation',
-            name: name,
+            name,
             fieldname: data
         })
     });

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { HiOutlineClipboardDocumentList, HiOutlineDocumentCheck } from "react-icons/hi2";
+import { HiOutlineDocumentCheck, HiOutlineClipboardDocumentList } from "react-icons/hi2";
 
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';

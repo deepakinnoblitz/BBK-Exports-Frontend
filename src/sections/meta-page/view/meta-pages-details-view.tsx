@@ -1,7 +1,7 @@
 import { useSnackbar } from 'notistack';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { IoMdArrowBack, IoMdCreate } from 'react-icons/io';
+import { IoMdCreate, IoMdArrowBack } from 'react-icons/io';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -22,7 +22,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { login } from 'src/api/auth';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { fetchMetaApps, getMetaApp } from 'src/api/meta-app';
+import { getMetaApp, fetchMetaApps } from 'src/api/meta-app';
 import { getMetaPage, fetchMetaAccounts } from 'src/api/meta-page';
 
 import { Iconify } from 'src/components/iconify';

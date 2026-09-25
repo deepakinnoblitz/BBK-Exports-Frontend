@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import type { Service } from 'src/api/masters';
 
-import Box from '@mui/material/Box';  
+import { useState } from 'react';  
+
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
-import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
@@ -17,7 +18,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useServices } from 'src/hooks/use-masters';
 
-import { deleteService, Service } from 'src/api/masters';
+import { deleteService } from 'src/api/masters';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';

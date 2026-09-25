@@ -1,3 +1,6 @@
+import type {
+    HRDocumentGeneration} from 'src/api/hr-document-generation';
+
 import { useSnackbar } from 'notistack';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -26,8 +29,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchHRDocumentTemplates } from 'src/api/hr-document-template';
 import {
     fetchHRDocumentGenerations,
-    deleteHRDocumentGeneration,
-    HRDocumentGeneration,
+    deleteHRDocumentGeneration
 } from 'src/api/hr-document-generation';
 
 import { Iconify } from 'src/components/iconify';

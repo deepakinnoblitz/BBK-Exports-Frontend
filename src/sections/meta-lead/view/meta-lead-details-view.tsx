@@ -18,10 +18,10 @@ import CircularProgress from '@mui/material/CircularProgress';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { fetchMetaApps, getMetaApp } from 'src/api/meta-app';
-import { fetchMetaPages, getMetaPage } from 'src/api/meta-page';
-import { fetchMetaForms, getMetaForm } from 'src/api/meta-form';
-import { getMetaLeadItem, retryMetaLead } from 'src/api/meta-lead';
+import { getMetaApp, fetchMetaApps } from 'src/api/meta-app';
+import { getMetaPage, fetchMetaPages } from 'src/api/meta-page';
+import { getMetaForm, fetchMetaForms } from 'src/api/meta-form';
+import { retryMetaLead, getMetaLeadItem } from 'src/api/meta-lead';
 
 import { Iconify } from 'src/components/iconify';
 

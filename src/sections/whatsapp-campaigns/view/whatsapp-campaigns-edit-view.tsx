@@ -3,7 +3,7 @@ import { enqueueSnackbar } from 'notistack';
 import { useState, useEffect } from 'react';
 import { IoMdArrowBack } from "react-icons/io";
 import { CiCalculator2 } from "react-icons/ci";
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -13,7 +13,6 @@ import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
 import Button from '@mui/material/Button';
-import Switch from '@mui/material/Switch';
 import { alpha } from '@mui/material/styles';
 import Snackbar from '@mui/material/Snackbar';
 import MenuItem from '@mui/material/MenuItem';
@@ -27,7 +26,6 @@ import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import TableContainer from '@mui/material/TableContainer';
@@ -44,7 +42,7 @@ import { getFriendlyErrorMessage } from 'src/utils/error-handler';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchWhatsAppTemplates } from 'src/api/whatsapp-template';
-import { updateWhatsAppCampaign, getWhatsAppCampaign, previewRecipients, getFilterFields, getFilterValueOptions } from 'src/api/whatsapp-campaign';
+import { getFilterFields, previewRecipients, getWhatsAppCampaign, getFilterValueOptions, updateWhatsAppCampaign } from 'src/api/whatsapp-campaign';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -202,11 +200,11 @@ export function WhatsAppCampaignsEditView() {
             const campaignData = {
                 campaign_name: campaignName,
                 whatsapp_template: whatsappTemplate,
-                subject: subject,
+                subject,
                 target_type: targetType,
                 send_immediately: sendImmediately ? 1 : 0,
                 schedule_date: sendImmediately ? '' : scheduleDate,
-                status: status,
+                status,
                 filters: filters.filter(f => f.field_name || f.value),
             };
 

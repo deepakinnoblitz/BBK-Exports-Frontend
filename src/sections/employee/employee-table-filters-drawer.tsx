@@ -15,7 +15,7 @@ import IconButton from '@mui/material/IconButton';
 import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 
-import { getCountries, getStates, getCities } from 'src/api/location';
+import { getStates, getCities, getCountries } from 'src/api/location';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';

@@ -1,4 +1,5 @@
-import { Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
+
 import { useState, useEffect, useCallback } from 'react';
 
 import { fetchLeaveApplications } from 'src/api/leaves';

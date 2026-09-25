@@ -13,7 +13,6 @@ import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Switch from '@mui/material/Switch';
 import { alpha } from '@mui/material/styles';
 import Snackbar from '@mui/material/Snackbar';
 import MenuItem from '@mui/material/MenuItem';
@@ -28,7 +27,6 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import DialogActions from '@mui/material/DialogActions';
 import TableContainer from '@mui/material/TableContainer';
 import InputAdornment from '@mui/material/InputAdornment';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -44,7 +42,7 @@ import { getFriendlyErrorMessage } from 'src/utils/error-handler';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchEmailTemplates } from 'src/api/email-template';
-import { createEmailCampaign, EmailCampaign, previewRecipients, getFilterFields, getFilterValueOptions } from 'src/api/email-campaign';
+import { getFilterFields, previewRecipients, createEmailCampaign, getFilterValueOptions } from 'src/api/email-campaign';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -180,7 +178,7 @@ export function EmailCampaignsCreateView() {
             const campaignData = {
                 campaign_name: campaignName,
                 email_template: emailTemplate,
-                subject: subject,
+                subject,
                 target_type: targetType,
                 send_immediately: sendImmediately ? 1 : 0,
                 schedule_date: sendImmediately ? '' : scheduleDate,

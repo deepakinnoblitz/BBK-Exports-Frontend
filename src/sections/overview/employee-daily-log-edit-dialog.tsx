@@ -1006,7 +1006,7 @@ export function EmployeeDailyLogEditDialog({ open, onClose, session, onUpdate }:
                                             >
                                                 <Iconify
                                                     icon={isAway ? "ph:moon-fill" : "ph:coffee-fill" as any}
-                                                    sx={{ color: color }}
+                                                    sx={{ color }}
                                                 />
                                                 <Box sx={{ flexGrow: 1 }}>
                                                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -1027,7 +1027,7 @@ export function EmployeeDailyLogEditDialog({ open, onClose, session, onUpdate }:
                                                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25, fontWeight: 600 }}>
                                                         {isAway ? 'Break (Inactivity)' : (brk.reason || 'Manual Break')}
                                                     </Typography>
-                                                    <Typography variant="caption" sx={{ color: color, fontWeight: 900 }}>
+                                                    <Typography variant="caption" sx={{ color, fontWeight: 900 }}>
                                                         {formatDetailedDuration(brk.break_duration)}
                                                     </Typography>
                                                 </Box>

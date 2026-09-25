@@ -19,7 +19,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useRouter } from 'src/routes/hooks';
 
-import { toggleMetaFormConnection, getConnectedMetaForms } from 'src/api/meta-app';
+import { getConnectedMetaForms, toggleMetaFormConnection } from 'src/api/meta-app';
 
 import { Iconify } from 'src/components/iconify';
 import { TableNoData } from 'src/components/table';

@@ -37,6 +37,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { useSocket } from 'src/hooks/use-socket';
 import { useLeaveAllocations } from 'src/hooks/useLeaveAllocations';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRPermissions } from 'src/api/hr-management';
@@ -48,7 +50,6 @@ import {
 } from 'src/api/leave-allocations';
 
 import { Iconify } from 'src/components/iconify';
-import { filterEmployeeOptions } from 'src/utils/filter-employees';
 import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/confirm-dialog';

@@ -1,3 +1,5 @@
+import type { TaxType } from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -13,7 +15,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 
-import { createTaxTypeCustom, updateTaxTypeCustom, TaxType } from 'src/api/masters';
+import { createTaxTypeCustom, updateTaxTypeCustom } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 

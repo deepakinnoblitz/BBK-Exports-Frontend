@@ -1,3 +1,6 @@
+import type {
+    TaskManager} from 'src/api/task-manager';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -22,13 +25,12 @@ import TimelineItem, { timelineItemClasses } from '@mui/lab/TimelineItem';
 import { fDate, fDateTime } from 'src/utils/format-time';
 
 import {
-    TaskManager,
-    acceptTaskManager,
+    getTaskManager,
     closeTaskManager,
+    acceptTaskManager,
     reopenTaskManager,
-    putOnHoldTaskManager,
     resumeTaskManager,
-    getTaskManager
+    putOnHoldTaskManager
 } from 'src/api/task-manager';
 
 import { Iconify } from 'src/components/iconify';

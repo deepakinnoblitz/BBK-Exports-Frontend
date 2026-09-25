@@ -1,5 +1,4 @@
 import dayjs from 'dayjs';
-import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { useNavigate } from 'react-router-dom';
@@ -44,7 +43,6 @@ import { generateInvoicePdf } from 'src/components/export/pdf/invoice-pdf-genera
 
 import { useAuth } from 'src/auth/auth-context';
 
-import { ExportFieldsDialog } from '../../export-fields-dialog';
 
 
 // ----------------------------------------------------------------------

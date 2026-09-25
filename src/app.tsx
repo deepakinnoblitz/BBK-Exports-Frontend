@@ -1,9 +1,9 @@
 import 'src/global.css';
 
 import React, { useEffect, forwardRef } from 'react';
-import { SnackbarProvider, closeSnackbar } from 'notistack';
+import { closeSnackbar, SnackbarProvider } from 'notistack';
 
-import { Alert, IconButton } from '@mui/material';
+import { Alert } from '@mui/material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
@@ -13,8 +13,6 @@ import { SettingsProvider } from 'src/hooks/settings-context';
 import { DashboardViewProvider } from 'src/hooks/dashboard-view-context';
 
 import { ThemeProvider } from 'src/theme/theme-provider';
-
-import { Iconify } from 'src/components/iconify';
 
 import { AuthProvider } from 'src/auth/auth-context';
 // ----------------------------------------------------------------------

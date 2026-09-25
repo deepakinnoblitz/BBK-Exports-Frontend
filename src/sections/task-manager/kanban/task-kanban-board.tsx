@@ -1,11 +1,11 @@
+import type { TaskManager } from 'src/api/task-manager';
+
 import { useRef } from 'react';
 import { varAlpha } from 'minimal-shared/utils';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import { useTheme } from '@mui/material/styles';
-
-import { TaskManager } from 'src/api/task-manager';
 
 import TaskKanbanColumn from './task-kanban-column';
 

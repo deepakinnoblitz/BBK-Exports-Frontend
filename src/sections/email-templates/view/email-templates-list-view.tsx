@@ -7,10 +7,8 @@ import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
-import Popover from '@mui/material/Popover';
 import { alpha } from '@mui/material/styles';
 import Snackbar from '@mui/material/Snackbar';
-import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -23,8 +21,6 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useRouter } from 'src/routes/hooks';
 
-import { fDateTime } from 'src/utils/format-time';  
-
 import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchEmailTemplates, deleteEmailTemplate, fetchEmailTemplateCategories } from 'src/api/email-template';
 
@@ -34,7 +30,6 @@ import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
 
 import { TableNoData } from 'src/sections/proposal/table-no-data';
-import { TableEmptyRows } from 'src/sections/proposal/table-empty-rows';
 import { ProposalTableHead } from 'src/sections/proposal/proposal-table-head';
 
 import { useAuth } from 'src/auth/auth-context';

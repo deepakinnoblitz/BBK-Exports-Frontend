@@ -1,3 +1,5 @@
+import type { TooltipProps } from '@mui/material/Tooltip';
+
 import { useNavigate } from 'react-router-dom';
 import { GrDocumentTime, GrDocumentVerified } from "react-icons/gr";
 
@@ -8,7 +10,7 @@ import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import { alpha, styled } from '@mui/material/styles';
-import Tooltip, { tooltipClasses, TooltipProps } from '@mui/material/Tooltip';
+import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';

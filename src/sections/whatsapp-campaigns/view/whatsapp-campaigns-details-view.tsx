@@ -1,9 +1,12 @@
+import type {
+    WhatsAppQueueItem} from 'src/api/whatsapp-campaign';
+
 import dayjs from 'dayjs';
 import { enqueueSnackbar } from 'notistack';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { VscDebugStart, VscDebugPause, VscDebugStop } from "react-icons/vsc";
-import { IoMdArrowBack, IoMdMail, IoMdCalendar, IoMdPerson, IoMdStats, IoMdCreate, IoMdTrash, IoMdList, IoMdRefresh } from "react-icons/io";
+import { VscDebugStop, VscDebugStart, VscDebugPause } from "react-icons/vsc";
+import { IoMdMail, IoMdList, IoMdStats, IoMdPerson, IoMdCreate, IoMdRefresh, IoMdArrowBack } from "react-icons/io";
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -27,14 +30,13 @@ import { useRouter } from 'src/routes/hooks';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
+    previewRecipients,
+    fetchWhatsAppQueue,
     getWhatsAppCampaign,
     deleteWhatsAppCampaign,
     startCampaign as startWhatsAppCampaign,
     pauseCampaign as pauseWhatsAppCampaign,
-    cancelCampaign as cancelWhatsAppCampaign,
-    fetchWhatsAppQueue,
-    WhatsAppQueueItem,
-    previewRecipients
+    cancelCampaign as cancelWhatsAppCampaign
 } from 'src/api/whatsapp-campaign';
 
 import { Label } from 'src/components/label';

@@ -35,7 +35,6 @@ import { ConfirmDialog } from 'src/components/confirm-dialog';
 
 import { useAuth } from 'src/auth/auth-context';
 
-import { emptyRows } from '../utils';
 import { TableNoData } from '../table-no-data';
 import { TableEmptyRows } from '../table-empty-rows';
 import { ProposalTableRow } from '../proposal-table-row';

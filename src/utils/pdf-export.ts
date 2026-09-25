@@ -115,7 +115,7 @@ export function exportToPdf({
       fontSize: fontSize + 0.5
     },
     styles: {
-      fontSize: fontSize,
+      fontSize,
       cellPadding: 3,
       overflow: 'linebreak',
       lineWidth: 0.15,
@@ -123,7 +123,7 @@ export function exportToPdf({
       textColor: [33, 43, 54],
       valign: 'middle'
     },
-    columnStyles: columnStyles
+    columnStyles
   };
 
   // Sanitize body currency cells to prevent Unicode symbol split/spacing rendering issues

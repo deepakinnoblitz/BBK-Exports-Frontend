@@ -1,17 +1,16 @@
 import { TbVideoFilled } from "react-icons/tb";
 import { BsTelephoneForwardFill } from "react-icons/bs";
-import { useState, useRef, useEffect, useCallback, memo } from 'react';
+import { memo, useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
+import { alpha } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import { useTheme, alpha } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import InputAdornment from '@mui/material/InputAdornment';
 
 import { fDateTime, fDateSeparator } from 'src/utils/format-time';

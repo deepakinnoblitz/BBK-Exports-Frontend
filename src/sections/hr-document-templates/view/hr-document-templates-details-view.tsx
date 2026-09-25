@@ -1,5 +1,7 @@
+import type { HRDocumentTemplate } from 'src/api/hr-document-template';
+
 import { useState, useEffect, useCallback } from 'react';
-import { IoMdArrowBack, IoMdSettings, IoMdMail, IoMdDocument, IoMdCreate } from 'react-icons/io';
+import { IoMdMail, IoMdCreate, IoMdSettings, IoMdDocument, IoMdArrowBack } from 'react-icons/io';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -13,7 +15,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useRouter } from 'src/routes/hooks';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getHRDocumentTemplate, HRDocumentTemplate } from 'src/api/hr-document-template';
+import { getHRDocumentTemplate } from 'src/api/hr-document-template';
 
 import { useAuth } from 'src/auth/auth-context';
 

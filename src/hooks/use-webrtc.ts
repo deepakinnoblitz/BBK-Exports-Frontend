@@ -1,5 +1,6 @@
-import { Socket } from 'socket.io-client';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import type { Socket } from 'socket.io-client';
+
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import { useHRMSSettings } from 'src/hooks/use-hrms-settings';
 

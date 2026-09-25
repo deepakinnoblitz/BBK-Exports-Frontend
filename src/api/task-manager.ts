@@ -188,8 +188,8 @@ export async function closeTaskManager(name: string, hours: string, remarks: str
         body: JSON.stringify({
             task_name: name,
             hours_spent: hours,
-            remarks: remarks,
-            attachment: attachment
+            remarks,
+            attachment
         })
     });
 

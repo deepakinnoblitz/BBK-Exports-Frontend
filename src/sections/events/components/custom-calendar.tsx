@@ -6,11 +6,11 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import React, { useRef, useState, useEffect } from 'react';
-import { FiChevronLeft, FiChevronRight, FiCalendar, FiPhoneCall, FiCheckSquare } from 'react-icons/fi';
+import { FiCalendar, FiPhoneCall, FiChevronLeft, FiCheckSquare, FiChevronRight } from 'react-icons/fi';
 
-import { Box, Button, Typography, ButtonGroup, IconButton, CircularProgress } from '@mui/material';
+import { Box, Button, Typography, IconButton, CircularProgress } from '@mui/material';
 
-import { getEventChipColor, getEventStatus, getEventType } from '../utils/event-color';
+import { getEventType, getEventStatus, getEventChipColor } from '../utils/event-color';
 
 
 interface CustomCalendarProps {

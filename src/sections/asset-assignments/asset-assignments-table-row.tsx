@@ -1,4 +1,3 @@
-import type { Theme, SxProps } from '@mui/material/styles';
 
 import Box from '@mui/material/Box';
 import { alpha } from '@mui/material/styles';
@@ -10,7 +9,6 @@ import Typography from '@mui/material/Typography';
 
 import { fDate } from 'src/utils/format-time';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------

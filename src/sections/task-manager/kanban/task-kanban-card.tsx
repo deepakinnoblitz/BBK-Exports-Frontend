@@ -1,3 +1,5 @@
+import type { TaskManager } from 'src/api/task-manager';
+
 import { useState } from 'react';
 import { varAlpha } from 'minimal-shared/utils';
 
@@ -15,8 +17,6 @@ import AvatarGroup from '@mui/material/AvatarGroup';
 import { fDate } from 'src/utils/format-time';
 import { getInitials } from 'src/utils/string';
 import { stringToColor, stringToDarkColor } from 'src/utils/color-utils';
-
-import { TaskManager } from 'src/api/task-manager';
 
 import { Iconify } from 'src/components/iconify';
 

@@ -37,7 +37,9 @@ import { ProposalTableHead } from 'src/sections/proposal/proposal-table-head';
 
 import { useAuth } from 'src/auth/auth-context';
 
-import { MetaQueueFiltersDrawer, MetaQueueFilters } from '../meta-queue-filters-drawer';    
+import { MetaQueueFiltersDrawer } from '../meta-queue-filters-drawer';
+
+import type { MetaQueueFilters } from '../meta-queue-filters-drawer';    
 // ----------------------------------------------------------------------
 
 const SORT_OPTIONS = [

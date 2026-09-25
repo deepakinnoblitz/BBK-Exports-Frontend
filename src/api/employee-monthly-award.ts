@@ -137,7 +137,7 @@ export async function publishMonthlyAward(name: string, publish: number) {
         headers: await getAuthHeaders(),
         body: JSON.stringify({
             doctype: 'Employee Monthly Award',
-            name: name,
+            name,
             fieldname: { published: publish }
         })
     });

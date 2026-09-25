@@ -1,17 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { 
     FiBold, 
+    FiList, 
+    FiCode, 
     FiItalic, 
     FiUnderline, 
-    FiList, 
     FiAlignLeft, 
-    FiAlignCenter, 
-    FiAlignRight, 
+    FiRotateCcw, 
+    FiAlignRight,
+    FiAlignCenter,
     FiAlignJustify,
-    FiCode,
-    FiRotateCcw,
-    FiChevronsRight,
-    FiChevronsLeft
+    FiChevronsLeft,
+    FiChevronsRight
 } from 'react-icons/fi';
 
 import Box from '@mui/material/Box';

@@ -1,21 +1,21 @@
+import type { Project } from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
-import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Snackbar from '@mui/material/Snackbar';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
-import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { getDoctypeList } from 'src/api/leads';
-import { createProject, updateProject, deleteProject, renameProject, getProject, Project } from 'src/api/masters';
+import { getProject, createProject, updateProject, renameProject } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 

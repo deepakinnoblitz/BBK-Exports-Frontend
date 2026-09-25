@@ -11,7 +11,6 @@ import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Rating from '@mui/material/Rating';
-import Select from '@mui/material/Select';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
@@ -21,9 +20,7 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
-import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
-import FormControl from '@mui/material/FormControl';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -48,7 +45,6 @@ import {
     deleteInterview,
     updateInterview,
     getInterviewPermissions,
-    createInterviewType,
 } from 'src/api/interviews';
 
 import { Iconify } from 'src/components/iconify';

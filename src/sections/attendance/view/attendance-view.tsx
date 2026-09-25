@@ -29,6 +29,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useAttendance } from 'src/hooks/useAttendance';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRDoc, getHRPermissions } from 'src/api/hr-management';
@@ -40,7 +42,6 @@ import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
 
 import { useAuth } from 'src/auth/auth-context';
-import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { TableNoData } from '../../lead/table-no-data';
 import { TableEmptyRows } from '../../lead/table-empty-rows';

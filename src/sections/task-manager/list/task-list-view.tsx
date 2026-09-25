@@ -1,4 +1,5 @@
-import { varAlpha } from 'minimal-shared/utils';
+import type { TaskManager} from 'src/api/task-manager';
+
 import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
@@ -6,13 +7,13 @@ import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Avatar from '@mui/material/Avatar';
+import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import AvatarGroup from '@mui/material/AvatarGroup';
-import { alpha, Theme } from '@mui/material/styles';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -21,7 +22,7 @@ import { fDate } from 'src/utils/format-time';
 import { getInitials } from 'src/utils/string';
 import { stringToColor, stringToDarkColor } from 'src/utils/color-utils';
 
-import { TaskManager, fetchProjects, fetchDepartments, fetchEmployees } from 'src/api/task-manager';
+import { fetchProjects, fetchEmployees, fetchDepartments } from 'src/api/task-manager';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -34,7 +35,9 @@ import { useAuth } from 'src/auth/auth-context';
 import { TableNoData } from './table-no-data';
 import { TaskTableToolbar } from './task-table-toolbar';
 import { TableEmptyRows } from '../../lead/table-empty-rows';
-import { TaskTableFiltersDrawer, TaskFiltersProps } from './task-table-filters-drawer';
+import { TaskTableFiltersDrawer } from './task-table-filters-drawer';
+
+import type { TaskFiltersProps } from './task-table-filters-drawer';
 
 // ----------------------------------------------------------------------
 

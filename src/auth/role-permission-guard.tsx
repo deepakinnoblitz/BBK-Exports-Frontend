@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { useLocation, Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from './auth-context';
 import { hrNavData, employeeNavData, crmAndSalesNavData } from '../layouts/nav-config-dashboard';

@@ -1,13 +1,18 @@
+import type {
+    EmployeeOption} from 'src/api/hr-document-generation';
+import type {
+    HRDocumentTemplate} from 'src/api/hr-document-template';
+
 import { IoMdArrowBack } from 'react-icons/io';
 import { useSearchParams } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Alert from '@mui/material/Alert';
+import Alert from '@mui/material/Alert';   
 import Button from '@mui/material/Button';
-import { alpha } from '@mui/material/styles';   
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import Snackbar from '@mui/material/Snackbar';
 import TextField from '@mui/material/TextField';
@@ -18,22 +23,20 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
-    fetchHRDocumentTemplates,
     getHRDocumentTemplate,
-    HRDocumentTemplate,
+    fetchHRDocumentTemplates
 } from 'src/api/hr-document-template';
 import {
+    fetchEmployeesList,
     getHRDocumentGeneration,
     updateHRDocumentGeneration,
-    fetchEmployeesList,
-    EmployeeOption,
-    HRDocumentGeneration,
 } from 'src/api/hr-document-generation';
 
 import { Iconify } from 'src/components/iconify';
-import { filterEmployeeOptions } from 'src/utils/filter-employees';
 import { RichTextEditor } from 'src/components/rich-text-editor/rich-text-editor';
 
 // ----------------------------------------------------------------------

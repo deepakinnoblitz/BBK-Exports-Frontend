@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, forwardRef, useCallback, useImperativeHandle } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -97,7 +97,7 @@ export const UserPermissionView = forwardRef(({ hideHeader = false, hideActionBu
                 page: page + 1,
                 page_size: rowsPerPage,
                 search: filterName,
-                filters: filters,
+                filters,
                 order_by: sortBy
             });
             setData(result.data);

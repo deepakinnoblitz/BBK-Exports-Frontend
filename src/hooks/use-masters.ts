@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-import { fetchItems, fetchProjects, fetchServices, fetchLeadFroms, fetchClaimTypes, fetchLeaveTypes, fetchDepartments, fetchBankAccounts, fetchDesignations, fetchPaymentTerms, fetchCallStatuses, fetchActivityTypes, fetchTaxTypesCustom, fetchMeetingStatuses, fetchAssetCategories, fetchPaymentTypesCustom, fetchCompanyBankAccounts, fetchEvaluationTraitCategories, fetchSalaryStructureComponents, fetchCrmEmailTemplateCategories, fetchCrmWhatsAppTemplateCategories, fetchBloodGroups, fetchHRDocumentCategoriesMaster, fetchQualifications, fetchLineOrders, fetchShifts, fetchBusTravelRoutes, fetchEmployeeTypes } from 'src/api/masters';
+import { fetchItems, fetchShifts, fetchProjects, fetchServices, fetchLeadFroms, fetchClaimTypes, fetchLeaveTypes, fetchLineOrders, fetchDepartments, fetchBloodGroups, fetchBankAccounts, fetchDesignations, fetchPaymentTerms, fetchCallStatuses, fetchActivityTypes, fetchEmployeeTypes, fetchTaxTypesCustom, fetchQualifications, fetchMeetingStatuses, fetchAssetCategories, fetchBusTravelRoutes, fetchPaymentTypesCustom, fetchCompanyBankAccounts, fetchEvaluationTraitCategories, fetchSalaryStructureComponents, fetchCrmEmailTemplateCategories, fetchHRDocumentCategoriesMaster, fetchCrmWhatsAppTemplateCategories } from 'src/api/masters';
 
 export function useDepartments(
   page: number = 1,

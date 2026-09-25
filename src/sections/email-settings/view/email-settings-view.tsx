@@ -1,3 +1,6 @@
+import type { SwitchProps } from '@mui/material/Switch';
+import type { EmailSettings } from 'src/api/email-settings';
+
 import { useSnackbar } from 'notistack';
 import { useState, useEffect } from 'react';
 
@@ -5,16 +8,15 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Switch from '@mui/material/Switch';
 import { styled } from '@mui/material/styles';
-import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Autocomplete from '@mui/material/Autocomplete';
-import Switch, { SwitchProps } from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getEmailSettings, saveEmailSettings, getEmailAccountOptions, EmailSettings } from 'src/api/email-settings';
+import { getEmailSettings, saveEmailSettings, getEmailAccountOptions } from 'src/api/email-settings';
 
 import { useAuth } from 'src/auth/auth-context';
 

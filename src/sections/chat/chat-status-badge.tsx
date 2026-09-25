@@ -1,4 +1,3 @@
-import Box from '@mui/material/Box';
 import Badge from '@mui/material/Badge';
 
 import { Iconify } from 'src/components/iconify';

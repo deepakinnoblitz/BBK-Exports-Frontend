@@ -1,13 +1,11 @@
-import type { CardProps } from '@mui/material/Card';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
-import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import { alpha, keyframes, styled, useTheme } from '@mui/material/styles';
+import { alpha, styled, useTheme, keyframes } from '@mui/material/styles';
 
 import { fDate } from 'src/utils/format-time';
 

@@ -17,9 +17,8 @@ import DialogContent from '@mui/material/DialogContent';
 
 import { frappeRequest } from 'src/utils/csrf';
 
-import { createBadge, updateBadge, deleteBadge, renameBadge } from 'src/api/badges';
+import { createBadge, updateBadge, renameBadge } from 'src/api/badges';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------

@@ -29,7 +29,7 @@ import { fetchMetaApps } from 'src/api/meta-app';
 import { fetchMetaPages } from 'src/api/meta-page';
 import { fetchMetaForms } from 'src/api/meta-form';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { fetchMetaLeads, retryMetaLead } from 'src/api/meta-lead';
+import { retryMetaLead, fetchMetaLeads } from 'src/api/meta-lead';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -40,7 +40,9 @@ import { ProposalTableHead } from 'src/sections/proposal/proposal-table-head';
 
 import { useAuth } from 'src/auth/auth-context';
 
-import { MetaLeadsFiltersDrawer, MetaLeadsFilters } from '../meta-leads-filters-drawer';
+import { MetaLeadsFiltersDrawer } from '../meta-leads-filters-drawer';
+
+import type { MetaLeadsFilters } from '../meta-leads-filters-drawer';
 // ----------------------------------------------------------------------
 
 const SORT_OPTIONS = [

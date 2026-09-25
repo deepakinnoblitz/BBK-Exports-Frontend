@@ -1,3 +1,5 @@
+import type { Item } from 'src/api/masters';
+
 import { useState } from 'react';
 
 import Box from '@mui/material/Box';
@@ -16,7 +18,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useItems } from 'src/hooks/use-masters';
 
-import { deleteItem, Item } from 'src/api/masters';
+import { deleteItem } from 'src/api/masters';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';

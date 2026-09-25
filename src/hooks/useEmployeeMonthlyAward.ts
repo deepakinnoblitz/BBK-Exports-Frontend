@@ -1,6 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import type { EmployeeAwardSettings } from 'src/api/employee-monthly-award';
 
-import { fetchEmployeeMonthlyAwards, fetchEmployeeAwardSettings, EmployeeAwardSettings } from 'src/api/employee-monthly-award';
+import { useState, useEffect, useCallback } from 'react';
+
+import { fetchEmployeeMonthlyAwards, fetchEmployeeAwardSettings } from 'src/api/employee-monthly-award';
 
 export function useEmployeeMonthlyAwards(
     page: number = 1,

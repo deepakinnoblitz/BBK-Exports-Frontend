@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -37,7 +37,7 @@ import { useAssets } from 'src/hooks/useAssets';
 import { frappeRequest } from 'src/utils/csrf';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { createAsset, updateAsset, deleteAsset, getAssetPermissions, getAssetCategories, createAssetCategory } from 'src/api/assets';
+import { createAsset, updateAsset, deleteAsset, getAssetCategories, getAssetPermissions, createAssetCategory } from 'src/api/assets';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';

@@ -1,3 +1,7 @@
+import type {
+    SalesTargetEntry
+} from 'src/api/sales-target-entry';
+
 import dayjs from 'dayjs';
 import { useSnackbar } from 'notistack';
 import { MuiTelInput } from 'mui-tel-input';
@@ -6,14 +10,12 @@ import { useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
-import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import { LoadingButton } from '@mui/lab';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import { IconButton } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TextField from '@mui/material/TextField';
@@ -33,15 +35,14 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { getFriendlyErrorMessage } from 'src/utils/error-handler';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getDoctypeList, createLeadFrom, createService } from 'src/api/leads';
+import { createService, getDoctypeList, createLeadFrom } from 'src/api/leads';
 import {
-    fetchSalesTargetEntries,
-    fetchNextSalesTargetPreview,
     createSalesTargetEntry,
     updateSalesTargetEntry,
     deleteSalesTargetEntry,
-    getSalesTargetEntryPermissions,
-    SalesTargetEntry
+    fetchSalesTargetEntries,
+    fetchNextSalesTargetPreview,
+    getSalesTargetEntryPermissions
 } from 'src/api/sales-target-entry';
 
 import { Iconify } from 'src/components/iconify';

@@ -1,3 +1,5 @@
+import type { EmployeeEvaluationTrait} from 'src/api/employee-evaluation';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -9,14 +11,13 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
-import Autocomplete from '@mui/material/Autocomplete';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import { createFilterOptions } from '@mui/material/Autocomplete';
+import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
 
 import { useEmployeeEvaluationPoints, useEmployeeEvaluationTraitCategories } from 'src/hooks/useEmployeeEvaluation';
 
-import { EmployeeEvaluationTrait, createEmployeeEvaluationTrait, updateEmployeeEvaluationTrait } from 'src/api/employee-evaluation';
+import { createEmployeeEvaluationTrait, updateEmployeeEvaluationTrait } from 'src/api/employee-evaluation';
 
 import { Iconify } from 'src/components/iconify';
 

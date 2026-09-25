@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { 
-    IoMdArrowBack, IoMdTrash, IoMdCreate, IoMdDocument, 
-    IoMdPerson, IoMdCalendar, IoMdCash, IoMdAlert, 
-    IoMdCheckmarkCircle, IoMdListBox, IoMdListBox as IoMdNotes
+    IoMdCash, IoMdTrash, IoMdAlert, IoMdCreate, 
+    IoMdPerson, IoMdListBox, IoMdCalendar, 
+    IoMdArrowBack, IoMdCheckmarkCircle, IoMdListBox as IoMdNotes
 } from "react-icons/io";
 
 import Box from '@mui/material/Box';
@@ -41,7 +41,6 @@ const renderCurrency = (amount: any, symbolFontSize: string = '15px') => {
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getPurchaseCollection, deletePurchaseCollection } from 'src/api/purchase-collection';
 
-import { Iconify } from 'src/components/iconify';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
 
 import { useAuth } from 'src/auth/auth-context';

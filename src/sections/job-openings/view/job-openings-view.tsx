@@ -34,11 +34,11 @@ import { getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
     getJobOpening,
+    getJobLocations,
     createJobOpening,
     updateJobOpening,
     deleteJobOpening,
     getJobOpeningPermissions,
-    getJobLocations,
 } from 'src/api/job-openings';
 
 import { Iconify } from 'src/components/iconify';

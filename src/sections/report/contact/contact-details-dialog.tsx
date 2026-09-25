@@ -1,6 +1,6 @@
 import { FaUserTie } from "react-icons/fa6";
 import { useState, useEffect } from 'react';
-import { HiOutlineUser, HiOutlineDocumentText, HiOutlineClipboardDocumentCheck, HiOutlineShoppingBag, HiOutlineCircleStack, HiOutlineBuildingOffice, HiOutlineEnvelope, HiOutlinePhone, HiOutlineBriefcase, HiOutlineHome, HiOutlineMapPin, HiOutlineGlobeAlt } from "react-icons/hi2";
+import { HiOutlineUser, HiOutlineHome, HiOutlinePhone, HiOutlineMapPin, HiOutlineEnvelope, HiOutlineGlobeAlt, HiOutlineBriefcase, HiOutlineShoppingBag, HiOutlineCircleStack, HiOutlineDocumentText, HiOutlineBuildingOffice, HiOutlineClipboardDocumentCheck } from "react-icons/hi2";
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
@@ -10,7 +10,6 @@ import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Divider from '@mui/material/Divider';
 import Snackbar from '@mui/material/Snackbar';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -24,7 +23,6 @@ import { getDoc } from 'src/api/leads';
 import { CONFIG } from 'src/config-global';
 import { getContact } from 'src/api/contacts';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 

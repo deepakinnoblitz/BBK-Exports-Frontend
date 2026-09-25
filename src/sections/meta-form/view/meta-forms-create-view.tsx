@@ -1,3 +1,5 @@
+import type { SwitchProps } from '@mui/material/Switch';
+
 import { useSnackbar } from 'notistack';
 import { useState, useEffect } from 'react';
 import { IoMdArrowBack } from 'react-icons/io';
@@ -10,7 +12,7 @@ import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
-import Divider from '@mui/material/Divider';
+import Switch from '@mui/material/Switch';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
@@ -28,8 +30,6 @@ import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TableContainer from '@mui/material/TableContainer';
-import FormHelperText from '@mui/material/FormHelperText';
-import Switch, { SwitchProps } from '@mui/material/Switch';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
@@ -38,7 +38,7 @@ import { useRouter } from 'src/routes/hooks';
 import { fetchMetaPages } from 'src/api/meta-page';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getDoctypeList, createLeadFrom } from 'src/api/leads';
-import { createMetaForm, getLeadFields, getMandatoryLeadFields } from 'src/api/meta-form';
+import { getLeadFields, createMetaForm, getMandatoryLeadFields } from 'src/api/meta-form';
 
 import { Iconify } from 'src/components/iconify';
 

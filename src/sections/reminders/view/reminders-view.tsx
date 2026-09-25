@@ -1,7 +1,6 @@
-import { MdSaveAs } from "react-icons/md";
 import { TbSettings } from "react-icons/tb";
 import { useState, useCallback } from 'react';
-import { MdNotificationsActive } from "react-icons/md";
+import { MdSaveAs , MdNotificationsActive } from "react-icons/md";
 
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
@@ -23,7 +22,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useHRReminders } from 'src/hooks/useReminders';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { deleteHRReminder, saveReminderSettings, getReminderSettings } from 'src/api/reminders';
+import { deleteHRReminder, getReminderSettings, saveReminderSettings } from 'src/api/reminders';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';

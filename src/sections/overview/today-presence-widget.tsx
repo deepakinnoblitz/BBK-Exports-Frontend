@@ -3,7 +3,7 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
-import { alpha, useTheme, styled } from '@mui/material/styles';
+import { alpha, styled, useTheme } from '@mui/material/styles';
 
 import { usePresence } from 'src/hooks/use-presence';
 

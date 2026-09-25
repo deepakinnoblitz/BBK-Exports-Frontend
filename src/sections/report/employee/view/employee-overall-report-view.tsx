@@ -1,3 +1,5 @@
+import type { SelectChangeEvent } from '@mui/material/Select';
+
 import dayjs from 'dayjs';
 import jsPDF from 'jspdf';
 import ExcelJS from 'exceljs';
@@ -12,6 +14,7 @@ import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
+import Select from '@mui/material/Select';
 import Checkbox from '@mui/material/Checkbox';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
@@ -30,7 +33,6 @@ import TablePagination from '@mui/material/TablePagination';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useEmployees } from 'src/hooks/useEmployees';
@@ -39,18 +41,17 @@ import { useDepartments, useDesignations } from 'src/hooks/use-masters';
 import { fDate } from 'src/utils/format-time';
 import { frappeRequest } from 'src/utils/csrf';
 import { fNumber } from 'src/utils/format-number';
-import { stringToColor, stringToDarkColor } from 'src/utils/color-utils';
 import { filterEmployeeOptions } from 'src/utils/filter-employees';
+import { stringToColor, stringToDarkColor } from 'src/utils/color-utils';
 
 import { runReport } from 'src/api/reports';
 import { getDoctypeList } from 'src/api/leads';
 import { getEmployee } from 'src/api/employees';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { fetchFrappeList, getHRSettings } from 'src/api/hr-management';
+import { getHRSettings, fetchFrappeList } from 'src/api/hr-management';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
-import { EmptyContent } from 'src/components/empty-content';
 
 import { EmployeeReportDetailsDialog } from '../employee-report-details-dialog';
 
@@ -897,8 +898,8 @@ export function EmployeeOverallReportView() {
           from: l.from_date ? fDate(l.from_date, 'DD-MM-YYYY') : '-',
           to: l.to_date ? fDate(l.to_date, 'DD-MM-YYYY') : '-',
           days: totalDays || 0,
-          status: status,
-          reason: reason
+          status,
+          reason
         });
 
         // Status color
@@ -960,7 +961,7 @@ export function EmployeeOverallReportView() {
           end: fDate(s.pay_period_end, 'DD-MM-YYYY'),
           gross: s.grand_gross_pay || 0,
           net: s.grand_net_pay || 0,
-          status: status
+          status
         });
       });
 

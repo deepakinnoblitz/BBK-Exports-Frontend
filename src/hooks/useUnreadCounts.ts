@@ -1,7 +1,9 @@
-import { Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
+import type { UnreadCounts } from 'src/api/unread-counts';
+
 import { useState, useEffect, useCallback } from 'react';
 
-import { fetchUnreadCounts, UnreadCounts } from 'src/api/unread-counts';
+import { fetchUnreadCounts } from 'src/api/unread-counts';
 
 type Props = {
     socket?: Socket | null;

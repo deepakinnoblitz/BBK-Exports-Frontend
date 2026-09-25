@@ -1,9 +1,9 @@
-export * from './common-colors';
-
 export * from './core';
+
+export * from './types';
 
 export * from './theme-config';
 
-export * from './theme-provider';
+export * from './common-colors';
 
-export * from './types';
+export * from './theme-provider';

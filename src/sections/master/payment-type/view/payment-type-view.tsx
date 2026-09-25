@@ -1,3 +1,5 @@
+import type { PaymentType } from 'src/api/masters';
+
 import { useState } from 'react';
 
 import Box from '@mui/material/Box';
@@ -17,7 +19,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { usePaymentTypes } from 'src/hooks/use-masters';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { deletePaymentTypeCustom, PaymentType } from 'src/api/masters';
+import { deletePaymentTypeCustom } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';

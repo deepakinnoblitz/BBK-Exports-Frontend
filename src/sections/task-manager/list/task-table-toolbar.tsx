@@ -1,3 +1,5 @@
+import type { Theme } from '@mui/material/styles';
+
 import React from 'react';
 
 import Box from '@mui/material/Box';
@@ -6,13 +8,10 @@ import Stack from '@mui/material/Stack';
 import Badge from '@mui/material/Badge';
 import Button from '@mui/material/Button';
 import Toolbar from '@mui/material/Toolbar';
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
-import InputLabel from '@mui/material/InputLabel';
-import { alpha, Theme } from '@mui/material/styles';
-import FormControl from '@mui/material/FormControl';
 import InputAdornment from '@mui/material/InputAdornment';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import { Iconify } from 'src/components/iconify';
 

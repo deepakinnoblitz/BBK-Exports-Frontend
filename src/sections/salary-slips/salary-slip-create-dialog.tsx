@@ -4,12 +4,8 @@ import type { SalarySlip } from 'src/api/salary-slips';
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
-import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Divider from '@mui/material/Divider';
-import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -22,13 +18,12 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
-import { fCurrency } from 'src/utils/format-number';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { getDoctypeList } from 'src/api/leads';
-import { createSalarySlip, updateSalarySlip, previewSalarySlip, generateSalarySlipFromEmployee } from 'src/api/salary-slips';
+import { updateSalarySlip, previewSalarySlip, generateSalarySlipFromEmployee } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
-import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { SalarySlipPreviewDialog } from './salary-slip-preview-dialog';
 

@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
@@ -34,7 +34,6 @@ import { getHRSettings, fetchFrappeList } from 'src/api/hr-management';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
-import { Scrollbar } from 'src/components/scrollbar';
 
 // ----------------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import { useSearchParams } from 'react-router-dom';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -40,10 +40,10 @@ import {
     getTimesheet,
     fetchProjects,
     createProject,
-    createActivityType,
     createTimesheet,
     updateTimesheet,
     deleteTimesheet,
+    createActivityType,
     fetchActivityTypes,
     getTimesheetPermissions,
 } from 'src/api/timesheets';

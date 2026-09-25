@@ -1,3 +1,5 @@
+import type { TaskManager} from 'src/api/task-manager';
+
 import { useSearchParams } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -15,11 +17,8 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { useSocket } from 'src/hooks/use-socket';
 
-import { fDate } from 'src/utils/format-time';
-
 import { DashboardContent } from 'src/layouts/dashboard';
-import { deleteTaskManager } from 'src/api/task-manager';
-import { TaskManager, fetchTaskManagerList, updateTaskStatus, fetchProjects, fetchDepartments, fetchEmployees, getTaskManagerPermissions } from 'src/api/task-manager';
+import { fetchProjects , fetchEmployees, updateTaskStatus, fetchDepartments, deleteTaskManager, fetchTaskManagerList, getTaskManagerPermissions } from 'src/api/task-manager';
 
 import { Iconify } from 'src/components/iconify';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
@@ -31,7 +30,9 @@ import { TaskNewEditForm } from '../task-new-edit-form';
 import TaskKanbanBoard from '../kanban/task-kanban-board';
 import TaskDetailsDialog from '../kanban/task-details-dialog';
 import { TaskTableToolbar } from '../list/task-table-toolbar';
-import { TaskTableFiltersDrawer, TaskFiltersProps } from '../list/task-table-filters-drawer';
+import { TaskTableFiltersDrawer } from '../list/task-table-filters-drawer';
+
+import type { TaskFiltersProps } from '../list/task-table-filters-drawer';
 
 // ----------------------------------------------------------------------
 

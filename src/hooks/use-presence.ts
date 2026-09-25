@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
-import { getPresence, pingPresence, updatePresence as apiUpdatePresence, checkTodayTimesheet, getPresenceSettings, logLocation } from 'src/api/presence';
+import { getPresence, logLocation, pingPresence, checkTodayTimesheet, getPresenceSettings, updatePresence as apiUpdatePresence } from 'src/api/presence';
 
 import { useAuth } from 'src/auth/auth-context';
 
@@ -443,7 +443,7 @@ export function usePresence() {
       }
     },
     thresholdMs: idleThreshold * 1000,
-    activityEvents: activityEvents,
+    activityEvents,
   });
 
   // Secondary Resume Trigger: When user returns to the tab

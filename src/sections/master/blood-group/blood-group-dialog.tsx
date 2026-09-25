@@ -1,6 +1,7 @@
+import type { BloodGroup } from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
-import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -13,7 +14,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { createBloodGroup, updateBloodGroup, getBloodGroup, BloodGroup } from 'src/api/masters';
+import { getBloodGroup, createBloodGroup, updateBloodGroup } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 

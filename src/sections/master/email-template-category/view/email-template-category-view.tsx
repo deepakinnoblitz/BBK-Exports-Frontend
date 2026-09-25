@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import type { CrmEmailTemplateCategory } from 'src/api/masters';
+
+import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
-import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
@@ -20,7 +21,7 @@ import { useCrmEmailTemplateCategories } from 'src/hooks/use-masters';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchEmailTemplates } from 'src/api/email-template';
-import { deleteCrmEmailTemplateCategory, CrmEmailTemplateCategory } from 'src/api/masters';
+import { deleteCrmEmailTemplateCategory } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
