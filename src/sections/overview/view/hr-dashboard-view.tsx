@@ -51,7 +51,7 @@ export function HRDashboardView() {
     });
 
     const [attendanceFilter, setAttendanceFilter] = useState('Last 7 Days');
-    const [attendanceDates, setAttendanceDates] = useState<{ from: string; to: string }>({
+    const [, setAttendanceDates] = useState<{ from: string; to: string }>({
         from: '',
         to: ''
     });
@@ -84,7 +84,10 @@ export function HRDashboardView() {
                     ...hrData,
                     holidays,
                     renewals,
-                    present_today: stats?.present || 0,
+                    total_active_employees: hrData.total_active_employees ?? hrData.total_employees ?? 0,
+                    today_present: hrData.today_present ?? stats?.present ?? 0,
+                    today_absent: hrData.today_absent ?? stats?.absent ?? 0,
+                    present_today: hrData.today_present ?? stats?.present ?? 0,
                     missing_attendance: stats?.missing || 0,
                     missing_attendance_chart: missingAttendanceChart,
                     weekly_present_chart: weeklyPresentChart,
@@ -147,12 +150,7 @@ export function HRDashboardView() {
         }
     };
 
-    const hasCrmOrSalesRole = user?.roles?.some((role: string) => {
-        const r = role.toLowerCase();
-        return r.includes('crm and sales');
-    });
 
-    const isHrOnlyWithTaskAccess = !hasCrmOrSalesRole && user?.roles?.some((role: string) => role.toLowerCase().includes('task manager'));
 
     return (
         <DashboardContent maxWidth="xl">
@@ -181,8 +179,8 @@ export function HRDashboardView() {
                 {/* Summary Widgets */}
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <HRSummaryWidget
-                        title="Total Employees"
-                        total={data.total_employees || 0}
+                        title="Total Active Employees"
+                        total={data.total_active_employees ?? data.total_employees ?? 0}
                         loading={loading}
                         icon={<FaUsers />}
                         color="#3b82f6"
@@ -192,7 +190,7 @@ export function HRDashboardView() {
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <HRSummaryWidget
                         title="Today Present"
-                        total={(data as any).today_present ?? 0}
+                        total={data.today_present ?? data.present_today ?? 0}
                         color="#10b981"
                         loading={loading}
                         icon={<FaUserCheck />}
@@ -202,7 +200,7 @@ export function HRDashboardView() {
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <HRSummaryWidget
                         title="Today Absent"
-                        total={(data as any).today_absent ?? 0}
+                        total={data.today_absent ?? 0}
                         color="#f97316"
                         loading={loading}
                         icon={<FaUserXmark />}
