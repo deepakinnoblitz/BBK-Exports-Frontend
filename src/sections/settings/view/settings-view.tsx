@@ -33,13 +33,13 @@ import { SettingsNotifications } from '../settings-notifications';
 
 const TABS = [
   { value: 'logo', label: 'Logo', icon: <RiImageLine size={22} /> },
+  { value: 'biometric', label: 'Biometric Integration', icon: <RiFingerprintLine size={22} /> },
+  { value: 'salary', label: 'Salary Slip', icon: <PiMoneyWavy size={22} /> },
   // { value: 'sidebar', label: 'Sidebar', icon: <RiLayoutMasonryLine size={22} /> },
   // { value: 'dashboard', label: 'Dashboard', icon: <RiDashboardLine size={22} /> },
-  { value: 'currency', label: 'Currency & Locale', icon: <RiGlobalLine size={22} /> },
   { value: 'notifications', label: 'Notifications', icon: <RiNotification3Line size={22} /> },
-  { value: 'salary', label: 'Salary Slip', icon: <PiMoneyWavy size={22} /> },
   { value: 'email', label: 'Email', icon: <RiMailLine size={22} /> },
-  { value: 'biometric', label: 'Biometric Integration', icon: <RiFingerprintLine size={22} /> },
+  { value: 'currency', label: 'Currency & Locale', icon: <RiGlobalLine size={22} /> },
   { value: 'api', label: 'API', icon: <RiKey2Line size={22} /> },
 ];
 

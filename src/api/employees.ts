@@ -20,6 +20,7 @@ export interface Employee {
     blood_group?: string;
     sex?: string;
     employee_type?: string;
+    production_type?: string;
     uan_number?: string;
     marital_status?: string;
     qualification?: string;

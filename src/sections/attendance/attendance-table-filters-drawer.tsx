@@ -167,9 +167,8 @@ export function AttendanceTableFiltersDrawer({
                                     )}
                                     renderOption={(props, option) => {
                                         if (option === 'all') {
-                                            const { key, ...itemProps } = props as any;
                                             return (
-                                                <li key="all" {...itemProps}>
+                                                <li {...props} key="all">
                                                     All Employees
                                                 </li>
                                             );
@@ -266,6 +265,8 @@ export function AttendanceTableFiltersDrawer({
                                     <MenuItem value="Half Day">Half Day</MenuItem>
                                     <MenuItem value="On Leave">On Leave</MenuItem>
                                     <MenuItem value="Holiday">Holiday</MenuItem>
+                                    <MenuItem value="Compensatory Off">Compensatory Off</MenuItem>
+                                    <MenuItem value="Missing">Missing</MenuItem>
                                 </Select>
                             </FormControl>
                         </Stack>

@@ -69,6 +69,8 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                 borderRadius: 2,
                 position: 'relative',
                 overflow: 'hidden',
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
             }}
         >
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 800, color: 'primary.main', fontSize: '22px' }}>
@@ -241,6 +243,90 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                 </Stack>
             </Box>
 
+            {/* Overtime (OT) Formula Card */}
+            {Boolean(data.ot_hours && data.ot_hours > 0) && (
+                <Box
+                    sx={{
+                        mt: 2.5,
+                        p: 3,
+                        borderRadius: 2.5,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.03),
+                        border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.12)}`,
+                    }}
+                >
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            top: -20,
+                            right: -20,
+                            opacity: 0.05,
+                            transform: 'rotate(-15deg)',
+                            color: 'warning.main',
+                        }}
+                    >
+                        <Iconify icon={"solar:clock-circle-bold" as any} width={120} />
+                    </Box>
+
+                    <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
+                        <Typography variant="overline" sx={{ color: 'warning.main', fontWeight: 900, fontSize: 14 }}>
+                            Overtime (OT) Formula
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2.5 }}>
+                            {((data.employee_type || '').toLowerCase().includes('north indian') || (data.designation || '').toLowerCase().includes('north indian')) ? (
+                                <>
+                                    <FormulaChip
+                                        label="Fixed OT Rate"
+                                        value={`${hrSettings.currency_symbol}${fNumber(hrSettings.north_indian_ot_rate || 100)}`}
+                                        color="warning"
+                                        currencySymbol={hrSettings.currency_symbol}
+                                    />
+                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                    <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                </>
+                            ) : (
+                                <>
+                                    <FormulaChip
+                                        label="Gross Pay"
+                                        value={`${hrSettings.currency_symbol}${fNumber(data.gross_pay)}`}
+                                        color="success"
+                                        currencySymbol={hrSettings.currency_symbol}
+                                    />
+                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                    <FormulaChip label="Working Days" value="26" color="info" />
+                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                    <FormulaChip label="Shift Hours" value="8 hrs" color="info" />
+                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                    <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                    <FormulaChip label="Multiplier" value={`${hrSettings.workers_ot_rate_multiplier || 2}×`} color="warning" />
+                                </>
+                            )}
+                            <Typography variant="h5" sx={{ px: 1, color: 'text.primary', fontWeight: 300 }}>=</Typography>
+                            <Box
+                                sx={{
+                                    px: 3,
+                                    py: 1.5,
+                                    borderRadius: 1.5,
+                                    bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
+                                    border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                                    boxShadow: (theme) => `0 4px 12px -4px ${alpha(theme.palette.warning.main, 0.2)}`,
+                                }}
+                            >
+                                <Typography variant="subtitle1" sx={{ color: 'warning.main', fontWeight: 900, display: 'flex', alignItems: 'center' }}>
+                                    OT Pay:
+                                    <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", ml: 1, mr: 0.5 }}>
+                                        {hrSettings.currency_symbol}
+                                    </Box>
+                                    {fNumber(data.ot_amount || 0)}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Stack>
+                </Box>
+            )}
         </Box>
     );
 
@@ -534,7 +620,7 @@ function SubHeader({ title }: { title: string }) {
     );
 }
 
-function FormulaChip({ label, value, color, currencySymbol }: { label: string; value: string; color: 'success' | 'info' | 'error' | 'primary'; currencySymbol?: string }) {
+function FormulaChip({ label, value, color, currencySymbol }: { label: string; value: string; color: 'success' | 'info' | 'error' | 'primary' | 'warning'; currencySymbol?: string }) {
     const isCurrency = value.startsWith(currencySymbol || '');
     const displayValue = isCurrency ? value.replace(currencySymbol || '', '') : value;
 

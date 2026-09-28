@@ -2,17 +2,45 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
+import Button from '@mui/material/Button';
 import Select from '@mui/material/Select';
 import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
+import TableRow from '@mui/material/TableRow';
 import MenuItem from '@mui/material/MenuItem';
 import { InputAdornment } from '@mui/material';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
 import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
+import TableContainer from '@mui/material/TableContainer';
+
+import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 
 import { Iconify } from 'src/components/iconify';
+
+// ----------------------------------------------------------------------
+
+interface PTSlabItem {
+  from_amount: number;
+  to_amount: number | null;
+  tax_amount: number;
+}
+
+const DEFAULT_PT_SLABS: PTSlabItem[] = [
+  { from_amount: 0, to_amount: 20000, tax_amount: 0 },
+  { from_amount: 20001, to_amount: 30000, tax_amount: 155 },
+  { from_amount: 30001, to_amount: 45000, tax_amount: 375 },
+  { from_amount: 45001, to_amount: 60000, tax_amount: 750 },
+  { from_amount: 60001, to_amount: 75000, tax_amount: 1115 },
+  { from_amount: 75001, to_amount: null, tax_amount: 1250 },
+];
 
 // ----------------------------------------------------------------------
 
@@ -22,6 +50,55 @@ type Props = {
 };
 
 export function SettingsSalarySlip({ data, onChange }: Props) {
+  const getParsedSlabs = (): PTSlabItem[] => {
+    if (!data.pt_slabs) return DEFAULT_PT_SLABS;
+    if (Array.isArray(data.pt_slabs)) return data.pt_slabs;
+    try {
+      const parsed = typeof data.pt_slabs === 'string' ? JSON.parse(data.pt_slabs) : data.pt_slabs;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // ignore
+    }
+    return DEFAULT_PT_SLABS;
+  };
+
+  const slabs = getParsedSlabs();
+
+  const handleUpdateSlab = (index: number, field: keyof PTSlabItem, val: any) => {
+    const updated = slabs.map((item, i) => {
+      if (i === index) {
+        let parsedVal: any = val;
+        if (field === 'to_amount') {
+          parsedVal = val === '' || val === null || val === undefined ? null : Number(val);
+        } else {
+          parsedVal = val === '' ? 0 : Number(val);
+        }
+        return {
+          ...item,
+          [field]: parsedVal,
+        };
+      }
+      return item;
+    });
+    onChange('pt_slabs', JSON.stringify(updated));
+  };
+
+  const handleAddSlab = () => {
+    const last = slabs[slabs.length - 1];
+    const nextFrom = last && last.to_amount != null ? Number(last.to_amount) + 1 : 0;
+    const updated = [...slabs, { from_amount: nextFrom, to_amount: null, tax_amount: 0 }];
+    onChange('pt_slabs', JSON.stringify(updated));
+  };
+
+  const handleRemoveSlab = (index: number) => {
+    const updated = slabs.filter((_, i) => i !== index);
+    onChange('pt_slabs', JSON.stringify(updated));
+  };
+
+  const handleResetSlabs = () => {
+    onChange('pt_slabs', JSON.stringify(DEFAULT_PT_SLABS));
+  };
+
   return (
     <Card sx={{ p: 4, borderRadius: 3 }}>
       <Stack spacing={4}>
@@ -51,7 +128,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   <MenuItem value="Fixed Number of Days">Fixed Number of Days (Standard)</MenuItem>
                 </Select>
                 <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Iconify icon={"solar:info-circle-bold" as any} width={16} />
+                  <Iconify icon={"eva:info-outline" as any} width={16} sx={{ color: 'info.main', flexShrink: 0 }} />
                   Choose whether the monthly divisor is based on calendar days or a fixed number of days.
                 </Typography>
               </FormControl>
@@ -104,7 +181,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   <MenuItem value="Attendance">Attendance (Standard Records)</MenuItem>
                 </Select>
                 <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Iconify icon={"solar:info-circle-bold" as any} width={16} />
+                  <Iconify icon={"eva:info-outline" as any} width={16} sx={{ color: 'info.main', flexShrink: 0 }} />
                   Source data for calculating present/absent days and overtime hours.
                 </Typography>
               </FormControl>
@@ -129,7 +206,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   <MenuItem value="Exclude from Working Days">Exclude from Working Days (Unpaid)</MenuItem>
                 </Select>
                 <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Iconify icon={"solar:info-circle-bold" as any} width={16} />
+                  <Iconify icon={"eva:info-outline" as any} width={16} sx={{ color: 'info.main', flexShrink: 0 }} />
                   Determines if holidays count towards the monthly working days.
                 </Typography>
               </FormControl>
@@ -169,7 +246,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   <MenuItem value="Every Month Deduction">Option B: Every Month Deduction</MenuItem>
                 </Select>
                 <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Iconify icon={"solar:info-circle-bold" as any} width={16} />
+                  <Iconify icon={"eva:info-outline" as any} width={16} sx={{ color: 'info.main', flexShrink: 0 }} />
                   {data.pt_deduction_frequency === 'Every Month Deduction'
                     ? 'PT is deducted in every monthly salary slip based on monthly Gross.'
                     : 'Full PT slab amount is only deducted during designated half-yearly months.'}
@@ -198,7 +275,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                     <MenuItem value="April, October">April & October</MenuItem>
                   </Select>
                   <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Iconify icon={"solar:info-circle-bold" as any} width={16} />
+                    <Iconify icon={"eva:info-outline" as any} width={16} sx={{ color: 'info.main', flexShrink: 0 }} />
                     Months in which the PT deduction will automatically apply.
                   </Typography>
                 </FormControl>
@@ -206,24 +283,215 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             )}
           </Grid>
 
-          {/* PT Slab Info Box */}
-          <Box sx={{
-            mt: 3,
-            p: 2.5,
-            borderRadius: 2,
-            bgcolor: (theme) => alpha(theme.palette.info.main, 0.04),
-            border: (theme) => `1px solid ${alpha(theme.palette.info.main, 0.12)}`
-          }}>
-            <Typography variant="subtitle2" sx={{ color: 'info.main', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Iconify icon="solar:info-circle-bold" width={18} />
-              Active Professional Tax (PT) Slabs
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
-              • Up to ₹20,000 → <b>₹0 (Nil)</b> | • ₹20,001 to ₹30,000 → <b>₹155.00</b> | • ₹30,001 to ₹45,000 → <b>₹375.00</b>
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-              • ₹45,001 to ₹60,000 → <b>₹750.00</b> | • ₹60,001 to ₹75,000 → <b>₹1,115.00</b> | • ₹75,001 and above → <b>₹1,250.00</b>
-            </Typography>
+          {/* Dynamic PT Slab Configurator */}
+          <Box sx={{ mt: 3 }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                  Professional Tax (PT) Slab Tiers
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Define the Gross salary ranges and their corresponding tax amounts. Leave Max Gross empty for the top slab (above).
+                </Typography>
+              </Box>
+
+              <Stack direction="row" spacing={1.5}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Iconify icon="solar:restart-bold" />}
+                  onClick={handleResetSlabs}
+                  sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600 }}
+                >
+                  Reset to Defaults
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<Iconify icon="solar:add-circle-bold" />}
+                  onClick={handleAddSlab}
+                  sx={{
+                    ...COMMON_BUTTON_STYLES.primary,
+                    borderRadius: 1,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  Add Slab Tier
+                </Button>
+              </Stack>
+            </Stack>
+
+            <TableContainer
+              sx={{
+                border: (theme) => `1px solid ${theme.palette.divider}`,
+                borderRadius: 2,
+                overflow: 'hidden',
+                bgcolor: 'background.paper',
+              }}
+            >
+              <Table size="small">
+                <TableHead
+                  sx={{
+                    bgcolor: (theme) => (theme.palette.mode === 'light' ? '#f4f6f8' : 'background.neutral'),
+                    '& th': {
+                      color: 'text.secondary',
+                      fontWeight: 800,
+                      fontSize: '0.8125rem',
+                      py: 1.5,
+                      borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+                    },
+                  }}
+                >
+                  <TableRow>
+                    <TableCell align="center" sx={{ width: 70 }}>S.No</TableCell>
+                    <TableCell sx={{ minWidth: 160 }}>Min Gross Salary (₹)</TableCell>
+                    <TableCell sx={{ minWidth: 180 }}>Max Gross Salary (₹)</TableCell>
+                    <TableCell sx={{ minWidth: 160 }}>Tax / PT Amount (₹)</TableCell>
+                    <TableCell align="center" sx={{ width: 80 }}>Action</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {slabs.map((slab, index) => (
+                    <TableRow
+                      key={index}
+                      hover
+                      sx={{
+                        '& td, & th': { borderBottom: (t) => `1px solid ${t.palette.divider}`, py: 1.25 },
+                        '&:last-child td, &:last-child th': { borderBottom: 0 },
+                      }}
+                    >
+                      <TableCell align="center">
+                        <Box
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            display: 'flex',
+                            borderRadius: '50%',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: COMMON_COLORS.snoBadge.bg,
+                            color: COMMON_COLORS.snoBadge.color,
+                            typography: 'subtitle2',
+                            fontWeight: 800,
+                            border: COMMON_COLORS.snoBadge.border,
+                            mx: 'auto',
+                            transition: (theme) =>
+                              theme.transitions.create(['all'], { duration: theme.transitions.duration.shorter }),
+                            '&:hover': {
+                              bgcolor: COMMON_COLORS.snoBadge.hoverBg,
+                              color: COMMON_COLORS.snoBadge.hoverColor,
+                              transform: 'scale(1.1)',
+                            },
+                          }}
+                        >
+                          {index + 1}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          fullWidth
+                          type="number"
+                          value={slab.from_amount ?? 0}
+                          onChange={(e) => handleUpdateSlab(index, 'from_amount', e.target.value)}
+                          slotProps={{
+                            input: {
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                                </InputAdornment>
+                              ),
+                            },
+                            htmlInput: { min: 0, step: 1 },
+                          }}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: 1.25,
+                              bgcolor: (theme) =>
+                                theme.palette.mode === 'light' ? '#FFFFFF' : 'background.paper',
+                            },
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          fullWidth
+                          type="number"
+                          placeholder="No Limit (Above)"
+                          value={slab.to_amount ?? ''}
+                          onChange={(e) => handleUpdateSlab(index, 'to_amount', e.target.value)}
+                          slotProps={{
+                            input: {
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                                </InputAdornment>
+                              ),
+                            },
+                            htmlInput: { min: 0, step: 1 },
+                          }}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: 1.25,
+                              bgcolor: (theme) =>
+                                theme.palette.mode === 'light' ? '#FFFFFF' : 'background.paper',
+                            },
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          fullWidth
+                          type="number"
+                          value={slab.tax_amount ?? 0}
+                          onChange={(e) => handleUpdateSlab(index, 'tax_amount', e.target.value)}
+                          slotProps={{
+                            input: {
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                                </InputAdornment>
+                              ),
+                            },
+                            htmlInput: { min: 0, step: 1 },
+                          }}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: 1.25,
+                              bgcolor: (theme) =>
+                                theme.palette.mode === 'light' ? '#FFFFFF' : 'background.paper',
+                            },
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Delete Slab Tier">
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              disabled={slabs.length <= 1}
+                              onClick={() => handleRemoveSlab(index)}
+                              sx={{
+                                '&:hover': {
+                                  bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                                },
+                              }}
+                            >
+                              <Iconify icon="solar:trash-bin-trash-bold" width={18} />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
         </Box>
 
@@ -276,7 +544,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   input: {
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                        <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
                       </InputAdornment>
                     ),
                     endAdornment: <InputAdornment position="end">/hr</InputAdornment>,
@@ -299,7 +567,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   input: {
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                        <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
                       </InputAdornment>
                     ),
                   },

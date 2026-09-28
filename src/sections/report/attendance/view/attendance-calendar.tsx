@@ -158,6 +158,13 @@ export function AttendanceCalendar({ reportData, employee, fromDate, toDate, onE
                     text: '#4f46e5',
                     monthBg: 'rgba(99, 102, 241, 0.14)'
                 };
+            case 'Compensatory Off':
+                return {
+                    border: '#8b5cf6',
+                    bg: 'rgba(139, 92, 246, 0.08)',
+                    text: '#6d28d9',
+                    monthBg: 'rgba(139, 92, 246, 0.14)'
+                };
             case 'Absent':
                 return {
                     border: '#ef4444',

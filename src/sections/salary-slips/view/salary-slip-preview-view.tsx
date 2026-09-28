@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { useSnackbar } from 'notistack';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { IoMdArrowBack, IoMdCheckmarkCircle } from 'react-icons/io';
@@ -10,7 +11,6 @@ import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
-import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
@@ -31,6 +31,7 @@ import { Scrollbar } from 'src/components/scrollbar';
 
 export function SalarySlipPreviewView() {
     const router = useRouter();
+    const { enqueueSnackbar } = useSnackbar();
     const [searchParams] = useSearchParams();
 
     const employee = searchParams.get('employee') || '';
@@ -52,16 +53,6 @@ export function SalarySlipPreviewView() {
         type: '',
     });
 
-    const [snackbar, setSnackbar] = useState<{
-        open: boolean;
-        message: string;
-        severity: 'success' | 'error';
-    }>({
-        open: false,
-        message: '',
-        severity: 'success',
-    });
-
     useEffect(() => {
         getHRSettings().then(setHRSettings).catch(console.error);
 
@@ -73,17 +64,13 @@ export function SalarySlipPreviewView() {
                 })
                 .catch((err) => {
                     console.error('Failed to load salary slip preview:', err);
-                    setSnackbar({
-                        open: true,
-                        message: err.message || 'Failed to load preview data',
-                        severity: 'error',
-                    });
+                    enqueueSnackbar(err.message || 'Failed to load preview data', { variant: 'error' });
                 })
                 .finally(() => setLoading(false));
         } else {
             setLoading(false);
         }
-    }, [employee, fromDate, toDate]);
+    }, [employee, fromDate, toDate, enqueueSnackbar]);
 
     const handlePopoverOpen = (event: React.MouseEvent<HTMLButtonElement>, type: string) => {
         setPopoverState({ el: event.currentTarget, type });
@@ -117,26 +104,12 @@ export function SalarySlipPreviewView() {
             const year = startD.year();
             const month = startD.month() + 1;
 
-            const res = await generateSalarySlipFromEmployee(employee, year, month, fromDate, toDate);
-            setSnackbar({
-                open: true,
-                message: 'Salary Slip created successfully!',
-                severity: 'success',
-            });
-            setTimeout(() => {
-                if (res?.name) {
-                    router.push(`/salary-slips/${res.name}`);
-                } else {
-                    router.push('/salary-slips');
-                }
-            }, 1000);
+            await generateSalarySlipFromEmployee(employee, year, month, fromDate, toDate);
+            router.push('/salary-slips');
+            enqueueSnackbar('Salary Slip created successfully!', { variant: 'success' });
         } catch (err: any) {
             console.error('Failed to create salary slip:', err);
-            setSnackbar({
-                open: true,
-                message: err.message || 'Failed to create salary slip',
-                severity: 'error',
-            });
+            enqueueSnackbar(err.message || 'Failed to create salary slip', { variant: 'error' });
             setCreating(false);
         }
     };
@@ -194,13 +167,15 @@ export function SalarySlipPreviewView() {
                 borderRadius: 2,
                 position: 'relative',
                 overflow: 'hidden',
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
             }}
         >
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 800, color: 'primary.main', fontSize: '22px' }}>
                 SALARY SLIP
             </Typography>
             <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                Period: {formatDate(data.pay_period_start)} — {formatDate(data.pay_period_end)}
+                Period: {formatDate(data.pay_period_start || fromDate)} — {formatDate(data.pay_period_end || toDate)}
             </Typography>
         </Box>
     );
@@ -372,6 +347,91 @@ export function SalarySlipPreviewView() {
                     </Box>
                 </Stack>
             </Box>
+
+            {/* Overtime (OT) Formula Card */}
+            {Boolean(data.ot_hours && data.ot_hours > 0) && (
+                <Box
+                    sx={{
+                        mt: 2.5,
+                        p: 3,
+                        borderRadius: 2.5,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.03),
+                        border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.12)}`,
+                    }}
+                >
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            top: -20,
+                            right: -20,
+                            opacity: 0.05,
+                            transform: 'rotate(-15deg)',
+                            color: 'warning.main',
+                        }}
+                    >
+                        <Iconify icon={"solar:clock-circle-bold" as any} width={120} />
+                    </Box>
+
+                    <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
+                        <Typography variant="overline" sx={{ color: 'warning.main', fontWeight: 900, fontSize: 14 }}>
+                            Overtime (OT) Formula
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2.5 }}>
+                            {((data.employee_type || '').toLowerCase().includes('north indian') || (data.designation || '').toLowerCase().includes('north indian')) ? (
+                                <>
+                                    <FormulaChip
+                                        label="Fixed OT Rate"
+                                        value={`${hrSettings.currency_symbol}${fNumber(hrSettings.north_indian_ot_rate || 100)}`}
+                                        color="warning"
+                                        currencySymbol={hrSettings.currency_symbol}
+                                    />
+                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                    <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                </>
+                            ) : (
+                                <>
+                                    <FormulaChip
+                                        label="Gross Pay"
+                                        value={`${hrSettings.currency_symbol}${fNumber(data.gross_pay)}`}
+                                        color="success"
+                                        currencySymbol={hrSettings.currency_symbol}
+                                    />
+                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                    <FormulaChip label="Working Days" value="26" color="info" />
+                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                    <FormulaChip label="Shift Hours" value="8 hrs" color="info" />
+                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                    <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                    <FormulaChip label="Multiplier" value={`${hrSettings.workers_ot_rate_multiplier || 2}×`} color="warning" />
+                                </>
+                            )}
+                            <Typography variant="h5" sx={{ px: 1, color: 'text.primary', fontWeight: 300 }}>=</Typography>
+                            <Box
+                                sx={{
+                                    px: 3,
+                                    py: 1.5,
+                                    borderRadius: 1.5,
+                                    bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
+                                    border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                                    boxShadow: (theme) => `0 4px 12px -4px ${alpha(theme.palette.warning.main, 0.2)}`,
+                                }}
+                            >
+                                <Typography variant="subtitle1" sx={{ color: 'warning.main', fontWeight: 900, display: 'flex', alignItems: 'center' }}>
+                                    OT Pay:
+                                    <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", ml: 1, mr: 0.5 }}>
+                                        {hrSettings.currency_symbol}
+                                    </Box>
+                                    {fNumber(data.ot_amount || 0)}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Stack>
+                </Box>
+            )}
         </Box>
     );
 
@@ -646,26 +706,6 @@ export function SalarySlipPreviewView() {
                     </Stack>
                 </Scrollbar>
             </Popover>
-
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={4000}
-                onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-            >
-                <Typography
-                    sx={{
-                        p: 1.5,
-                        px: 2,
-                        borderRadius: 1,
-                        bgcolor: snackbar.severity === 'success' ? 'success.main' : 'error.main',
-                        color: 'common.white',
-                        fontWeight: 600,
-                    }}
-                >
-                    {snackbar.message}
-                </Typography>
-            </Snackbar>
         </DashboardContent>
     );
 }
@@ -753,7 +793,7 @@ function SubHeader({ title }: { title: string }) {
     );
 }
 
-function FormulaChip({ label, value, color, currencySymbol }: { label: string; value: string; color: 'success' | 'info' | 'error' | 'primary'; currencySymbol?: string }) {
+function FormulaChip({ label, value, color, currencySymbol }: { label: string; value: string; color: 'success' | 'info' | 'error' | 'primary' | 'warning'; currencySymbol?: string }) {
     const isCurrency = value.startsWith(currencySymbol || '');
     const displayValue = isCurrency ? value.replace(currencySymbol || '', '') : value;
 

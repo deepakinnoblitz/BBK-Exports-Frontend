@@ -16,6 +16,7 @@ import {
     FaBuilding,
     FaChartPie,
     FaEnvelope,
+    FaIndustry,
     FaBriefcase,
     FaChartLine,
     FaHeartbeat,
@@ -332,6 +333,7 @@ export function MyProfileView() {
                                 >
                                     <DetailItem label="Department" value={employee.department} icon={FaBuilding} />
                                     <DetailItem label="Designation" value={employee.designation} icon={FaAward} />
+                                    <DetailItem label="Production Type" value={employee.production_type} icon={FaIndustry} />
                                     <DetailItem label="Joining Date" value={fDate(employee.date_of_joining, 'DD-MM-YYYY')} icon={FaCalendarAlt} />
                                     <DetailItem label="Status" value={employee.status} icon={FaInfoCircle} />
                                     <DetailItem label="Date of Birth" value={fDate(employee.dob, 'DD-MM-YYYY')} icon={FaCalendarAlt} />

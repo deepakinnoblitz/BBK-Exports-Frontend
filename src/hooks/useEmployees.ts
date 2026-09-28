@@ -17,7 +17,8 @@ export function useEmployees(
     joiningDateFrom?: string | null,
     joiningDateTo?: string | null,
     filterEmployee?: string[],
-    filterEmployeeType?: string
+    filterEmployeeType?: string,
+    filterProductionType?: string
 ) {
     const [data, setData] = useState<any[]>([]);
     const [total, setTotal] = useState(0);
@@ -68,6 +69,7 @@ export function useEmployees(
             if (joiningDateFrom) {
                 filters.push(['Employee', 'date_of_joining', '>=', joiningDateFrom]);
             }
+
             if (joiningDateTo) {
                 filters.push(['Employee', 'date_of_joining', '<=', joiningDateTo]);
             }
@@ -92,6 +94,11 @@ export function useEmployees(
                 filters.push(['Employee', 'employee_type', '=', filterEmployeeType]);
             }
 
+            // Add production type filter
+            if (filterProductionType && filterProductionType !== 'all') {
+                filters.push(['Employee', 'production_type', '=', filterProductionType]);
+            }
+
             const result = await fetchEmployees({
                 page,
                 page_size: pageSize,
@@ -108,7 +115,7 @@ export function useEmployees(
         } finally {
             setLoading(false);
         }
-    }, [page, pageSize, search, orderBy, order, filterDepartment, filterDesignation, filterStatus, filterCountry, filterState, filterCity, joiningDateFrom, joiningDateTo, filterEmployee, filterEmployeeType]);
+    }, [page, pageSize, search, orderBy, order, filterDepartment, filterDesignation, filterStatus, filterCountry, filterState, filterCity, joiningDateFrom, joiningDateTo, filterEmployee, filterEmployeeType, filterProductionType]);
 
     useEffect(() => {
         refetch();
