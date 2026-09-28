@@ -247,15 +247,15 @@ export function EmployeeSelectorDialog({
       </DialogTitle>
 
       {/* Main Content Area */}
-      <DialogContent sx={{ m: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <DialogContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 1.5, overflow: 'hidden', minHeight: 0, flex: '1 1 auto' }}>
         {/* Filters Top Bar */}
         <Card
           variant="outlined"
           sx={{
             p: 2,
-            my: 2,
             bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04),
             borderColor: 'divider',
+            flexShrink: 0,
           }}
         >
           <Box
@@ -379,6 +379,7 @@ export function EmployeeSelectorDialog({
             flexWrap: 'wrap',
             gap: 1.5,
             px: 0.5,
+            flexShrink: 0,
           }}
         >
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
@@ -425,23 +426,22 @@ export function EmployeeSelectorDialog({
         </Box>
 
         {/* Table Container styled like standard application list */}
-        <Card variant="outlined" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 280, borderRadius: 1.5 }}>
-          <Scrollbar sx={{ flexGrow: 1 }}>
-            <TableContainer sx={{ minWidth: 780 }}>
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow
-                    sx={{
-                      '& th': {
-                        bgcolor: (theme) => alpha(theme.palette.grey[500], 0.08),
-                        color: 'text.secondary',
-                        fontWeight: 700,
-                        fontSize: '0.8rem',
-                        py: 1.5,
-                        borderBottom: (t) => `1px solid ${t.palette.divider}`,
-                      },
-                    }}
-                  >
+        <Card variant="outlined" sx={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', borderRadius: 1.5, overflow: 'hidden' }}>
+          <TableContainer sx={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}>
+            <Table size="small" stickyHeader sx={{ minWidth: 780 }}>
+              <TableHead>
+                <TableRow
+                  sx={{
+                    '& th': {
+                      bgcolor: 'background.neutral',
+                      color: 'text.secondary',
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      py: 1.5,
+                      borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                    },
+                  }}
+                >
                     <TableCell padding="checkbox">
                       <Checkbox
                         indeterminate={isPagePartiallySelected}
@@ -593,7 +593,6 @@ export function EmployeeSelectorDialog({
                 </TableBody>
               </Table>
             </TableContainer>
-          </Scrollbar>
 
           <TablePagination
             component="div"
@@ -605,7 +604,11 @@ export function EmployeeSelectorDialog({
               setRowsPerPage(parseInt(e.target.value, 10));
               setPage(0);
             }}
-            rowsPerPageOptions={[10, 25, 50, 100]}
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            sx={{
+              flexShrink: 0,
+              borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+            }}
           />
         </Card>
       </DialogContent>
