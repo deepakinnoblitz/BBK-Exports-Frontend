@@ -1,12 +1,16 @@
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
+import Stack from '@mui/material/Stack';
 import Select from '@mui/material/Select';
+import Divider from '@mui/material/Divider';
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
-import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
+import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
-import { Box, Stack, Divider, InputAdornment } from '@mui/material';
+import InputAdornment from '@mui/material/InputAdornment';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -98,11 +102,10 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   }
                 >
                   <MenuItem value="Attendance">Attendance (Standard Records)</MenuItem>
-                  {/* <MenuItem value="Daily Log">Daily Log (Dynamic Sessions)</MenuItem> */}
                 </Select>
                 <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <Iconify icon={"solar:info-circle-bold" as any} width={16} />
-                  Source data for calculating present/absent days.
+                  Source data for calculating present/absent days and overtime hours.
                 </Typography>
               </FormControl>
             </Grid>
@@ -132,93 +135,184 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
               </FormControl>
             </Grid>
           </Grid>
-          
-          {/* {data.salary_calculation_source === 'Daily Log' && (
-            <Box sx={{ mt: 4 }}>
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Daily Log Thresholds</Typography>
-              </Stack>
-              <Typography variant="caption" sx={{ color: 'text.secondary', mb: 3, display: 'block' }}>
-                Define the minimum working hours required to categorize employee daily logs for salary calculation.
-              </Typography>
-
-              <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Present Threshold"
-                    value={data.salary_slip_present_threshold || ''}
-                    onChange={(e) => onChange('salary_slip_present_threshold', e.target.value)}
-                    placeholder="5"
-                    helperText="Minimum hours for 'Present' status."
-                    slotProps={{
-                      input: {
-                        endAdornment: <InputAdornment position="end">hrs</InputAdornment>,
-                      },
-                    }}
-                  />
-                </Grid>
-
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Half Day Threshold"
-                    value={data.salary_slip_half_day_threshold || ''}
-                    onChange={(e) => onChange('salary_slip_half_day_threshold', e.target.value)}
-                    placeholder="3"
-                    helperText="Minimum hours for 'Half Day' status."
-                    slotProps={{
-                      input: {
-                        endAdornment: <InputAdornment position="end">hrs</InputAdornment>,
-                      },
-                    }}
-                  />
-                </Grid>
-
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Absent Threshold"
-                    value={data.salary_slip_absent_threshold || ''}
-                    onChange={(e) => onChange('salary_slip_absent_threshold', e.target.value)}
-                    placeholder="3"
-                    helperText="Hours below this are marked as 'Absent'."
-                    slotProps={{
-                      input: {
-                        endAdornment: <InputAdornment position="end">hrs</InputAdornment>,
-                      },
-                    }}
-                  />
-                </Grid>
-              </Grid>
-
-              <Box sx={{ 
-                mt: 3, 
-                p: 2, 
-                borderRadius: 1.5, 
-                bgcolor: (theme) => alpha(theme.palette.info.main, 0.05),
-                border: (theme) => `1px solid ${alpha(theme.palette.info.main, 0.1)}`
-              }}>
-                <Typography variant="subtitle2" sx={{ color: 'info.main', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Iconify icon="solar:info-circle-bold" width={18} />
-                  Calculation Logic
-                </Typography>
-                <Stack spacing={0.5}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>• Hours ≥ Present Threshold → 1.0 Present</Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>• Hours ≥ Half Day Threshold → 0.5 Present / 0.5 Absent</Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>• Hours {'<'} Absent Threshold → 1.0 Absent</Typography>
-                </Stack>
-              </Box>
-            </Box>
-          )} */}
         </Box>
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 
-        {/* Section 2: Info */}
+        {/* Section 2: Professional Tax (PT) Settings */}
+        <Box>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
+            <Iconify icon="solar:bill-list-bold" width={22} sx={{ color: 'primary.main' }} />
+            <Typography variant="h6">Professional Tax (PT) Rules</Typography>
+          </Stack>
+          <Typography variant="caption" sx={{ color: 'text.secondary', mb: 3, display: 'block' }}>
+            Configure the Professional Tax slab calculation cycle and deduction frequency.
+          </Typography>
+
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: (data.pt_deduction_frequency === 'Half-Yearly Deduction') ? 6 : 12 }}>
+              <FormControl fullWidth>
+                <InputLabel id="pt-deduction-frequency-label">PT Deduction Frequency</InputLabel>
+                <Select
+                  labelId="pt-deduction-frequency-label"
+                  id="pt_deduction_frequency"
+                  value={data.pt_deduction_frequency || 'Half-Yearly Deduction'}
+                  label="PT Deduction Frequency"
+                  onChange={(e) => onChange('pt_deduction_frequency', e.target.value)}
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <Iconify icon={"solar:history-bold" as any} sx={{ color: 'text.disabled', ml: 1 }} />
+                    </InputAdornment>
+                  }
+                >
+                  <MenuItem value="Half-Yearly Deduction">Option A: Half-Yearly Deduction (Standard Cycles)</MenuItem>
+                  <MenuItem value="Every Month Deduction">Option B: Every Month Deduction</MenuItem>
+                </Select>
+                <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Iconify icon={"solar:info-circle-bold" as any} width={16} />
+                  {data.pt_deduction_frequency === 'Every Month Deduction'
+                    ? 'PT is deducted in every monthly salary slip based on monthly Gross.'
+                    : 'Full PT slab amount is only deducted during designated half-yearly months.'}
+                </Typography>
+              </FormControl>
+            </Grid>
+
+            {data.pt_deduction_frequency !== 'Every Month Deduction' && (
+              <Grid size={{ xs: 12, md: 6 }}>
+                <FormControl fullWidth>
+                  <InputLabel id="pt-half-yearly-months-label">PT Half-Yearly Cycle Months</InputLabel>
+                  <Select
+                    labelId="pt-half-yearly-months-label"
+                    id="pt_half_yearly_months"
+                    value={data.pt_half_yearly_months || 'April, September'}
+                    label="PT Half-Yearly Cycle Months"
+                    onChange={(e) => onChange('pt_half_yearly_months', e.target.value)}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <Iconify icon={"solar:calendar-bold" as any} sx={{ color: 'text.disabled', ml: 1 }} />
+                      </InputAdornment>
+                    }
+                  >
+                    <MenuItem value="April, September">April & September</MenuItem>
+                    <MenuItem value="March, September">March & September</MenuItem>
+                    <MenuItem value="April, October">April & October</MenuItem>
+                  </Select>
+                  <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Iconify icon={"solar:info-circle-bold" as any} width={16} />
+                    Months in which the PT deduction will automatically apply.
+                  </Typography>
+                </FormControl>
+              </Grid>
+            )}
+          </Grid>
+
+          {/* PT Slab Info Box */}
+          <Box sx={{
+            mt: 3,
+            p: 2.5,
+            borderRadius: 2,
+            bgcolor: (theme) => alpha(theme.palette.info.main, 0.04),
+            border: (theme) => `1px solid ${alpha(theme.palette.info.main, 0.12)}`
+          }}>
+            <Typography variant="subtitle2" sx={{ color: 'info.main', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Iconify icon="solar:info-circle-bold" width={18} />
+              Active Professional Tax (PT) Slabs
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+              • Up to ₹20,000 → <b>₹0 (Nil)</b> | • ₹20,001 to ₹30,000 → <b>₹155.00</b> | • ₹30,001 to ₹45,000 → <b>₹375.00</b>
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+              • ₹45,001 to ₹60,000 → <b>₹750.00</b> | • ₹60,001 to ₹75,000 → <b>₹1,115.00</b> | • ₹75,001 and above → <b>₹1,250.00</b>
+            </Typography>
+          </Box>
+        </Box>
+
+        <Divider sx={{ borderStyle: 'dashed' }} />
+
+        {/* Section 3: Overtime & Bonus Rules */}
+        <Box>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
+            <Iconify icon="solar:wad-of-money-bold" width={22} sx={{ color: 'success.main' }} />
+            <Typography variant="h6">Overtime (OT) & Attendance Bonus Rules</Typography>
+          </Stack>
+          <Typography variant="caption" sx={{ color: 'text.secondary', mb: 3, display: 'block' }}>
+            Configure role-based Overtime calculation formulas and attendance bonus policies.
+          </Typography>
+
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Workers OT Multiplier"
+                value={data.workers_ot_rate_multiplier ?? '2'}
+                onChange={(e) => onChange('workers_ot_rate_multiplier', e.target.value)}
+                placeholder="2"
+                helperText="Double Rate: (Gross / 26 / 8) × OT Hours × Multiplier"
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Iconify icon={"solar:calculator-minimalistic-bold" as any} sx={{ color: 'text.disabled', ml: 1 }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: <InputAdornment position="end">x</InputAdornment>,
+                  },
+                  htmlInput: { min: 1, max: 5, step: 0.5 },
+                }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="North Indian OT Rate"
+                value={data.north_indian_ot_rate ?? '100'}
+                onChange={(e) => onChange('north_indian_ot_rate', e.target.value)}
+                placeholder="100"
+                helperText="Fixed hourly rate for North Indian Staff."
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                      </InputAdornment>
+                    ),
+                    endAdornment: <InputAdornment position="end">/hr</InputAdornment>,
+                  },
+                  htmlInput: { min: 0, step: 10 },
+                }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Workers Attendance Bonus"
+                value={data.workers_attendance_bonus ?? '1500'}
+                onChange={(e) => onChange('workers_attendance_bonus', e.target.value)}
+                placeholder="1500"
+                helperText="Bonus for 100% full attendance in month (0 absent/LOP)."
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                      </InputAdornment>
+                    ),
+                  },
+                  htmlInput: { min: 0, step: 100 },
+                }}
+              />
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Divider sx={{ borderStyle: 'dashed' }} />
+
+        {/* Section 4: Info */}
         <Box sx={{ 
           p: 2, 
           borderRadius: 1.5, 
@@ -230,7 +324,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             <Box>
               <Typography variant="subtitle1" sx={{ mb: 0.5, color: 'text.primary' }}>Important Note</Typography>
               <Typography variant="body2">
-                Changing these settings will affect how the system automatically calculates Loss of Pay (LOP) and Gross Pay for all new salary slips. Existing slips will not be modified.
+                Changing these settings will affect how the system automatically calculates Loss of Pay (LOP), Overtime, Attendance Bonus, and Professional Tax for newly previewed and generated salary slips.
               </Typography>
             </Box>
           </Stack>

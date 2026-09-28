@@ -233,6 +233,7 @@ export function EmployeeView() {
     // Filter State
     const [filters, setFilters] = useState({
         department: 'all',
+        employee_type: 'all',
         designation: 'all',
         status: 'all',
         country: '',
@@ -314,7 +315,11 @@ export function EmployeeView() {
         filters.status,
         filters.country,
         filters.state,
-        filters.city
+        filters.city,
+        null,
+        null,
+        undefined,
+        filters.employee_type
     );
 
     const notFound = !data.length && !!filterName;
@@ -782,6 +787,7 @@ export function EmployeeView() {
     const handleResetFilters = () => {
         setFilters({
             department: 'all',
+            employee_type: 'all',
             designation: 'all',
             status: 'all',
             country: '',
@@ -790,7 +796,7 @@ export function EmployeeView() {
         });
     };
 
-    const canReset = !!filterName || filters.department !== 'all' || filters.designation !== 'all' || filters.status !== 'all' || filters.country !== '' || filters.state !== '' || filters.city !== '';
+    const canReset = !!filterName || filters.department !== 'all' || filters.employee_type !== 'all' || filters.designation !== 'all' || filters.status !== 'all' || filters.country !== '' || filters.state !== '' || filters.city !== '';
 
     const handleBulkDelete = async () => {
         try {
@@ -2856,6 +2862,7 @@ export function EmployeeView() {
                 onResetFilters={handleResetFilters}
                 departmentOptions={fieldOptions['department'] || []}
                 designationOptions={fieldOptions['designation'] || []}
+                employeeTypeOptions={fieldOptions['employee_type'] || []}
             />
 
             <DepartmentCreateDialog

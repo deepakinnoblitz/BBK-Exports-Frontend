@@ -275,6 +275,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 <InfoRow label="Employee Phone Number" value={slip.phone_number || '-'} />
 
                 <SubHeader title="Job Details" />
+                <InfoRow label="Employee Type" value={slip.employee_type || '-'} />
                 <InfoRow label="Department" value={slip.department || '-'} />
                 <InfoRow label="Designation" value={slip.designation || '-'} />
                 <InfoRow label="Date of Joining" value={formatDate(slip.date_of_joining)} />
@@ -292,7 +293,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
     // ── Attendance Summary (Exact Dialog UI) ──────────────────────────────────
     const renderAttendanceSummary = (
         <Box sx={{ mb: 4 }}>
-            <SectionHeader title="Attendance Summary" icon="solar:calendar-date-bold" color="warning.main" />
+            <SectionHeader title="Attendance & Overtime Summary" icon="solar:calendar-date-bold" color="warning.main" />
             <Box
                 sx={{
                     p: 3,
@@ -305,7 +306,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 }}
             >
                 <InfoRow label="Pay Period Days" value={slip.total_days_in_period || 0} />
-                <Box /> {/* spacer */}
+                <InfoRow label="Overtime (OT) Hours" value={slip.ot_hours ? `${slip.ot_hours} hrs` : '0 hrs'} />
                 <Box sx={{ gridColumn: { md: 'span 2' } }}>
                     <InfoRow
                         label="Calculation Base (Month)"
