@@ -150,8 +150,6 @@ export function HRDashboardView() {
         }
     };
 
-
-
     return (
         <DashboardContent maxWidth="xl">
             <Typography variant="h4" sx={{ mb: { xs: 3, md: 2 }, mt: 3 }}>
