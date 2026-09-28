@@ -234,6 +234,7 @@ export function EmployeeView() {
     const [filters, setFilters] = useState({
         department: 'all',
         employee_type: 'all',
+        production_type: 'all',
         designation: 'all',
         status: 'all',
         country: '',
@@ -319,7 +320,8 @@ export function EmployeeView() {
         null,
         null,
         undefined,
-        filters.employee_type
+        filters.employee_type,
+        filters.production_type
     );
 
     const notFound = !data.length && !!filterName;
@@ -788,6 +790,7 @@ export function EmployeeView() {
         setFilters({
             department: 'all',
             employee_type: 'all',
+            production_type: 'all',
             designation: 'all',
             status: 'all',
             country: '',
@@ -796,7 +799,7 @@ export function EmployeeView() {
         });
     };
 
-    const canReset = !!filterName || filters.department !== 'all' || filters.employee_type !== 'all' || filters.designation !== 'all' || filters.status !== 'all' || filters.country !== '' || filters.state !== '' || filters.city !== '';
+    const canReset = !!filterName || filters.department !== 'all' || filters.employee_type !== 'all' || filters.production_type !== 'all' || filters.designation !== 'all' || filters.status !== 'all' || filters.country !== '' || filters.state !== '' || filters.city !== '';
 
     const handleBulkDelete = async () => {
         try {
@@ -2677,6 +2680,7 @@ export function EmployeeView() {
                                             {renderField('department', 'Department', 'link', fieldOptions['department'] || [])}
                                             {renderField('designation', 'Designation', 'link', fieldOptions['designation'] || [])}
                                             {renderField('employee_type', 'Employee Type', 'link', fieldOptions['employee_type'] || [])}
+                                            {renderField('production_type', 'Production Type', 'select', ['Production', 'Non Production'])}
                                             {renderField('line_order', 'Line Order', 'link', fieldOptions['line_order'] || [])}
                                             {renderField('shift', 'Shift', 'link', fieldOptions['shift'] || [])}
                                             {renderField('bus_travel_route', 'Bus - Travel Route', 'link', fieldOptions['bus_travel_route'] || [])}

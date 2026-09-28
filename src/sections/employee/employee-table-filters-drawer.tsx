@@ -34,6 +34,7 @@ type Props = {
         state: string;
         city: string;
         employee_type: string;
+        production_type: string;
     };
     onFilters: (update: any) => void;
     canReset: boolean;
@@ -102,8 +103,12 @@ export default function EmployeeTableFiltersDrawer({
         onFilters({ employee_type: value || 'all' });
     };
 
-    const handleFilterDesignation = (event: React.ChangeEvent<HTMLInputElement>) => {
-        onFilters({ designation: event.target.value });
+    const handleFilterProductionType = (event: any, value: string | null) => {
+        onFilters({ production_type: value || 'all' });
+    };
+
+    const handleFilterDesignation = (event: any, value: string | null) => {
+        onFilters({ designation: value || 'all' });
     };
 
     const handleFilterStatus = (event: SelectChangeEvent<string>) => {
@@ -221,6 +226,36 @@ export default function EmployeeTableFiltersDrawer({
 
                     <Stack spacing={1.5}>
                         <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                            Designation
+                        </Typography>
+                        <Autocomplete
+                            fullWidth
+                            options={['All Designations', ...designationOptions.map((des: any) => des.name)]}
+                            value={filters.designation === 'all' ? 'All Designations' : filters.designation}
+                            onChange={(event, newValue) => {
+                                handleFilterDesignation(event, newValue === 'All Designations' ? 'all' : newValue);
+                            }}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    placeholder="Select designation..."
+                                    size="small"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 1.5,
+                                            bgcolor: 'background.neutral',
+                                            '&:hover': {
+                                                bgcolor: 'action.hover',
+                                            },
+                                        },
+                                    }}
+                                />
+                            )}
+                        />
+                    </Stack>
+
+                    <Stack spacing={1.5}>
+                        <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
                             Employee Type
                         </Typography>
                         <Autocomplete
@@ -237,16 +272,46 @@ export default function EmployeeTableFiltersDrawer({
                                     size="small"
                                     sx={{
                                         '& .MuiOutlinedInput-root': {
-                                            borderRadius: 1.5,
-                                            bgcolor: 'background.neutral',
-                                            '&:hover': {
-                                                bgcolor: 'action.hover',
-                                            },
-                                        },
-                                    }}
-                                />
-                            )}
-                        />
+                                             borderRadius: 1.5,
+                                             bgcolor: 'background.neutral',
+                                             '&:hover': {
+                                                 bgcolor: 'action.hover',
+                                             },
+                                         },
+                                     }}
+                                 />
+                             )}
+                         />
+                    </Stack>
+
+                    <Stack spacing={1.5}>
+                        <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                            Production Type
+                        </Typography>
+                        <Autocomplete
+                            fullWidth
+                            options={['All Production Types', 'Production', 'Non Production']}
+                            value={filters.production_type === 'all' ? 'All Production Types' : filters.production_type}
+                            onChange={(event, newValue) => {
+                                handleFilterProductionType(event, newValue === 'All Production Types' ? 'all' : newValue);
+                            }}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    placeholder="Select production type..."
+                                    size="small"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                             borderRadius: 1.5,
+                                             bgcolor: 'background.neutral',
+                                             '&:hover': {
+                                                 bgcolor: 'action.hover',
+                                             },
+                                         },
+                                     }}
+                                 />
+                             )}
+                         />
                     </Stack>
 
                     <Stack spacing={1.5}>

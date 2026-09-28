@@ -224,6 +224,7 @@ export function EmployeeDetailsView() {
                                             <DetailItem label="Department" value={employee.department} icon="solar:buildings-bold" />
                                             <DetailItem label="Designation" value={employee.designation} icon="solar:medal-star-bold" />
                                             <DetailItem label="Employee Type" value={employee.employee_type} icon="solar:user-id-bold" />
+                                            <DetailItem label="Production Type" value={employee.production_type} icon="solar:box-bold" />
                                             <DetailItem label="Joining Date" value={employee.date_of_joining ? fDate(employee.date_of_joining, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
                                             {(employee.status === 'Inactive' || employee.date_of_leaving) && (
                                                 <DetailItem label="Date of Leaving (DOL)" value={employee.date_of_leaving ? fDate(employee.date_of_leaving, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
