@@ -22,9 +22,8 @@ import { useRouter } from 'src/routes/hooks';
 import { useSalarySlips } from 'src/hooks/useSalarySlips';
 
 import { getDoctypeList } from 'src/api/leads';
-import { getCurrentUserInfo } from 'src/api/auth';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { deleteSalarySlip, submitSalarySlip, getSalarySlipWithDetails } from 'src/api/salary-slips';
+import { deleteSalarySlip, submitSalarySlip } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -62,6 +61,14 @@ export function SalarySlipsView() {
     const canEditSalarySlip = hasCustomPerms && actionPerms ? !!actionPerms?.edit : true;
     const canDeleteSalarySlip = hasCustomPerms && actionPerms ? !!actionPerms?.delete : true;
 
+    const isHR = useMemo(() => {
+        if (!user) return false;
+        const hrRoles = ['HR', 'System Manager', 'Administrator'];
+        return (user.roles || []).some((role: string) => hrRoles.includes(role));
+    }, [user]);
+
+    const currentEmployeeId = user?.employee || null;
+
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [filterName, setFilterName] = useState('');
@@ -74,9 +81,6 @@ export function SalarySlipsView() {
         pay_period_start: null,
         pay_period_end: null,
     });
-
-    const [isHR, setIsHR] = useState(false);
-    const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null);
 
     const filterValues = useMemo(() => {
         const baseFilters: Record<string, any> = Object.fromEntries(
@@ -134,20 +138,7 @@ export function SalarySlipsView() {
                 console.error('Failed to fetch filter options:', error);
             }
         };
-        const checkRoleAndEmployee = async () => {
-            const userInfo = await getCurrentUserInfo();
-            if (userInfo) {
-                if (userInfo.roles) {
-                    const hrRoles = ['HR', 'System Manager', 'Administrator'];
-                    setIsHR(userInfo.roles.some((role: string) => hrRoles.includes(role)));
-                }
-                if (userInfo.employee) {
-                    setCurrentEmployeeId(userInfo.employee);
-                }
-            }
-        };
         fetchOptions();
-        checkRoleAndEmployee();
     }, []);
 
     const handleFilters = useCallback((update: Partial<SalarySlipFiltersProps>) => {
@@ -309,8 +300,8 @@ export function SalarySlipsView() {
         setSnackbar({ ...snackbar, open: false });
     };
 
-    const notFound = !data.length && !!filterName;
-    const empty = !data.length && !filterName;
+    const notFound = !loading && !data.length && !!filterName;
+    const empty = !loading && !data.length && !filterName;
 
     return (
         <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
