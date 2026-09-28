@@ -33,12 +33,14 @@ type Props = {
         country: string;
         state: string;
         city: string;
+        employee_type: string;
     };
     onFilters: (update: any) => void;
     canReset: boolean;
     onResetFilters: VoidFunction;
     departmentOptions: any[];
     designationOptions: any[];
+    employeeTypeOptions?: any[];
 };
 
 export default function EmployeeTableFiltersDrawer({
@@ -51,6 +53,7 @@ export default function EmployeeTableFiltersDrawer({
     onResetFilters,
     departmentOptions,
     designationOptions,
+    employeeTypeOptions = [],
 }: Props) {
     const [countryOptions, setCountryOptions] = useState<string[]>([]);
     const [stateOptions, setStateOptions] = useState<string[]>([]);
@@ -93,6 +96,10 @@ export default function EmployeeTableFiltersDrawer({
 
     const handleFilterDepartment = (event: any, value: string | null) => {
         onFilters({ department: value || 'all' });
+    };
+
+    const handleFilterEmployeeType = (event: any, value: string | null) => {
+        onFilters({ employee_type: value || 'all' });
     };
 
     const handleFilterDesignation = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,6 +204,36 @@ export default function EmployeeTableFiltersDrawer({
                                 <TextField
                                     {...params}
                                     placeholder="Select department..."
+                                    size="small"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 1.5,
+                                            bgcolor: 'background.neutral',
+                                            '&:hover': {
+                                                bgcolor: 'action.hover',
+                                            },
+                                        },
+                                    }}
+                                />
+                            )}
+                        />
+                    </Stack>
+
+                    <Stack spacing={1.5}>
+                        <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                            Employee Type
+                        </Typography>
+                        <Autocomplete
+                            fullWidth
+                            options={['All Employee Types', ...employeeTypeOptions.map((type: any) => type.name)]}
+                            value={filters.employee_type === 'all' ? 'All Employee Types' : filters.employee_type}
+                            onChange={(event, newValue) => {
+                                handleFilterEmployeeType(event, newValue === 'All Employee Types' ? 'all' : newValue);
+                            }}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    placeholder="Select employee type..."
                                     size="small"
                                     sx={{
                                         '& .MuiOutlinedInput-root': {

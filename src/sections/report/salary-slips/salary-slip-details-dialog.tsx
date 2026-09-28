@@ -104,6 +104,7 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                 <SubHeader title="Employee Information" />
                 <InfoRow label="Employee Name" value={slip.employee_name} />
                 <InfoRow label="Employee ID" value={slip.employee_id || slip.employee} />
+                <InfoRow label="Father / Husband Name" value={slip.father_husband_name || '-'} />
 
                 <SubHeader title="Contact Details" />
                 <InfoRow label="Official Email" value={slip.email || '-'} />
