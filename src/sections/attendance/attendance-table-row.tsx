@@ -69,6 +69,7 @@ export function AttendanceTableRow({
             case 'On Leave': return 'warning';
             case 'Holiday': return 'info';
             case 'Half Day': return 'warning';
+            case 'Compensatory Off': return 'secondary';
             default: return 'default';
         }
     };

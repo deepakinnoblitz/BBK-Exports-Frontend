@@ -320,6 +320,7 @@ export function AttendanceReportView() {
         if (record.status === 'Present') return 'P';
         if (record.status === 'Half Day') return 'HD';
         if (record.status === 'Holiday') return 'H';
+        if (record.status === 'Compensatory Off') return 'CO';
         if (record.status === 'Absent') {
             const leave = getApprovedLeaveForDate(employeeId, date);
             if (leave) return leave.leave_type as string;
@@ -630,7 +631,8 @@ export function AttendanceReportView() {
                     'Absent': 'FFEF4444',
                     'Half Day': 'FFF59E0B',
                     'On Leave': 'FF0EA5E9',
-                    'Holiday': 'FF1877F2'
+                    'Holiday': 'FF1877F2',
+                    'Compensatory Off': 'FF8B5CF6'
                 };
                 if (statusColors[row.status]) {
                     statusCell.font = { color: { argb: statusColors[row.status] }, bold: true };
@@ -797,7 +799,8 @@ export function AttendanceReportView() {
                         'Absent': [239, 68, 68],
                         'Half Day': [245, 158, 11],
                         'On Leave': [14, 165, 233],
-                        'Holiday': [24, 119, 242]
+                        'Holiday': [24, 119, 242],
+                        'Compensatory Off': [139, 92, 246]
                     };
                     if (data.column.index === 3 && statusColors[statusVal]) {
                         data.cell.styles.textColor = statusColors[statusVal];
@@ -894,6 +897,7 @@ export function AttendanceReportView() {
                                 <MenuItem value="On Leave">On Leave</MenuItem>
                                 <MenuItem value="Half Day">Half Day</MenuItem>
                                 <MenuItem value="Holiday">Holiday</MenuItem>
+                                <MenuItem value="Compensatory Off">Compensatory Off</MenuItem>
                                 <MenuItem value="Missing">Missing</MenuItem>
                             </Select>
                         </FormControl>
@@ -1167,6 +1171,7 @@ export function AttendanceReportView() {
                                                                                             (row.status === 'Half Day' && 'warning') ||
                                                                                             (row.status === 'On Leave' && 'info') ||
                                                                                             (row.status === 'Holiday' && 'secondary') ||
+                                                                                            (row.status === 'Compensatory Off' && 'secondary') ||
                                                                                             'default'
                                                                                         }
                                                                                     >
@@ -1242,6 +1247,7 @@ export function AttendanceReportView() {
                                         { label: 'Present', value: 'P', hideValue: true, color: 'rgba(34, 197, 94, 0.14)', textColor: '#166534' },
                                         { label: 'Absent', value: 'A', color: 'rgba(239, 68, 68, 0.14)', textColor: '#991b1b' },
                                         { label: 'Half Day', value: 'HD', color: 'rgba(254, 240, 138, 0.5)', textColor: '#854d0e' },
+                                        { label: 'Compensatory Off', value: 'CO', color: 'rgba(139, 92, 246, 0.14)', textColor: '#6d28d9' },
                                         { label: 'Leave Applied', value: '', hideValue: true, color: '#bbb7f7ff', textColor: '#26215C' },
                                     ].map((item) => (
                                         <Stack key={item.label} direction="row" alignItems="center" spacing={1}>

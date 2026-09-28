@@ -8,7 +8,7 @@ export interface Attendance {
     employee: string;
     employee_name: string;
     attendance_date: string;
-    status: 'Present' | 'Absent' | 'On Leave' | 'Holiday' | 'Half Day' | 'Missing';
+    status: 'Present' | 'Absent' | 'On Leave' | 'Holiday' | 'Half Day' | 'Missing' | 'Compensatory Off';
     in_time?: string;
     out_time?: string;
     leave_type?: string;
