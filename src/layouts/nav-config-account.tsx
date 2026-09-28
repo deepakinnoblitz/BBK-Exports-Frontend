@@ -2,8 +2,6 @@ import { FaUserTie } from "react-icons/fa";
 import { IoMdSettings } from "react-icons/io";
 import { IoHomeOutline } from "react-icons/io5";
 
-import { Iconify } from 'src/components/iconify';
-
 import type { AccountPopoverProps } from './components/account-popover';
 
 // ----------------------------------------------------------------------

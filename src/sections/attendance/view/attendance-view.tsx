@@ -29,6 +29,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useAttendance } from 'src/hooks/useAttendance';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRDoc, getHRPermissions } from 'src/api/hr-management';
@@ -1002,6 +1004,7 @@ export function AttendanceView() {
                             <Autocomplete
                                 fullWidth
                                 options={employeeOptions}
+                                filterOptions={filterEmployeeOptions}
                                 getOptionLabel={(option) => option.employee_name || option.name || ''}
                                 value={employeeOptions.find((opt) => opt.name === formData.employee) || null}
                                 onChange={(event, newValue) => {

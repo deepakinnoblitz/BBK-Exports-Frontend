@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 import { MdOutlineDescription } from 'react-icons/md';
-import { FaLaptop, FaRegCalendarAlt, FaExclamationCircle, FaBarcode, FaRupeeSign } from 'react-icons/fa';
+import { FaLaptop, FaBarcode, FaRegCalendarAlt, FaExclamationCircle } from 'react-icons/fa';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';

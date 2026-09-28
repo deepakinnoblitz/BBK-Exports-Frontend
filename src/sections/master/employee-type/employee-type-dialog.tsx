@@ -1,3 +1,7 @@
+import type { 
+    EmployeeType 
+} from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -14,11 +18,10 @@ import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { 
+    getEmployeeType, 
     createEmployeeType, 
     updateEmployeeType, 
-    renameEmployeeType, 
-    getEmployeeType, 
-    EmployeeType 
+    renameEmployeeType 
 } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';

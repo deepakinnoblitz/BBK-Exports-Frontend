@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { useSnackbar } from 'notistack';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { IoMdArrowBack, IoMdCube, IoMdListBox, IoMdCalculator, IoMdPricetags, IoMdWallet } from "react-icons/io";
+import { IoMdCube, IoMdWallet, IoMdListBox, IoMdArrowBack, IoMdPricetags, IoMdCalculator } from "react-icons/io";
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -54,9 +54,9 @@ const renderCurrency = (amount: any, symbolFontSize: string = '15px') => {
 import { getDeal } from 'src/api/deals';
 import { createItem } from 'src/api/invoice';
 import { getContact } from 'src/api/contacts';
+import { getDoctypeList } from 'src/api/leads';
 import { uploadFile } from 'src/api/data-import';
 import { createEstimation } from 'src/api/estimation';
-import { getDoc, getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';

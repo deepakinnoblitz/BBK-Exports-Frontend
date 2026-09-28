@@ -1,20 +1,20 @@
 import { CgNotes } from "react-icons/cg";
 import { GoTasklist } from "react-icons/go";
 import { RxCalendar } from "react-icons/rx";
+import { FiUserPlus } from "react-icons/fi";
 import { PiMoneyWavy } from "react-icons/pi";
 import { BiPurchaseTag } from "react-icons/bi";
 import { IoHomeOutline } from "react-icons/io5";
 import { IoMdFolderOpen } from "react-icons/io";
-import { FiList, FiUserPlus } from "react-icons/fi";
+import { BsCalendar4Range } from "react-icons/bs";
 import { HiOutlineCreditCard } from "react-icons/hi2";
+import { HiOutlineDocumentText } from "react-icons/hi";
 import { TbReport, TbTargetArrow } from "react-icons/tb";
+import { FaWhatsapp, FaHandshake } from "react-icons/fa";
 import { FaMeta, FaLink, FaBuildingUser } from "react-icons/fa6";
-import { BsFillBellFill, BsCalendar4Range } from "react-icons/bs";
-import { FaTasks, FaWhatsapp, FaHandshake } from "react-icons/fa";
 import { MdContacts, MdOutlineLaptopWindows } from "react-icons/md";
-import { HiOutlineSpeakerphone, HiOutlineDocumentText } from "react-icons/hi";
+import { LuLayers, LuUsersRound, LuUserRoundSearch } from "react-icons/lu";
 import { RiAppsLine, RiUserAddLine, RiMailSendLine, RiCalendarScheduleLine  } from "react-icons/ri";
-import { LuUsersRound, LuCalendarCheck2, LuFileSpreadsheet, LuUserRoundSearch, LuLayers } from "react-icons/lu";
 
 import { Iconify } from 'src/components/iconify';
 

@@ -1,6 +1,6 @@
 import { CgWorkAlt } from "react-icons/cg";
 import { useLocation } from 'react-router-dom';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MdOutlineRoomPreferences } from "react-icons/md";
 
 import Box from '@mui/material/Box';
@@ -26,7 +26,6 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchOpenJobs, fetchMyReferrals, createJobApplicant } from 'src/api/referrals';
 
 import { Label } from 'src/components/label';
-import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { TableEmptyRows } from 'src/components/table';
 import { EmptyContent } from 'src/components/empty-content';

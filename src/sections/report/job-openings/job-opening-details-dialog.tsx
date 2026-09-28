@@ -12,7 +12,6 @@ import DialogContent from '@mui/material/DialogContent';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
-import { Scrollbar } from 'src/components/scrollbar';
 
 import { useAuth } from 'src/auth/auth-context';
 // ----------------------------------------------------------------------

@@ -36,7 +36,9 @@ import { ProposalTableHead } from 'src/sections/proposal/proposal-table-head';
 import { useAuth } from 'src/auth/auth-context';
 
 import { WhatsAppAutomationsTableToolbar } from '../whatsapp-automations-table-toolbar';
-import { WhatsAppAutomationsFiltersDrawer, WhatsAppAutomationsFiltersProps } from '../whatsapp-automations-filters-drawer';
+import { WhatsAppAutomationsFiltersDrawer } from '../whatsapp-automations-filters-drawer';
+
+import type { WhatsAppAutomationsFiltersProps } from '../whatsapp-automations-filters-drawer';
 
 const TABLE_HEAD = [
     { id: 'automation_name', label: 'Automation Name' },
@@ -95,7 +97,7 @@ export function WhatsAppAutomationsListView() {
                     page_size: rowsPerPage,
                     search: filterName,
                     sort_by: sortBy,
-                    filters: filters,
+                    filters,
                 }),
                 fetchWhatsAppTemplates({ page: 1, page_size: 1000 })
             ]);

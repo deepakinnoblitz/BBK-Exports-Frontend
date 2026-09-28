@@ -37,7 +37,9 @@ import { ProposalTableHead } from 'src/sections/proposal/proposal-table-head';
 
 import { useAuth } from 'src/auth/auth-context';
 
-import { MetaWebhookLogFiltersDrawer, MetaWebhookLogFilters } from '../meta-webhook-log-filters-drawer';
+import { MetaWebhookLogFiltersDrawer } from '../meta-webhook-log-filters-drawer';
+
+import type { MetaWebhookLogFilters } from '../meta-webhook-log-filters-drawer';
 
 // ----------------------------------------------------------------------
 

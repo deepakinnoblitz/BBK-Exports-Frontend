@@ -1,3 +1,5 @@
+import type { PaymentTerm } from 'src/api/masters';
+
 import { useState } from 'react';
 
 import Box from '@mui/material/Box';
@@ -16,8 +18,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { usePaymentTerms } from 'src/hooks/use-masters';
 
+import { deletePaymentTerm } from 'src/api/masters';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { deletePaymentTerm, PaymentTerm } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';

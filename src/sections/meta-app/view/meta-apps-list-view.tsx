@@ -39,7 +39,9 @@ import { ProposalTableHead } from 'src/sections/proposal/proposal-table-head';
 
 import { useAuth } from 'src/auth/auth-context';
 
-import { MetaAppsFiltersDrawer, MetaAppsFilters } from '../meta-apps-filters-drawer';
+import { MetaAppsFiltersDrawer } from '../meta-apps-filters-drawer';
+
+import type { MetaAppsFilters } from '../meta-apps-filters-drawer';
 
 // ----------------------------------------------------------------------
 

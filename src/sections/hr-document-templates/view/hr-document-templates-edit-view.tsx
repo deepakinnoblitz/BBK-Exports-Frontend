@@ -1,3 +1,7 @@
+import type {
+    HRDocumentCategory,
+    HRDocumentTemplateVariable} from 'src/api/hr-document-template';
+
 import { useSnackbar } from 'notistack';
 import { MdContentCopy } from 'react-icons/md';
 import { IoMdArrowBack } from 'react-icons/io';
@@ -25,11 +29,9 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import {
     getHRDocumentTemplate,
     updateHRDocumentTemplate,
-    fetchHRDocumentTemplateVariables,
-    fetchHRDocumentCategories,
     createHRDocumentCategory,
-    HRDocumentTemplateVariable,
-    HRDocumentCategory,
+    fetchHRDocumentCategories,
+    fetchHRDocumentTemplateVariables
 } from 'src/api/hr-document-template';
 
 import { Iconify } from 'src/components/iconify';

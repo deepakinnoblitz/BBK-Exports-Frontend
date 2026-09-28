@@ -16,7 +16,7 @@ import { useUnreadCountsContext } from 'src/hooks/unread-counts-context';
 import { fTimeDist } from 'src/utils/format-time';
 
 import { markAsRead } from 'src/api/unread-counts';
-import { getRequestWorkflowActions, type WorkflowAction } from 'src/api/requests';
+import { type WorkflowAction, getRequestWorkflowActions } from 'src/api/requests';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';

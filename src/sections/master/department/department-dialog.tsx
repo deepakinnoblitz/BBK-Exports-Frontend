@@ -1,3 +1,5 @@
+import type { Department } from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -16,9 +18,11 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
-import { createDepartment, updateDepartment, renameDepartment, getDepartment, Department } from 'src/api/masters';
+import { getDepartment, createDepartment, updateDepartment, renameDepartment } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -193,6 +197,7 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
                         <Autocomplete
                             fullWidth
                             options={employeeOptions}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => option.employee_name || option.name || ''}
                             value={departmentHead}
                             isOptionEqualToValue={(option, value) => option?.name === value?.name}

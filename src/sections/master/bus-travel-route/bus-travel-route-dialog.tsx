@@ -1,4 +1,4 @@
-import type { BusTravelRoute, BusRoutePoint } from 'src/api/masters';
+import type { BusRoutePoint, BusTravelRoute } from 'src/api/masters';
 
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';

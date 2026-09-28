@@ -1,3 +1,5 @@
+import type { CompanyBankAccount } from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -9,7 +11,7 @@ import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 
-import { getCompanyBankAccount, CompanyBankAccount } from 'src/api/masters';
+import { getCompanyBankAccount } from 'src/api/masters';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';

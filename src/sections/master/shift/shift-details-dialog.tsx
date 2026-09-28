@@ -1,3 +1,5 @@
+import type { Shift } from 'src/api/masters';
+
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
@@ -12,7 +14,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 
 import { COMMON_COLORS } from 'src/theme';
-import { getShift, Shift } from 'src/api/masters';
+import { getShift } from 'src/api/masters';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';

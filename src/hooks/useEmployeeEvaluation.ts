@@ -1,13 +1,16 @@
+import type {
+    EmployeeEvaluationPoint,
+    EvaluationTraitCategory
+} from 'src/api/employee-evaluation';
+
 import { useState, useEffect, useCallback } from 'react';
 
 import {
     fetchEmployeeEvaluationTraits,
     fetchEmployeeEvaluationEvents,
-    fetchEmployeeEvaluationScoreLogs,
     fetchEmployeeEvaluationPoints,
-    fetchEmployeeEvaluationTraitCategories,
-    EmployeeEvaluationPoint,
-    EvaluationTraitCategory
+    fetchEmployeeEvaluationScoreLogs,
+    fetchEmployeeEvaluationTraitCategories
 } from 'src/api/employee-evaluation';
 
 export function useEmployeeEvaluationTraits(page: number, pageSize: number, search?: string, sortBy?: string, filters?: any) {

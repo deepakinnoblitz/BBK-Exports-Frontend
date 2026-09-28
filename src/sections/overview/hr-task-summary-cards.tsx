@@ -1,6 +1,8 @@
-import dayjs, { Dayjs } from 'dayjs';
+import type { Dayjs } from 'dayjs';
+import type { TaskManager} from 'src/api/task-manager';
+
+import dayjs from 'dayjs';
 import { useState, useEffect, useCallback } from 'react';
-import { FaPen, FaCircleCheck, FaClipboardList, FaCirclePause } from 'react-icons/fa6';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -23,9 +25,8 @@ import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { fDate } from 'src/utils/format-time';
-import { frappeRequest } from 'src/utils/csrf';
 
-import { fetchHRTaskStats, fetchProjects, fetchDepartments, fetchTaskManagerList, TaskManager } from 'src/api/task-manager';
+import { fetchProjects, fetchHRTaskStats, fetchDepartments, fetchTaskManagerList } from 'src/api/task-manager';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';

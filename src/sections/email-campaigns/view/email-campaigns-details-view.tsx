@@ -1,9 +1,11 @@
+import type { EmailQueueItem} from 'src/api/email-campaign';
+
 import dayjs from 'dayjs';
 import { enqueueSnackbar } from 'notistack';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { VscDebugStart, VscDebugPause, VscDebugStop } from "react-icons/vsc";
-import { IoMdArrowBack, IoMdMail, IoMdCalendar, IoMdPerson, IoMdStats, IoMdCreate, IoMdTrash, IoMdList, IoMdRefresh } from "react-icons/io";
+import { VscDebugStop, VscDebugStart, VscDebugPause } from "react-icons/vsc";
+import { IoMdMail, IoMdList, IoMdStats, IoMdPerson, IoMdCreate, IoMdRefresh, IoMdArrowBack } from "react-icons/io";
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -26,7 +28,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useRouter } from 'src/routes/hooks';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getEmailCampaign, deleteEmailCampaign, startCampaign as startEmailCampaign, pauseCampaign as pauseEmailCampaign, cancelCampaign as cancelEmailCampaign, fetchEmailQueue, EmailQueueItem, previewRecipients } from 'src/api/email-campaign';
+import { fetchEmailQueue, getEmailCampaign, previewRecipients, deleteEmailCampaign, startCampaign as startEmailCampaign, pauseCampaign as pauseEmailCampaign, cancelCampaign as cancelEmailCampaign } from 'src/api/email-campaign';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';

@@ -1,3 +1,5 @@
+import type { Item } from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -12,7 +14,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 
-import { createItem, updateItem, Item } from 'src/api/masters';
+import { createItem, updateItem } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 

@@ -16,7 +16,6 @@ import TableBody from '@mui/material/TableBody';
 import TextField from '@mui/material/TextField';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import LoadingButton from '@mui/lab/LoadingButton';
 import FormControl from '@mui/material/FormControl';
@@ -99,9 +98,8 @@ const Android12LoadingButton = styled(LoadingButton)(({ theme }) => ({
         boxShadow: 'none',
     },
 }));
-import { getRolePermission, updateRolePermission, getPopulatedPermissions, type PermissionAccess } from 'src/api/permission-management';
+import { getRolePermission, updateRolePermission, type PermissionAccess, getPopulatedPermissions } from 'src/api/permission-management';
 
-import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
 

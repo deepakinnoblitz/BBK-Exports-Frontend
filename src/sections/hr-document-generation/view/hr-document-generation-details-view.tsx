@@ -1,5 +1,7 @@
+import type { HRDocumentGeneration } from 'src/api/hr-document-generation';
+
 import { useState, useEffect, useCallback } from 'react';
-import { IoMdArrowBack, IoMdSettings, IoMdMail, IoMdDocument, IoMdCreate, IoMdPrint } from 'react-icons/io';
+import { IoMdMail, IoMdPrint, IoMdCreate, IoMdSettings, IoMdDocument, IoMdArrowBack } from 'react-icons/io';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -8,9 +10,7 @@ import Button from '@mui/material/Button';
 import { alpha } from '@mui/material/styles';
 import Backdrop from '@mui/material/Backdrop';
 import Typography from '@mui/material/Typography';
-import ToggleButton from '@mui/material/ToggleButton';
 import CircularProgress from '@mui/material/CircularProgress';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { useRouter } from 'src/routes/hooks';
 
@@ -18,7 +18,7 @@ import { fDateTime } from 'src/utils/format-time';
 import { handleDirectPrint } from 'src/utils/print';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getHRDocumentGeneration, getHRDocumentGenerationPrintUrl, HRDocumentGeneration } from 'src/api/hr-document-generation';
+import { getHRDocumentGeneration, getHRDocumentGenerationPrintUrl } from 'src/api/hr-document-generation';
 
 import { Iconify } from 'src/components/iconify';
 

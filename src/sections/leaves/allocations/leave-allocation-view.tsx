@@ -37,6 +37,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { useSocket } from 'src/hooks/use-socket';
 import { useLeaveAllocations } from 'src/hooks/useLeaveAllocations';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRPermissions } from 'src/api/hr-management';
@@ -669,6 +671,7 @@ export function LeaveAllocationView() {
                         <Autocomplete
                             fullWidth
                             options={employeeOptions}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(opt) => `${opt.employee_name} (${opt.name})`}
                             value={employeeOptions.find((opt) => opt.name === employee) || null}
                             onChange={(event, newValue) => {

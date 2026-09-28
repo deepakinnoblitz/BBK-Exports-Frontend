@@ -1,8 +1,11 @@
+import type { EmailTemplateVariable } from 'src/api/email-template';
+import type { WhatsAppTemplateCategory } from 'src/api/whatsapp-template';
+
 import { FaFileUpload } from 'react-icons/fa';
-import { IoMdArrowBack } from 'react-icons/io';
+import { IoMdArrowBack } from 'react-icons/io';    
 import { MdContentCopy } from 'react-icons/md';
-import { RiUploadCloud2Line } from 'react-icons/ri';    
-import { useState, useRef, useEffect } from 'react';
+import { RiUploadCloud2Line } from 'react-icons/ri';
+import { useRef, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -16,7 +19,6 @@ import Dialog from '@mui/material/Dialog';
 import { alpha } from '@mui/material/styles';
 import Snackbar from '@mui/material/Snackbar';
 import MenuItem from '@mui/material/MenuItem';
-import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
 import TableBody from '@mui/material/TableBody';
@@ -28,11 +30,9 @@ import InputLabel from '@mui/material/InputLabel';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
-import ListItemText from '@mui/material/ListItemText';
 import DialogContent from '@mui/material/DialogContent';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import DialogActions from '@mui/material/DialogActions';
-import FormHelperText from '@mui/material/FormHelperText';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -42,8 +42,7 @@ import { useRouter } from 'src/routes/hooks';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { uploadWhatsappAttachment } from 'src/api/whatsapp';
-import { EmailTemplateVariable } from 'src/api/email-template';
-import { createWhatsAppTemplate, fetchWhatsAppTemplateVariables, fetchWhatsAppTemplateCategories, createWhatsAppTemplateCategory, WhatsAppTemplateCategory } from 'src/api/whatsapp-template';
+import { createWhatsAppTemplate, fetchWhatsAppTemplateVariables, createWhatsAppTemplateCategory, fetchWhatsAppTemplateCategories } from 'src/api/whatsapp-template';
 
 import { Iconify } from 'src/components/iconify';
 import { RichTextEditor } from 'src/components/rich-text-editor/rich-text-editor';

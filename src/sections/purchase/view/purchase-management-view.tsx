@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { HiOutlineShoppingBag, HiOutlineBanknotes } from "react-icons/hi2";
+import { HiOutlineBanknotes, HiOutlineShoppingBag } from "react-icons/hi2";
 
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';

@@ -1,11 +1,10 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
-import { useTheme, alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { useSocket } from 'src/hooks/use-socket';
@@ -13,8 +12,6 @@ import { useSocket } from 'src/hooks/use-socket';
 import { chatApi } from 'src/api/chat';
 import { getCurrentUserInfo } from 'src/api/auth';
 import { getAllPresences } from 'src/api/presence';
-
-import { Iconify } from 'src/components/iconify';
 
 import ChatWindow from 'src/sections/chat/chat-window';
 import ChatSidebar from 'src/sections/chat/chat-sidebar';

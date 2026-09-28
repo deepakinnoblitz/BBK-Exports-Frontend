@@ -6,8 +6,6 @@ import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { fNumber } from 'src/utils/format-number';
-
 import { Chart, useChart } from 'src/components/chart';
 
 // ----------------------------------------------------------------------

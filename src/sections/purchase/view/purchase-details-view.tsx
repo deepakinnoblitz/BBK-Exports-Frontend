@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { 
-    IoMdArrowBack, IoMdCube, IoMdListBox, IoMdCalculator, IoMdPricetags, 
-    IoMdWallet, IoMdPrint, IoMdTrash, IoMdCreate, IoMdPerson, 
-    IoMdCalendar, IoMdCash, IoMdList, IoMdLink, IoMdDownload,
-    IoMdCheckmarkCircle, IoMdAlert
+import { IoMdCash, IoMdList, IoMdLink, 
+    IoMdTrash, IoMdAlert, IoMdWallet, IoMdCreate, IoMdPerson, 
+    IoMdListBox, IoMdCalendar, IoMdDownload, IoMdArrowBack, IoMdPricetags,
+    IoMdCalculator, IoMdCheckmarkCircle
 } from "react-icons/io";
 
 import Box from '@mui/material/Box';
@@ -43,9 +42,8 @@ const renderCurrency = (amount: any, symbolFontSize: string = '15px') => {
 };
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getPurchase, deletePurchase, getPurchasePrintUrl, getDoctypeList } from 'src/api/purchase';
+import { getPurchase, deletePurchase, getDoctypeList } from 'src/api/purchase';
 
-import { Iconify } from 'src/components/iconify';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
 
 import { useAuth } from 'src/auth/auth-context';

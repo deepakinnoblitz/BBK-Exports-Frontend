@@ -1,3 +1,6 @@
+import type {
+    HRDocumentCategoryMaster} from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Stack from '@mui/material/Stack';
@@ -12,11 +15,10 @@ import DialogActions from '@mui/material/DialogActions';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import {
+    getHRDocumentCategoryMaster,
     createHRDocumentCategoryMaster,
     updateHRDocumentCategoryMaster,
-    renameHRDocumentCategoryMaster,
-    getHRDocumentCategoryMaster,
-    HRDocumentCategoryMaster,
+    renameHRDocumentCategoryMaster
 } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';

@@ -1,3 +1,5 @@
+import type { EmployeeAwardSettings } from 'src/api/employee-monthly-award';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -14,7 +16,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { useEmployeeAwardSettings } from 'src/hooks/useEmployeeMonthlyAward';
 
-import { updateEmployeeAwardSettings, EmployeeAwardSettings } from 'src/api/employee-monthly-award';
+import { updateEmployeeAwardSettings } from 'src/api/employee-monthly-award';
 
 import { CustomSwitch } from 'src/sections/reminders/reminders-settings-view';
 

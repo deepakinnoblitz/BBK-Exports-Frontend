@@ -1,5 +1,7 @@
-import { io, Socket } from 'socket.io-client';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import type { Socket } from 'socket.io-client';
+
+import { io } from 'socket.io-client';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 export function useSocket(userEmail?: string) {
     const socketRef = useRef<Socket | null>(null);

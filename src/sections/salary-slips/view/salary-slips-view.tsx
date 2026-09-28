@@ -24,7 +24,7 @@ import { useSalarySlips } from 'src/hooks/useSalarySlips';
 import { getDoctypeList } from 'src/api/leads';
 import { getCurrentUserInfo } from 'src/api/auth';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { deleteSalarySlip, submitSalarySlip } from 'src/api/salary-slips';
+import { deleteSalarySlip, submitSalarySlip, getSalarySlipWithDetails } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';

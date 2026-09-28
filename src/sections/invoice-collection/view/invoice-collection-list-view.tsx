@@ -27,7 +27,6 @@ import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
 
-import { emptyRows } from '../../invoice/utils';
 import { TableNoData } from '../../invoice/table-no-data';
 import { TableEmptyRows } from '../../invoice/table-empty-rows';
 import { InvoiceCollectionTableRow } from '../invoice-collection-table-row';

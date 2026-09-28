@@ -1,11 +1,8 @@
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
-import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -21,7 +18,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { useEmployeeEvaluationPoints } from 'src/hooks/useEmployeeEvaluation';
 
 import { getForValueOptions } from 'src/api/user-permissions';
-import { createEmployeeEvaluationEvent, submitEmployeeEvaluationEvent, updateEmployeeEvaluationEvent, EmployeeEvaluationTrait } from 'src/api/employee-evaluation';
+import { createEmployeeEvaluationEvent, updateEmployeeEvaluationEvent } from 'src/api/employee-evaluation';
 
 import { Iconify } from 'src/components/iconify';
 

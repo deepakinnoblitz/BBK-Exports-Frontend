@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { HiOutlineUsers, HiOutlineDocumentText, HiOutlineClipboardDocumentCheck, HiOutlineShoppingBag, HiOutlineCircleStack, HiOutlinePhone, HiOutlineGlobeAlt, HiOutlineIdentification, HiOutlineBriefcase, HiOutlineBuildingOffice, HiOutlineMapPin, HiOutlineGlobeEuropeAfrica } from "react-icons/hi2";
+import { HiOutlineUsers, HiOutlinePhone, HiOutlineMapPin, HiOutlineGlobeAlt, HiOutlineBriefcase, HiOutlineShoppingBag, HiOutlineCircleStack, HiOutlineDocumentText, HiOutlineIdentification, HiOutlineBuildingOffice, HiOutlineGlobeEuropeAfrica, HiOutlineClipboardDocumentCheck } from "react-icons/hi2";
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
@@ -14,13 +14,12 @@ import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
-import { useTheme, alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import DialogContent from '@mui/material/DialogContent';
 
 import { CONFIG } from 'src/config-global';
 import { getAccount } from 'src/api/accounts';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 

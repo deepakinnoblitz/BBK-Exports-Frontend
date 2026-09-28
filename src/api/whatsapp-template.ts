@@ -1,7 +1,7 @@
 import { frappeRequest, getAuthHeaders } from 'src/utils/csrf';
 import { handleFrappeError } from 'src/utils/api-error-handler';
 
-import { EmailTemplateVariable } from './email-template';
+import type { EmailTemplateVariable } from './email-template';
 
 // ----------------------------------------------------------------------
 // TypeScript Interfaces

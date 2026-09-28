@@ -22,6 +22,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import {
@@ -247,6 +249,7 @@ export function ShiftRosterDialog({
             {/* Employee Selector */}
             <Autocomplete
               options={employees}
+              filterOptions={filterEmployeeOptions}
               loading={loadingData}
               disabled={isEdit}
               getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}

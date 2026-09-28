@@ -3,9 +3,9 @@ import type { Invoice } from 'src/api/invoice';
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { 
-    IoMdArrowBack, IoMdTrash, IoMdCreate, IoMdDocument, 
-    IoMdPerson, IoMdCalendar, IoMdCash, IoMdAlert, 
-    IoMdCheckmarkCircle, IoMdListBox, IoMdListBox as IoMdNotes
+    IoMdCash, IoMdTrash, IoMdAlert, IoMdCreate, 
+    IoMdPerson, IoMdListBox, IoMdCalendar, 
+    IoMdArrowBack, IoMdCheckmarkCircle, IoMdListBox as IoMdNotes
 } from "react-icons/io";
 
 import Box from '@mui/material/Box';

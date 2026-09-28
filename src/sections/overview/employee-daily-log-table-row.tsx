@@ -7,7 +7,6 @@ import { alpha, useTheme } from '@mui/material/styles';
 
 import { fDate, fTime, fDecimalHours } from 'src/utils/format-time';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 import { useAuth } from 'src/auth/auth-context';

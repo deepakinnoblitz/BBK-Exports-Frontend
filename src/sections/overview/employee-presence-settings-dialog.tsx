@@ -14,12 +14,14 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import Autocomplete from '@mui/material/Autocomplete';
-import { useTheme, alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import InputAdornment from '@mui/material/InputAdornment';
 
 import { usePresence } from 'src/hooks/use-presence';
+
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { getPresenceSettings, updatePresenceSettings } from 'src/api/presence';
 import { fetchEmployeesList, type EmployeeOption } from 'src/api/hr-document-generation';
@@ -530,6 +532,7 @@ export function EmployeePresenceSettingsDialog({ open, onClose }: Props) {
                             multiple
                             disableCloseOnSelect
                             options={employeeOptions}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => `${option.employee_name} (${option.name})`}
                             value={employeeOptions.filter((opt) => trackedEmployees.includes(opt.name))}
                             onChange={(_, newValue) => {

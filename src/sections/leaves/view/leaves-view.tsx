@@ -30,12 +30,14 @@ import { Checkbox, IconButton, FormControlLabel, CircularProgress } from '@mui/m
 import { useSocket } from 'src/hooks/use-socket';
 import { useLeaveApplications } from 'src/hooks/useLeaveApplications';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { getDoctypeList } from 'src/api/leads';
 import { uploadFile } from 'src/api/data-import';
 import { markAsRead } from 'src/api/unread-counts';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getHRPermissions, getHRDoc } from 'src/api/hr-management';
-import { applyLeaveWorkflowAction, checkLeaveBalance, checkLeaveOverlap, createLeaveApplication, deleteLeaveApplication, fetchEmployeeAppliedLeaveDates, getEmployeeProbationInfo, updateLeaveStatus } from 'src/api/leaves';
+import { getHRDoc, getHRPermissions } from 'src/api/hr-management';
+import { checkLeaveBalance, checkLeaveOverlap, createLeaveApplication, deleteLeaveApplication, applyLeaveWorkflowAction, getEmployeeProbationInfo, fetchEmployeeAppliedLeaveDates } from 'src/api/leaves';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -749,6 +751,7 @@ export function LeavesView() {
                             <Autocomplete
                                 fullWidth
                                 options={employeeOptions}
+                                filterOptions={filterEmployeeOptions}
                                 getOptionLabel={(option) => {
                                     if (typeof option === 'string') {
                                         const emp = employeeOptions.find((e) => e.name === option);

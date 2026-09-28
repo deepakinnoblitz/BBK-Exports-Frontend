@@ -1,12 +1,12 @@
+import type { TaskManager } from 'src/api/task-manager';
+
 import { varAlpha } from 'minimal-shared/utils';
 
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { useTheme, alpha } from '@mui/material/styles';
-
-import { TaskManager } from 'src/api/task-manager';
+import { alpha, useTheme } from '@mui/material/styles';
 
 import TaskKanbanCard from './task-kanban-card';
 

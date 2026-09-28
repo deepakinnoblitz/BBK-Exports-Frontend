@@ -1,4 +1,4 @@
-import { FaLaptop, FaBarcode, FaFolder, FaRegCalendarAlt, FaRupeeSign } from 'react-icons/fa';
+import { FaLaptop, FaFolder, FaBarcode, FaRupeeSign, FaRegCalendarAlt } from 'react-icons/fa';
 
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';

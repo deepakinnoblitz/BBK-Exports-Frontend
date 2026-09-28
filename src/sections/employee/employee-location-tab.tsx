@@ -1,6 +1,8 @@
-import dayjs, { Dayjs } from 'dayjs';
+import type { Dayjs } from 'dayjs';
+
+import dayjs from 'dayjs';
 import { useSnackbar } from 'notistack';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -15,7 +17,6 @@ import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TimelineDot from '@mui/lab/TimelineDot';
-import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
@@ -252,7 +253,7 @@ export default function EmployeeLocationTab({ employeeId, sessionId }: { employe
           alignItems: 'center',
           justifyContent: 'center',
           bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-          color: color,
+          color,
         }}
       >
         <Iconify icon={icon as any} width={20} />

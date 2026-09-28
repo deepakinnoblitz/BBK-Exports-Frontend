@@ -1,6 +1,6 @@
 import { MdOutlineAccountTree } from "react-icons/md";
-import { useState, useCallback, useEffect } from 'react';
-import { FaClipboardList, FaTasks } from "react-icons/fa";
+import { useState, useEffect, useCallback } from 'react';
+import { FaTasks, FaClipboardList } from "react-icons/fa";
 import { BsFillClipboard2CheckFill } from "react-icons/bs";
 
 import Tab from '@mui/material/Tab';
@@ -13,7 +13,6 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Switch from '@mui/material/Switch';
-import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import Snackbar from '@mui/material/Snackbar';
@@ -21,14 +20,12 @@ import ListItem from '@mui/material/ListItem';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
-import Container from '@mui/material/Container';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import ListItemText from '@mui/material/ListItemText';
-import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -42,12 +39,12 @@ import { useEmployeeEvaluationTraits, useEmployeeEvaluationEvents, useEmployeeEv
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getForValueOptions } from 'src/api/user-permissions';
 import {
+  resetEmployeeScores,
+  fetchEmployeeEvaluationTrait,
   deleteEmployeeEvaluationTrait,
   deleteEmployeeEvaluationEvent,
-  fetchEmployeeEvaluationTrait,
   submitEmployeeEvaluationEvent,
   cancelEmployeeEvaluationEvent,
-  resetEmployeeScores,
   fetchEvaluationAutomationRules,
   updateEvaluationAutomationRule,
   deleteEvaluationAutomationRule,

@@ -8,7 +8,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 
 import Card from '@mui/material/Card';
 import { alpha } from '@mui/material/styles';
-import { Box, Stack, Button, Typography, IconButton, useTheme } from '@mui/material';
+import { Box, Stack, Button, useTheme, Typography, IconButton } from '@mui/material';
 
 import { Iconify } from 'src/components/iconify';
 

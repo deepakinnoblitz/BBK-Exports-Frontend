@@ -15,7 +15,6 @@ import MenuItem from '@mui/material/MenuItem';
 import TableBody from '@mui/material/TableBody';
 import TextField from '@mui/material/TextField';
 import TableCell from '@mui/material/TableCell';
-import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
 import FormControl from '@mui/material/FormControl';
@@ -75,7 +74,6 @@ const Android12Switch = styled(Switch)(({ theme }) => ({
 import { DashboardContent } from 'src/layouts/dashboard';
 import { createRolePermission, type PermissionAccess, getPopulatedPermissions } from 'src/api/permission-management';
 
-import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
 

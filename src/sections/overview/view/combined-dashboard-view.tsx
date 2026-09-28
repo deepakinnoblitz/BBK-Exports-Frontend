@@ -1,7 +1,8 @@
-import dayjs, { Dayjs } from 'dayjs';
+import type { Dayjs } from 'dayjs';
+
+import dayjs from 'dayjs';
 import { IoFilter } from "react-icons/io5";
 import React, { useState, useEffect } from 'react';
-import { IoMdArrowDropdown } from "react-icons/io";
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -17,8 +18,7 @@ import TableHead from '@mui/material/TableHead';
 import CardHeader from '@mui/material/CardHeader';
 import Typography from '@mui/material/Typography';
 import FormControl from '@mui/material/FormControl';
-import { useTheme, alpha } from '@mui/material/styles';
-import InputAdornment from '@mui/material/InputAdornment';
+import { alpha, useTheme } from '@mui/material/styles';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';

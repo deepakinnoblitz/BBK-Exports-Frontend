@@ -1,10 +1,6 @@
-import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
-import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
-import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -13,7 +9,6 @@ import DialogContent from '@mui/material/DialogContent';
 
 import { fCurrency } from 'src/utils/format-number';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------

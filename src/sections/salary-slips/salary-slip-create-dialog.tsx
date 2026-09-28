@@ -4,11 +4,8 @@ import type { SalarySlip } from 'src/api/salary-slips';
 import dayjs from 'dayjs';
 import { useMemo, useState, useEffect } from 'react';
 
-import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import { alpha } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -21,10 +18,10 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
-import { useRouter } from 'src/routes/hooks';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { getDoctypeList } from 'src/api/leads';
-import { updateSalarySlip, generateSalarySlipFromEmployee } from 'src/api/salary-slips';
+import { updateSalarySlip, previewSalarySlip, generateSalarySlipFromEmployee } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -210,35 +207,7 @@ export default function SalarySlipCreateDialog({ open, onClose, onSuccess, onErr
                     <Autocomplete
                         fullWidth
                         options={employees}
-                        filterOptions={(options, state) => {
-                            const inputValue = state.inputValue.trim().toLowerCase();
-                            if (!inputValue) return options;
-
-                            const cleanInput = inputValue.replace(/^(bepl|emp)?0*/i, '');
-
-                            return options.filter((option) => {
-                                const name = (option.name || '').toLowerCase();
-                                const empName = (option.employee_name || '').toLowerCase();
-                                const empId = (option.employee_id || '').toLowerCase();
-
-                                if (name.includes(inputValue) || empName.includes(inputValue) || empId.includes(inputValue)) {
-                                    return true;
-                                }
-
-                                if (cleanInput) {
-                                    const cleanName = name.replace(/^(bepl|emp)?0*/i, '');
-                                    const cleanEmpId = empId.replace(/^(bepl|emp)?0*/i, '');
-                                    if (cleanName === cleanInput || cleanEmpId === cleanInput) {
-                                        return true;
-                                    }
-                                    if (cleanName.includes(cleanInput) || cleanEmpId.includes(cleanInput)) {
-                                        return true;
-                                    }
-                                }
-
-                                return false;
-                            });
-                        }}
+                        filterOptions={filterEmployeeOptions}
                         getOptionLabel={(option) => {
                             // Handle both object (when selecting) and string (initial value)
                             if (typeof option === 'string') {

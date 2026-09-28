@@ -1,3 +1,6 @@
+import type {
+    EvaluationAutomationRule} from 'src/api/employee-evaluation';
+
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
@@ -25,10 +28,9 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import {
-    EvaluationAutomationRule,
+    fetchEmployeeEvaluationPoints,
     createEvaluationAutomationRule,
     updateEvaluationAutomationRule,
-    fetchEmployeeEvaluationPoints,
 } from 'src/api/employee-evaluation';
 
 import { Iconify } from 'src/components/iconify';

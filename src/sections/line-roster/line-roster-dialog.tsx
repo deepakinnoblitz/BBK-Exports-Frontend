@@ -13,13 +13,15 @@ import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
@@ -32,10 +34,6 @@ import {
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
-
-const filterEmployees = createFilterOptions<any>({
-  stringify: (opt) => `${opt.employee_name || ''} ${opt.name || ''} ${opt.line_order || ''}`,
-});
 
 type Props = {
   open: boolean;
@@ -246,7 +244,7 @@ export function LineRosterDialog({
               loading={loadingData}
               disabled={isEdit}
               getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
-              filterOptions={filterEmployees}
+              filterOptions={filterEmployeeOptions}
               isOptionEqualToValue={(option, value) => option?.name === value?.name}
               value={selectedEmployee}
               onChange={(_, val) => setSelectedEmployee(val)}

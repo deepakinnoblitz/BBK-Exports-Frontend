@@ -4,17 +4,16 @@ import { FaUsers, FaUserCheck, FaUserXmark } from "react-icons/fa6";
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
-import CircularProgress from '@mui/material/CircularProgress';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
+    fetchMonthHolidays,
     fetchAttendanceStats,
-    fetchUpcomingRenewals,
     fetchHRDashboardData,
-    fetchMissingAttendanceChartData,
+    fetchUpcomingRenewals,
     fetchWeeklyPresentChartData,
-    fetchWeeklyPresentAbsentChartData,
-    fetchMonthHolidays
+    fetchMissingAttendanceChartData,
+    fetchWeeklyPresentAbsentChartData
 } from 'src/api/dashboard';
 
 import { Loader } from 'src/components/loader';
@@ -26,9 +25,6 @@ import { HRAnnouncements } from '../hr-announcements';
 import { HRSummaryWidget } from '../hr-summary-widget';
 import { HRDashboardTable } from '../hr-dashboard-table';
 // import { DashboardEomCard } from '../dashboard-eom-card';
-import { WeeklyPresentChart } from '../weekly-present-chart';
-import { HRTaskSummaryCards } from '../hr-task-summary-cards';
-import { MissingAttendanceChart } from '../missing-attendance-chart';
 import { WeeklyPresentAbsentChart } from '../weekly-present-absent-chart';
 
 // ----------------------------------------------------------------------

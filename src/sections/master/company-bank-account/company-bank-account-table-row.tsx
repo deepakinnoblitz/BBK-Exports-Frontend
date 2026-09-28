@@ -1,11 +1,11 @@
+import type { CompanyBankAccount } from 'src/api/masters';
+
 import Box from '@mui/material/Box';
 import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-
-import { CompanyBankAccount } from 'src/api/masters';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';

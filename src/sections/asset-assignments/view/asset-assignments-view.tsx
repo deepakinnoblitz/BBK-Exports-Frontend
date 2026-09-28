@@ -4,7 +4,7 @@ import { GoHash } from "react-icons/go";
 import { BsLaptop } from "react-icons/bs";
 import { IoMdReturnLeft } from "react-icons/io";
 import { MdOutlineAssignmentTurnedIn } from "react-icons/md";
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -15,16 +15,13 @@ import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import Snackbar from '@mui/material/Snackbar';
-import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableBody from '@mui/material/TableBody';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import InputLabel from '@mui/material/InputLabel';
 import DialogTitle from '@mui/material/DialogTitle';
-import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 import { alpha, useTheme } from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
@@ -39,6 +36,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { useAssetAssignments } from 'src/hooks/useAssetAssignments';
 
 import { frappeRequest } from 'src/utils/csrf';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
@@ -566,6 +564,7 @@ export function AssetAssignmentsView() {
                             <Autocomplete
                                 fullWidth
                                 options={employees}
+                                filterOptions={filterEmployeeOptions}
                                 getOptionLabel={(option) => `${option.employee_name} (${option.name})`}
                                 value={selectedEmployee}
                                 onChange={(event, newValue) => setSelectedEmployee(newValue)}

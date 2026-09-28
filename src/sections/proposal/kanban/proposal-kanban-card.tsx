@@ -11,7 +11,6 @@ import IconButton from '@mui/material/IconButton';
 
 import { stringToColor, stringToDarkColor } from 'src/utils/color-utils';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 type Props = {

@@ -1,3 +1,7 @@
+import type { 
+    LeaveType
+} from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -5,7 +9,6 @@ import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Switch from '@mui/material/Switch';
 import Select from '@mui/material/Select';
 import Snackbar from '@mui/material/Snackbar';
 import MenuItem from '@mui/material/MenuItem';
@@ -20,11 +23,10 @@ import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { 
+    getLeaveType, 
     createLeaveType, 
     updateLeaveType, 
-    renameLeaveType, 
-    getLeaveType, 
-    LeaveType
+    renameLeaveType
 } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';

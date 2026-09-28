@@ -1,3 +1,5 @@
+import type { BankAccount } from 'src/api/masters';
+
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -14,7 +16,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { createBankAccount, updateBankAccount, renameBankAccount, getBankAccount, BankAccount } from 'src/api/masters';
+import { getBankAccount, createBankAccount, updateBankAccount } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 

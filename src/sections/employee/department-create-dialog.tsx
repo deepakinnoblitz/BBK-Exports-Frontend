@@ -12,6 +12,8 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import { createDepartment } from 'src/api/hr-management';
@@ -128,6 +130,7 @@ export function DepartmentCreateDialog({ open, onClose, onCreate, currentDepartm
                         <Autocomplete
                             fullWidth
                             options={employeeOptions}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => option.employee_name || option.name || ''}
                             value={departmentHead}
                             onChange={(event, newValue) => {

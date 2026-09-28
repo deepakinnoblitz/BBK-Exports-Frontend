@@ -34,7 +34,7 @@ import { frappeRequest } from 'src/utils/csrf';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchEmailTemplates } from 'src/api/email-template';
-import { getEmailAutomation, updateEmailAutomation, getAutomationOptions } from 'src/api/email-automation';
+import { getEmailAutomation, getAutomationOptions, updateEmailAutomation } from 'src/api/email-automation';
 
 import { Iconify } from 'src/components/iconify';
 

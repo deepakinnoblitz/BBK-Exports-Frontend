@@ -39,7 +39,9 @@ import { ProposalTableHead } from 'src/sections/proposal/proposal-table-head';
 
 import { useAuth } from 'src/auth/auth-context';
 
-import { MetaPagesFiltersDrawer, MetaPagesFilters } from '../meta-pages-filters-drawer';
+import { MetaPagesFiltersDrawer } from '../meta-pages-filters-drawer';
+
+import type { MetaPagesFilters } from '../meta-pages-filters-drawer';
 // ----------------------------------------------------------------------
 
 const SORT_OPTIONS = [

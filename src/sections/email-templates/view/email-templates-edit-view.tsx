@@ -1,3 +1,8 @@
+import type {
+  EmailTemplateVariable,
+  EmailTemplateCategory 
+} from 'src/api/email-template';
+
 import { useSnackbar } from 'notistack';
 import Editor from '@monaco-editor/react';
 import { useState, useEffect } from 'react';
@@ -15,7 +20,6 @@ import Select from '@mui/material/Select';
 import Dialog from '@mui/material/Dialog';
 import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
-import Checkbox from '@mui/material/Checkbox';
 import Snackbar from '@mui/material/Snackbar';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -25,7 +29,6 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import FormControl from '@mui/material/FormControl';
 import DialogTitle from '@mui/material/DialogTitle';
 import Autocomplete from '@mui/material/Autocomplete';
-import ListItemText from '@mui/material/ListItemText';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import OutlinedInput from '@mui/material/OutlinedInput';
@@ -39,12 +42,10 @@ import { uploadFile } from 'src/api/data-import';
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
   getEmailTemplate,
-  fetchEmailTemplateVariables,
   updateEmailTemplate,
-  EmailTemplateVariable,
-  fetchEmailTemplateCategories,
+  fetchEmailTemplateVariables,
   createEmailTemplateCategory,
-  EmailTemplateCategory 
+  fetchEmailTemplateCategories 
 } from 'src/api/email-template';
 
 import { Iconify } from 'src/components/iconify';

@@ -1,11 +1,11 @@
+import type { Item } from 'src/api/masters';
+
 import Box from '@mui/material/Box';
 import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-
-import { Item } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 

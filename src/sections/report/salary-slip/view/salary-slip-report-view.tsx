@@ -32,15 +32,14 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { fDate } from 'src/utils/format-time';
-import { frappeRequest } from 'src/utils/csrf';
 import { fNumber } from 'src/utils/format-number';
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { getDoctypeList } from 'src/api/leads';
 import { getHRSettings } from 'src/api/hr-management';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchSalarySlips, getSalarySlipWithDetails, fetchSalarySlipsWithDetails } from 'src/api/salary-slips';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
@@ -480,7 +479,7 @@ export function SalarySlipReportView() {
             autoTable(doc, {
                 startY: 40,
                 head: [headers],
-                body: body,
+                body,
                 theme: 'grid',
                 headStyles: { 
                     fillColor: [14, 165, 233], 
@@ -618,6 +617,7 @@ export function SalarySlipReportView() {
                             size="small"
                             sx={{ flexGrow: 1, minWidth: 200 }}
                             options={[{ name: 'all', employee_name: 'All Employees' }, ...employeeOptions]}
+                            filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => option.name === 'all' ? option.employee_name : `${option.employee_name} (${option.name})`}
                             value={employee === 'all' ? { name: 'all', employee_name: 'All Employees' } : (employeeOptions.find((opt) => opt.name === employee) || null)}
                             onChange={(event, newValue) => {

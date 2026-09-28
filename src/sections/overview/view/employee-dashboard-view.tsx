@@ -3,9 +3,7 @@ import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
-import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
-import CircularProgress from '@mui/material/CircularProgress';
 
 import { usePresence } from 'src/hooks/use-presence';
 
@@ -29,7 +27,6 @@ import { DashboardEomCard } from '../dashboard-eom-card';
 import { MissingTimesheets } from '../missing-timesheets';
 import { HRTaskSummaryCards } from '../hr-task-summary-cards';
 import { PremiumWorkingHours } from '../premium-working-hours';
-import { TodayPresenceWidget } from '../today-presence-widget';
 import { PersonalityManagement } from '../personality-management';
 import { CalendarAttendanceChart } from '../calendar-attendance-chart';
 

@@ -1,3 +1,8 @@
+import type {
+    EmployeeOption} from 'src/api/hr-document-generation';
+import type {
+    HRDocumentTemplate} from 'src/api/hr-document-template';
+
 import { useState, useEffect } from 'react';
 import { IoMdArrowBack } from 'react-icons/io';
 
@@ -17,17 +22,17 @@ import FormHelperText from '@mui/material/FormHelperText';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
-    createHRDocumentGeneration,
-    fetchEmployeesList,
-    EmployeeOption,
-} from 'src/api/hr-document-generation';
-import {
-    fetchHRDocumentTemplates,
     getHRDocumentTemplate,
-    HRDocumentTemplate,
+    fetchHRDocumentTemplates
 } from 'src/api/hr-document-template';
+import {
+    fetchEmployeesList,
+    createHRDocumentGeneration
+} from 'src/api/hr-document-generation';
 
 import { Iconify } from 'src/components/iconify';
 import { RichTextEditor } from 'src/components/rich-text-editor/rich-text-editor';
@@ -290,6 +295,7 @@ export function HRDocumentGenerationCreateView() {
                     <Autocomplete
                         fullWidth
                         options={employees}
+                        filterOptions={filterEmployeeOptions}
                         getOptionLabel={(option) => (option.employee_name ? `${option.employee_name} (${option.name})` : option.name || '')}
                         isOptionEqualToValue={(option, value) => option.name === value.name}
                         value={selectedEmployee}

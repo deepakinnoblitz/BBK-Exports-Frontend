@@ -145,21 +145,20 @@ if (typeof document !== 'undefined') {
 import { Track } from 'livekit-client';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import {
-    LiveKitRoom,
-    GridLayout,
-    TrackToggle,
-    ChatToggle,
-    DisconnectButton,
-    useMediaDeviceSelect,
-    Chat,
-    useTracks,
     useChat,
+    useTracks,
+    GridLayout,
+    ChatToggle,
+    LiveKitRoom,
+    TrackToggle,
     ParticipantTile,
-    RoomAudioRenderer,
     useParticipants,
-    useLocalParticipant,
-    LayoutContextProvider,
+    DisconnectButton,
     useLayoutContext,
+    RoomAudioRenderer,
+    useLocalParticipant,
+    useMediaDeviceSelect,
+    LayoutContextProvider,
 } from '@livekit/components-react';
 
 import Box from '@mui/material/Box';

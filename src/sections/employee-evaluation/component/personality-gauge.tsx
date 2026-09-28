@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import { alpha, styled, keyframes } from '@mui/material/styles';
-import { GaugeContainer, GaugeValueArc, GaugeReferenceArc, useGaugeState } from '@mui/x-charts/Gauge';
+import { GaugeValueArc, useGaugeState, GaugeContainer, GaugeReferenceArc } from '@mui/x-charts/Gauge';
 
 interface PersonalityGaugeProps {
     value: number;

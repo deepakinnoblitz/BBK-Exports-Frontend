@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import { useSnackbar } from 'notistack';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -32,13 +31,14 @@ import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
 
 import { TableNoData } from 'src/sections/proposal/table-no-data';
-import { TableEmptyRows } from 'src/sections/proposal/table-empty-rows';
 import { ProposalTableHead } from 'src/sections/proposal/proposal-table-head';
 
 import { useAuth } from 'src/auth/auth-context';
 
 import { EmailAutomationsTableToolbar } from '../email-automations-table-toolbar';
-import { EmailAutomationsFiltersDrawer, EmailAutomationsFiltersProps } from '../email-automations-filters-drawer';
+import { EmailAutomationsFiltersDrawer } from '../email-automations-filters-drawer';
+
+import type { EmailAutomationsFiltersProps } from '../email-automations-filters-drawer';
 
 const TABLE_HEAD = [
     { id: 'automation_name', label: 'Automation Name' },

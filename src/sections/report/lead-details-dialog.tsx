@@ -1,19 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { HiOutlineBuildingOffice2, HiOutlineMapPin, HiOutlineTag, HiOutlineIdentification, HiOutlineCalendarDays } from "react-icons/hi2";
+import { HiOutlineTag, HiOutlineMapPin, HiOutlineCalendarDays, HiOutlineBuildingOffice2 } from "react-icons/hi2";
 import {
-    FaStar,
-    FaUserTie,
-    FaPhone,
-    FaEnvelope,
     FaTag,
-    FaGlobe,
+    FaStar,
     FaUser,
-    FaCalendarDays,
+    FaCity,
+    FaPhone,
+    FaGlobe,
+    FaEnvelope,
     FaLightbulb,
     FaListCheck,
+    FaFileLines,
     FaLocationDot,
-    FaCity,
-    FaFileLines
+    FaCalendarDays
 } from "react-icons/fa6";
 
 import Box from '@mui/material/Box';

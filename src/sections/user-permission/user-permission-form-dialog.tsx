@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 
-import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -13,7 +12,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 
-import { getDocTypes, getUsers, getForValueOptions } from 'src/api/user-permissions';
+import { getUsers, getDocTypes, getForValueOptions } from 'src/api/user-permissions';
 
 import { Iconify } from 'src/components/iconify';
 

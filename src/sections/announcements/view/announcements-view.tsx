@@ -1,4 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import type { SwitchProps } from '@mui/material/Switch';
+import type {
+    Announcement} from 'src/api/announcements';
+
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -6,19 +10,19 @@ import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import Switch from '@mui/material/Switch';
 import Snackbar from '@mui/material/Snackbar';
 import TableRow from '@mui/material/TableRow';
+import { styled } from '@mui/material/styles';
 import TableBody from '@mui/material/TableBody';
 import TextField from '@mui/material/TextField';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
-import { styled, Theme } from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import TableContainer from '@mui/material/TableContainer';
-import Switch, { SwitchProps } from '@mui/material/Switch';
 import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -27,7 +31,6 @@ import { useAnnouncements } from 'src/hooks/useAnnouncements';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
-    Announcement,
     createAnnouncement,
     updateAnnouncement,
     deleteAnnouncement,

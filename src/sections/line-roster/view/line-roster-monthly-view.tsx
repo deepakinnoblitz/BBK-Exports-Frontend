@@ -27,6 +27,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useMonthlyLineRoster } from 'src/hooks/use-line-roster';
 
+import { filterEmployeeOptions } from 'src/utils/filter-employees';
+
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 
@@ -501,6 +503,7 @@ export function LineRosterMonthlyView({
               disableCloseOnSelect
               size="small"
               options={selectedDept === 'all' ? employees : employees.filter((e) => e.department === selectedDept)}
+              filterOptions={filterEmployeeOptions}
               getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
               isOptionEqualToValue={(option, value) => option?.name === value?.name}
               value={employees.filter((opt) =>

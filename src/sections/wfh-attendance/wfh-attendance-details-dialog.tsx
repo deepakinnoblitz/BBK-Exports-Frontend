@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaRegCalendarAlt, FaClock, FaHistory, FaUserCheck, FaUserTimes } from 'react-icons/fa';
+import { FaClock, FaHistory, FaUserCheck, FaUserTimes, FaRegCalendarAlt } from 'react-icons/fa';
 
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
@@ -10,7 +10,7 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import { alpha, useTheme } from '@mui/material/styles';
 import DialogContent from '@mui/material/DialogContent';
-import { Button, Stack, DialogActions, Avatar } from '@mui/material';
+import { Stack, Avatar, DialogActions } from '@mui/material';
 
 import { fTime } from 'src/utils/format-time';
 

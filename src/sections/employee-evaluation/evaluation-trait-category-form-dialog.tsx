@@ -1,3 +1,5 @@
+import type { EvaluationTraitCategory} from 'src/api/employee-evaluation';
+
 import { useState, useEffect } from 'react';
 
 import Stack from '@mui/material/Stack';
@@ -9,7 +11,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 
-import { EvaluationTraitCategory, createEmployeeEvaluationTraitCategory, updateEmployeeEvaluationTraitCategory } from 'src/api/employee-evaluation';
+import { createEmployeeEvaluationTraitCategory, updateEmployeeEvaluationTraitCategory } from 'src/api/employee-evaluation';
 
 import { Iconify } from 'src/components/iconify';
 

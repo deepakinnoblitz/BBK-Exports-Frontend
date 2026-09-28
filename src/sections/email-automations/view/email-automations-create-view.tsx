@@ -32,7 +32,7 @@ import { useRouter } from 'src/routes/hooks';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchEmailTemplates } from 'src/api/email-template';
 import { getFilterFields, getFilterValueOptions } from 'src/api/email-campaign';
-import { createEmailAutomation, getAutomationOptions } from 'src/api/email-automation';
+import { getAutomationOptions, createEmailAutomation } from 'src/api/email-automation';
 
 import { Iconify } from 'src/components/iconify';
 

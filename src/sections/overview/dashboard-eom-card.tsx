@@ -1,13 +1,12 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
-import { useTheme, alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 
-import { getEmployee } from 'src/api/employees';
 import { fetchLatestPublishedEom, type EmployeeMonthlyAward } from 'src/api/eom';
 
 import { Iconify } from 'src/components/iconify';

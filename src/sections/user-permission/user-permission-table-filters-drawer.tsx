@@ -10,7 +10,7 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Autocomplete from '@mui/material/Autocomplete';
 
-import { getDocTypes, getUsers, getForValueOptions } from 'src/api/user-permissions';
+import { getUsers, getDocTypes, getForValueOptions } from 'src/api/user-permissions';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';

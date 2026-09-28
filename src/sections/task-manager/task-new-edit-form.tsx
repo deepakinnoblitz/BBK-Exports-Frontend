@@ -1,10 +1,12 @@
+import type {
+    TaskManager} from 'src/api/task-manager';
+
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
-import Switch from '@mui/material/Switch';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
@@ -31,15 +33,13 @@ import { floatToHHMM, hhmmToFloat } from 'src/utils/format-time';
 
 import { getUsers } from 'src/api/user-permissions';
 import {
-    TaskManager,
+    fetchProjects,
+    createProject,
+    fetchDepartments,
+    createDepartment,
     createTaskManager,
     updateTaskManager,
-    getEmployeesFromDepartment,
-    fetchProjects,
-    fetchDepartments,
-    fetchAllActiveEmployees,
-    createProject,
-    createDepartment
+    fetchAllActiveEmployees
 } from 'src/api/task-manager';
 
 import { Iconify } from 'src/components/iconify';

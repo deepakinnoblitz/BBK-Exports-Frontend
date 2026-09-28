@@ -1,3 +1,6 @@
+import type {
+  SwitchProps} from '@mui/material';
+
 import dayjs from 'dayjs';
 
 import { useTheme } from '@mui/material/styles';
@@ -8,12 +11,11 @@ import {
   Box,
   Card,
   Stack,
-  Switch,
-  SwitchProps,
-  Typography,
-  TextField,
   alpha,
-  styled
+  Switch,
+  styled,
+  TextField,
+  Typography
 } from '@mui/material';
 
 import { Iconify } from 'src/components/iconify';

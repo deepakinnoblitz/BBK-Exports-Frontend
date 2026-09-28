@@ -13,7 +13,6 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
 
-import { CONFIG } from 'src/config-global';
 import { login, getCurrentUserInfo } from 'src/api/auth';
 
 import { Logo } from 'src/components/logo';

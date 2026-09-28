@@ -1,3 +1,5 @@
+import type { EmailTemplateVariable} from 'src/api/email-template';
+
 import Editor from '@monaco-editor/react';
 import { useState, useEffect } from 'react';
 import { MdContentCopy } from "react-icons/md";
@@ -14,7 +16,6 @@ import Select from '@mui/material/Select';
 import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import Snackbar from '@mui/material/Snackbar';
-import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -22,7 +23,6 @@ import InputLabel from '@mui/material/InputLabel';
 import LoadingButton from '@mui/lab/LoadingButton';
 import FormControl from '@mui/material/FormControl';
 import DialogTitle from '@mui/material/DialogTitle';
-import ListItemText from '@mui/material/ListItemText';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import OutlinedInput from '@mui/material/OutlinedInput';
@@ -35,7 +35,7 @@ import { useRouter } from 'src/routes/hooks';
 
 import { uploadFile } from 'src/api/data-import';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { createEmailTemplate, fetchEmailTemplateVariables, fetchEmailTemplateCategories, EmailTemplateVariable, EmailTemplateCategory, createEmailTemplateCategory } from 'src/api/email-template';
+import { createEmailTemplate, fetchEmailTemplateVariables, createEmailTemplateCategory, fetchEmailTemplateCategories } from 'src/api/email-template';
 
 import { Iconify } from 'src/components/iconify';
 import { RichTextEditor } from 'src/components/rich-text-editor/rich-text-editor';

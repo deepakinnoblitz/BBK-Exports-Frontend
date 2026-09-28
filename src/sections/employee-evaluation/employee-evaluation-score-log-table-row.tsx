@@ -6,7 +6,6 @@ import Typography from '@mui/material/Typography';
 
 import { fDate } from 'src/utils/format-time';
 
-import { Label } from 'src/components/label';
 // ----------------------------------------------------------------------
 
 type Props = {
