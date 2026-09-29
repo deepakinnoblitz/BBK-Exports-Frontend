@@ -871,7 +871,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
                                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.5, fontSize: '0.85em' }}>
                                     {hrSettings.currency_symbol || '₹'}
                                 </Box>
-                                {fNumber(formData.gross_pay || 0, { locale: hrSettings.default_locale, minimumFractionDigits: 2 })}
+                                {fNumber(formData.gross_pay || 0, { locale: hrSettings.default_locale })}
                             </Typography>
                         </Box>
                     </TableContainer>
@@ -1097,7 +1097,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
                                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.5, fontSize: '0.85em' }}>
                                     {hrSettings.currency_symbol || '₹'}
                                 </Box>
-                                {fNumber(formData.total_deduction || 0, { locale: hrSettings.default_locale, minimumFractionDigits: 2 })}
+                                {fNumber(formData.total_deduction || 0, { locale: hrSettings.default_locale })}
                             </Typography>
                         </Box>
                     </TableContainer>
@@ -1133,7 +1133,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 1, fontSize: '0.7em', color: 'common.white' }}>
                     {hrSettings.currency_symbol}
                 </Box>
-                {fNumber(formData.grand_net_pay || 0, { locale: hrSettings.default_locale, minimumFractionDigits: 2 })}
+                {fNumber(formData.grand_net_pay || 0, { locale: hrSettings.default_locale })}
             </Typography>
         </Box>
     );
@@ -1145,17 +1145,18 @@ export function SalarySlipEditView({ id: propId }: Props) {
             {/* Top Heading and Button Style like Invoice Page */}
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={4} mt={2} className="no-print">
                 <Typography variant="h4">Edit Salary Slip: {formData.name}</Typography>
-                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
                     <Button
                         variant="outlined"
                         color="inherit"
                         onClick={() => router.push(`/salary-slips/${id}`)}
-                        startIcon={<IoMdArrowBack size={20} />}
+                        startIcon={<IoMdArrowBack size={18} />}
                         sx={{
                             borderRadius: 1.5,
                             fontWeight: 600,
                             textTransform: 'none',
-                            px: 2.5,
+                            px: 1.75,
+                            py: 0.75,
                             '&:hover': {
                                 bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04),
                                 borderColor: 'text.primary',
@@ -1169,11 +1170,13 @@ export function SalarySlipEditView({ id: propId }: Props) {
                         variant="contained"
                         loading={isSaving}
                         onClick={handleSave}
-                        startIcon={<IoMdCheckmarkCircle size={20} />}
+                        startIcon={<IoMdCheckmarkCircle size={18} />}
                         sx={{
                             borderRadius: 1.5,
                             fontWeight: 600,
                             textTransform: 'none',
+                            px: 1.75,
+                            py: 0.75,
                             bgcolor: '#059669',
                             color: 'common.white',
                             '&:hover': { bgcolor: '#047857' },

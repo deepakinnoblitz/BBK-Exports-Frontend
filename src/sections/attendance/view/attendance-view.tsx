@@ -887,16 +887,16 @@ export function AttendanceView() {
                                 hideCheckbox
                                 showIndex
                                 headLabel={[
-                                    { id: 'employee_name', label: 'Employee', width: 200, minWidth: { xs: 140, md: 180 }, sx: { maxWidth: 200, display: { xs: 'none', md: 'table-cell' } } },
-                                    { id: 'attendance_date', label: 'Date', minWidth: { xs: 100, md: 120 } },
-                                    { id: 'status', label: 'Status', minWidth: { xs: 80, md: 90 } },
-                                    { id: 'attendance_source', label: 'Source', minWidth: { xs: 80, md: 100 } },
-                                    { id: 'in_time', label: 'In Time', minWidth: 120, sx: { display: { xs: 'none', md: 'table-cell' } } },
-                                    { id: 'out_time', label: 'Out Time', minWidth: 120, sx: { display: { xs: 'none', md: 'table-cell' } } },
-                                    { id: 'working_hours_display', label: 'Working Hours', minWidth: 120, sx: { display: { xs: 'none', md: 'table-cell' } } },
-                                    { id: 'official_overtime', label: 'Overtime', minWidth: 110, sx: { display: { xs: 'none', md: 'table-cell' } } },
-                                    ...(isSystemManager ? [{ id: 'unofficial_overtime', label: 'Extra Overtime', minWidth: 120, sx: { display: { xs: 'none', md: 'table-cell' } } }] : []),
-                                    { id: '', label: '', align: 'right' },
+                                    { id: 'employee_name', label: 'Employee', minWidth: { xs: 130, md: 150 }, sx: { maxWidth: 170, display: { xs: 'none', md: 'table-cell' } } },
+                                    { id: 'attendance_date', label: 'Date', minWidth: 95 },
+                                    { id: 'status', label: 'Status', minWidth: 80 },
+                                    { id: 'attendance_source', label: 'Source', minWidth: 80 },
+                                    { id: 'in_time', label: 'In Time', minWidth: 85, sx: { display: { xs: 'none', md: 'table-cell' } } },
+                                    { id: 'out_time', label: 'Out Time', minWidth: 85, sx: { display: { xs: 'none', md: 'table-cell' } } },
+                                    { id: 'working_hours_display', label: 'Working Hours', minWidth: 95, sx: { display: { xs: 'none', md: 'table-cell' } } },
+                                    { id: 'official_overtime', label: 'Overtime', minWidth: 75, sx: { display: { xs: 'none', md: 'table-cell' } } },
+                                    ...(isSystemManager ? [{ id: 'unofficial_overtime', label: 'Extra Overtime', minWidth: 90, sx: { display: { xs: 'none', md: 'table-cell' } } }] : []),
+                                    { id: '', label: '', align: 'right', minWidth: 110 },
                                 ]}
                             />
 

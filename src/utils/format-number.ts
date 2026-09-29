@@ -22,8 +22,11 @@ export function fNumber(inputValue: InputNumberValue, options?: Options & { loca
   const number = processInput(inputValue);
   if (number === null) return '';
 
+  const isInt = Number.isInteger(number);
+  const defaultMinFraction = isInt ? 0 : 2;
+
   const fm = new Intl.NumberFormat(code, {
-    minimumFractionDigits: 0,
+    minimumFractionDigits: defaultMinFraction,
     maximumFractionDigits: 2,
     ...options,
   }).format(number);

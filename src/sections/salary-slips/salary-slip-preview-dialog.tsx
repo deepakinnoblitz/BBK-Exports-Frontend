@@ -166,6 +166,19 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
         </Box>
     );
 
+    const baseGrossPay = data.base_gross_pay !== undefined && data.base_gross_pay !== null && Number(data.base_gross_pay) > 0
+        ? Number(data.base_gross_pay)
+        : (() => {
+            const baseEarnings = (data.earnings || []).filter((e: any) => {
+                const name = (e.component_name || e.salary_component || '').trim();
+                return !['Overtime Pay (OT)', 'Overtime Allowance', 'Attendance Bonus'].includes(name);
+            });
+            if (baseEarnings.length > 0) {
+                return baseEarnings.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
+            }
+            return Math.max(0, Number(data.gross_pay || 0) - Number(data.ot_amount || 0) - Number(data.attendance_bonus || 0));
+        })();
+
     const renderDetailedSummary = (
         <Box sx={{ mb: 4 }}>
             <SectionHeader title="Calculation Logic & Breakdown" icon="solar:programming-bold" color="info.main" />
@@ -215,7 +228,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2.5 }}>
                         <FormulaChip
                             label="Gross Pay"
-                            value={`${hrSettings.currency_symbol}${fNumber(data.gross_pay)}`}
+                            value={`${hrSettings.currency_symbol}${fNumber(baseGrossPay, { locale: hrSettings.default_locale })}`}
                             color="success"
                             currencySymbol={hrSettings.currency_symbol}
                         />
@@ -236,7 +249,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", ml: 1, mr: 0.5 }}>
                                     {hrSettings.currency_symbol}
                                 </Box>
-                                {fNumber(data.lop)}
+                                {fNumber(data.lop, { locale: hrSettings.default_locale })}
                             </Typography>
                         </Box>
                     </Box>
@@ -279,7 +292,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                 <>
                                     <FormulaChip
                                         label="Fixed OT Rate"
-                                        value={`${hrSettings.currency_symbol}${fNumber(hrSettings.north_indian_ot_rate || 100)}`}
+                                        value={`${hrSettings.currency_symbol}${fNumber(hrSettings.north_indian_ot_rate || 100, { locale: hrSettings.default_locale })}`}
                                         color="warning"
                                         currencySymbol={hrSettings.currency_symbol}
                                     />
@@ -290,7 +303,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                 <>
                                     <FormulaChip
                                         label="Gross Pay"
-                                        value={`${hrSettings.currency_symbol}${fNumber(data.gross_pay)}`}
+                                        value={`${hrSettings.currency_symbol}${fNumber(baseGrossPay, { locale: hrSettings.default_locale })}`}
                                         color="success"
                                         currencySymbol={hrSettings.currency_symbol}
                                     />
@@ -320,7 +333,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                     <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", ml: 1, mr: 0.5 }}>
                                         {hrSettings.currency_symbol}
                                     </Box>
-                                    {fNumber(data.ot_amount || 0)}
+                                    {fNumber(data.ot_amount || 0, { locale: hrSettings.default_locale })}
                                 </Typography>
                             </Box>
                         </Box>
@@ -403,7 +416,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
             case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
             case 'absent': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
             case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
-            case 'holiday': return bd.filter((d: any) => d.status.includes('Holiday'));
+            case 'holiday': return data?.holidays_details?.length ? data.holidays_details : bd.filter((d: any) => d.is_holiday || d.status.includes('Holiday'));
             case 'unpaid_leave': return bd.filter((d: any) => d.status.includes('Unpaid Leave'));
             case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave'));
             case 'lop': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
@@ -522,7 +535,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                     }}
                                 >
                                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                        {dayjs(day.date).format('DD-MM-YYYY - dddd')}
+                                        {dayjs(day.date).format('DD-MM-YYYY')} - {day.holiday_desc || day.description || dayjs(day.date).format('dddd')}
                                     </Typography>
                                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                                         <Typography variant="caption" sx={{ color: colorStr, fontWeight: 700, px: 1, py: 0.25, borderRadius: 0.5, bgcolor: (theme) => alpha(theme.palette[colorStr.replace('.main', '') as 'success' | 'info' | 'warning' | 'error']?.main || theme.palette.text.secondary, 0.12) }}>

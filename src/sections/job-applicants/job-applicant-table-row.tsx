@@ -152,16 +152,18 @@ export function JobApplicantTableRow({
 
             <TableCell>{renderStatus(row.status)}</TableCell>
 
-            <TableCell align="right">
-                <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end', alignItems: 'center' }}>
+            <TableCell align="right" sx={{ whiteSpace: 'nowrap', pr: 2 }}>
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
                     <Typography
                         variant="caption"
+                        noWrap
                         sx={{
                             color: 'text.secondary',
                             fontWeight: 700,
                             fontSize: 12,
-                            minWidth: 24,
+                            whiteSpace: 'nowrap',
                             textAlign: 'right',
+                            mr: 0.5,
                         }}
                     >
                         {fTimeDist(row.modified)}

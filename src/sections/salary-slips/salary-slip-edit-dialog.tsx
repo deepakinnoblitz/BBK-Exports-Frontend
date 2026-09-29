@@ -806,7 +806,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.5, fontSize: '0.85em' }}>
                                     {hrSettings.currency_symbol || '₹'}
                                 </Box>
-                                {fNumber(formData.gross_pay || 0, { locale: hrSettings.default_locale, minimumFractionDigits: 2 })}
+                                {fNumber(formData.gross_pay || 0, { locale: hrSettings.default_locale })}
                             </Typography>
                         </Box>
                     </TableContainer>
@@ -1032,7 +1032,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.5, fontSize: '0.85em' }}>
                                     {hrSettings.currency_symbol || '₹'}
                                 </Box>
-                                {fNumber(formData.total_deduction || 0, { locale: hrSettings.default_locale, minimumFractionDigits: 2 })}
+                                {fNumber(formData.total_deduction || 0, { locale: hrSettings.default_locale })}
                             </Typography>
                         </Box>
                     </TableContainer>
@@ -1068,7 +1068,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 1, fontSize: '0.7em', color: 'common.white' }}>
                     {hrSettings.currency_symbol}
                 </Box>
-                {fNumber(formData.grand_net_pay || 0, { locale: hrSettings.default_locale, minimumFractionDigits: 2 })}
+                {fNumber(formData.grand_net_pay || 0, { locale: hrSettings.default_locale })}
             </Typography>
         </Box>
     );
