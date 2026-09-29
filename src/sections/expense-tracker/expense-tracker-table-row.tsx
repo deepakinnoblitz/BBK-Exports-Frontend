@@ -9,6 +9,8 @@ import IconButton from '@mui/material/IconButton';
 
 import { fCurrency } from 'src/utils/format-number';
 
+import { COMMON_COLORS } from 'src/theme/common-colors';
+
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
@@ -109,30 +111,31 @@ export function ExpenseTrackerTableRow({
                 </TableCell>
             )}
 
-            <TableCell sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
-                {date_time ? dayjs(date_time).format('DD MMM YYYY · HH:mm') : '-'}
-            </TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{titlenotes || '-'}</TableCell>
 
-            <TableCell sx={{ fontWeight: 600 }}>{titlenotes || '-'}</TableCell>
-
-            <TableCell>
-                <Label
-                    variant="soft"
-                    color={(type === 'Income' && 'success') || 'error'}
-                    sx={{ textTransform: 'capitalize' }}
-                >
-                    {type}
-                </Label>
+            <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                {date_time ? dayjs(date_time).format('DD MMM YYYY - hh:mm A') : '-'}
             </TableCell>
 
             <TableCell>
+                <Label color={(type === 'Income' && 'success') || 'error'}>{type}</Label>
+            </TableCell>
+
+            <TableCell sx={{ fontWeight: 600 }}>
                 {renderCurrency(amount)}
             </TableCell>
 
             <TableCell align="right">
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
                     {canEdit && (
-                        <IconButton size="small" color="info" onClick={onEdit}>
+                        <IconButton
+                            size="small"
+                            onClick={onEdit}
+                            sx={{
+                                color: COMMON_COLORS.emerald.main,
+                                '&:hover': { bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08) },
+                            }}
+                        >
                             <Iconify icon="solar:pen-bold" />
                         </IconButton>
                     )}
