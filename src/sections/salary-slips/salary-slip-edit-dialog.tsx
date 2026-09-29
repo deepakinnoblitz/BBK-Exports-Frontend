@@ -1,30 +1,41 @@
 import dayjs from 'dayjs';
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
+import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import Popover from '@mui/material/Popover';
 import { alpha } from '@mui/material/styles';
+import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
+import TableHead from '@mui/material/TableHead';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import InputAdornment from '@mui/material/InputAdornment';
+import TableContainer from '@mui/material/TableContainer';
+import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
 
 import { fNumber } from 'src/utils/format-number';
 
-import { getHRSettings } from 'src/api/hr-management';
 import { saveSalarySlip } from 'src/api/salary-slips';
+import { getHRSettings, fetchSalaryComponents } from 'src/api/hr-management';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
+import { SalaryComponentFormDialog } from './salary-component-form-dialog';
+
 // ----------------------------------------------------------------------
+
+const filter = createFilterOptions<any>();
 
 type Props = {
     open: boolean;
@@ -42,6 +53,42 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
 
     const [formData, setFormData] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
+
+    const [componentDialogOpen, setComponentDialogOpen] = useState(false);
+    const [componentDialogType, setComponentDialogType] = useState<'Earning' | 'Deduction'>('Earning');
+    const [targetRowIndex, setTargetRowIndex] = useState<{ section: 'earnings' | 'deductions'; index: number } | null>(null);
+    const [componentInitialName, setComponentInitialName] = useState('');
+
+    useEffect(() => {
+        fetchSalaryComponents().then(setSalaryComponents).catch(console.error);
+    }, []);
+
+    const earningComponents = useMemo(() =>
+        salaryComponents.filter((c) => c.type === 'Earning'),
+        [salaryComponents]);
+
+    const deductionComponents = useMemo(() =>
+        salaryComponents.filter((c) => c.type === 'Deduction'),
+        [salaryComponents]);
+
+    const handleComponentCreated = async (newComp: any) => {
+        try {
+            const comps = await fetchSalaryComponents();
+            setSalaryComponents(comps);
+            if (targetRowIndex && newComp?.component_name) {
+                handleSalaryRowChange(targetRowIndex.section, targetRowIndex.index, 'component_name', newComp.component_name);
+                if (newComp.static_amount) {
+                    handleSalaryRowChange(targetRowIndex.section, targetRowIndex.index, 'amount', newComp.static_amount);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to reload components:', e);
+        } finally {
+            setComponentDialogOpen(false);
+            setTargetRowIndex(null);
+        }
+    };
 
     // Store base amounts to allow re-proration during edit
     const [baseEarnings, setBaseEarnings] = useState<any[]>([]);
@@ -108,6 +155,20 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
     useEffect(() => {
         getHRSettings().then(setHRSettings).catch(console.error);
     }, []);
+
+    const getCompName = (c: any): string => {
+        if (!c) return '';
+        if (typeof c === 'string') return c;
+        if (typeof c === 'object') {
+            const val = c.component_name ?? c.salary_component ?? c.name ?? c.label ?? '';
+            if (typeof val === 'string') return val;
+            if (typeof val === 'object' && val !== null) {
+                return getCompName(val);
+            }
+            return String(val || '');
+        }
+        return String(c);
+    };
 
     function calculateDynamicRules(data: any, grossPay: number) {
         const getNum = (v: any) => parseFloat(v) || 0;
@@ -209,7 +270,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
 
         // Update OT / Bonus in earnings if present and not manual
         const finalEarnings = updatedEarnings.map((item: any) => {
-            const name = (item.component_name || item.salary_component || '').toLowerCase();
+            const name = getCompName(item).toLowerCase();
             if (name.includes('overtime') || name.includes('ot amount') || name === 'ot') {
                 if (!item.isManual && otAmount > 0) return { ...item, amount: otAmount.toFixed(2) };
             }
@@ -221,7 +282,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
 
         // Update PT in deductions if present and not manual
         const finalDeductions = updatedDeductions.map((item: any) => {
-            const name = (item.component_name || item.salary_component || '').toLowerCase();
+            const name = getCompName(item).toLowerCase();
             if (name.includes('professional tax') || name.includes('pt') || name.includes('prof tax')) {
                 if (!item.isManual) return { ...item, amount: ptAmount.toFixed(2) };
             }
@@ -288,21 +349,52 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         });
     }
 
-    function handleComponentChange(listName: 'earnings' | 'deductions', index: number, value: any) {
+    const handleAddSalaryRow = (type: 'earnings' | 'deductions') => {
         setFormData((prev: any) => {
-            const newList = [...(prev[listName] || [])];
-            newList[index] = { ...newList[index], amount: value, isManual: true };
-            const updated = { ...prev, [listName]: newList };
-            const result = recalculateTotals(updated);
-
-            // Preserve the raw string value for the specific component amount
-            const finalResults = { ...result };
-            finalResults[listName] = [...(result[listName] || [])];
-            finalResults[listName][index] = { ...finalResults[listName][index], amount: value };
-
-            return finalResults;
+            if (!prev) return prev;
+            const currentRows = prev[type] || [];
+            const availableOptions = type === 'earnings' ? earningComponents : deductionComponents;
+            const defaultCompObj = availableOptions.find((c: any) => !currentRows.some((r: any) => getCompName(r) === getCompName(c)));
+            const defaultCompName = getCompName(defaultCompObj) || getCompName(availableOptions[0]) || '';
+            const newRow = { component_name: defaultCompName, amount: 0, isManual: true };
+            const updated = {
+                ...prev,
+                [type]: [...currentRows, newRow]
+            };
+            return recalculateTotals(updated);
         });
-    }
+    };
+
+    const handleRemoveSalaryRow = (type: 'earnings' | 'deductions', index: number) => {
+        setFormData((prev: any) => {
+            if (!prev) return prev;
+            const currentRows = [...(prev[type] || [])];
+            currentRows.splice(index, 1);
+            const updated = {
+                ...prev,
+                [type]: currentRows
+            };
+            return recalculateTotals(updated);
+        });
+    };
+
+    const handleSalaryRowChange = (type: 'earnings' | 'deductions', index: number, field: 'component_name' | 'amount', value: any) => {
+        setFormData((prev: any) => {
+            if (!prev) return prev;
+            const currentRows = [...(prev[type] || [])];
+            const cleanVal = field === 'component_name' ? getCompName(value) : value;
+            currentRows[index] = {
+                ...currentRows[index],
+                [field]: cleanVal,
+                isManual: true
+            };
+            const updated = {
+                ...prev,
+                [type]: currentRows
+            };
+            return recalculateTotals(updated);
+        });
+    };
 
     useEffect(() => {
         if (open && slip) {
@@ -346,11 +438,13 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 mb: 3,
                 textAlign: 'center',
                 borderRadius: 2,
-                bgcolor: (theme) => alpha(theme.palette.info.main, 0.04),
-                border: (theme) => `1px solid ${alpha(theme.palette.info.main, 0.12)}`,
+                position: 'relative',
+                overflow: 'hidden',
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
             }}
         >
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 800, color: 'info.main', fontSize: '18px' }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 800, color: 'primary.main', fontSize: '22px' }}>
                 EDIT SALARY SLIP
             </Typography>
             <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
@@ -487,75 +581,461 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
     );
 
     // ── Salary Breakdown ────────────────────────────────────────────────────
+    // ── Salary Breakdown (Table Layout with Add/Delete Rows) ─────────────────
+    // ── Salary Breakdown (Table Layout with Add/Delete Rows) ─────────────────
     const renderSalaryBreakdown = (
         <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, alignItems: 'stretch' }}>
                 {/* Earnings */}
-                <Box
-                    sx={{
-                        p: 2.5,
-                        borderRadius: 2,
-                        bgcolor: (theme) => alpha(theme.palette.success.main, 0.04),
-                        border: (theme) => `1px solid ${alpha(theme.palette.success.main, 0.12)}`,
-                    }}
-                >
-                    <SectionHeader title="Earnings" icon={"solar:wad-of-money-bold" as any} color="success.main" />
+                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                        <Typography
+                            variant="subtitle2"
+                            sx={{
+                                fontWeight: 800,
+                                color: '#10b981',
+                                textTransform: 'uppercase',
+                                letterSpacing: 1,
+                                fontSize: '0.875rem'
+                            }}
+                        >
+                            EARNINGS
+                        </Typography>
+                        <Button
+                            size="small"
+                            variant="text"
+                            startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
+                            onClick={() => handleAddSalaryRow('earnings')}
+                            sx={{
+                                color: '#00a76f',
+                                fontWeight: 700,
+                                fontSize: '0.85rem',
+                                '&:hover': { bgcolor: alpha('#00a76f', 0.08) }
+                            }}
+                        >
+                            Add Row
+                        </Button>
+                    </Box>
 
-                    <Stack spacing={2}>
-                        {(formData.earnings || []).map((item: any, idx: number) => (
-                            <EditAmountRow
-                                key={idx}
-                                label={item.component_name || item.salary_component}
-                                amount={item.amount}
-                                hrSettings={hrSettings}
-                                onChange={(val) => handleComponentChange('earnings', idx, val)}
-                            />
-                        ))}
-                        <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
-                        <TotalRow
-                            label="Gross Earnings"
-                            amount={formData.gross_pay}
-                            color="success.main"
-                            hrSettings={hrSettings}
-                        />
-                    </Stack>
+                    <TableContainer
+                        sx={{
+                            border: (theme) => `1px solid ${alpha(theme.palette.grey[500], 0.2)}`,
+                            borderRadius: 1.5,
+                            overflow: 'hidden',
+                            bgcolor: 'background.paper',
+                            boxShadow: (theme) => theme.customShadows?.z1 || 'none',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            flex: 1,
+                            justifyContent: 'space-between',
+                        }}
+                    >
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell sx={{ py: 1.25, bgcolor: '#00a76f', color: 'common.white', fontWeight: 700, width: '58%' }}>
+                                        Component Name *
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ py: 1.25, bgcolor: '#00a76f', color: 'common.white', fontWeight: 700, width: '34%' }}>
+                                        Amount
+                                    </TableCell>
+                                    <TableCell width={48} sx={{ py: 1.25, bgcolor: '#00a76f' }} />
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {(formData.earnings || []).map((row: any, index: number) => (
+                                    <TableRow
+                                        key={index}
+                                        sx={{
+                                            '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02) },
+                                            borderBottom: (theme) => `1px solid ${alpha(theme.palette.grey[500], 0.1)}`
+                                        }}
+                                    >
+                                        <TableCell sx={{ py: 1 }}>
+                                            <Autocomplete
+                                                freeSolo
+                                                fullWidth
+                                                size="small"
+                                                options={earningComponents}
+                                                getOptionLabel={(option) => {
+                                                    if (typeof option === 'string') return option;
+                                                    if (option.isNew) return option.inputValue || '';
+                                                    return option.component_name || '';
+                                                }}
+                                                filterOptions={(options, filterParams) => {
+                                                    const filtered = filter(options, filterParams);
+                                                    filtered.push({
+                                                        component_name: '',
+                                                        inputValue: filterParams.inputValue,
+                                                        isNew: true,
+                                                    });
+                                                    return filtered;
+                                                }}
+                                                value={row.component_name || row.salary_component || ''}
+                                                onChange={(_, newValue: any) => {
+                                                    if (newValue?.isNew) {
+                                                        setComponentDialogType('Earning');
+                                                        setComponentInitialName(newValue.inputValue || '');
+                                                        setTargetRowIndex({ section: 'earnings', index });
+                                                        setComponentDialogOpen(true);
+                                                    } else {
+                                                        const val = typeof newValue === 'string' ? newValue : (newValue?.component_name || '');
+                                                        handleSalaryRowChange('earnings', index, 'component_name', val);
+                                                        const matched = salaryComponents.find((c) => c.component_name === val);
+                                                        if (matched && matched.static_amount && (!row.amount || row.amount === 0)) {
+                                                            handleSalaryRowChange('earnings', index, 'amount', matched.static_amount);
+                                                        }
+                                                    }
+                                                }}
+                                                onInputChange={(_, newInputValue, reason) => {
+                                                    if (reason === 'input') {
+                                                        handleSalaryRowChange('earnings', index, 'component_name', newInputValue);
+                                                    }
+                                                }}
+                                                renderOption={(props, option: any) => (
+                                                    <Box
+                                                        component="li"
+                                                        {...props}
+                                                        sx={{
+                                                            typography: 'body2',
+                                                            ...(option.isNew && {
+                                                                color: 'primary.main',
+                                                                fontWeight: 600,
+                                                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                                                py: '8px !important',
+                                                                px: '16px !important',
+                                                                mt: 0.5,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                '&:hover': {
+                                                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                                                },
+                                                            }),
+                                                        }}
+                                                    >
+                                                        {option.isNew ? (
+                                                            <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                                                                <Iconify icon="solar:add-circle-bold" width={20} />
+                                                                <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                                                                    Create Component {option.inputValue ? `"${option.inputValue}"` : ''}
+                                                                </Typography>
+                                                            </Stack>
+                                                        ) : (
+                                                            option.component_name || (typeof option === 'string' ? option : '')
+                                                        )}
+                                                    </Box>
+                                                )}
+                                                renderInput={(inputParams) => (
+                                                    <TextField
+                                                        {...inputParams}
+                                                        variant="standard"
+                                                        placeholder="Select Component"
+                                                        InputProps={{
+                                                            ...inputParams.InputProps,
+                                                            disableUnderline: true,
+                                                            sx: { typography: 'body2', fontWeight: 500 }
+                                                        }}
+                                                    />
+                                                )}
+                                            />
+                                        </TableCell>
+                                        <TableCell align="right" sx={{ py: 1, px: 2 }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                                <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={1} sx={{ width: 140 }}>
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            color: 'text.primary',
+                                                            fontWeight: 600,
+                                                            fontFamily: "Arial, 'sans-serif'",
+                                                        }}
+                                                    >
+                                                        {hrSettings.currency_symbol || '₹'}
+                                                    </Typography>
+                                                    <TextField
+                                                        size="small"
+                                                        type="number"
+                                                        variant="standard"
+                                                        value={row.amount === 0 ? '0' : (row.amount || '')}
+                                                        placeholder="0"
+                                                        onChange={(e) => handleSalaryRowChange('earnings', index, 'amount', parseFloat(e.target.value) || 0)}
+                                                        inputProps={{ sx: { textAlign: 'right', typography: 'body2', fontWeight: 600, p: 0, width: 95 } }}
+                                                        InputProps={{ disableUnderline: true }}
+                                                    />
+                                                </Stack>
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell align="center" sx={{ py: 1, width: 48 }}>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleRemoveSalaryRow('earnings', index)}
+                                                sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}
+                                            >
+                                                <Iconify icon="solar:trash-bin-trash-bold" width={18} />
+                                            </IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {(formData.earnings || []).length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={3} align="center" sx={{ py: 3, typography: 'body2', color: 'text.disabled' }}>
+                                            No earnings added. Click &quot;Add Row&quot; to start.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                px: 2,
+                                py: 1.25,
+                                bgcolor: alpha('#00a76f', 0.08),
+                                borderTop: (theme) => `1px solid ${alpha('#00a76f', 0.2)}`,
+                                mt: 'auto',
+                            }}
+                        >
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#00a76f', fontSize: '0.875rem' }}>
+                                Gross Earnings
+                            </Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#00a76f', fontSize: '0.95rem', display: 'flex', alignItems: 'center' }}>
+                                <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.5, fontSize: '0.85em' }}>
+                                    {hrSettings.currency_symbol || '₹'}
+                                </Box>
+                                {fNumber(formData.gross_pay || 0, { locale: hrSettings.default_locale, minimumFractionDigits: 2 })}
+                            </Typography>
+                        </Box>
+                    </TableContainer>
                 </Box>
 
                 {/* Deductions */}
-                <Box
-                    sx={{
-                        p: 2.5,
-                        borderRadius: 2,
-                        bgcolor: (theme) => alpha(theme.palette.error.main, 0.04),
-                        border: (theme) => `1px solid ${alpha(theme.palette.error.main, 0.12)}`,
-                    }}
-                >
-                    <SectionHeader title="Deductions" icon={"solar:hand-money-bold" as any} color="error.main" />
+                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                        <Typography
+                            variant="subtitle2"
+                            sx={{
+                                fontWeight: 800,
+                                color: '#e53935',
+                                textTransform: 'uppercase',
+                                letterSpacing: 1,
+                                fontSize: '0.875rem'
+                            }}
+                        >
+                            DEDUCTIONS
+                        </Typography>
+                        <Button
+                            size="small"
+                            variant="text"
+                            startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
+                            onClick={() => handleAddSalaryRow('deductions')}
+                            sx={{
+                                 color: '#e53935',
+                                 fontWeight: 700,
+                                 fontSize: '0.85rem',
+                                 '&:hover': { bgcolor: alpha('#e53935', 0.08) }
+                            }}
+                        >
+                            Add Row
+                        </Button>
+                    </Box>
 
-                    <Stack spacing={2}>
-                        {(formData.deductions || []).map((item: any, idx: number) => (
-                            <EditAmountRow
-                                key={idx}
-                                label={item.component_name || item.salary_component}
-                                amount={item.amount}
-                                hrSettings={hrSettings}
-                                onChange={(val) => handleComponentChange('deductions', idx, val)}
-                            />
-                        ))}
-                        <EditAmountRow
-                            label="LOP"
-                            amount={formData.lop}
-                            hrSettings={hrSettings}
-                            onChange={(val) => handleInputChange('lop', val)}
-                        />
-                        <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
-                        <TotalRow
-                            label="Total Deductions"
-                            amount={formData.total_deduction}
-                            color="error.main"
-                            hrSettings={hrSettings}
-                        />
-                    </Stack>
+                    <TableContainer
+                        sx={{
+                            border: (theme) => `1px solid ${alpha(theme.palette.grey[500], 0.2)}`,
+                            borderRadius: 1.5,
+                            overflow: 'hidden',
+                            bgcolor: 'background.paper',
+                            boxShadow: (theme) => theme.customShadows?.z1 || 'none',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            flex: 1,
+                            justifyContent: 'space-between',
+                        }}
+                    >
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell sx={{ py: 1.25, bgcolor: '#e53935', color: 'common.white', fontWeight: 700, width: '58%' }}>
+                                        Component Name *
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ py: 1.25, bgcolor: '#e53935', color: 'common.white', fontWeight: 700, width: '34%' }}>
+                                        Amount
+                                    </TableCell>
+                                    <TableCell width={48} sx={{ py: 1.25, bgcolor: '#e53935' }} />
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {(formData.deductions || []).map((row: any, index: number) => (
+                                    <TableRow
+                                        key={index}
+                                        sx={{
+                                            '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02) },
+                                            borderBottom: (theme) => `1px solid ${alpha(theme.palette.grey[500], 0.1)}`
+                                        }}
+                                    >
+                                        <TableCell sx={{ py: 1 }}>
+                                            <Autocomplete
+                                                freeSolo
+                                                fullWidth
+                                                size="small"
+                                                options={deductionComponents}
+                                                getOptionLabel={(option) => {
+                                                    if (typeof option === 'string') return option;
+                                                    if (option.isNew) return option.inputValue || '';
+                                                    return option.component_name || '';
+                                                }}
+                                                filterOptions={(options, filterParams) => {
+                                                    const filtered = filter(options, filterParams);
+                                                    filtered.push({
+                                                        component_name: '',
+                                                        inputValue: filterParams.inputValue,
+                                                        isNew: true,
+                                                    });
+                                                    return filtered;
+                                                }}
+                                                value={row.component_name || row.salary_component || ''}
+                                                onChange={(_, newValue: any) => {
+                                                    if (newValue?.isNew) {
+                                                        setComponentDialogType('Deduction');
+                                                        setComponentInitialName(newValue.inputValue || '');
+                                                        setTargetRowIndex({ section: 'deductions', index });
+                                                        setComponentDialogOpen(true);
+                                                    } else {
+                                                        const val = typeof newValue === 'string' ? newValue : (newValue?.component_name || '');
+                                                        handleSalaryRowChange('deductions', index, 'component_name', val);
+                                                        const matched = salaryComponents.find((c) => c.component_name === val);
+                                                        if (matched && matched.static_amount && (!row.amount || row.amount === 0)) {
+                                                            handleSalaryRowChange('deductions', index, 'amount', matched.static_amount);
+                                                        }
+                                                    }
+                                                }}
+                                                onInputChange={(_, newInputValue, reason) => {
+                                                    if (reason === 'input') {
+                                                        handleSalaryRowChange('deductions', index, 'component_name', newInputValue);
+                                                    }
+                                                }}
+                                                renderOption={(props, option: any) => (
+                                                    <Box
+                                                        component="li"
+                                                        {...props}
+                                                        sx={{
+                                                            typography: 'body2',
+                                                            ...(option.isNew && {
+                                                                color: 'primary.main',
+                                                                fontWeight: 600,
+                                                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                                                py: '8px !important',
+                                                                px: '16px !important',
+                                                                mt: 0.5,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                '&:hover': {
+                                                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                                                },
+                                                            }),
+                                                        }}
+                                                    >
+                                                        {option.isNew ? (
+                                                            <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                                                                <Iconify icon="solar:add-circle-bold" width={20} />
+                                                                <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                                                                    Create Component {option.inputValue ? `"${option.inputValue}"` : ''}
+                                                                </Typography>
+                                                            </Stack>
+                                                        ) : (
+                                                            option.component_name || (typeof option === 'string' ? option : '')
+                                                        )}
+                                                    </Box>
+                                                )}
+                                                renderInput={(inputParams) => (
+                                                    <TextField
+                                                        {...inputParams}
+                                                        variant="standard"
+                                                        placeholder="Select Component"
+                                                        InputProps={{
+                                                            ...inputParams.InputProps,
+                                                            disableUnderline: true,
+                                                            sx: { typography: 'body2', fontWeight: 500 }
+                                                        }}
+                                                    />
+                                                )}
+                                            />
+                                        </TableCell>
+                                        <TableCell align="right" sx={{ py: 1, px: 2 }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                                <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={1} sx={{ width: 140 }}>
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            color: 'text.primary',
+                                                            fontWeight: 600,
+                                                            fontFamily: "Arial, 'sans-serif'",
+                                                        }}
+                                                    >
+                                                        {hrSettings.currency_symbol || '₹'}
+                                                    </Typography>
+                                                    <TextField
+                                                        size="small"
+                                                        type="number"
+                                                        variant="standard"
+                                                        value={row.amount === 0 ? '0' : (row.amount || '')}
+                                                        placeholder="0"
+                                                        onChange={(e) => handleSalaryRowChange('deductions', index, 'amount', parseFloat(e.target.value) || 0)}
+                                                        inputProps={{ sx: { textAlign: 'right', typography: 'body2', fontWeight: 600, p: 0, width: 95 } }}
+                                                        InputProps={{ disableUnderline: true }}
+                                                    />
+                                                </Stack>
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell align="center" sx={{ py: 1, width: 48 }}>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleRemoveSalaryRow('deductions', index)}
+                                                sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}
+                                            >
+                                                <Iconify icon="solar:trash-bin-trash-bold" width={18} />
+                                            </IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {(formData.deductions || []).length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={3} align="center" sx={{ py: 3, typography: 'body2', color: 'text.disabled' }}>
+                                            No deductions added. Click &quot;Add Row&quot; to start.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                px: 2,
+                                py: 1.25,
+                                bgcolor: alpha('#e53935', 0.08),
+                                borderTop: (theme) => `1px solid ${alpha('#e53935', 0.2)}`,
+                                mt: 'auto',
+                            }}
+                        >
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#e53935', fontSize: '0.875rem' }}>
+                                Total Deductions
+                            </Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#e53935', fontSize: '0.95rem', display: 'flex', alignItems: 'center' }}>
+                                <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.5, fontSize: '0.85em' }}>
+                                    {hrSettings.currency_symbol || '₹'}
+                                </Box>
+                                {fNumber(formData.total_deduction || 0, { locale: hrSettings.default_locale, minimumFractionDigits: 2 })}
+                            </Typography>
+                        </Box>
+                    </TableContainer>
                 </Box>
             </Box>
         </Box>
@@ -594,6 +1074,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
     );
 
     return (
+        <>
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" PaperProps={{ sx: { borderRadius: 2, boxShadow: (themeVar) => themeVar.customShadows.z24, } }}>
             <DialogTitle
                 sx={{
@@ -707,6 +1188,19 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 </Scrollbar>
             </Popover>
         </Dialog>
+
+        {/* Create Salary Component Dialog */}
+        <SalaryComponentFormDialog
+            open={componentDialogOpen}
+            onClose={() => {
+                setComponentDialogOpen(false);
+                setTargetRowIndex(null);
+            }}
+            onSuccess={handleComponentCreated}
+            initialName={componentInitialName}
+            defaultType={componentDialogType}
+        />
+        </>
     );
 }
 
@@ -824,93 +1318,4 @@ function SleekEditRow({ label, value, onChange, action }: { label: string; value
     );
 }
 
-function EditAmountRow({ label, amount, hrSettings, onChange }: { label: string; amount: any; hrSettings: any; onChange: (val: string) => void }) {
-    return (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                {label}
-            </Typography>
-            <TextField
-                size="small"
-                inputMode="decimal"
-                value={amount ?? ''}
-                onFocus={(e) => {
-                    e.target.select();
-                }}
-                onBlur={(e) => {
-                    const val = e.target.value;
-                    if (val !== '') {
-                        onChange(parseFloat(val).toFixed(2));
-                    }
-                }}
-                onChange={(e) => {
-                    const val = e.target.value;
-                    const cleanVal = val.replace(/^0+(?=\d)/, '');
-                    onChange(cleanVal);
-                }}
-                sx={{
-                    width: 150,
-                    '& .MuiOutlinedInput-root': {
-                        bgcolor: 'background.paper',
-                        transition: (theme) => theme.transitions.create(['border-color', 'box-shadow']),
-                        '&:hover': {
-                            '& fieldset': {
-                                borderColor: (theme) => alpha(theme.palette.grey[500], 0.48),
-                            },
-                        },
-                        '&.Mui-focused': {
-                            '& fieldset': {
-                                borderColor: 'primary.main',
-                                borderWidth: '1px !important',
-                            },
-                            boxShadow: (theme) => `0 0 8px 0 ${alpha(theme.palette.primary.main, 0.16)}`,
-                        },
-                        '& fieldset': {
-                            borderColor: (theme) => alpha(theme.palette.grey[500], 0.24),
-                            borderRadius: 1,
-                        },
-                    },
-                }}
-                autoComplete="off"
-                InputProps={{
-                    startAdornment: (
-                        <InputAdornment position="start">
-                            <Box
-                                component="span"
-                                sx={{
-                                    fontWeight: 700,
-                                    color: 'text.secondary',
-                                    fontSize: '1rem',
-                                    mr: 0.5,
-                                    fontFamily: "'Arial', sans-serif",
-                                }}
-                            >
-                                {hrSettings.currency_symbol}
-                            </Box>
-                        </InputAdornment>
-                    ),
-                    sx: {
-                        fontWeight: 700,
-                        height: 42,
-                    },
-                }}
-            />
-        </Box>
-    );
-}
 
-function TotalRow({ label, amount, color, hrSettings }: { label: string; amount: number; color?: string; hrSettings: any }) {
-    return (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle2" sx={{ color: color || 'text.primary', fontWeight: 700 }}>
-                {label}
-            </Typography>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: color || 'inherit', display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ fontFamily: "'Arial', sans-serif", mr: 0.5, fontSize: '0.9em' }}>
-                    {hrSettings.currency_symbol}
-                </Box>
-                {fNumber(amount || 0, { locale: hrSettings.default_locale, minimumFractionDigits: 2 })}
-            </Typography>
-        </Box>
-    );
-}
