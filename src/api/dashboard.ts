@@ -157,8 +157,11 @@ export async function fetchTodayActivities(): Promise<TodayActivities> {
 export interface HRDashboardData {
     announcements: Array<{ title: string; message: string; posting_date: string }>;
     total_employees: number;
+    total_active_employees?: number;
     pending_leaves: number;
     present_today: number;
+    today_present?: number;
+    today_absent?: number;
     missing_attendance: number;
     todays_leaves: Array<{ employee_name: string; employee: string }>;
     todays_birthdays: Array<{ employee_name: string; employee: string }>;

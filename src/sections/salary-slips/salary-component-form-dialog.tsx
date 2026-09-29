@@ -1,6 +1,3 @@
-import type {
-    SalaryStructureComponent} from 'src/api/masters';
-
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -19,14 +16,8 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { COMMON_COLORS } from 'src/theme';
-import {
-    fetchSalaryComponents,
-} from 'src/api/hr-management';
-import {
-    getSalaryStructureComponent,
-    createSalaryStructureComponent,
-    updateSalaryStructureComponent
-} from 'src/api/masters';
+import { fetchSalaryComponents } from 'src/api/hr-management';
+import { createSalaryStructureComponent } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -35,16 +26,22 @@ import { Iconify } from 'src/components/iconify';
 type Props = {
     open: boolean;
     onClose: () => void;
-    onSuccess: () => void;
-    id?: string | null;
+    onSuccess: (newComponent: any) => void;
+    initialName?: string;
+    defaultType?: 'Earning' | 'Deduction';
 };
 
 const TYPE_OPTIONS = ['Earning', 'Deduction'];
 
-export function SalaryStructureComponentDialog({ open, onClose, onSuccess, id }: Props) {
+export function SalaryComponentFormDialog({
+    open,
+    onClose,
+    onSuccess,
+    initialName = '',
+    defaultType = 'Earning',
+}: Props) {
     const [componentName, setComponentName] = useState('');
-    const [fieldName, setFieldName] = useState('');
-    const [type, setType] = useState<string>('Earnings');
+    const [type, setType] = useState<string>('Earning');
     const [percentage, setPercentage] = useState<string>('');
     const [staticAmount, setStaticAmount] = useState<string>('');
     const [isDefault, setIsDefault] = useState(false);
@@ -62,36 +59,15 @@ export function SalaryStructureComponentDialog({ open, onClose, onSuccess, id }:
     });
 
     useEffect(() => {
-        const fetchData = async () => {
-            if (open) {
-                if (id) {
-                    try {
-                        setLoading(true);
-                        const data = await getSalaryStructureComponent(id);
-                        setComponentName(data.component_name || data.name || '');
-                        setType(data.type || 'Earning');
-                        setPercentage(data.percentage != null && Number(data.percentage) > 0 ? String(data.percentage) : '');
-                        setStaticAmount(data.static_amount != null && Number(data.static_amount) > 0 ? String(data.static_amount) : '');
-                        setIsDefault(!!data.is_default);
-                    } catch (err) {
-                        console.error('Failed to fetch component:', err);
-                        setSnackbar({ open: true, message: 'Failed to fetch details', severity: 'error' });
-                    } finally {
-                        setLoading(false);
-                    }
-                } else {
-                    setComponentName('');
-                    setType('Earning');
-                    setPercentage('');
-                    setStaticAmount('');
-                    setIsDefault(false);
-                }
-                setError('');
-            }
-        };
-
-        fetchData();
-    }, [open, id]);
+        if (open) {
+            setComponentName(initialName);
+            setType(defaultType || 'Earning');
+            setPercentage('');
+            setStaticAmount('');
+            setIsDefault(false);
+            setError('');
+        }
+    }, [open, initialName, defaultType]);
 
     const handleSubmit = async () => {
         if (!componentName.trim()) {
@@ -108,7 +84,7 @@ export function SalaryStructureComponentDialog({ open, onClose, onSuccess, id }:
                 const val = percentage !== '' ? parseFloat(percentage) : 0;
                 const allComponents = await fetchSalaryComponents();
                 const otherDefaultEarningsTotal = allComponents
-                    .filter((c: any) => c.is_default && c.type === 'Earning' && c.name !== id)
+                    .filter((c: any) => c.is_default && c.type === 'Earning')
                     .reduce((sum: number, c: any) => sum + (parseFloat(c.percentage) || 0), 0);
 
                 if (otherDefaultEarningsTotal + val > 100) {
@@ -120,25 +96,21 @@ export function SalaryStructureComponentDialog({ open, onClose, onSuccess, id }:
                 }
             }
 
-            const data: Partial<SalaryStructureComponent> = {
-                component_name: componentName,
-                type: type as any,
+            const data: any = {
+                component_name: componentName.trim(),
+                type,
                 percentage: percentage !== '' && !Number.isNaN(parseFloat(percentage)) ? parseFloat(percentage) : 0,
                 static_amount: staticAmount !== '' && !Number.isNaN(parseFloat(staticAmount)) ? parseFloat(staticAmount) : 0,
                 is_default: isDefault ? 1 : 0,
             };
 
-            if (id) {
-                await updateSalaryStructureComponent(id, data);
-            } else {
-                await createSalaryStructureComponent(data);
-            }
+            const created = await createSalaryStructureComponent(data);
 
-            onSuccess();
+            onSuccess(created || data);
             onClose();
         } catch (err: any) {
             console.error(err);
-            const msg = err.message || 'Failed to save';
+            const msg = err.message || 'Failed to create component';
             setError(msg);
             setSnackbar({ open: true, message: msg, severity: 'error' });
         } finally {
@@ -147,12 +119,23 @@ export function SalaryStructureComponentDialog({ open, onClose, onSuccess, id }:
     };
 
     return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 2, boxShadow: (themeVar) => themeVar.customShadows.z24, } }}>
+        <Dialog
+            open={open}
+            onClose={onClose}
+            fullWidth
+            maxWidth="sm"
+            PaperProps={{
+                sx: {
+                    borderRadius: 2,
+                    boxShadow: (themeVar) => themeVar.customShadows.z24,
+                },
+            }}
+        >
             <DialogTitle
                 sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
             >
                 <Typography variant="h6">
-                    {id ? 'Edit Salary Component' : 'New Salary Component'}
+                    New Salary Component
                 </Typography>
                 <Iconify
                     icon="mingcute:close-line"
@@ -180,7 +163,6 @@ export function SalaryStructureComponentDialog({ open, onClose, onSuccess, id }:
                             InputLabelProps={{ shrink: true }}
                             sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
                         />
-
 
                         <TextField
                             select
@@ -259,9 +241,13 @@ export function SalaryStructureComponentDialog({ open, onClose, onSuccess, id }:
                     fullWidth
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-                    sx={{ bgcolor: COMMON_COLORS.primaryButton.bg, color: COMMON_COLORS.primaryButton.color, '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg } }}
+                    sx={{
+                        bgcolor: COMMON_COLORS.primaryButton.bg,
+                        color: COMMON_COLORS.primaryButton.color,
+                        '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+                    }}
                 >
-                    {id ? 'Save Changes' : 'Create'}
+                    Create
                 </Button>
             </DialogActions>
 

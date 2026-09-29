@@ -110,6 +110,28 @@ export async function fetchSalaryComponents() {
     return json.message || [];
 }
 
+export async function createSalaryComponent(data: {
+    component_name: string;
+    type: 'Earning' | 'Deduction';
+    percentage?: number;
+    static_amount?: number;
+    is_default?: number;
+}) {
+    const res = await frappeRequest("/api/method/frappe.client.insert", {
+        method: "POST",
+        body: JSON.stringify({
+            doc: {
+                doctype: "Salary Structure Component",
+                ...data
+            }
+        })
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to create salary component"));
+    return json.message;
+}
+
 // Generic Permission API
 export async function getHRPermissions(doctype: string) {
     const res = await frappeRequest(`/api/method/company.company.frontend_api.get_doc_permissions?doctype=${doctype}`);
