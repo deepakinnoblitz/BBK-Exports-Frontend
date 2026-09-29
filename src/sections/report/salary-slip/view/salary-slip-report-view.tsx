@@ -37,6 +37,7 @@ import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { getDoctypeList } from 'src/api/leads';
 import { getHRSettings } from 'src/api/hr-management';
+import { COMMON_COLORS } from 'src/theme/common-colors';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchSalarySlips, getSalarySlipWithDetails, fetchSalarySlipsWithDetails } from 'src/api/salary-slips';
 
@@ -674,9 +675,9 @@ export function SalarySlipReportView() {
                                     onClick={handleExport}
                                     disabled={reportData.length === 0 || exportingExcel}
                                     sx={{
-                                        bgcolor: '#0ea5e9',
-                                        color: 'common.white',
-                                        '&:hover': { bgcolor: '#0284c7' },
+                                        bgcolor: COMMON_COLORS.primaryButton.bg,
+                                        color: COMMON_COLORS.primaryButton.color,
+                                        '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
                                         height: 40,
                                         px: 3,
                                     }}

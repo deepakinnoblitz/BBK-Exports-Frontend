@@ -42,6 +42,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { fDate } from 'src/utils/format-time';
 import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
+import { COMMON_COLORS } from 'src/theme/common-colors';
 import { runReport } from 'src/api/reports';
 import { getDoctypeList } from 'src/api/leads';
 import { fetchLeaveApplications } from 'src/api/leaves';
@@ -961,9 +962,9 @@ export function AttendanceReportView() {
                                     onClick={() => handleOpenExportDialog('excel')}
                                     disabled={reportData.length === 0 || exportingExcel}
                                     sx={{
-                                        bgcolor: '#0ea5e9',
-                                        color: 'common.white',
-                                        '&:hover': { bgcolor: '#0284c7' },
+                                        bgcolor: COMMON_COLORS.primaryButton.bg,
+                                        color: COMMON_COLORS.primaryButton.color,
+                                        '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
                                         height: 40,
                                         px: 3,
                                     }}
@@ -1621,9 +1622,9 @@ export function AttendanceReportView() {
                                         handleExport('list');
                                     }}
                                     sx={{
-                                        bgcolor: '#0ea5e9',
-                                        color: 'common.white',
-                                        '&:hover': { bgcolor: '#0284c7' }
+                                        bgcolor: COMMON_COLORS.primaryButton.bg,
+                                        color: COMMON_COLORS.primaryButton.color,
+                                        '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg }
                                     }}
                                 >
                                     Export Excel
@@ -1651,9 +1652,9 @@ export function AttendanceReportView() {
                                     handleExport('muster');
                                 }}
                                 sx={{
-                                    bgcolor: '#0ea5e9',
-                                    color: 'common.white',
-                                    '&:hover': { bgcolor: '#0284c7' }
+                                    bgcolor: COMMON_COLORS.primaryButton.bg,
+                                    color: COMMON_COLORS.primaryButton.color,
+                                    '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg }
                                 }}
                             >
                                 Export Excel

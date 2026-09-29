@@ -43,6 +43,7 @@ import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { runReport } from 'src/api/reports';
 import { getDoctypeList } from 'src/api/leads';
+import { COMMON_COLORS } from 'src/theme/common-colors';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Label } from 'src/components/label';
@@ -726,9 +727,9 @@ export function LeaveAllocationReportView() {
                                     onClick={() => handleOpenExportDialog('excel')}
                                     disabled={reportData.length === 0 || exportingExcel}
                                     sx={{
-                                        bgcolor: '#0ea5e9',
-                                        color: 'common.white',
-                                        '&:hover': { bgcolor: '#0284c7' },
+                                        bgcolor: COMMON_COLORS.primaryButton.bg,
+                                        color: COMMON_COLORS.primaryButton.color,
+                                        '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
                                         height: 40,
                                         px: 3,
                                     }}
@@ -1225,10 +1226,10 @@ export function LeaveAllocationReportView() {
                         variant="contained"
                         onClick={handleConfirmExport}
                         sx={{
-                            bgcolor: exportType === 'pdf' ? '#f43f5e' : '#0ea5e9',
+                            bgcolor: exportType === 'pdf' ? '#f43f5e' : COMMON_COLORS.primaryButton.bg,
                             color: 'common.white',
                             borderRadius: 1.5,
-                            '&:hover': { bgcolor: exportType === 'pdf' ? '#e11d48' : '#0284c7' }
+                            '&:hover': { bgcolor: exportType === 'pdf' ? '#e11d48' : COMMON_COLORS.primaryButton.hoverBg }
                         }}
                     >
                         Export {exportType.toUpperCase()}

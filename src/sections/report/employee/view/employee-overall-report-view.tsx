@@ -47,6 +47,7 @@ import { stringToColor, stringToDarkColor } from 'src/utils/color-utils';
 import { runReport } from 'src/api/reports';
 import { getDoctypeList } from 'src/api/leads';
 import { getEmployee } from 'src/api/employees';
+import { COMMON_COLORS } from 'src/theme/common-colors';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRSettings, fetchFrappeList } from 'src/api/hr-management';
 
@@ -1566,9 +1567,9 @@ export function EmployeeOverallReportView() {
                   onClick={handleExport}
                   disabled={exporting || data.length === 0}
                   sx={{
-                    bgcolor: '#0ea5e9',
-                    color: 'common.white',
-                    '&:hover': { bgcolor: '#0284c7' },
+                    bgcolor: COMMON_COLORS.primaryButton.bg,
+                    color: COMMON_COLORS.primaryButton.color,
+                    '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
                     height: 40,
                     px: 3,
                   }}
