@@ -133,14 +133,16 @@ export function SalarySlipEditView({ id: propId }: Props) {
         const round = (val: number) => Math.round(val * 100) / 100;
 
         const empType = (data.employee_type || '').toLowerCase();
-        const designation = (data.designation || '').toLowerCase();
-        const isWorker = empType.includes('worker') || designation.includes('worker');
-        const isNorthIndian = empType.includes('north indian') || designation.includes('north indian');
+        const isStaff = empType.includes('staff');
+        const isWorker = empType.includes('worker');
+        const isNorthIndian = empType.includes('north indian');
 
         const otHours = getNum(data.ot_hours);
         let otAmount = 0;
 
-        if (isWorker) {
+        if (isStaff) {
+            otAmount = 0;
+        } else if (isWorker) {
             const multiplier = getNum(hrSettings.workers_ot_rate_multiplier) || 2.0;
             // Formula: Gross / 26 / 8 * OT Hours * Multiplier
             otAmount = round((grossPay / 26 / 8) * otHours * multiplier);

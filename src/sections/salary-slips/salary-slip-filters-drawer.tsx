@@ -5,6 +5,7 @@ import Stack from '@mui/material/Stack';
 import Badge from '@mui/material/Badge';
 import Drawer from '@mui/material/Drawer';
 import Button from '@mui/material/Button';
+import { alpha } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -53,6 +54,47 @@ export function SalarySlipFiltersDrawer({
     options,
     isHR,
 }: Props) {
+    const quickPresets = [
+        {
+            id: 'this_month',
+            label: 'This Month',
+            start: dayjs().startOf('month').format('YYYY-MM-DD'),
+            end: dayjs().endOf('month').format('YYYY-MM-DD'),
+        },
+        {
+            id: 'past_month',
+            label: 'Past Month',
+            start: dayjs().subtract(1, 'month').startOf('month').format('YYYY-MM-DD'),
+            end: dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD'),
+        },
+        {
+            id: 'this_week',
+            label: 'This Week',
+            start: dayjs().startOf('week').format('YYYY-MM-DD'),
+            end: dayjs().endOf('week').format('YYYY-MM-DD'),
+        },
+        {
+            id: 'today',
+            label: 'Today',
+            start: dayjs().format('YYYY-MM-DD'),
+            end: dayjs().format('YYYY-MM-DD'),
+        },
+        {
+            id: 'yesterday',
+            label: 'Yesterday',
+            start: dayjs().subtract(1, 'day').format('YYYY-MM-DD'),
+            end: dayjs().subtract(1, 'day').format('YYYY-MM-DD'),
+        },
+    ];
+
+    const isPresetSelected = (start: string, end: string) => {
+        if (!filters.pay_period_start || !filters.pay_period_end) return false;
+        return (
+            dayjs(filters.pay_period_start).format('YYYY-MM-DD') === start &&
+            dayjs(filters.pay_period_end).format('YYYY-MM-DD') === end
+        );
+    };
+
     const handleFilterChange = (field: keyof SalarySlipFiltersProps, value: string) => {
         onFilters({ [field]: value });
     };
@@ -159,7 +201,8 @@ export function SalarySlipFiltersDrawer({
                 )}
                 renderOption={(props, option) => {
                     if (option === 'all') {
-                        const { key, ...itemProps } = props as any;
+                        const itemProps = { ...(props as any) };
+                        delete itemProps.key;
                         return (
                             <li key="all" {...itemProps}>
                                 All Employees
@@ -243,9 +286,73 @@ export function SalarySlipFiltersDrawer({
 
     const renderDateRange = (
         <Stack spacing={1.5}>
+            
+            {/* Quick Select Presets */}
+            <Box sx={{ pb: 2 }}>
+                <Typography
+                    variant="caption"
+                    sx={{
+                        color: 'text.primary',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.5,
+                        display: 'block',
+                        pb: 2,
+                    }}
+                >
+                    Quick Select:
+                </Typography>
+
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {quickPresets.map((preset) => {
+                        const selected = isPresetSelected(preset.start, preset.end);
+                        return (
+                            <Button
+                                key={preset.id}
+                                size="small"
+                                onClick={() => onFilters({ pay_period_start: preset.start, pay_period_end: preset.end })}
+                                sx={{
+                                    borderRadius: 1,
+                                    py: 0.5,
+                                    px: 1.25,
+                                    fontWeight: 700,
+                                    fontSize: '0.75rem',
+                                    textTransform: 'none',
+                                    transition: (theme) =>
+                                        theme.transitions.create(['all'], {
+                                            duration: theme.transitions.duration.shorter,
+                                        }),
+                                    ...(selected
+                                        ? {
+                                            bgcolor: '#059669',
+                                            color: 'common.white',
+                                            boxShadow: '0 2px 8px 0 rgba(5, 150, 105, 0.35)',
+                                            '&:hover': {
+                                                bgcolor: '#047857',
+                                            },
+                                        }
+                                        : {
+                                            bgcolor: (theme) => alpha(theme.palette.grey[500], 0.08),
+                                            color: 'text.secondary',
+                                            border: (theme) => `1px solid ${alpha(theme.palette.grey[500], 0.16)}`,
+                                            '&:hover': {
+                                                bgcolor: (theme) => alpha(theme.palette.grey[500], 0.16),
+                                                color: 'text.primary',
+                                            },
+                                        }),
+                                }}
+                            >
+                                {preset.label}
+                            </Button>
+                        );
+                    })}
+                </Box>
+            </Box>
+
             <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
                 Pay Period Range
             </Typography>
+
             <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
                     label="From"

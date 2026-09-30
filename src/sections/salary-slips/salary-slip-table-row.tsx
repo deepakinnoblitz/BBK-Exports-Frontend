@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import { alpha } from '@mui/material/styles';
@@ -35,6 +37,7 @@ type Props = {
         id: string;
         employee_name: string;
         employee_id?: string;
+        employee_type?: string;
         pay_period_start: string;
         pay_period_end: string;
         gross_pay: number;
@@ -72,7 +75,8 @@ export function SalarySlipTableRow({
 
     const formatDate = (date: string) => {
         if (!date) return '-';
-        return new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        const d = dayjs(date);
+        return d.isValid() ? d.format('D MMM YYYY') : '-';
     };
 
     const periodLabel = `${formatDate(row.pay_period_start)} - ${formatDate(row.pay_period_end)}`;
@@ -128,11 +132,11 @@ export function SalarySlipTableRow({
                     <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
                         {row.employee_name}
                     </Typography>
-                    {row.employee_id && (
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {row.employee_id}
-                        </Typography>
-                    )}
+                    <Stack direction="row" alignItems="center" spacing={0.75} sx={{ color: 'text.secondary', typography: 'caption' }}>
+                        {row.employee_id && <span>{row.employee_id}</span>}
+                        {row.employee_id && row.employee_type && <span>•</span>}
+                        {row.employee_type && <span>{row.employee_type}</span>}
+                    </Stack>
                 </Box>
             </TableCell>
 

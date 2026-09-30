@@ -407,6 +407,7 @@ export function SalarySlipsView() {
                                                     id: row.name,
                                                     employee_name: row.employee_name,
                                                     employee_id: row.employee,
+                                                    employee_type: row.employee_type,
                                                     pay_period_start: row.pay_period_start,
                                                     pay_period_end: row.pay_period_end,
                                                     gross_pay: row.gross_pay,
