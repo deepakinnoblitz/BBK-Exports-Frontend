@@ -148,6 +148,9 @@ export function LeaveAllocationView() {
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
     const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: string | null }>({ open: false, id: null });
+    const [selected, setSelected] = useState<string[]>([]);
+    const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
     const [selectedAllocationId, setSelectedAllocationId] = useState<string | null>(null);
     const [openAutoAllocate, setOpenAutoAllocate] = useState(false);
     const [openDetails, setOpenDetails] = useState(false);
@@ -334,6 +337,7 @@ export function LeaveAllocationView() {
         try {
             await deleteLeaveAllocation(confirmDelete.id);
             setSnackbar({ open: true, message: 'Deleted successfully', severity: 'success' });
+            setSelected((prev) => prev.filter((item) => item !== confirmDelete.id));
             refetch();
         } catch (e: any) {
             setSnackbar({ open: true, message: e.message, severity: 'error' });
@@ -341,6 +345,48 @@ export function LeaveAllocationView() {
             setConfirmDelete({ open: false, id: null });
         }
     };
+
+    const handleSelectAllRows = (checked: boolean) => {
+        if (checked) {
+            setSelected(data.map((row) => row.name));
+        } else {
+            setSelected([]);
+        }
+    };
+
+    const handleSelectRow = (id: string) => {
+        setSelected((prev) =>
+            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkDelete = async () => {
+        if (selected.length === 0) return;
+        try {
+            setBulkDeleting(true);
+            await Promise.all(selected.map((id) => deleteLeaveAllocation(id)));
+            setSnackbar({
+                open: true,
+                message: `${selected.length} leave allocation(s) deleted successfully`,
+                severity: 'success',
+            });
+            setSelected([]);
+            refetch();
+        } catch (err: any) {
+            setSnackbar({
+                open: true,
+                message: err.message || 'Failed to delete selected allocations',
+                severity: 'error',
+            });
+        } finally {
+            setBulkDeleting(false);
+            setConfirmBulkDelete(false);
+        }
+    };
+
+    useEffect(() => {
+        setSelected([]);
+    }, [page, rowsPerPage, filters, filterName, currentTab]);
 
     const handleCloseCreate = () => {
         setOpenCreate(false);
@@ -435,9 +481,13 @@ export function LeaveAllocationView() {
             {currentTab === 'allocations' && (
             <Card>
                 <LeavesTableToolbar
-                    numSelected={0}
+                    numSelected={selected.length}
                     filterName={filterName}
-                    onFilterName={(e) => setFilterName(e.target.value)}
+                    onFilterName={(e) => {
+                        setFilterName(e.target.value);
+                        setPage(0);
+                    }}
+                    onDelete={permissions.delete ? () => setConfirmBulkDelete(true) : undefined}
                     searchPlaceholder="Search allocations..."
                     sortBy={`${orderBy}_${order}`}
                     onSortChange={(val) => {
@@ -460,9 +510,9 @@ export function LeaveAllocationView() {
                                 order={order}
                                 orderBy={orderBy}
                                 rowCount={data.length}
-                                numSelected={0}
-                                onSelectAllRows={() => { }}
-                                hideCheckbox
+                                numSelected={selected.length}
+                                onSelectAllRows={(checked: boolean) => handleSelectAllRows(checked)}
+                                hideCheckbox={!permissions.delete}
                                 showIndex
                                 headLabel={[
                                     { id: 'employee', label: 'Employee' },
@@ -479,7 +529,7 @@ export function LeaveAllocationView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
@@ -489,7 +539,7 @@ export function LeaveAllocationView() {
                                             <LeaveAllocationTableRow
                                                 key={row.name}
                                                 index={page * rowsPerPage + index}
-                                                hideCheckbox
+                                                hideCheckbox={!permissions.delete}
                                                 row={{
                                                     id: row.name,
                                                     employee: row.employee,
@@ -502,8 +552,8 @@ export function LeaveAllocationView() {
                                                     leavesTaken: row.total_leaves_taken,
                                                     status: row.workflow_state || row.status,
                                                 }}
-                                                selected={false}
-                                                onSelectRow={() => { }}
+                                                selected={selected.includes(row.name)}
+                                                onSelectRow={() => handleSelectRow(row.name)}
                                                 onView={() => {
                                                     setSelectedAllocationId(row.name);
                                                     setOpenDetails(true);
@@ -525,7 +575,7 @@ export function LeaveAllocationView() {
                                                             '& td': { borderBottom: 'none' },
                                                         }}
                                                     >
-                                                        <TableCell colSpan={8} />
+                                                        <TableCell colSpan={10} />
                                                     </TableRow>
                                                 ))}
                                             </>
@@ -537,7 +587,7 @@ export function LeaveAllocationView() {
 
                                         {!data.length && !filterName && (
                                             <TableRow>
-                                                <TableCell colSpan={8}>
+                                                <TableCell colSpan={10}>
                                                     <EmptyContent title="No Leave Allocation Found" sx={{ py: 16 }} />
                                                 </TableCell>
                                             </TableRow>
@@ -835,6 +885,23 @@ export function LeaveAllocationView() {
                 title="Delete"
                 content="Are you sure you want to delete this allocation?"
                 action={<Button variant="contained" color="error" onClick={handleConfirmDelete}>Delete</Button>}
+            />
+
+            <ConfirmDialog
+                open={confirmBulkDelete}
+                onClose={() => setConfirmBulkDelete(false)}
+                title="Delete Allocations"
+                content={`Are you sure you want to delete ${selected.length} selected allocation(s)?`}
+                action={
+                    <LoadingButton
+                        variant="contained"
+                        color="error"
+                        loading={bulkDeleting}
+                        onClick={handleBulkDelete}
+                    >
+                        Delete
+                    </LoadingButton>
+                }
             />
 
             <LeaveAllocationDetailsDialog

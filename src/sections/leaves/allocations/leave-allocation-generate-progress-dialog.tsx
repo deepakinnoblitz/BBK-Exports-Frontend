@@ -14,9 +14,12 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import LinearProgress from '@mui/material/LinearProgress';
 
+import { COMMON_COLORS } from 'src/theme';
 import { autoAllocateMonthlyLeavesNew } from 'src/api/leave-allocations';
 
 import { Iconify } from 'src/components/iconify';
+
+import AutoAllocateResultDialog from './auto-allocate-result-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -54,6 +57,20 @@ export default function LeaveAllocationGenerateProgressDialog({
     const [status, setStatus] = useState<'idle' | 'running' | 'completed' | 'stopped' | 'error'>('idle');
     const [errorLogs, setErrorLogs] = useState<string[]>([]);
     const [showLogs, setShowLogs] = useState(false);
+    const [resultData, setResultData] = useState<{
+        created_count: number;
+        skipped_count: number;
+        created_details: {
+            employee_name: string;
+            employee_id: string;
+            leave_type: string;
+            allocated?: number;
+            total_leaves?: number;
+            carry_forward?: number;
+        }[];
+        errors: string[];
+    } | null>(null);
+    const [openResultDialog, setOpenResultDialog] = useState(false);
 
     const isStoppedRef = useRef(false);
     const isRunningRef = useRef(false);
@@ -65,6 +82,14 @@ export default function LeaveAllocationGenerateProgressDialog({
     const accSkippedRef = useRef(0);
     const accFailedRef = useRef(0);
     const accErrorsRef = useRef<string[]>([]);
+    const accCreatedDetailsRef = useRef<{
+        employee_name: string;
+        employee_id: string;
+        leave_type: string;
+        allocated?: number;
+        total_leaves?: number;
+        carry_forward?: number;
+    }[]>([]);
 
     useEffect(() => {
         onCompleteRef.current = onComplete;
@@ -108,9 +133,14 @@ export default function LeaveAllocationGenerateProgressDialog({
                 const batchCreated = res?.created_count ?? 0;
                 const batchSkipped = res?.skipped_count ?? 0;
                 const batchErrors = res?.errors ?? [];
+                const batchCreatedDetails = res?.created_details ?? [];
 
                 accCreatedRef.current += batchCreated;
                 accSkippedRef.current += batchSkipped;
+
+                if (batchCreatedDetails && batchCreatedDetails.length > 0) {
+                    accCreatedDetailsRef.current.push(...batchCreatedDetails);
+                }
 
                 if (batchErrors && batchErrors.length > 0) {
                     accFailedRef.current += batchErrors.length;
@@ -133,6 +163,12 @@ export default function LeaveAllocationGenerateProgressDialog({
 
         if (!isStoppedRef.current) {
             setStatus('completed');
+            setResultData({
+                created_count: accCreatedRef.current,
+                skipped_count: accSkippedRef.current,
+                created_details: [...accCreatedDetailsRef.current],
+                errors: [...accErrorsRef.current],
+            });
             if (onCompleteRef.current) {
                 onCompleteRef.current({
                     total: totalEmployees,
@@ -156,11 +192,14 @@ export default function LeaveAllocationGenerateProgressDialog({
             setTotalBatches(0);
             setStatus('idle');
             setErrorLogs([]);
+            setResultData(null);
+            setOpenResultDialog(false);
             batchIndexRef.current = 0;
             accCreatedRef.current = 0;
             accSkippedRef.current = 0;
             accFailedRef.current = 0;
             accErrorsRef.current = [];
+            accCreatedDetailsRef.current = [];
             return;
         }
 
@@ -419,17 +458,52 @@ export default function LeaveAllocationGenerateProgressDialog({
                 )}
 
                 {status === 'completed' && (
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        size="medium"
-                        onClick={handleDone}
-                        sx={{ textTransform: 'none', minWidth: 120 }}
-                    >
-                        View Leave Allocations
-                    </Button>
+                    <Stack direction="row" spacing={1.5} justifyContent="flex-end" sx={{ width: '100%' }}>
+                        <Button
+                            variant="outlined"
+                            size="medium"
+                            onClick={() => setOpenResultDialog(true)}
+                            startIcon={<Iconify icon={"solar:eye-bold" as any} width={18} />}
+                            sx={{
+                                textTransform: 'none',
+                                fontWeight: 700,
+                                color: COMMON_COLORS.emerald.main,
+                                borderColor: alpha(COMMON_COLORS.emerald.main, 0.4),
+                                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.04),
+                                '&:hover': {
+                                    borderColor: COMMON_COLORS.emerald.main,
+                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.1),
+                                },
+                            }}
+                        >
+                            View
+                        </Button>
+                        <Button
+                            variant="contained"
+                            size="medium"
+                            onClick={handleDone}
+                            sx={{
+                                textTransform: 'none',
+                                fontWeight: 700,
+                                minWidth: 120,
+                                bgcolor: COMMON_COLORS.primaryButton.bg,
+                                color: COMMON_COLORS.primaryButton.color,
+                                '&:hover': {
+                                    bgcolor: COMMON_COLORS.primaryButton.hoverBg,
+                                },
+                            }}
+                        >
+                            View Leave Allocations
+                        </Button>
+                    </Stack>
                 )}
             </DialogActions>
+
+            <AutoAllocateResultDialog
+                open={openResultDialog}
+                onClose={() => setOpenResultDialog(false)}
+                data={resultData}
+            />
         </Dialog>
     );
 }
