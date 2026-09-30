@@ -17,6 +17,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { frappeRequest } from 'src/utils/csrf';
 
+import { COMMON_COLORS } from 'src/theme';
 import { submitReferral } from 'src/api/referrals';
 
 import { Iconify } from 'src/components/iconify';
@@ -356,7 +357,13 @@ export function ReferralModal({ open, onClose, onSuccess, onError, selectedJob, 
           variant="contained" 
           disabled={uploading}
           loading={isSubmitting}
-          sx={{ bgcolor: '#00A5D1', '&:hover': { bgcolor: '#0084a7' } }}
+          sx={{
+            bgcolor: COMMON_COLORS.primaryButton.bg,
+            color: COMMON_COLORS.primaryButton.color,
+            '&:hover': {
+              bgcolor: COMMON_COLORS.primaryButton.hoverBg,
+            },
+          }}
         >
           Submit Referral
         </Button>
