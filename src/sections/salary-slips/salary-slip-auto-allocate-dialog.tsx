@@ -235,7 +235,7 @@ export default function SalarySlipAutoAllocateDialog({ open, onClose, onSuccess,
     const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [fetchingEmployees, setFetchingEmployees] = useState(false);
-    
+
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'selected' | 'unselected'>('all');
