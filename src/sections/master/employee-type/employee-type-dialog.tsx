@@ -35,7 +35,18 @@ type Props = {
     id?: string | null;
 };
 
-const CATEGORY_OPTIONS = [
+export const EMPLOYEE_TYPE_OPTIONS = [
+    'Staff',
+    'North Indian',
+    'Workers',
+    'Drivers',
+    'Contractor',
+    'House Keeping',
+    'Security',
+    'STP Employees',
+];
+
+export const CATEGORY_OPTIONS = [
     'CTC',
     'Non CTC',
     'Skilled',
@@ -45,8 +56,8 @@ const CATEGORY_OPTIONS = [
 ];
 
 export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
-    const [employeeType, setEmployeeType] = useState('');
-    const [categoryType, setCategoryType] = useState('General');
+    const [employeeType, setEmployeeType] = useState('Staff');
+    const [categoryType, setCategoryType] = useState('CTC');
     const [description, setDescription] = useState('');
 
     const [loading, setLoading] = useState(false);
@@ -64,8 +75,21 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
                     try {
                         setLoading(true);
                         const data = await getEmployeeType(id);
-                        setEmployeeType(data.employee_type || data.name || '');
-                        setCategoryType(data.category_type || 'General');
+                        
+                        // Parse base type and category if in "Type - Category" format
+                        let rawType = data.employee_type || data.name || '';
+                        let rawCategory = data.category_type || 'General';
+
+                        if (rawType.includes(' - ')) {
+                            const parts = rawType.split(' - ');
+                            rawType = parts[0].trim();
+                            if (parts.length > 1 && !data.category_type) {
+                                rawCategory = parts[1].trim();
+                            }
+                        }
+
+                        setEmployeeType(rawType);
+                        setCategoryType(rawCategory);
                         setDescription(data.description || '');
                     } catch (err) {
                         console.error('Failed to fetch employee type:', err);
@@ -74,8 +98,8 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         setLoading(false);
                     }
                 } else {
-                    setEmployeeType('');
-                    setCategoryType('General');
+                    setEmployeeType('Staff');
+                    setCategoryType('CTC');
                     setDescription('');
                 }
                 setError('');
@@ -84,6 +108,24 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
 
         fetchData();
     }, [open, id]);
+
+    const handleEmployeeTypeChange = (newType: string) => {
+        setEmployeeType(newType);
+        if (error === 'required') setError('');
+
+        // Auto-suggest logical category based on selected Employee Type
+        if (newType === 'Staff' || newType === 'North Indian') {
+            if (!['CTC', 'Non CTC'].includes(categoryType)) {
+                setCategoryType('CTC');
+            }
+        } else if (newType === 'Workers') {
+            if (!['Skilled', 'Semi Skilled', 'Unskilled'].includes(categoryType)) {
+                setCategoryType('Skilled');
+            }
+        } else {
+            setCategoryType('General');
+        }
+    };
 
     const previewName = employeeType.trim()
         ? (categoryType && categoryType !== 'General' && !employeeType.toLowerCase().includes(`- ${categoryType.toLowerCase()}`)
@@ -94,7 +136,7 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
     const handleSubmit = async () => {
         if (!employeeType.trim()) {
             setError('required');
-            setSnackbar({ open: true, message: 'Employee Type name is required', severity: 'error' });
+            setSnackbar({ open: true, message: 'Employee Type is required', severity: 'error' });
             return;
         }
 
@@ -158,22 +200,25 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
             <DialogContent dividers>
                 <Box sx={{ py: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <TextField
+                        select
                         required
                         fullWidth
                         label="Employee Type"
-                        placeholder="e.g. Staff, Workers"
                         value={employeeType}
-                        onChange={(e) => {
-                            setEmployeeType(e.target.value);
-                            if (error === 'required') setError('');
-                        }}
+                        onChange={(e) => handleEmployeeTypeChange(e.target.value)}
                         error={error === 'required'}
                         helperText={error === 'required' ? 'Employee Type is required' : ''}
                         disabled={loading}
                         autoFocus
                         InputLabelProps={{ shrink: true }}
                         sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
-                    />
+                    >
+                        {EMPLOYEE_TYPE_OPTIONS.map((opt) => (
+                            <MenuItem key={opt} value={opt}>
+                                {opt}
+                            </MenuItem>
+                        ))}
+                    </TextField>
 
                     <TextField
                         select
@@ -194,7 +239,7 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
                     {previewName && (
                         <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: 'action.hover', border: (theme) => `1px dashed ${theme.palette.divider}` }}>
                             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
-                                Resulting Name:
+                                Resulting System Name:
                             </Typography>
                             <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
                                 {previewName}

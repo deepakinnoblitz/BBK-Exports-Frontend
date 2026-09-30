@@ -6,6 +6,7 @@ import Badge from '@mui/material/Badge';
 import Drawer from '@mui/material/Drawer';
 import Button from '@mui/material/Button';
 import Select from '@mui/material/Select';
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -44,6 +45,46 @@ export function AttendanceTableFiltersDrawer({
     employeeOptions,
     isHR,
 }: Props) {
+    const quickPresets = [
+        {
+            id: 'this_month',
+            label: 'This Month',
+            start: dayjs().startOf('month').format('YYYY-MM-DD'),
+            end: dayjs().endOf('month').format('YYYY-MM-DD'),
+        },
+        {
+            id: 'past_month',
+            label: 'Past Month',
+            start: dayjs().subtract(1, 'month').startOf('month').format('YYYY-MM-DD'),
+            end: dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD'),
+        },
+        {
+            id: 'this_week',
+            label: 'This Week',
+            start: dayjs().startOf('week').format('YYYY-MM-DD'),
+            end: dayjs().endOf('week').format('YYYY-MM-DD'),
+        },
+        {
+            id: 'today',
+            label: 'Today',
+            start: dayjs().format('YYYY-MM-DD'),
+            end: dayjs().format('YYYY-MM-DD'),
+        },
+        {
+            id: 'yesterday',
+            label: 'Yesterday',
+            start: dayjs().subtract(1, 'day').format('YYYY-MM-DD'),
+            end: dayjs().subtract(1, 'day').format('YYYY-MM-DD'),
+        },
+    ];
+
+    const isPresetSelected = (start: string, end: string) => {
+        if (!filters.startDate || !filters.endDate) return false;
+        return (
+            dayjs(filters.startDate).format('YYYY-MM-DD') === start &&
+            dayjs(filters.endDate).format('YYYY-MM-DD') === end
+        );
+    };
     const renderHead = (
         <Box
             sx={{
@@ -193,9 +234,72 @@ export function AttendanceTableFiltersDrawer({
                         )}
 
                         <Stack spacing={1.5}>
-                            <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                            {/* Quick Select Presets */}
+                            <Box sx={{ mb: 1.5 }}>
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: 'text.primary',
+                                        fontWeight: 700,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                        display: 'block',
+                                        pb: 2,
+                                    }}
+                                >
+                                    Quick Select:
+                                </Typography>
+
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                    {quickPresets.map((preset) => {
+                                        const selected = isPresetSelected(preset.start, preset.end);
+                                        return (
+                                            <Button
+                                                key={preset.id}
+                                                size="small"
+                                                onClick={() => onFilters({ startDate: preset.start, endDate: preset.end })}
+                                                sx={{
+                                                    borderRadius: 1,
+                                                    py: 0.5,
+                                                    px: 1.25,
+                                                    fontWeight: 700,
+                                                    fontSize: '0.75rem',
+                                                    textTransform: 'none',
+                                                    transition: (theme) =>
+                                                        theme.transitions.create(['all'], {
+                                                            duration: theme.transitions.duration.shorter,
+                                                        }),
+                                                    ...(selected
+                                                        ? {
+                                                            bgcolor: '#059669',
+                                                            color: 'common.white',
+                                                            boxShadow: '0 2px 8px 0 rgba(5, 150, 105, 0.35)',
+                                                            '&:hover': {
+                                                                bgcolor: '#047857',
+                                                            },
+                                                        }
+                                                        : {
+                                                            bgcolor: (theme) => alpha(theme.palette.grey[500], 0.08),
+                                                            color: 'text.secondary',
+                                                            border: (theme) => `1px solid ${alpha(theme.palette.grey[500], 0.16)}`,
+                                                            '&:hover': {
+                                                                bgcolor: (theme) => alpha(theme.palette.grey[500], 0.16),
+                                                                color: 'text.primary',
+                                                            },
+                                                        }),
+                                                }}
+                                            >
+                                                {preset.label}
+                                            </Button>
+                                        );
+                                    })}
+                                </Box>
+                            </Box>
+
+                            <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600, pt: 2 }}>
                                 Date Range
                             </Typography>
+
                             <Stack spacing={2}>
                                 <DatePicker
                                     label="Start Date"

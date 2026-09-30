@@ -58,7 +58,7 @@ export function LeadTableHead({
             key={headCell.id}
             align={headCell.align || 'left'}
             sortDirection={orderBy === headCell.id ? order : false}
-            sx={{ width: headCell.width, minWidth: headCell.minWidth, ...headCell.sx }}
+            sx={{ width: headCell.width, minWidth: headCell.minWidth, px: 1, whiteSpace: 'nowrap', ...headCell.sx }}
           >
             {onSort ? (
               <TableSortLabel

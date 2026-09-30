@@ -160,6 +160,9 @@ export interface MonthlyEmployeeAllocationPreview {
     employee: string;
     employee_id: string;
     employee_name: string;
+    department?: string;
+    designation?: string;
+    employee_type?: string;
     date_of_joining: string;
     in_probation: boolean;
     working_days?: number;
@@ -198,19 +201,28 @@ export async function getMonthlyLeaveAllocationPreview(
     return json.message || [];
 }
 
-/** GET /api/method/company.company.frontend_api.auto_allocate_monthly_leaves */
+/** POST /api/method/company.company.frontend_api.auto_allocate_monthly_leaves */
 export async function autoAllocateMonthlyLeavesNew(
     year: number,
     month: number,
     only_conditional: boolean = false,
     attendance_month?: number,
-    attendance_year?: number
+    attendance_year?: number,
+    employees?: string[]
 ): Promise<MonthlyAutoAllocateResult> {
     const headers = await getAuthHeaders();
-    let url = `/api/method/company.company.frontend_api.auto_allocate_monthly_leaves?year=${year}&month=${month}&only_conditional=${only_conditional ? 1 : 0}`;
-    if (attendance_month) url += `&attendance_month=${attendance_month}`;
-    if (attendance_year) url += `&attendance_year=${attendance_year}`;
-    const res = await frappeRequest(url, { method: 'GET', headers });
+    const res = await frappeRequest('/api/method/company.company.frontend_api.auto_allocate_monthly_leaves', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+            year,
+            month,
+            only_conditional: only_conditional ? 1 : 0,
+            attendance_month,
+            attendance_year,
+            employees: employees && employees.length > 0 ? employees : undefined,
+        }),
+    });
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, 'Failed to auto-allocate monthly leaves'));
     return json.message;

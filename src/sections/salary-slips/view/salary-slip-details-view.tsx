@@ -197,7 +197,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
             case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
             case 'absent': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
             case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
-            case 'holiday': return bd.filter((d: any) => d.status.includes('Holiday'));
+            case 'holiday': return slip?.holidays_details?.length ? slip.holidays_details : bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
             case 'unpaid_leave': return bd.filter((d: any) => d.status.includes('Unpaid Leave'));
             case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave'));
             case 'lop': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
@@ -347,6 +347,200 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
         </Box>
     );
 
+    const baseGrossPay = slip.base_gross_pay !== undefined && slip.base_gross_pay !== null && Number(slip.base_gross_pay) > 0
+        ? Number(slip.base_gross_pay)
+        : (() => {
+            const baseEarnings = (slip.earnings || []).filter((e: any) => {
+                const name = (e.component_name || e.salary_component || '').trim();
+                return !['Overtime Pay (OT)', 'Overtime Allowance', 'Attendance Bonus'].includes(name);
+            });
+            if (baseEarnings.length > 0) {
+                return baseEarnings.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
+            }
+            return Math.max(0, Number(slip.gross_pay || 0) - Number(slip.ot_amount || 0) - Number(slip.attendance_bonus || 0));
+        })();
+
+    const renderDetailedSummary = (
+        <Box sx={{ mb: 4 }}>
+            <SectionHeader title="Calculation Logic & Breakdown" icon="solar:programming-bold" color="info.main" />
+
+            <Box
+                sx={{
+                    p: 2,
+                    mb: 2,
+                    borderRadius: 2,
+                    display: 'grid',
+                    gap: 1,
+                    bgcolor: (theme) => alpha(theme.palette.info.main, 0.04),
+                    border: (theme) => `1px solid ${alpha(theme.palette.info.main, 0.12)}`,
+                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                }}
+            >
+                <InfoRow label="Calc Source" value={slip.calc_source || 'Attendance'} />
+                <InfoRow label="Basis" value={slip.working_days_basis === 'Fixed Number of Days' ? `Fixed (${slip.total_working_days}d)` : 'Actual Month'} />
+                <InfoRow label="Holiday Handling" value={slip.holiday_handling?.includes('Exclude') ? 'Excluded' : 'Included'} />
+                <InfoRow label="Monthly Base" value={`${slip.total_working_days || 26} Days`} />
+            </Box>
+
+            <Box
+                sx={{
+                    p: 3,
+                    borderRadius: 2.5,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    bgcolor: (theme) => alpha(theme.palette.info.main, 0.03),
+                    border: (theme) => `1px solid ${alpha(theme.palette.info.main, 0.1)}`,
+                }}
+            >
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: -20,
+                        right: -20,
+                        opacity: 0.05,
+                        transform: 'rotate(-15deg)',
+                        color: 'info.main',
+                    }}
+                >
+                    <Iconify icon={"solar:calculator-minimalistic-bold" as any} width={120} />
+                </Box>
+
+                <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
+                    <Typography variant="overline" sx={{ color: 'info.main', fontWeight: 900, fontSize: 14 }}>
+                        Prorated Salary Formula
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2.5 }}>
+                        <FormulaChip
+                            label="Gross Pay"
+                            value={`${hrSettings.currency_symbol}${fNumber(baseGrossPay, { locale: hrSettings.default_locale })}`}
+                            color="success"
+                            currencySymbol={hrSettings.currency_symbol}
+                        />
+                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                        <FormulaChip label="Working Days" value={`${slip.total_working_days || 26}`} color="info" />
+                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                        <FormulaChip label="LOP Days" value={`${slip.lop_days || 0}`} color="error" />
+                        <Typography variant="h5" sx={{ px: 1, color: 'text.primary', fontWeight: 300 }}>=</Typography>
+                        <Box
+                            sx={{
+                                px: 3,
+                                py: 1.5,
+                                borderRadius: 1.5,
+                                bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                                border: (theme) => `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                                boxShadow: (theme) => `0 4px 12px -4px ${alpha(theme.palette.error.main, 0.2)}`,
+                            }}
+                        >
+                            <Typography variant="subtitle1" sx={{ color: 'error.main', fontWeight: 900, display: 'flex', alignItems: 'center' }}>
+                                LOP:
+                                <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", ml: 1, mr: 0.5 }}>
+                                    {hrSettings.currency_symbol}
+                                </Box>
+                                {fNumber(slip.lop || 0, { locale: hrSettings.default_locale })}
+                            </Typography>
+                        </Box>
+                    </Box>
+                </Stack>
+            </Box>
+
+            {/* Overtime (OT) Formula Card - Only for eligible Workers/North Indian with OT, never for Staff */}
+            {(() => {
+                const empType = (slip.employee_type || '').toLowerCase();
+                const isStaff = empType.includes('staff');
+                const isWorker = empType.includes('worker');
+                const isNorthIndian = empType.includes('north indian');
+                const isOTEligible = (isWorker || isNorthIndian) && !isStaff && Number(slip.ot_hours || 0) > 0 && Number(slip.ot_amount || 0) > 0;
+
+                if (!isOTEligible) return null;
+
+                return (
+                    <Box
+                        sx={{
+                            mt: 2.5,
+                            p: 3,
+                            borderRadius: 2.5,
+                            position: 'relative',
+                            overflow: 'hidden',
+                            bgcolor: (theme) => alpha(theme.palette.warning.main, 0.03),
+                            border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.12)}`,
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                top: -20,
+                                right: -20,
+                                opacity: 0.05,
+                                transform: 'rotate(-15deg)',
+                                color: 'warning.main',
+                            }}
+                        >
+                            <Iconify icon={"solar:clock-circle-bold" as any} width={120} />
+                        </Box>
+
+                        <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
+                            <Typography variant="overline" sx={{ color: 'warning.main', fontWeight: 900, fontSize: 14 }}>
+                                Overtime (OT) Formula
+                            </Typography>
+
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2.5 }}>
+                                {isNorthIndian ? (
+                                    <>
+                                        <FormulaChip
+                                            label="Fixed OT Rate"
+                                            value={`${hrSettings.currency_symbol}${fNumber(hrSettings.north_indian_ot_rate || 100, { locale: hrSettings.default_locale })}`}
+                                            color="warning"
+                                            currencySymbol={hrSettings.currency_symbol}
+                                        />
+                                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                        <FormulaChip label="OT Hours" value={`${slip.ot_hours || 0} hrs`} color="info" />
+                                    </>
+                                ) : (
+                                    <>
+                                        <FormulaChip
+                                            label="Gross Pay"
+                                            value={`${hrSettings.currency_symbol}${fNumber(baseGrossPay, { locale: hrSettings.default_locale })}`}
+                                            color="success"
+                                            currencySymbol={hrSettings.currency_symbol}
+                                        />
+                                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                        <FormulaChip label="Working Days" value="26" color="info" />
+                                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                        <FormulaChip label="Shift Hours" value="8 hrs" color="info" />
+                                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                        <FormulaChip label="OT Hours" value={`${slip.ot_hours || 0} hrs`} color="info" />
+                                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                        <FormulaChip label="Multiplier" value={`${hrSettings.workers_ot_rate_multiplier || 2}×`} color="warning" />
+                                    </>
+                                )}
+                                <Typography variant="h5" sx={{ px: 1, color: 'text.primary', fontWeight: 300 }}>=</Typography>
+                                <Box
+                                    sx={{
+                                        px: 3,
+                                        py: 1.5,
+                                        borderRadius: 1.5,
+                                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
+                                        border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                                        boxShadow: (theme) => `0 4px 12px -4px ${alpha(theme.palette.warning.main, 0.2)}`,
+                                    }}
+                                >
+                                    <Typography variant="subtitle1" sx={{ color: 'warning.main', fontWeight: 900, display: 'flex', alignItems: 'center' }}>
+                                        OT Pay:
+                                        <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", ml: 1, mr: 0.5 }}>
+                                            {hrSettings.currency_symbol}
+                                        </Box>
+                                        {fNumber(slip.ot_amount || 0, { locale: hrSettings.default_locale })}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Stack>
+                    </Box>
+                );
+            })()}
+        </Box>
+    );
+
     // ── Salary Breakdown (Exact Dialog UI) ────────────────────────────────────
     const renderSalaryBreakdown = (
         <Box sx={{ mb: 4 }}>
@@ -465,17 +659,18 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
             {/* Top Heading and Button Style like Invoice Page */}
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={4} mt={2} className="no-print">
                 <Typography variant="h4">Salary Slip: {slip.name}</Typography>
-                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
                     <Button
                         variant="outlined"
                         color="inherit"
                         onClick={() => router.push('/salary-slips')}
-                        startIcon={<IoMdArrowBack size={20} />}
+                        startIcon={<IoMdArrowBack size={18} />}
                         sx={{
                             borderRadius: 1.5,
                             fontWeight: 600,
                             textTransform: 'none',
-                            px: 2.5,
+                            px: 1.75,
+                            py: 0.75,
                             '&:hover': {
                                 bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04),
                                 borderColor: 'text.primary',
@@ -488,11 +683,13 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                     <Button
                         variant="contained"
                         onClick={handleDownload}
-                        startIcon={<IoMdPrint size={20} />}
+                        startIcon={<IoMdPrint size={18} />}
                         sx={{
                             borderRadius: 1.5,
                             fontWeight: 600,
                             textTransform: 'none',
+                            px: 1.75,
+                            py: 0.75,
                             bgcolor: '#2065D1',
                             color: 'common.white',
                             '&:hover': { bgcolor: '#103996' },
@@ -505,11 +702,13 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         <Button
                             variant="contained"
                             onClick={() => router.push(`/salary-slips/${id}/edit`)}
-                            startIcon={<IoMdCreate size={20} />}
+                            startIcon={<IoMdCreate size={18} />}
                             sx={{
                                 borderRadius: 1.5,
                                 fontWeight: 600,
                                 textTransform: 'none',
+                                px: 1.75,
+                                py: 0.75,
                                 bgcolor: '#059669',
                                 color: 'common.white',
                                 '&:hover': { bgcolor: '#047857' },
@@ -523,11 +722,13 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         <Button
                             variant="contained"
                             onClick={() => setConfirmSubmitOpen(true)}
-                            startIcon={<IoMdCheckmarkCircle size={20} />}
+                            startIcon={<IoMdCheckmarkCircle size={18} />}
                             sx={{
                                 borderRadius: 1.5,
                                 fontWeight: 600,
                                 textTransform: 'none',
+                                px: 1.75,
+                                py: 0.75,
                                 bgcolor: '#10B981',
                                 color: 'common.white',
                                 '&:hover': { bgcolor: '#059669' },
@@ -542,8 +743,14 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             variant="contained"
                             color="error"
                             onClick={() => setConfirmDeleteOpen(true)}
-                            startIcon={<IoMdTrash size={20} />}
-                            sx={{ borderRadius: 1.5, fontWeight: 600, textTransform: 'none' }}
+                            startIcon={<IoMdTrash size={18} />}
+                            sx={{
+                                borderRadius: 1.5,
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                px: 1.75,
+                                py: 0.75,
+                            }}
                         >
                             Delete
                         </Button>
@@ -563,6 +770,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 {renderHeader}
                 {renderEmployeeDetails}
                 {renderAttendanceSummary}
+                {renderDetailedSummary}
                 <Divider sx={{ my: 4, borderStyle: 'dashed' }} />
                 {renderSalaryBreakdown}
                 {renderNetPay}
@@ -627,7 +835,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                         }}
                                     >
                                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                            {dayjs(day.date).format('DD-MM-YYYY - dddd')}
+                                            {dayjs(day.date).format('DD-MM-YYYY')} - {day.holiday_desc || day.description || dayjs(day.date).format('dddd')}
                                         </Typography>
                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                                             <Typography
@@ -845,6 +1053,50 @@ function AmountRow({
                     {hrSettings.currency_symbol}
                 </Box>
                 {fNumber(amount || 0, { locale: hrSettings.default_locale })}
+            </Typography>
+        </Box>
+    );
+}
+
+function FormulaChip({
+    label,
+    value,
+    color,
+    currencySymbol,
+}: {
+    label: string;
+    value: string;
+    color: 'success' | 'info' | 'error' | 'primary' | 'warning';
+    currencySymbol?: string;
+}) {
+    const isCurrency = value.startsWith(currencySymbol || '');
+    const displayValue = isCurrency ? value.replace(currencySymbol || '', '') : value;
+
+    return (
+        <Box
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                px: 2.5,
+                py: 1.25,
+                minWidth: 100,
+                borderRadius: 2,
+                bgcolor: 'background.paper',
+                border: (theme) => `1px solid ${alpha(theme.palette[color].main, 0.2)}`,
+                boxShadow: (theme) => `0 4px 12px -4px ${alpha(theme.palette[color].main, 0.15)}`,
+            }}
+        >
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', mb: 0.5 }}>
+                {label}
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: `${color}.main`, display: 'flex', alignItems: 'center' }}>
+                {isCurrency && (
+                    <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.5, fontSize: '0.9em' }}>
+                        {currencySymbol}
+                    </Box>
+                )}
+                {displayValue}
             </Typography>
         </Box>
     );

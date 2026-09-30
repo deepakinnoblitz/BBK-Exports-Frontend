@@ -67,6 +67,7 @@ import { LeaveAllocationDetailsDialog } from './leave-allocation-details-dialog'
 import { LeaveAllocationFiltersDrawer } from './leave-allocation-filters-drawer';
 import { AutoAllocateLogFiltersDrawer } from './auto-allocate-log-filters-drawer';
 import { LeadTableToolbar as LeavesTableToolbar } from '../../lead/lead-table-toolbar';
+import LeaveAllocationGenerateProgressDialog from './leave-allocation-generate-progress-dialog';
 
 import type { LogFiltersProps } from './auto-allocate-log-filters-drawer';
 // ----------------------------------------------------------------------
@@ -152,6 +153,15 @@ export function LeaveAllocationView() {
     const [openDetails, setOpenDetails] = useState(false);
     const [openResult, setOpenResult] = useState(false);
     const [resultData, setResultData] = useState<any>(null);
+    const [allocationProgress, setAllocationProgress] = useState<{
+        open: boolean;
+        year: number;
+        month: number;
+        monthName: string;
+        employees: string[];
+        attendanceMonth?: number;
+        attendanceYear?: number;
+    } | null>(null);
 
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false,
@@ -849,6 +859,13 @@ export function LeaveAllocationView() {
             <AutoAllocateDialog
                 open={openAutoAllocate}
                 onClose={() => setOpenAutoAllocate(false)}
+                onStartAllocation={(params) => {
+                    setOpenAutoAllocate(false);
+                    setAllocationProgress({
+                        open: true,
+                        ...params,
+                    });
+                }}
                 onSuccess={(res) => {
                     setOpenAutoAllocate(false);
                     setResultData(res);
@@ -860,6 +877,34 @@ export function LeaveAllocationView() {
                     setSnackbar({ open: true, message: error, severity: 'error' });
                 }}
             />
+
+            {allocationProgress && (
+                <LeaveAllocationGenerateProgressDialog
+                    open={allocationProgress.open}
+                    year={allocationProgress.year}
+                    month={allocationProgress.month}
+                    monthName={allocationProgress.monthName}
+                    employees={allocationProgress.employees}
+                    attendanceMonth={allocationProgress.attendanceMonth}
+                    attendanceYear={allocationProgress.attendanceYear}
+                    onClose={() => {
+                        setAllocationProgress(null);
+                        refetch();
+                        fetchLogs();
+                    }}
+                    onComplete={(summary) => {
+                        refetch();
+                        fetchLogs();
+                        setSnackbar({
+                            open: true,
+                            message: `Allocated leaves for ${summary.created} record(s)${
+                                summary.skipped > 0 ? ` (${summary.skipped} skipped)` : ''
+                            }`,
+                            severity: summary.failed > 0 ? 'error' : 'success',
+                        });
+                    }}
+                />
+            )}
 
             <AutoAllocateResultDialog
                 open={openResult}

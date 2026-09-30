@@ -41,6 +41,7 @@ import { useAuth } from 'src/auth/auth-context';
 import SalarySlipCreateDialog from '../salary-slip-create-dialog';
 import { SalarySlipFiltersDrawer } from '../salary-slip-filters-drawer';
 import SalarySlipAutoAllocateDialog from '../salary-slip-auto-allocate-dialog';
+import SalarySlipGenerateProgressDialog from '../salary-slip-generate-progress-dialog';
 
 import type { SalarySlipFiltersProps } from '../salary-slip-filters-drawer';
 
@@ -110,6 +111,13 @@ export function SalarySlipsView() {
 
     const [selected, setSelected] = useState<string[]>([]);
     const [openFilters, setOpenFilters] = useState(false);
+    const [generationProgress, setGenerationProgress] = useState<{
+        open: boolean;
+        year: number;
+        month: number;
+        monthName: string;
+        employees: string[];
+    } | null>(null);
 
     const [filterOptions, setFilterOptions] = useState<{
         employees: any[];
@@ -399,6 +407,7 @@ export function SalarySlipsView() {
                                                     id: row.name,
                                                     employee_name: row.employee_name,
                                                     employee_id: row.employee,
+                                                    employee_type: row.employee_type,
                                                     pay_period_start: row.pay_period_start,
                                                     pay_period_end: row.pay_period_end,
                                                     gross_pay: row.gross_pay,
@@ -486,6 +495,13 @@ export function SalarySlipsView() {
             <SalarySlipAutoAllocateDialog
                 open={openAutoAllocate}
                 onClose={() => setOpenAutoAllocate(false)}
+                onStartGeneration={(params) => {
+                    setOpenAutoAllocate(false);
+                    setGenerationProgress({
+                        open: true,
+                        ...params,
+                    });
+                }}
                 onSuccess={(message) => {
                     setSnackbar({ open: true, message, severity: 'success' });
                     refetch();
@@ -494,6 +510,30 @@ export function SalarySlipsView() {
                     setSnackbar({ open: true, message: error, severity: 'error' });
                 }}
             />
+
+            {generationProgress && (
+                <SalarySlipGenerateProgressDialog
+                    open={generationProgress.open}
+                    year={generationProgress.year}
+                    month={generationProgress.month}
+                    monthName={generationProgress.monthName}
+                    employees={generationProgress.employees}
+                    onClose={() => {
+                        setGenerationProgress(null);
+                        refetch();
+                    }}
+                    onComplete={(summary) => {
+                        refetch();
+                        setSnackbar({
+                            open: true,
+                            message: `Generated ${summary.created} salary slip(s)${
+                                summary.skipped > 0 ? ` (${summary.skipped} skipped)` : ''
+                            }`,
+                            severity: summary.failed > 0 ? 'error' : 'success',
+                        });
+                    }}
+                />
+            )}
 
             <SalarySlipFiltersDrawer
                 open={openFilters}

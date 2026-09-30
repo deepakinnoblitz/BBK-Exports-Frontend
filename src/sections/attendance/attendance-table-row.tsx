@@ -81,7 +81,7 @@ export function AttendanceTableRow({
             role="checkbox"
             selected={selected}
             sx={{
-                '& td, & th': { borderBottom: (t) => `1px solid ${t.palette.divider}` },
+                '& td, & th': { borderBottom: (t) => `1px solid ${t.palette.divider}`, px: 1 },
                 '&:last-child td, &:last-child th': { borderBottom: 0 },
             }}
         >
@@ -120,8 +120,8 @@ export function AttendanceTableRow({
                 </TableCell>
             )}
 
-            <TableCell sx={{ width: 200, maxWidth: 200, display: { xs: 'none', md: 'table-cell' } }}>
-                <Box sx={{ maxWidth: 200 }}>
+            <TableCell sx={{ minWidth: 140, maxWidth: 170, display: { xs: 'none', md: 'table-cell' } }}>
+                <Box sx={{ maxWidth: 170 }}>
                     <Typography
                         variant="subtitle2"
                         sx={{
@@ -199,19 +199,21 @@ export function AttendanceTableRow({
                 </TableCell>
             )}
 
-            <TableCell align="right">
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1.5 }}>
+            <TableCell align="right" sx={{ whiteSpace: 'nowrap', pr: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
                     <Typography
                         variant="caption"
+                        noWrap
                         sx={{
                             color: 'text.secondary',
                             fontWeight: 700,
                             fontSize: 12,
-                            minWidth: 24,
+                            whiteSpace: 'nowrap',
                             textAlign: 'right',
+                            mr: 0.5,
                         }}
                     >
-                        {fTimeDist(row.modified)}
+                        {row.modified ? fTimeDist(row.modified) : '-'}
                     </Typography>
 
                     <IconButton size="small" onClick={onView} sx={{ color: 'info.main' }}>

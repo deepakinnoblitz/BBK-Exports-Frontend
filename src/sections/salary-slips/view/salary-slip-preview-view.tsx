@@ -264,6 +264,19 @@ export function SalarySlipPreviewView() {
         </Box>
     );
 
+    const baseGrossPay = data.base_gross_pay !== undefined && data.base_gross_pay !== null && Number(data.base_gross_pay) > 0
+        ? Number(data.base_gross_pay)
+        : (() => {
+            const baseEarnings = (data.earnings || []).filter((e: any) => {
+                const name = (e.component_name || e.salary_component || '').trim();
+                return !['Overtime Pay (OT)', 'Overtime Allowance', 'Attendance Bonus'].includes(name);
+            });
+            if (baseEarnings.length > 0) {
+                return baseEarnings.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
+            }
+            return Math.max(0, Number(data.gross_pay || 0) - Number(data.ot_amount || 0) - Number(data.attendance_bonus || 0));
+        })();
+
     const renderDetailedSummary = (
         <Box sx={{ mb: 4 }}>
             <SectionHeader title="Calculation Logic & Breakdown" icon="solar:programming-bold" color="info.main" />
@@ -317,7 +330,7 @@ export function SalarySlipPreviewView() {
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2.5 }}>
                         <FormulaChip
                             label="Gross Pay"
-                            value={`${hrSettings.currency_symbol}${fNumber(data.gross_pay)}`}
+                            value={`${hrSettings.currency_symbol}${fNumber(baseGrossPay, { locale: hrSettings.default_locale })}`}
                             color="success"
                             currencySymbol={hrSettings.currency_symbol}
                         />
@@ -341,97 +354,107 @@ export function SalarySlipPreviewView() {
                                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", ml: 1, mr: 0.5 }}>
                                     {hrSettings.currency_symbol}
                                 </Box>
-                                {fNumber(data.lop)}
+                                {fNumber(data.lop, { locale: hrSettings.default_locale })}
                             </Typography>
                         </Box>
                     </Box>
                 </Stack>
             </Box>
 
-            {/* Overtime (OT) Formula Card */}
-            {Boolean(data.ot_hours && data.ot_hours > 0) && (
-                <Box
-                    sx={{
-                        mt: 2.5,
-                        p: 3,
-                        borderRadius: 2.5,
-                        position: 'relative',
-                        overflow: 'hidden',
-                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.03),
-                        border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.12)}`,
-                    }}
-                >
+            {/* Overtime (OT) Formula Card - Only for eligible Workers/North Indian with OT, never for Staff */}
+            {(() => {
+                const empType = (data.employee_type || '').toLowerCase();
+                const isStaff = empType.includes('staff');
+                const isWorker = empType.includes('worker');
+                const isNorthIndian = empType.includes('north indian');
+                const isOTEligible = (isWorker || isNorthIndian) && !isStaff && Number(data.ot_hours || 0) > 0 && Number(data.ot_amount || 0) > 0;
+
+                if (!isOTEligible) return null;
+
+                return (
                     <Box
                         sx={{
-                            position: 'absolute',
-                            top: -20,
-                            right: -20,
-                            opacity: 0.05,
-                            transform: 'rotate(-15deg)',
-                            color: 'warning.main',
+                            mt: 2.5,
+                            p: 3,
+                            borderRadius: 2.5,
+                            position: 'relative',
+                            overflow: 'hidden',
+                            bgcolor: (theme) => alpha(theme.palette.warning.main, 0.03),
+                            border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.12)}`,
                         }}
                     >
-                        <Iconify icon={"solar:clock-circle-bold" as any} width={120} />
-                    </Box>
-
-                    <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
-                        <Typography variant="overline" sx={{ color: 'warning.main', fontWeight: 900, fontSize: 14 }}>
-                            Overtime (OT) Formula
-                        </Typography>
-
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2.5 }}>
-                            {((data.employee_type || '').toLowerCase().includes('north indian') || (data.designation || '').toLowerCase().includes('north indian')) ? (
-                                <>
-                                    <FormulaChip
-                                        label="Fixed OT Rate"
-                                        value={`${hrSettings.currency_symbol}${fNumber(hrSettings.north_indian_ot_rate || 100)}`}
-                                        color="warning"
-                                        currencySymbol={hrSettings.currency_symbol}
-                                    />
-                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                                    <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
-                                </>
-                            ) : (
-                                <>
-                                    <FormulaChip
-                                        label="Gross Pay"
-                                        value={`${hrSettings.currency_symbol}${fNumber(data.gross_pay)}`}
-                                        color="success"
-                                        currencySymbol={hrSettings.currency_symbol}
-                                    />
-                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
-                                    <FormulaChip label="Working Days" value="26" color="info" />
-                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
-                                    <FormulaChip label="Shift Hours" value="8 hrs" color="info" />
-                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                                    <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
-                                    <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                                    <FormulaChip label="Multiplier" value={`${hrSettings.workers_ot_rate_multiplier || 2}×`} color="warning" />
-                                </>
-                            )}
-                            <Typography variant="h5" sx={{ px: 1, color: 'text.primary', fontWeight: 300 }}>=</Typography>
-                            <Box
-                                sx={{
-                                    px: 3,
-                                    py: 1.5,
-                                    borderRadius: 1.5,
-                                    bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
-                                    border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
-                                    boxShadow: (theme) => `0 4px 12px -4px ${alpha(theme.palette.warning.main, 0.2)}`,
-                                }}
-                            >
-                                <Typography variant="subtitle1" sx={{ color: 'warning.main', fontWeight: 900, display: 'flex', alignItems: 'center' }}>
-                                    OT Pay:
-                                    <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", ml: 1, mr: 0.5 }}>
-                                        {hrSettings.currency_symbol}
-                                    </Box>
-                                    {fNumber(data.ot_amount || 0)}
-                                </Typography>
-                            </Box>
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                top: -20,
+                                right: -20,
+                                opacity: 0.05,
+                                transform: 'rotate(-15deg)',
+                                color: 'warning.main',
+                            }}
+                        >
+                            <Iconify icon={"solar:clock-circle-bold" as any} width={120} />
                         </Box>
-                    </Stack>
-                </Box>
-            )}
+
+                        <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
+                            <Typography variant="overline" sx={{ color: 'warning.main', fontWeight: 900, fontSize: 14 }}>
+                                Overtime (OT) Formula
+                            </Typography>
+
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2.5 }}>
+                                {isNorthIndian ? (
+                                    <>
+                                        <FormulaChip
+                                            label="Fixed OT Rate"
+                                            value={`${hrSettings.currency_symbol}${fNumber(hrSettings.north_indian_ot_rate || 100, { locale: hrSettings.default_locale })}`}
+                                            color="warning"
+                                            currencySymbol={hrSettings.currency_symbol}
+                                        />
+                                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                        <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                    </>
+                                ) : (
+                                    <>
+                                        <FormulaChip
+                                            label="Gross Pay"
+                                            value={`${hrSettings.currency_symbol}${fNumber(baseGrossPay, { locale: hrSettings.default_locale })}`}
+                                            color="success"
+                                            currencySymbol={hrSettings.currency_symbol}
+                                        />
+                                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                        <FormulaChip label="Working Days" value="26" color="info" />
+                                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                        <FormulaChip label="Shift Hours" value="8 hrs" color="info" />
+                                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                        <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                        <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                        <FormulaChip label="Multiplier" value={`${hrSettings.workers_ot_rate_multiplier || 2}×`} color="warning" />
+                                    </>
+                                )}
+                                <Typography variant="h5" sx={{ px: 1, color: 'text.primary', fontWeight: 300 }}>=</Typography>
+                                <Box
+                                    sx={{
+                                        px: 3,
+                                        py: 1.5,
+                                        borderRadius: 1.5,
+                                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
+                                        border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                                        boxShadow: (theme) => `0 4px 12px -4px ${alpha(theme.palette.warning.main, 0.2)}`,
+                                    }}
+                                >
+                                    <Typography variant="subtitle1" sx={{ color: 'warning.main', fontWeight: 900, display: 'flex', alignItems: 'center' }}>
+                                        OT Pay:
+                                        <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", ml: 1, mr: 0.5 }}>
+                                            {hrSettings.currency_symbol}
+                                        </Box>
+                                        {fNumber(data.ot_amount || 0, { locale: hrSettings.default_locale })}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Stack>
+                    </Box>
+                );
+            })()}
         </Box>
     );
 
@@ -528,7 +551,7 @@ export function SalarySlipPreviewView() {
             case 'physical': return bd.filter((d: any) => d.status?.includes('Work'));
             case 'absent': return bd.filter((d: any) => d.status?.includes('Absent') || d.status?.includes('Unpaid Leave'));
             case 'half_day': return bd.filter((d: any) => d.status?.includes('(0.5)'));
-            case 'holiday': return bd.filter((d: any) => d.status?.includes('Holiday'));
+            case 'holiday': return data?.holidays_details?.length ? data.holidays_details : bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
             case 'unpaid_leave': return bd.filter((d: any) => d.status?.includes('Unpaid Leave'));
             case 'paid_leave': return bd.filter((d: any) => d.status?.includes('Paid Leave'));
             case 'lop': return bd.filter((d: any) => d.status?.includes('Absent') || d.status?.includes('Unpaid Leave'));
@@ -559,17 +582,18 @@ export function SalarySlipPreviewView() {
                 <Typography variant="h4">
                     Preview Salary Slip: {data.employee_name} ({data.employee_id || data.employee})
                 </Typography>
-                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
                     <Button
                         variant="outlined"
                         color="inherit"
                         onClick={() => router.push('/salary-slips')}
-                        startIcon={<IoMdArrowBack size={20} />}
+                        startIcon={<IoMdArrowBack size={18} />}
                         sx={{
                             borderRadius: 1.5,
                             fontWeight: 600,
                             textTransform: 'none',
-                            px: 2.5,
+                            px: 1.75,
+                            py: 0.75,
                             '&:hover': {
                                 bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04),
                                 borderColor: 'text.primary',
@@ -583,12 +607,13 @@ export function SalarySlipPreviewView() {
                         variant="contained"
                         loading={creating}
                         onClick={handleConfirmCreate}
-                        startIcon={<IoMdCheckmarkCircle size={20} />}
+                        startIcon={<IoMdCheckmarkCircle size={18} />}
                         sx={{
                             borderRadius: 1.5,
                             fontWeight: 600,
                             textTransform: 'none',
-                            px: 2.5,
+                            px: 1.75,
+                            py: 0.75,
                         }}
                     >
                         Confirm & Create Salary Slip
@@ -662,7 +687,7 @@ export function SalarySlipPreviewView() {
                                         }}
                                     >
                                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                            {dayjs(day.date).format('DD-MM-YYYY - dddd')}
+                                            {dayjs(day.date).format('DD-MM-YYYY')} - {day.holiday_desc || day.description || dayjs(day.date).format('dddd')}
                                         </Typography>
                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                                             <Typography
