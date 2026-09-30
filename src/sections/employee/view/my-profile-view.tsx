@@ -376,6 +376,7 @@ export function MyProfileView() {
                                     <DetailItem label="Bank Account" value={employee.bank_account} icon={FaCreditCard} />
                                     <DetailItem label="PF Number" value={employee.pf_number} icon={FaFileAlt} />
                                     <DetailItem label="ESI No" value={employee.esi_no} icon={FaHeartbeat} />
+                                    <DetailItem label="PAN Number" value={employee.pan_number} icon={FaIdCard} />
                                 </Box>
                             </Box>
 

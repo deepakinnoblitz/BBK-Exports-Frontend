@@ -44,11 +44,12 @@ import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { runReport } from 'src/api/reports';
 import { getDoctypeList } from 'src/api/leads';
+import { COMMON_COLORS } from 'src/theme/common-colors';
 import { fetchLeaveApplications } from 'src/api/leaves';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Label } from 'src/components/label';
-import { Iconify } from 'src/components/iconify';
+import { Iconify } from 'src/components/iconify';   
 import { Scrollbar } from 'src/components/scrollbar';
 
 import { useAuth } from 'src/auth/auth-context';
@@ -961,9 +962,9 @@ export function AttendanceReportView() {
                                     onClick={() => handleOpenExportDialog('excel')}
                                     disabled={reportData.length === 0 || exportingExcel}
                                     sx={{
-                                        bgcolor: '#0ea5e9',
-                                        color: 'common.white',
-                                        '&:hover': { bgcolor: '#0284c7' },
+                                        bgcolor: COMMON_COLORS.primaryButton.bg,
+                                        color: COMMON_COLORS.primaryButton.color,
+                                        '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
                                         height: 40,
                                         px: 3,
                                     }}
@@ -1621,9 +1622,9 @@ export function AttendanceReportView() {
                                         handleExport('list');
                                     }}
                                     sx={{
-                                        bgcolor: '#0ea5e9',
-                                        color: 'common.white',
-                                        '&:hover': { bgcolor: '#0284c7' }
+                                        bgcolor: COMMON_COLORS.primaryButton.bg,
+                                        color: COMMON_COLORS.primaryButton.color,
+                                        '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg }
                                     }}
                                 >
                                     Export Excel
@@ -1651,9 +1652,9 @@ export function AttendanceReportView() {
                                     handleExport('muster');
                                 }}
                                 sx={{
-                                    bgcolor: '#0ea5e9',
-                                    color: 'common.white',
-                                    '&:hover': { bgcolor: '#0284c7' }
+                                    bgcolor: COMMON_COLORS.primaryButton.bg,
+                                    color: COMMON_COLORS.primaryButton.color,
+                                    '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg }
                                 }}
                             >
                                 Export Excel

@@ -21,6 +21,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { COMMON_COLORS } from 'src/theme';
 import { fetchFrappeList } from 'src/api/hr-management';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchOpenJobs, fetchMyReferrals, createJobApplicant } from 'src/api/referrals';
@@ -230,8 +231,8 @@ export function EmployeeReferralsView() {
         onChange={handleChangeTab}
         sx={{
           mb: { xs: 2, md: 4 },
-          '& .MuiTabs-indicator': { backgroundColor: '#00A5D1' },
-          '& .MuiTab-root.Mui-selected': { color: '#00A5D1' },
+          '& .MuiTabs-indicator': { backgroundColor: COMMON_COLORS.emerald.main },
+          '& .MuiTab-root.Mui-selected': { color: COMMON_COLORS.emerald.main },
         }}
       >
         {TABS.map((tab) => (
@@ -301,12 +302,16 @@ export function EmployeeReferralsView() {
                                   borderRadius: '50%',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                                  color: 'primary.main',
+                                  bgcolor: COMMON_COLORS.snoBadge.bg,
+                                  color: COMMON_COLORS.snoBadge.color,
                                   typography: 'subtitle2',
                                   fontWeight: 800,
-                                  border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+                                  border: COMMON_COLORS.snoBadge.border,
                                   mx: 'auto',
+                                  '&:hover': {
+                                    bgcolor: COMMON_COLORS.snoBadge.hoverBg,
+                                    color: COMMON_COLORS.snoBadge.hoverColor,
+                                  },
                                 }}
                               >
                                 {index + 1}
@@ -325,7 +330,14 @@ export function EmployeeReferralsView() {
                                   variant="outlined"
                                   size="small"
                                   onClick={() => handleViewJob(row)}
-                                  sx={{ color: '#00A5D1', borderColor: alpha('#00A5D1', 0.5) }}
+                                  sx={{
+                                    color: COMMON_COLORS.emerald.main,
+                                    borderColor: alpha(COMMON_COLORS.emerald.main, 0.5),
+                                    '&:hover': {
+                                      borderColor: COMMON_COLORS.emerald.main,
+                                      bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                    },
+                                  }}
                                 >
                                   View
                                 </Button>
@@ -334,7 +346,13 @@ export function EmployeeReferralsView() {
                                     variant="contained"
                                     size="small"
                                     onClick={() => handleReferClick(row.name)}
-                                    sx={{ bgcolor: '#00A5D1', '&:hover': { bgcolor: '#0084a7' } }}
+                                    sx={{
+                                      bgcolor: COMMON_COLORS.primaryButton.bg,
+                                      color: COMMON_COLORS.primaryButton.color,
+                                      '&:hover': {
+                                        bgcolor: COMMON_COLORS.primaryButton.hoverBg,
+                                      },
+                                    }}
                                   >
                                     Refer
                                   </Button>
@@ -409,12 +427,16 @@ export function EmployeeReferralsView() {
                                   borderRadius: '50%',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                                  color: 'primary.main',
+                                  bgcolor: COMMON_COLORS.snoBadge.bg,
+                                  color: COMMON_COLORS.snoBadge.color,
                                   typography: 'subtitle2',
                                   fontWeight: 800,
-                                  border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+                                  border: COMMON_COLORS.snoBadge.border,
                                   mx: 'auto',
+                                  '&:hover': {
+                                    bgcolor: COMMON_COLORS.snoBadge.hoverBg,
+                                    color: COMMON_COLORS.snoBadge.hoverColor,
+                                  },
                                 }}
                               >
                                 {index + 1}
@@ -444,9 +466,15 @@ export function EmployeeReferralsView() {
                               {viewType === 'hr' && row.status === 'Pending' && (
                                 <Button
                                   variant="contained"
-                                  color="primary"
                                   size="small"
                                   onClick={() => handleCreateApplicant(row.name)}
+                                  sx={{
+                                    bgcolor: COMMON_COLORS.primaryButton.bg,
+                                    color: COMMON_COLORS.primaryButton.color,
+                                    '&:hover': {
+                                      bgcolor: COMMON_COLORS.primaryButton.hoverBg,
+                                    },
+                                  }}
                                 >
                                   Create Job Applicant
                                 </Button>

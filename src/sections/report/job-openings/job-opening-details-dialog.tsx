@@ -10,6 +10,8 @@ import { alpha, useTheme } from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 
+import { COMMON_COLORS } from 'src/theme';
+
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
@@ -211,7 +213,13 @@ export function JobOpeningDetailsDialog({ open, onClose, onRefer, job }: Props) 
                             onRefer(job.name);
                             onClose();
                         }}
-                        sx={{ bgcolor: '#00A5D1', '&:hover': { bgcolor: '#0084a7' } }}
+                        sx={{
+                            bgcolor: COMMON_COLORS.primaryButton.bg,
+                            color: COMMON_COLORS.primaryButton.color,
+                            '&:hover': {
+                                bgcolor: COMMON_COLORS.primaryButton.hoverBg,
+                            },
+                        }}
                     >
                         Refer a Friend for this Position
                     </Button>
@@ -244,7 +252,7 @@ function DetailItem({ label, value, icon }: { label: string; value: React.ReactN
                     mr: 2,
                     borderRadius: 1,
                     bgcolor: alpha(theme.palette.primary.main, 0.08),
-                    color: 'info.main',
+                    color: COMMON_COLORS.emerald.main,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'

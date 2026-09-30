@@ -3,7 +3,7 @@ import { MuiTelInput } from 'mui-tel-input';
 import { LuUserCheck } from 'react-icons/lu';
 import { TbMoneybagPlus } from "react-icons/tb";
 import { GrDocumentLocked } from "react-icons/gr";
-import { memo, useMemo, useState, useEffect, useCallback } from 'react';
+import { memo, useMemo, useState, useEffect, useCallback, useRef } from 'react';
 
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
@@ -47,9 +47,9 @@ import { fNumber } from 'src/utils/format-number';
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import { uploadFile } from 'src/api/data-import';
-import { getBusTravelRoute } from 'src/api/masters';
 import { getStates, getCities } from 'src/api/location';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { getBusTravelRoute, fetchBankAccounts } from 'src/api/masters';
 import { getEmployee, createEmployee, updateEmployee, deleteEmployee } from 'src/api/employees';
 import { getHRSettings, getHRPermissions, getDocTypeMetadata, fetchSalaryComponents } from 'src/api/hr-management';
 
@@ -223,6 +223,8 @@ export function EmployeeView() {
 
     // Bank Account Create Dialog State
     const [openBankAccountCreate, setOpenBankAccountCreate] = useState(false);
+    const [bankAccountLoading, setBankAccountLoading] = useState(false);
+    const bankAccountSearchTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const [openCreate, setOpenCreate] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -279,6 +281,42 @@ export function EmployeeView() {
             setLoadingRoutePoints(false);
         }
     }, []);
+
+    const loadBankAccounts = useCallback(async (query: string = '', preserveAccount?: string) => {
+        try {
+            setBankAccountLoading(true);
+            const res = await fetchBankAccounts({
+                page: 1,
+                page_size: 50,
+                fields: ['name', 'bank_account_name', 'account_number'],
+                search: query.trim() || undefined,
+                orderBy: 'name',
+                order: 'asc'
+            });
+            const accounts: any[] = res?.data || [];
+
+            const targetAccount = preserveAccount !== undefined ? preserveAccount : formData.bank_account;
+            if (targetAccount && !accounts.some((opt: any) => (typeof opt === 'string' ? opt : opt?.name) === targetAccount)) {
+                try {
+                    const singleRes = await getDoctypeList('Bank Account', ['name', 'bank_account_name', 'account_number'], { name: targetAccount });
+                    if (singleRes && singleRes.length > 0) {
+                        accounts.unshift(singleRes[0]);
+                    }
+                } catch (e) {
+                    // ignore
+                }
+            }
+
+            setFieldOptions(prev => ({
+                ...prev,
+                'bank_account': accounts
+            }));
+        } catch (err) {
+            console.error('Failed to fetch bank accounts:', err);
+        } finally {
+            setBankAccountLoading(false);
+        }
+    }, [formData.bank_account]);
 
 
     const [hrSettings, setHRSettings] = useState<{ default_currency: string; currency_symbol: string; default_locale: string }>({
@@ -364,12 +402,8 @@ export function EmployeeView() {
                 }
             });
 
-            // Explicitly fetch rich options for bank_account
-            getDoctypeList('Bank Account', ['name', 'bank_account_name', 'account_number'])
-                .then((options) => {
-                    setFieldOptions(prev => ({ ...prev, 'bank_account': options }));
-                })
-                .catch(console.error);
+            // Explicitly fetch initial 50 rich options for bank_account
+            loadBankAccounts('');
 
             // Explicitly fetch options for blood_group
             getDoctypeList('Blood Group', ['name', 'blood_group'])
@@ -699,6 +733,7 @@ export function EmployeeView() {
         setFormData({ status: 'Active', ctc: 0, skip_probation: 0, country: 'India', documents: [] });
         setBusRoutePoints([]);
         setFormErrors({});
+        loadBankAccounts('');
         setOpenCreate(true);
         setCurrentTab(0);
 
@@ -976,6 +1011,12 @@ export function EmployeeView() {
                     setBusRoutePoints([]);
                 }
 
+                if (cleanedRow.bank_account) {
+                    loadBankAccounts('', cleanedRow.bank_account);
+                } else {
+                    loadBankAccounts('');
+                }
+
                 // Fetch states if country exists
                 if (cleanedRow.country) {
                     const states = await getStates(cleanedRow.country);
@@ -1074,6 +1115,7 @@ export function EmployeeView() {
                 <Autocomplete
                     fullWidth
                     options={options}
+                    loading={bankAccountLoading}
                     value={selectedAccount || formData[fieldname] || null}
                     onChange={(event, newValue: any) => {
                         if (newValue?.isNew || newValue === 'Create Bank Account' || newValue?.name === 'Create Bank Account' || newValue?.bank_account_name === 'Create Bank Account') {
@@ -1081,6 +1123,21 @@ export function EmployeeView() {
                         } else {
                             const value = typeof newValue === 'object' && newValue?.name ? newValue.name : newValue;
                             handleInputChange(fieldname, value || '');
+                        }
+                    }}
+                    onInputChange={(event, newInputValue, reason) => {
+                        if (reason === 'input') {
+                            if (bankAccountSearchTimerRef.current) {
+                                clearTimeout(bankAccountSearchTimerRef.current);
+                            }
+                            bankAccountSearchTimerRef.current = setTimeout(() => {
+                                loadBankAccounts(newInputValue);
+                            }, 300);
+                        } else if (reason === 'clear') {
+                            if (bankAccountSearchTimerRef.current) {
+                                clearTimeout(bankAccountSearchTimerRef.current);
+                            }
+                            loadBankAccounts('');
                         }
                     }}
                     getOptionLabel={(option: any) => {
@@ -1168,6 +1225,15 @@ export function EmployeeView() {
                             error={!!formErrors[fieldname]}
                             helperText={formErrors[fieldname]}
                             InputLabelProps={{ shrink: true }}
+                            InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                    <>
+                                        {bankAccountLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                        {params.InputProps.endAdornment}
+                                    </>
+                                ),
+                            }}
                             sx={{
                                 '& .MuiFormLabel-asterisk': {
                                     color: 'red',
@@ -2701,6 +2767,7 @@ export function EmployeeView() {
                                             {renderField('pf_number', 'PF Number')}
                                             {renderField('uan_number', 'UAN Number')}
                                             {renderField('esi_no', 'ESI No')}
+                                            {renderField('pan_number', 'PAN Number')}
                                         </Box>
                                     </>
                                 </Box>
@@ -3110,11 +3177,7 @@ export function EmployeeView() {
                         : (typeof newAccount === 'string' ? newAccount : '');
 
                     try {
-                        const freshOptions = await getDoctypeList('Bank Account', ['name', 'bank_account_name', 'account_number']);
-                        setFieldOptions(prev => ({
-                            ...prev,
-                            'bank_account': freshOptions
-                        }));
+                        await loadBankAccounts('', accountName);
                     } catch (err) {
                         console.error('Failed to re-fetch bank account options:', err);
                     }

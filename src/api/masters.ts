@@ -339,6 +339,7 @@ export const fetchBankAccounts = (params: any) => {
         ["Bank Account", "bank_account_name", "like", `%${search}%`],
         ["Bank Account", "account_number", "like", `%${search}%`],
         ["Bank Account", "bank_name", "like", `%${search}%`],
+        ["Bank Account", "name", "like", `%${search}%`],
     ] : undefined;
 
     return fetchFrappeList("Bank Account", {

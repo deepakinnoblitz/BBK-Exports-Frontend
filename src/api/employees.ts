@@ -25,6 +25,10 @@ export interface Employee {
     marital_status?: string;
     qualification?: string;
     aadhar_number?: string;
+    pan_number?: string;
+    pf_number?: string;
+    esi_no?: string;
+    bank_account?: string;
     bus_travel_route?: string;
     bus_route_point?: string;
 }

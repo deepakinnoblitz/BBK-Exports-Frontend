@@ -275,6 +275,7 @@ export function EmployeeDetailsView() {
                                             <DetailItem label="PF Number" value={employee.pf_number} icon="solar:document-bold" />
                                             <DetailItem label="UAN Number" value={employee.uan_number} icon="solar:card-2-bold" />
                                             <DetailItem label="ESI No" value={employee.esi_no} icon="solar:health-bold" />
+                                            <DetailItem label="PAN Number" value={employee.pan_number} icon="solar:card-outline" />
                                         </Box>
                                     </Box>
 
