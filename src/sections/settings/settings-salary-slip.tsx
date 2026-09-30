@@ -189,6 +189,33 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
 
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
+                <InputLabel id="salary-leave-calculation-source-label">Leave Calculation Source</InputLabel>
+                <Select
+                  labelId="salary-leave-calculation-source-label"
+                  id="salary_leave_calculation_source"
+                  value={data.salary_leave_calculation_source || 'Via Leave Application'}
+                  label="Leave Calculation Source"
+                  onChange={(e) => onChange('salary_leave_calculation_source', e.target.value)}
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <Iconify icon={"solar:user-id-bold" as any} sx={{ color: 'text.disabled', ml: 1 }} />
+                    </InputAdornment>
+                  }
+                >
+                  <MenuItem value="Via Leave Application">Via Leave Application (Standard Requests)</MenuItem>
+                  <MenuItem value="Via Direct Allocation">Via Direct Allocation (From Total Leaves Taken)</MenuItem>
+                </Select>
+                <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Iconify icon={"eva:info-outline" as any} width={16} sx={{ color: 'info.main', flexShrink: 0 }} />
+                  {data.salary_leave_calculation_source === 'Via Direct Allocation'
+                    ? 'Paid leaves are taken directly from Leave Allocation (Total Leaves Taken).'
+                    : 'Paid leaves are calculated from approved Leave Application records.'}
+                </Typography>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <FormControl fullWidth>
                 <InputLabel id="salary-holiday-handling-label">Holiday Handling</InputLabel>
                 <Select
                   labelId="salary-holiday-handling-label"
