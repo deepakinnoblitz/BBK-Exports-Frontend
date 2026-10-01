@@ -18,6 +18,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useRouter } from 'src/routes/hooks';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 import { getRolePermission, type PermissionAccess } from 'src/api/permission-management';
 
 import { Label } from 'src/components/label';
@@ -114,7 +115,7 @@ export function RolePermissionDetailsView({ name, onBack, onEdit }: RolePermissi
         return (
             <TableCell align="center" sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)' }}>
                 {value ? (
-                    <Iconify icon="solar:check-circle-bold" sx={{ color: '#00a76f' }} width={24} />
+                    <Iconify icon="solar:check-circle-bold" sx={{ color: COMMON_COLORS.emerald.main }} width={24} />
                 ) : (
                     <Iconify icon="solar:close-circle-bold" sx={{ color: '#919eab' }} width={24} />
                 )}
@@ -163,16 +164,13 @@ export function RolePermissionDetailsView({ name, onBack, onEdit }: RolePermissi
                     </Button>
                     <Button
                         variant="contained"
-                        color="primary"
                         onClick={handleGoEdit}
                         sx={{
                             borderRadius: 1.5,
-                            bgcolor: '#059669',
-                            color: 'common.white',
+                            ...COMMON_BUTTON_STYLES.primary,
                             textTransform: 'none',
                             fontWeight: 600,
                             px: 2.5,
-                            '&:hover': { bgcolor: '#047857' }
                         }}
                     >
                         Edit Details
@@ -211,7 +209,7 @@ export function RolePermissionDetailsView({ name, onBack, onEdit }: RolePermissi
                         <TableContainer sx={{ border: '1px solid rgba(224, 224, 224, 1)', borderRadius: 1 }}>
                             <Scrollbar>
                                 <Table size="medium">
-                                    <TableRow sx={{ bgcolor: '#059669' }}>
+                                    <TableRow sx={{ bgcolor: COMMON_COLORS.emerald.main }}>
                                         <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)' }}>Menu Name</TableCell>
                                         <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)' }}>Access Name</TableCell>
                                         <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)' }}>Add</TableCell>

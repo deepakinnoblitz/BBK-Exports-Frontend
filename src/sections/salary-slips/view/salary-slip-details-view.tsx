@@ -24,6 +24,7 @@ import { fNumber } from 'src/utils/format-number';
 
 import { getHRSettings } from 'src/api/hr-management';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 import {
     deleteSalarySlip,
     submitSalarySlip,
@@ -690,9 +691,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             textTransform: 'none',
                             px: 1.75,
                             py: 0.75,
-                            bgcolor: '#2065D1',
-                            color: 'common.white',
-                            '&:hover': { bgcolor: '#103996' },
+                            ...COMMON_BUTTON_STYLES.primary,
                         }}
                     >
                         Print
@@ -709,9 +708,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 textTransform: 'none',
                                 px: 1.75,
                                 py: 0.75,
-                                bgcolor: '#059669',
-                                color: 'common.white',
-                                '&:hover': { bgcolor: '#047857' },
+                                ...COMMON_BUTTON_STYLES.primary,
                             }}
                         >
                             Edit
@@ -729,9 +726,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 textTransform: 'none',
                                 px: 1.75,
                                 py: 0.75,
-                                bgcolor: '#10B981',
-                                color: 'common.white',
-                                '&:hover': { bgcolor: '#059669' },
+                                ...COMMON_BUTTON_STYLES.primary,
                             }}
                         >
                             Submit

@@ -262,7 +262,7 @@ function DetailRow({ label, value, icon }: { label: string; value?: string | nul
                     p: 1.5,
                     borderRadius: 1.25,
                     bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                    color: 'info.main',
+                    color: 'primary.main',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

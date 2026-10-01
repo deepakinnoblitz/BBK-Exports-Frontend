@@ -7,8 +7,11 @@ import IconButton from '@mui/material/IconButton';
 
 import { fCurrency } from 'src/utils/format-number';
 
+import { COMMON_COLORS } from 'src/theme';
+
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
+
 
 // ----------------------------------------------------------------------
 
@@ -88,16 +91,16 @@ export function AssetTableRow({
                             borderRadius: '50%',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                            color: 'primary.main',
+                            bgcolor: COMMON_COLORS.snoBadge.bg,
+                            color: COMMON_COLORS.snoBadge.color,
                             typography: 'subtitle2',
                             fontWeight: 800,
-                            border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+                            border: COMMON_COLORS.snoBadge.border,
                             mx: 'auto',
                             transition: (theme) => theme.transitions.create(['all'], { duration: theme.transitions.duration.shorter }),
                             '&:hover': {
-                                bgcolor: 'primary.main',
-                                color: 'primary.contrastText',
+                                bgcolor: COMMON_COLORS.snoBadge.hoverBg,
+                                color: COMMON_COLORS.snoBadge.hoverColor,
                                 transform: 'scale(1.1)',
                             },
                         }}
@@ -137,12 +140,12 @@ export function AssetTableRow({
 
             <TableCell align="right">
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                    <IconButton size="small" color="primary" onClick={onView}>
+                    <IconButton size="small" color="info" onClick={onView}>
                         <Iconify icon="solar:eye-bold" />
                     </IconButton>
 
                     {canEdit && (
-                        <IconButton size="small" color="info" onClick={onEdit}>
+                        <IconButton size="small" color="primary" onClick={onEdit}>
                             <Iconify icon="solar:pen-bold" />
                         </IconButton>
                     )}

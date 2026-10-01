@@ -72,6 +72,7 @@ const Android12Switch = styled(Switch)(({ theme }) => ({
 
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 import { createRolePermission, type PermissionAccess, getPopulatedPermissions } from 'src/api/permission-management';
 
 import { Scrollbar } from 'src/components/scrollbar';
@@ -322,19 +323,18 @@ export function RolePermissionCreateView({ onBack }: RolePermissionCreateViewPro
                     </Button>
                     <Button
                         variant="outlined"
-                        color="primary"
                         onClick={handleSelectAll}
                         sx={{
                             borderRadius: 1.5,
                             fontWeight: 600,
                             textTransform: 'none',
                             px: 2.5,
-                            borderColor: '#059669',
-                            color: '#059669',
+                            borderColor: COMMON_COLORS.emerald.main,
+                            color: COMMON_COLORS.emerald.main,
                             '&:hover': {
-                                bgcolor: (theme) => alpha('#059669', 0.04),
-                                borderColor: '#047857',
-                                color: '#047857',
+                                bgcolor: (theme) => alpha(COMMON_COLORS.emerald.main, 0.04),
+                                borderColor: COMMON_COLORS.emerald.dark,
+                                color: COMMON_COLORS.emerald.dark,
                             }
                         }}
                     >
@@ -346,12 +346,10 @@ export function RolePermissionCreateView({ onBack }: RolePermissionCreateViewPro
                         disabled={saving}
                         sx={{
                             borderRadius: 1.5,
-                            bgcolor: '#059669',
-                            color: 'common.white',
+                            ...COMMON_BUTTON_STYLES.primary,
                             textTransform: 'none',
                             fontWeight: 600,
                             px: 2.5,
-                            '&:hover': { bgcolor: '#047857' }
                         }}
                     >
                         {saving ? <CircularProgress size={20} color="inherit" /> : 'Save Role Permission'}
@@ -413,16 +411,16 @@ export function RolePermissionCreateView({ onBack }: RolePermissionCreateViewPro
                 <TableContainer sx={{ border: '1px solid rgba(224, 224, 224, 1)', borderRadius: 2 }}>
                     <Scrollbar>
                         <Table size="medium">
-                            <TableRow sx={{ bgcolor: '#059669', position: 'sticky', top: 0, zIndex: 1 }}>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Modules</TableCell>
-                                <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Screens</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>All</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Add</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Edit</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>View</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Delete</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Export</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Import</TableCell>
+                            <TableRow sx={{ bgcolor: COMMON_COLORS.emerald.main, position: 'sticky', top: 0, zIndex: 1 }}>
+                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Modules</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Screens</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>All</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Add</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Edit</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>View</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Delete</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Export</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Import</TableCell>
                             </TableRow>
 
                             <TableBody>

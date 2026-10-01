@@ -15,8 +15,11 @@ import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 
+import { COMMON_COLORS } from 'src/theme';
+
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
+
 
 // ----------------------------------------------------------------------
 
@@ -73,7 +76,7 @@ export function InterviewDetailsDialog({ open, onClose, interview }: Props) {
                         height: 44,
                         borderRadius: 1.25,
                         bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-                        color: '#059669',
+                        color: COMMON_COLORS.emerald.main,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -178,7 +181,7 @@ export function InterviewDetailsDialog({ open, onClose, interview }: Props) {
                             height: 44,
                             borderRadius: 1.25,
                             bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-                            color: '#059669',
+                            color: COMMON_COLORS.emerald.main,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',

@@ -13,7 +13,6 @@ import Dialog from '@mui/material/Dialog';
 import Switch from '@mui/material/Switch';
 import Avatar from '@mui/material/Avatar';
 import Snackbar from '@mui/material/Snackbar';
-import { styled } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
 import TableCell from '@mui/material/TableCell';
@@ -22,6 +21,7 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
+import { alpha, styled } from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -29,6 +29,7 @@ import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
+import { COMMON_COLORS } from 'src/theme';
 import { uploadFile } from 'src/api/data-import';
 import { getRoles, getModules } from 'src/api/users';
 import { fetchRolePermissions } from 'src/api/permission-management';
@@ -99,7 +100,7 @@ const renderToggleIcon = (row: any, key: string) => {
     return (
         <TableCell align="center" sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)' }}>
             {value ? (
-                <Iconify icon="solar:check-circle-bold" sx={{ color: '#00a76f' }} width={24} />
+                <Iconify icon="solar:check-circle-bold" sx={{ color: COMMON_COLORS.emerald.main }} width={24} />
             ) : (
                 <Iconify icon="solar:close-circle-bold" sx={{ color: '#919eab' }} width={24} />
             )}
@@ -179,7 +180,7 @@ const Android12LoadingButton = styled(LoadingButton)(({ theme }) => ({
     boxShadow: 'none',
   },
   '&.MuiLoadingButton-loading': {
-    backgroundColor: '#059669',
+    backgroundColor: COMMON_COLORS.emerald.main,
     color: '#ffffff',
   },
   '& .MuiLoadingButton-loadingIndicator': {
@@ -525,7 +526,7 @@ export function UserFormDialog({
                 sx={{
                   width: 80,
                   height: 80,
-                  border: '2px solid rgba(8, 163, 205, 0.3)',
+                  border: (theme) => `2px solid ${alpha(theme.palette.primary.main, 0.3)}`,
                 }}
               />
               {uploading && (
@@ -554,9 +555,9 @@ export function UserFormDialog({
                 size="small"
                 disabled={uploading}
                 sx={{
-                  bgcolor: '#059669',
-                  color: 'common.white',
-                  '&:hover': { bgcolor: '#047857' },
+                  bgcolor: COMMON_COLORS.primaryButton.bg,
+                  color: COMMON_COLORS.primaryButton.color,
+                  '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
                   textTransform: 'none',
                   borderRadius: 1.5,
                   px: 2,
@@ -1035,7 +1036,7 @@ export function UserFormDialog({
             variant="contained"
             onClick={handleSubmitWrapper}
             loading={isSubmitting}
-            sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
+            sx={{ bgcolor: COMMON_COLORS.primaryButton.bg, '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg } }}
           >
             {selectedUser ? 'Update' : 'Create'}
           </Android12LoadingButton>
@@ -1075,15 +1076,15 @@ export function UserFormDialog({
               <TableContainer sx={{ border: '1px solid rgba(224, 224, 224, 1)', borderRadius: 1 }}>
                 <Scrollbar>
                   <Table size="medium">
-                      <TableRow sx={{ bgcolor: '#059669' }}>
-                        <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Menu Name</TableCell>
-                        <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Access Name</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Add</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Edit</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>View</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Delete</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Export</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: '#059669' }}>Import</TableCell>
+                      <TableRow sx={{ bgcolor: COMMON_COLORS.emerald.main }}>
+                        <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Menu Name</TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Access Name</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Add</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Edit</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>View</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Delete</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Export</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: 'common.white', borderRight: '1px solid rgba(224, 224, 224, 1)', bgcolor: COMMON_COLORS.emerald.main }}>Import</TableCell>
                       </TableRow>
                     <TableBody>
                       {dialogPermissions.map((row: any, idx: number) => {
