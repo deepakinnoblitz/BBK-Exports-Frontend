@@ -25,6 +25,8 @@ import { getDoctypeList } from 'src/api/leads';
 
 import { Iconify } from 'src/components/iconify';
 
+import { useAuth } from 'src/auth/auth-context';
+
 import { ShiftRosterDialog } from '../shift-roster-dialog';
 import { ShiftRosterTableFiltersDrawer } from '../shift-roster-table-filters-drawer';
 // ----------------------------------------------------------------------
@@ -37,6 +39,7 @@ export function ShiftRosterCalendarView({
   selectedEmployee,
   onSelectEmployee,
   refreshTrigger,
+  isHR,
 }: {
   canCreate?: boolean;
   canEdit?: boolean;
@@ -45,7 +48,12 @@ export function ShiftRosterCalendarView({
   selectedEmployee?: any | null;
   onSelectEmployee?: (emp: any | null) => void;
   refreshTrigger?: number;
+  isHR?: boolean;
 }) {
+  const { user } = useAuth();
+  const isHRUser = isHR !== undefined ? isHR : user?.roles?.some((role: string) => ['HR Manager', 'HR', 'System Manager', 'Administrator'].includes(role));
+  const isRestrictedEmployee = user?.roles?.includes('Employee') && !isHRUser;
+
   const theme = useTheme();
   const calendarRef = useRef<FullCalendar>(null);
 
@@ -62,6 +70,9 @@ export function ShiftRosterCalendarView({
   const [openFilters, setOpenFilters] = useState(false);
 
   const selectedEmployees: any[] = useMemo(() => {
+    if (isRestrictedEmployee && user?.employee) {
+      return [{ name: user.employee, employee_name: user.employee_name || user.employee }];
+    }
     if (controlledEmployees !== undefined) {
       return Array.isArray(controlledEmployees) ? controlledEmployees : controlledEmployees ? [controlledEmployees] : [];
     }
@@ -69,9 +80,10 @@ export function ShiftRosterCalendarView({
       return Array.isArray(selectedEmployee) ? selectedEmployee : selectedEmployee ? [selectedEmployee] : [];
     }
     return internalEmployees;
-  }, [controlledEmployees, selectedEmployee, internalEmployees]);
+  }, [isRestrictedEmployee, user?.employee, user?.employee_name, controlledEmployees, selectedEmployee, internalEmployees]);
 
   const setSelectedEmployees = (val: any[]) => {
+    if (isRestrictedEmployee) return;
     setInternalEmployees(val);
     onSelectEmployees?.(val);
     onSelectEmployee?.(val.length === 1 ? val[0] : val.length > 0 ? val : null);
@@ -146,26 +158,28 @@ export function ShiftRosterCalendarView({
     setSearch('');
     setFilters({
       department: 'all',
-      employees: [],
+      employees: isRestrictedEmployee && user?.employee ? [{ name: user.employee, employee_name: user.employee_name || user.employee }] : [],
       shift: 'all',
       status: 'all',
     });
-    setSelectedEmployees([]);
+    if (isHRUser) {
+      setSelectedEmployees([]);
+    }
   };
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (filters.department && filters.department !== 'all') count += 1;
-    if (filters.employees && filters.employees.length > 0) count += 1;
+    if (isHRUser && filters.department && filters.department !== 'all') count += 1;
+    if (isHRUser && filters.employees && filters.employees.length > 0) count += 1;
     if (filters.shift && filters.shift !== 'all') count += 1;
     if (filters.status && filters.status !== 'all') count += 1;
     return count;
-  }, [filters]);
+  }, [isHRUser, filters]);
 
   const canReset =
     Boolean(search) ||
-    (filters.department && filters.department !== 'all') ||
-    (filters.employees && filters.employees.length > 0) ||
+    (isHRUser && filters.department && filters.department !== 'all') ||
+    (isHRUser && filters.employees && filters.employees.length > 0) ||
     (filters.shift && filters.shift !== 'all') ||
     (filters.status && filters.status !== 'all');
 
@@ -670,6 +684,7 @@ export function ShiftRosterCalendarView({
         shiftOptions={shifts}
         departmentOptions={departments}
         hideDateFilters
+        isHR={isHRUser}
       />
     </Stack>
   );

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -16,6 +16,8 @@ import { COMMON_COLORS } from 'src/theme';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+
+import { useAuth } from 'src/auth/auth-context';
 
 import { LineRosterMonthlyView } from './line-roster-monthly-view';
 import { LineRosterCalendarView } from './line-roster-calendar-view';
@@ -117,10 +119,31 @@ function SummaryCard({ item }: SummaryCardProps) {
 // ----------------------------------------------------------------------
 
 export function MonthlyLineRosterView() {
+  const { user } = useAuth();
   const theme = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
+  const isHR = user?.roles?.some((role: string) =>
+    ['HR Manager', 'HR', 'System Manager', 'Administrator'].includes(role)
+  );
+  const isRestrictedEmployee = user?.roles?.includes('Employee') && !isHR;
+
+  const currentEmployee = useMemo(() => {
+    if (isRestrictedEmployee && user?.employee) {
+      return { name: user.employee, employee_name: user.employee_name || user.employee };
+    }
+    return null;
+  }, [isRestrictedEmployee, user?.employee, user?.employee_name]);
+
+  const [selectedEmployees, setSelectedEmployees] = useState<any[]>(
+    currentEmployee ? [currentEmployee] : []
+  );
+
+  useEffect(() => {
+    if (currentEmployee) {
+      setSelectedEmployees([currentEmployee]);
+    }
+  }, [currentEmployee]);
 
   const urlView = searchParams.get('view');
   const [currentView, setCurrentView] = useState<'monthly' | 'calendar'>(
@@ -147,7 +170,14 @@ export function MonthlyLineRosterView() {
     severity: 'success',
   });
 
-  const { data, total, refetch } = useLineRoster(1, 100);
+  const summaryCustomFilters = useMemo(() => {
+    if (isRestrictedEmployee && user?.employee) {
+      return [['Employee Line Roster', 'employee', '=', user.employee]];
+    }
+    return [];
+  }, [isRestrictedEmployee, user?.employee]);
+
+  const { data, total, refetch } = useLineRoster(1, 100, '', 'effective_from', 'desc', summaryCustomFilters);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const activeCount = data.filter((d) => d.status === 'Active').length;
@@ -265,10 +295,11 @@ export function MonthlyLineRosterView() {
         {currentView === 'monthly' && (
           <LineRosterMonthlyView
             canEdit={false}
-            selectedEmployees={selectedEmployees}
-            onSelectEmployees={setSelectedEmployees}
+            selectedEmployees={currentEmployee ? [currentEmployee] : selectedEmployees}
+            onSelectEmployees={isRestrictedEmployee ? undefined : setSelectedEmployees}
             filterVariant="drawer"
             refreshTrigger={refreshTrigger}
+            isHR={isHR}
           />
         )}
 
@@ -276,9 +307,10 @@ export function MonthlyLineRosterView() {
           <LineRosterCalendarView
             canCreate={false}
             canEdit={false}
-            selectedEmployees={selectedEmployees}
-            onSelectEmployees={setSelectedEmployees}
+            selectedEmployees={currentEmployee ? [currentEmployee] : selectedEmployees}
+            onSelectEmployees={isRestrictedEmployee ? undefined : setSelectedEmployees}
             refreshTrigger={refreshTrigger}
+            isHR={isHR}
           />
         )}
       </Stack>
