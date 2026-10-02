@@ -556,6 +556,41 @@ export function EmployeeView() {
         }
     };
 
+    const calculateSalaryComponentAmount = (
+        comp: any,
+        ctcValue: number,
+        currentEarnings: any[]
+    ): number => {
+        const percent = parseFloat(comp.percentage) || 0;
+        if (percent <= 0) {
+            return parseFloat(comp.static_amount) || 0;
+        }
+
+        const basis = comp.percentage_basis || 'Full (Total Gross / CTC)';
+        if (basis === 'Selected Component(s)') {
+            let selectedList: string[] = [];
+            if (Array.isArray(comp.selected_components)) {
+                selectedList = comp.selected_components;
+            } else if (typeof comp.selected_components === 'string' && comp.selected_components.trim()) {
+                try {
+                    selectedList = JSON.parse(comp.selected_components);
+                } catch {
+                    selectedList = comp.selected_components.split(',').map((s: string) => s.trim()).filter(Boolean);
+                }
+            }
+
+            if (selectedList.length > 0) {
+                const baseSum = currentEarnings
+                    .filter((e: any) => selectedList.includes(e.component_name))
+                    .reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
+                return Math.round(((baseSum * percent) / 100) * 100) / 100;
+            }
+        }
+
+        // Default to Full CTC / Gross
+        return Math.round(((ctcValue * percent) / 100) * 100) / 100;
+    };
+
     const handleCTCOnBlur = async () => {
         const ctcValue = parseFloat(formData.ctc) || 0;
         if (ctcValue <= 0) return;
@@ -563,30 +598,26 @@ export function EmployeeView() {
         try {
             const components = salaryComponents; // Use pre-fetched components
 
-            const earnings: any[] = [];
-            const deductions: any[] = [];
+            const earningComps = components.filter((c: any) => c.type === 'Earning');
+            const deductionComps = components.filter((c: any) => c.type === 'Deduction');
 
-            components.forEach((comp: any) => {
-                let val = 0;
-                const percent = parseFloat(comp.percentage) || 0;
-                if (percent > 0) {
-                    val = (ctcValue * percent) / 100;
-                } else {
-                    val = parseFloat(comp.static_amount) || 0;
-                }
+            const earnings: any[] = earningComps.map((comp: any) => ({
+                component_name: comp.component_name,
+                amount: calculateSalaryComponentAmount(comp, ctcValue, []),
+                type: comp.type,
+                percentage: comp.percentage,
+                percentage_basis: comp.percentage_basis,
+                selected_components: comp.selected_components,
+            }));
 
-                const row = {
-                    component_name: comp.component_name,
-                    amount: val,
-                    type: comp.type
-                };
-
-                if (comp.type === 'Earning') {
-                    earnings.push(row);
-                } else {
-                    deductions.push(row);
-                }
-            });
+            const deductions: any[] = deductionComps.map((comp: any) => ({
+                component_name: comp.component_name,
+                amount: calculateSalaryComponentAmount(comp, ctcValue, earnings),
+                type: comp.type,
+                percentage: comp.percentage,
+                percentage_basis: comp.percentage_basis,
+                selected_components: comp.selected_components,
+            }));
 
             setFormData(prev => ({
                 ...prev,
@@ -630,7 +661,25 @@ export function EmployeeView() {
         const dataField = type === 'Earning' ? 'earnings' : 'deductions';
         setFormData(prev => {
             const currentRows = [...(prev[dataField] || [])];
-            currentRows[index] = { ...currentRows[index], [field]: value };
+            let updatedRow = { ...currentRows[index], [field]: value };
+
+            if (field === 'component_name' && value) {
+                const compObj = salaryComponents.find((c: any) => (c.component_name || c.name) === value);
+                if (compObj) {
+                    const ctcVal = parseFloat(prev.ctc) || 0;
+                    const autoAmt = calculateSalaryComponentAmount(compObj, ctcVal, prev.earnings || []);
+                    updatedRow = {
+                        ...updatedRow,
+                        component_name: value,
+                        amount: autoAmt > 0 ? autoAmt : (updatedRow.amount || 0),
+                        percentage: compObj.percentage,
+                        percentage_basis: compObj.percentage_basis,
+                        selected_components: compObj.selected_components,
+                    };
+                }
+            }
+
+            currentRows[index] = updatedRow;
             return {
                 ...prev,
                 [dataField]: currentRows
@@ -641,7 +690,7 @@ export function EmployeeView() {
         if (formErrors.salary_components) {
             setFormErrors(prev => ({ ...prev, salary_components: '' }));
         }
-    }, [formErrors.salary_components]);
+    }, [formErrors.salary_components, salaryComponents]);
 
 
     const handleDefaultSplitting = async () => {
@@ -659,11 +708,13 @@ export function EmployeeView() {
                 return;
             }
 
-            const totalEarningPercent = defaults
-                .filter(comp => comp.type === 'Earning')
-                .reduce((sum, comp) => sum + (parseFloat(comp.percentage) || 0), 0);
+            const defaultEarnings = defaults.filter(comp => comp.type === 'Earning');
+            const defaultDeductions = defaults.filter(comp => comp.type === 'Deduction');
 
-            if (totalEarningPercent !== 100) {
+            const fullBasisEarnings = defaultEarnings.filter(comp => (comp.percentage_basis || 'Full (Total Gross / CTC)') === 'Full (Total Gross / CTC)');
+            const totalEarningPercent = fullBasisEarnings.reduce((sum, comp) => sum + (parseFloat(comp.percentage) || 0), 0);
+
+            if (totalEarningPercent !== 100 && fullBasisEarnings.length > 0) {
                 setSnackbar({
                     open: true,
                     message: `Invalid configuration: Total Default Earning percentage must be exactly 100%. (Current total: ${totalEarningPercent.toFixed(2)}%)`,
@@ -672,30 +723,23 @@ export function EmployeeView() {
                 return;
             }
 
-            const earnings: any[] = [];
-            const deductions: any[] = [];
+            const earnings: any[] = defaultEarnings.map((comp: any) => ({
+                component_name: comp.component_name,
+                amount: calculateSalaryComponentAmount(comp, ctcValue, []),
+                type: comp.type,
+                percentage: comp.percentage,
+                percentage_basis: comp.percentage_basis,
+                selected_components: comp.selected_components,
+            }));
 
-            defaults.forEach((comp: any) => {
-                let val = 0;
-                const percent = parseFloat(comp.percentage) || 0;
-                if (percent > 0) {
-                    val = (ctcValue * percent) / 100;
-                } else {
-                    val = parseFloat(comp.static_amount) || 0;
-                }
-
-                const row = {
-                    component_name: comp.component_name,
-                    amount: val,
-                    type: comp.type
-                };
-
-                if (comp.type === 'Earning') {
-                    earnings.push(row);
-                } else {
-                    deductions.push(row);
-                }
-            });
+            const deductions: any[] = defaultDeductions.map((comp: any) => ({
+                component_name: comp.component_name,
+                amount: calculateSalaryComponentAmount(comp, ctcValue, earnings),
+                type: comp.type,
+                percentage: comp.percentage,
+                percentage_basis: comp.percentage_basis,
+                selected_components: comp.selected_components,
+            }));
 
             setFormData(prev => ({
                 ...prev,

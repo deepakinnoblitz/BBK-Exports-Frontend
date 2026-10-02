@@ -710,6 +710,8 @@ export interface SalaryStructureComponent {
     type?: 'Earning' | 'Deduction';
     is_default?: number;
     percentage?: number;
+    percentage_basis?: 'Full (Total Gross / CTC)' | 'Selected Component(s)';
+    selected_components?: string | string[];
     static_amount?: number;
     creation?: string;
     modified?: string;

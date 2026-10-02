@@ -471,17 +471,31 @@ export function SalarySlipPreviewView() {
                     }}
                 >
                     <SectionHeader title="Earnings" icon="solar:wad-of-money-bold" color="success.main" />
-                    <Stack spacing={1.5}>
+                    <TableColumnHeader standardLabel="Standard" actualLabel="Earned" />
+                    <Stack spacing={1}>
                         {(data.earnings || []).map((item: any, idx: number) => (
-                            <AmountRow key={idx} label={item.component_name || item.salary_component} amount={item.amount} hrSettings={hrSettings} />
+                            <AmountRow
+                                key={idx}
+                                label={item.component_name || item.salary_component}
+                                standardAmount={item.standard_amount !== undefined ? item.standard_amount : (item.component_name === 'Overtime Pay (OT)' || item.component_name === 'Attendance Bonus' ? 0 : item.amount)}
+                                amount={item.amount}
+                                hrSettings={hrSettings}
+                            />
                         ))}
                         {(!data.earnings || data.earnings.length === 0) && (
-                            <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
+                            <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No earnings
                             </Typography>
                         )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
-                        <AmountRow label="Gross Earnings" amount={data.gross_pay} isTotal color="success.main" hrSettings={hrSettings} />
+                        <AmountRow
+                            label="Gross Earnings"
+                            standardAmount={data.base_gross_pay || baseGrossPay}
+                            amount={data.gross_pay}
+                            isTotal
+                            color="success.main"
+                            hrSettings={hrSettings}
+                        />
                     </Stack>
                 </Box>
 
@@ -495,18 +509,31 @@ export function SalarySlipPreviewView() {
                     }}
                 >
                     <SectionHeader title="Deductions" icon="solar:hand-money-bold" color="error.main" />
-                    <Stack spacing={1.5}>
+                    <TableColumnHeader standardLabel="Standard" actualLabel="Actual" />
+                    <Stack spacing={1}>
                         {(data.deductions || []).map((item: any, idx: number) => (
-                            <AmountRow key={idx} label={item.component_name || item.salary_component} amount={item.amount} hrSettings={hrSettings} />
+                            <AmountRow
+                                key={idx}
+                                label={item.component_name || item.salary_component}
+                                standardAmount={item.standard_amount !== undefined ? item.standard_amount : item.amount}
+                                amount={item.amount}
+                                hrSettings={hrSettings}
+                            />
                         ))}
-                        <AmountRow label="LOP" amount={data.lop} hrSettings={hrSettings} />
-                        {(!data.deductions || data.deductions.length === 0) && data.lop === 0 && (
-                            <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
+                        {(!data.deductions || data.deductions.length === 0) && (
+                            <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No deductions
                             </Typography>
                         )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
-                        <AmountRow label="Total Deductions" amount={data.total_deduction} isTotal color="error.main" hrSettings={hrSettings} />
+                        <AmountRow
+                            label="Total Deductions"
+                            standardAmount={data.base_total_deduction || 0}
+                            amount={data.total_deduction}
+                            isTotal
+                            color="error.main"
+                            hrSettings={hrSettings}
+                        />
                     </Stack>
                 </Box>
             </Box>
@@ -765,30 +792,67 @@ function InfoRow({ label, value, action }: { label: string; value: string | numb
     );
 }
 
+function TableColumnHeader({ standardLabel = 'Standard', actualLabel = 'Earned' }: { standardLabel?: string; actualLabel?: string }) {
+    return (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1, borderBottom: (theme) => `1px dashed ${theme.palette.divider}`, mb: 1.5 }}>
+            <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 }}>
+                Component
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Typography variant="caption" sx={{ minWidth: 85, textAlign: 'right', color: 'text.disabled', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {standardLabel}
+                </Typography>
+                <Typography variant="caption" sx={{ minWidth: 95, textAlign: 'right', color: 'text.disabled', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {actualLabel}
+                </Typography>
+            </Box>
+        </Box>
+    );
+}
+
 function AmountRow({
     label,
     amount,
+    standardAmount,
     isTotal = false,
     color,
     hrSettings,
 }: {
     label: string;
     amount: number;
+    standardAmount?: number | null;
     isTotal?: boolean;
     color?: string;
     hrSettings: any;
 }) {
+    const hasStandard = standardAmount !== undefined && standardAmount !== null;
     return (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant={isTotal ? 'subtitle2' : 'body2'} sx={{ color: isTotal ? color || 'text.primary' : 'text.secondary', fontWeight: isTotal ? 700 : 500 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: isTotal ? 0.5 : 0.25 }}>
+            <Typography variant={isTotal ? 'subtitle2' : 'body2'} sx={{ color: isTotal ? color || 'text.primary' : 'text.secondary', fontWeight: isTotal ? 700 : 500, flex: 1, pr: 1 }}>
                 {label}
             </Typography>
-            <Typography variant={isTotal ? 'subtitle1' : 'body2'} sx={{ fontWeight: isTotal ? 800 : 600, color: color || 'inherit', display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.5, fontSize: '0.9em', color: isTotal ? color || 'text.primary' : 'text.primary' }}>
-                    {hrSettings.currency_symbol}
-                </Box>
-                {fNumber(amount || 0, { locale: hrSettings.default_locale })}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, textAlign: 'right' }}>
+                {hasStandard && (
+                    <Typography variant={isTotal ? 'subtitle2' : 'caption'} sx={{ minWidth: 85, color: isTotal ? 'text.secondary' : 'text.disabled', fontWeight: isTotal ? 700 : 500, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {standardAmount > 0 ? (
+                            <>
+                                <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.9em' }}>
+                                    {hrSettings.currency_symbol}
+                                </Box>
+                                {fNumber(standardAmount, { locale: hrSettings.default_locale })}
+                            </>
+                        ) : (
+                            '—'
+                        )}
+                    </Typography>
+                )}
+                <Typography variant={isTotal ? 'subtitle1' : 'body2'} sx={{ minWidth: 95, fontWeight: isTotal ? 800 : 600, color: color || 'inherit', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                    <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.9em', color: isTotal ? color || 'text.primary' : 'text.primary' }}>
+                        {hrSettings.currency_symbol}
+                    </Box>
+                    {fNumber(amount || 0, { locale: hrSettings.default_locale })}
+                </Typography>
+            </Box>
         </Box>
     );
 }
