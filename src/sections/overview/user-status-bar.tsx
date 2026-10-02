@@ -421,9 +421,7 @@ export function UserStatusBar({ disableAutoCheckIn = false }: UserStatusBarProps
 
     const currentStatus = statusOptions.find(opt => opt.value === statusName) || statusOptions[5];
 
-    if (isHR || !isEmployee) {
-        return null;
-    }
+    return null;
 
     const isPng = userAvatar?.toLowerCase().endsWith('.png') ?? false;
 

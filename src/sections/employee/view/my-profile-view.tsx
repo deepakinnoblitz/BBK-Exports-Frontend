@@ -380,23 +380,20 @@ export function MyProfileView() {
                                 </Box>
                             </Box>
 
-                            <Divider sx={{ borderStyle: 'dashed' }} />
-
                             {/* Employee Evaluation Metrics */}
-
-                            <Grid size={{ xs: 12 }}>
+                            {/* <Grid size={{ xs: 12 }}>
                                 <PersonalityManagement />
                             </Grid>
 
-                            <Divider sx={{ borderStyle: 'dashed' }} />
+                            <Divider sx={{ borderStyle: 'dashed' }} /> */}
 
                             {/* Badges & Achievements */}
-                            <Box>
+                            {/* <Box>
                                 <SectionHeader title="Badges & Achievements" icon={FaMedal} />
                                 <ProfileBadges employeeId={employee.name} />
                             </Box>
 
-                            <Divider sx={{ borderStyle: 'dashed' }} />
+                            <Divider sx={{ borderStyle: 'dashed' }} /> */}
 
                             {/* Salary & Finance */}
                             <Box>
