@@ -8,6 +8,7 @@ import {
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
 import Divider from '@mui/material/Divider';
@@ -916,22 +917,17 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
             {/* Snackbar */}
             <Snackbar
                 open={snackbar.open}
-                autoHideDuration={4000}
+                autoHideDuration={6000}
                 onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
                 anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
             >
-                <Box
-                    sx={{
-                        bgcolor: snackbar.severity === 'error' ? 'error.main' : 'success.main',
-                        color: 'common.white',
-                        px: 2,
-                        py: 1.5,
-                        borderRadius: 1,
-                        boxShadow: (theme) => theme.customShadows?.z8,
-                    }}
+                <Alert
+                    onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+                    severity={snackbar.severity}
+                    sx={{ width: '100%' }}
                 >
-                    <Typography variant="subtitle2">{snackbar.message}</Typography>
-                </Box>
+                    {snackbar.message}
+                </Alert>
             </Snackbar>
         </DashboardContent>
     );
