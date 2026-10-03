@@ -10,7 +10,10 @@ import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 
+import { COMMON_COLORS } from 'src/theme';
+
 import { Iconify } from 'src/components/iconify';
+
 
 // ----------------------------------------------------------------------
 
@@ -43,10 +46,10 @@ export function HolidayDetailsDialog({ open, onClose, holidayList }: Props) {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    bgcolor: '#ffebd8', // Peach background
+                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
                                 }}
                             >
-                                <Iconify icon={"solar:calendar-mark-bold" as any} width={40} sx={{ color: '#ff5630' }} />
+                                <Iconify icon={"solar:calendar-mark-bold" as any} width={40} sx={{ color: COMMON_COLORS.emerald.main }} />
                             </Box>
 
                             <Box sx={{ flexGrow: 1 }}>
@@ -59,7 +62,7 @@ export function HolidayDetailsDialog({ open, onClose, holidayList }: Props) {
                             </Box>
 
                             <Box sx={{ textAlign: 'center' }}>
-                                <Typography variant="h4" sx={{ fontWeight: 800, color: '#1877f2' }}>
+                                <Typography variant="h4" sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main }}>
                                     {holidayList.working_days || 0}
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
@@ -185,13 +188,13 @@ function SectionHeader({ title, icon, noMargin = false, isPremium = false }: { t
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        bgcolor: '#1c75ff',
-                        boxShadow: '0 4px 8px -2px rgba(28, 117, 255, 0.24)',
+                        bgcolor: COMMON_COLORS.emerald.main,
+                        boxShadow: `0 4px 8px -2px ${alpha(COMMON_COLORS.emerald.main, 0.24)}`,
                     }}
                 >
                     <Iconify icon={icon as any} width={18} sx={{ color: 'common.white' }} />
                 </Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1c355e' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.darker }}>
                     {title}
                 </Typography>
             </Box>
@@ -215,8 +218,8 @@ function InfoCard({ label, value, icon, variant = 'neutral' }: { label: string; 
             sx={{
                 p: 2,
                 borderRadius: 2,
-                bgcolor: (theme) => isInfo ? alpha(theme.palette.primary.main, 0.08) : alpha(theme.palette.info.main, 0.04),
-                border: (theme) => `1px solid ${isInfo ? alpha(theme.palette.primary.main, 0.15) : alpha(theme.palette.info.main, 0.12)}`,
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 2,
@@ -231,8 +234,8 @@ function InfoCard({ label, value, icon, variant = 'neutral' }: { label: string; 
                     width: 40,
                     height: 40,
                     borderRadius: 1.5,
-                    bgcolor: (theme) => isInfo ? alpha(theme.palette.primary.main, 0.12) : alpha(theme.palette.info.main, 0.12),
-                    color: isInfo ? 'primary.main' : 'info.main',
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                    color: 'primary.main',
                     flexShrink: 0,
                 }}
             >

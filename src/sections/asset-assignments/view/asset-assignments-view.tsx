@@ -39,6 +39,7 @@ import { frappeRequest } from 'src/utils/csrf';
 import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 import {
     getEmployees,
     getAvailableAssets,
@@ -371,7 +372,7 @@ export function AssetAssignmentsView() {
                                 variant="contained"
                                 startIcon={<Iconify icon="mingcute:add-line" />}
                                 onClick={handleOpenCreate}
-                                sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
+                                sx={{ ...COMMON_BUTTON_STYLES.primary }}
                             >
                                 New Assignment
                             </Button>
@@ -426,7 +427,7 @@ export function AssetAssignmentsView() {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={isHR ? 6 : 5} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#059669' }} />
+                                            <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -687,9 +688,9 @@ export function AssetAssignmentsView() {
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        bgcolor: 'info.lighter',
-                                        color: 'info.main',
-                                        boxShadow: (t) => `0 8px 16px 0 ${alpha(t.palette.info.main, 0.16)}`,
+                                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                                        color: COMMON_COLORS.emerald.main,
+                                        boxShadow: (t) => `0 8px 16px 0 ${alpha(COMMON_COLORS.emerald.main, 0.16)}`,
                                     }}
                                 >
                                     <Iconify icon={"solar:laptop-bold-duotone" as any} width={40} />
@@ -775,9 +776,9 @@ export function AssetAssignmentsView() {
                                     <Box                                     
                                         sx={{
                                             p: 3,
-                                            bgcolor: alpha(theme.palette.primary.main, 0.04),
+                                            bgcolor: alpha(COMMON_COLORS.emerald.main, 0.04),
                                             borderRadius: 2,
-                                            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                                            border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.12)}`,
                                         }}
                                     >
                                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -846,8 +847,8 @@ function DetailItem({ label, value, icon }: { label: string; value?: React.React
                     width: 50,
                     height: 50,
                     borderRadius: 1.5,
-                    bgcolor: alpha(theme.palette.primary.main, 0.08),
-                    color: 'info.main',
+                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                    color: COMMON_COLORS.emerald.main,
                     flexShrink: 0,
                 }}
             >

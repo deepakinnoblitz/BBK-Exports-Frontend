@@ -31,6 +31,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { fCurrency } from 'src/utils/format-number';    
 
+import { COMMON_COLORS } from 'src/theme';
 import { updateReimbursementClaim, getReimbursementClaimWorkflowActions, applyReimbursementClaimWorkflowAction } from 'src/api/reimbursement-claims';
 
 import { Label } from 'src/components/label';
@@ -197,8 +198,8 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    bgcolor: 'primary.lighter',
-                    color: 'primary.main',
+                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                    color: COMMON_COLORS.emerald.main,
                     mr: 3,
                 }}
             >
@@ -213,7 +214,7 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
             </Box>
 
             <Stack spacing={1} alignItems="flex-end">
-                <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 700 }}>
+                <Typography variant="h5" sx={{ color: COMMON_COLORS.emerald.main, fontWeight: 700 }}>
                     {renderCurrency(claim.amount, '20px')}
                 </Typography>
                 <Label variant="soft" color={statusColor}>
@@ -310,7 +311,7 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
                                 <SectionHeader title="Details & Notes" icon="" />
                                 <Stack spacing={2}>
                                     {claim.claim_details && (
-                                        <Box sx={{ p: 3, bgcolor: alpha(theme.palette.primary.main, 0.04), borderRadius: 2, border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}` }}>
+                                        <Box sx={{ p: 3, bgcolor: alpha(COMMON_COLORS.emerald.main, 0.04), borderRadius: 2, border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.12)}` }}>
                                             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, mb: 1, display: 'block', textTransform: 'uppercase' }}>
                                                 Claim Details
                                             </Typography>
@@ -348,8 +349,8 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
                                                         width: 40,
                                                         height: 40,
                                                         borderRadius: 1,
-                                                        bgcolor: (themeVar) => alpha(themeVar.palette.primary.main, 0.08),
-                                                        color: 'info.main',
+                                                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                                        color: COMMON_COLORS.emerald.main,
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
@@ -365,14 +366,14 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
                                                 href={claim.receipt}
                                                 target="_blank"
                                                 variant="text"
-                                                color="primary"
                                                 endIcon={<FaExternalLinkAlt size={14} />}
                                                 sx={{
+                                                    color: COMMON_COLORS.emerald.main,
                                                     fontWeight: 700,
                                                     textTransform: 'none',
                                                     fontSize: '0.875rem',
                                                     '&:hover': {
-                                                        bgcolor: 'transparent',
+                                                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
                                                     }
                                                 }}
                                             >
@@ -398,8 +399,8 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
                                                         width: 40,
                                                         height: 40,
                                                         borderRadius: 1,
-                                                        bgcolor: (themeVar) => alpha(themeVar.palette.primary.main, 0.08),
-                                                        color: 'success.main',
+                                                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                                        color: COMMON_COLORS.emerald.main,
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
@@ -415,14 +416,14 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
                                                 href={claim.payment_proof}
                                                 target="_blank"
                                                 variant="text"
-                                                color="success"
                                                 endIcon={<FaExternalLinkAlt size={14} />}
                                                 sx={{
+                                                    color: COMMON_COLORS.emerald.main,
                                                     fontWeight: 700,
                                                     textTransform: 'none',
                                                     fontSize: '0.875rem',
                                                     '&:hover': {
-                                                        bgcolor: 'transparent',
+                                                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
                                                     }
                                                 }}
                                             >
@@ -435,7 +436,7 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
                         )}
 
                         {/* Metadata */}
-                        <Box sx={{ p: 3, bgcolor: alpha(theme.palette.primary.main, 0.04), borderRadius: 2, border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}` }}>
+                        <Box sx={{ p: 3, bgcolor: alpha(COMMON_COLORS.emerald.main, 0.04), borderRadius: 2, border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.12)}` }}>
                             <SectionHeader title="Record Information" icon="" noMargin />
                             <Box
                                 sx={{
@@ -455,7 +456,7 @@ export function ReimbursementClaimDetailsDialog({ open, onClose, claim, canEdit 
                                 </Box>
                                 <Box>
                                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>Record ID</Typography>
-                                    <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600 }}>{claim.name}</Typography>
+                                    <Typography variant="body2" sx={{ color: COMMON_COLORS.emerald.main, fontWeight: 600 }}>{claim.name}</Typography>
                                 </Box>
                             </Box>
                         </Box>
@@ -640,7 +641,6 @@ function SectionHeader({ title, icon, action, noMargin = false }: { title: strin
 }
 
 function DetailItem({ label, value, icon }: { label: string; value: React.ReactNode; icon: string }) {
-    const theme = useTheme();
     return (
         <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
             <Box
@@ -648,8 +648,8 @@ function DetailItem({ label, value, icon }: { label: string; value: React.ReactN
                     p: 1.3,
                     mr: 2,
                     borderRadius: 1,
-                    bgcolor: alpha(theme.palette.primary.main, 0.08),
-                    color: 'info.main',
+                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                    color: COMMON_COLORS.emerald.main,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'

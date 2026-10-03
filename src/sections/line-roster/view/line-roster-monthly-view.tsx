@@ -34,6 +34,8 @@ import { getDoctypeList } from 'src/api/leads';
 
 import { Iconify } from 'src/components/iconify';
 
+import { useAuth } from 'src/auth/auth-context';
+
 import { LineRosterDialog } from '../line-roster-dialog';
 import { LineRosterTableFiltersDrawer } from '../line-roster-table-filters-drawer';
 
@@ -65,6 +67,7 @@ export function LineRosterMonthlyView({
   onSelectEmployee,
   filterVariant = 'drawer',
   refreshTrigger,
+  isHR,
 }: {
   canEdit?: boolean;
   selectedEmployees?: any[];
@@ -73,7 +76,12 @@ export function LineRosterMonthlyView({
   onSelectEmployee?: (emp: any | null) => void;
   filterVariant?: 'drawer' | 'inline';
   refreshTrigger?: number;
+  isHR?: boolean;
 }) {
+  const { user } = useAuth();
+  const isHRUser = isHR !== undefined ? isHR : user?.roles?.some((role: string) => ['HR Manager', 'HR', 'System Manager', 'Administrator'].includes(role));
+  const isRestrictedEmployee = user?.roles?.includes('Employee') && !isHRUser;
+
   const [currentDate, setCurrentDate] = useState<dayjs.Dayjs>(dayjs());
   const [selectedDept, setSelectedDept] = useState('all');
   const [selectedLineFilter, setSelectedLineFilter] = useState('all');
@@ -82,6 +90,9 @@ export function LineRosterMonthlyView({
   const [internalEmployees, setInternalEmployees] = useState<any[]>([]);
 
   const selectedEmployees: any[] = useMemo(() => {
+    if (isRestrictedEmployee && user?.employee) {
+      return [{ name: user.employee, employee_name: user.employee_name || user.employee }];
+    }
     if (controlledEmployees !== undefined) {
       return Array.isArray(controlledEmployees) ? controlledEmployees : controlledEmployees ? [controlledEmployees] : [];
     }
@@ -89,9 +100,10 @@ export function LineRosterMonthlyView({
       return Array.isArray(selectedEmployee) ? selectedEmployee : selectedEmployee ? [selectedEmployee] : [];
     }
     return internalEmployees;
-  }, [controlledEmployees, selectedEmployee, internalEmployees]);
+  }, [isRestrictedEmployee, user?.employee, user?.employee_name, controlledEmployees, selectedEmployee, internalEmployees]);
 
   const setSelectedEmployees = (val: any[]) => {
+    if (isRestrictedEmployee) return;
     setInternalEmployees(val);
     onSelectEmployees?.(val);
     onSelectEmployee?.(val.length === 1 ? val[0] : val.length > 0 ? val : null);
@@ -133,9 +145,12 @@ export function LineRosterMonthlyView({
   const year = currentDate.year();
 
   const employeeFilterParam = useMemo(() => {
+    if (isRestrictedEmployee && user?.employee) {
+      return [user.employee];
+    }
     if (selectedEmployees.length === 0) return undefined;
     return selectedEmployees.map((e) => (typeof e === 'string' ? e : e.name));
-  }, [selectedEmployees]);
+  }, [isRestrictedEmployee, user?.employee, selectedEmployees]);
 
   const { data, loading, loadingMore, hasMore, totalCount, refetch, loadMore } = useMonthlyLineRoster(
     month,
@@ -242,17 +257,19 @@ export function LineRosterMonthlyView({
   // Filter helper logic
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (selectedDept !== 'all') count += 1;
-    if (selectedEmployees.length > 0) count += 1;
+    if (isHRUser && selectedDept !== 'all') count += 1;
+    if (isHRUser && selectedEmployees.length > 0) count += 1;
     if (selectedLineFilter !== 'all') count += 1;
     return count;
-  }, [selectedDept, selectedEmployees, selectedLineFilter]);
+  }, [isHRUser, selectedDept, selectedEmployees, selectedLineFilter]);
 
-  const canReset = selectedDept !== 'all' || selectedEmployees.length > 0 || selectedLineFilter !== 'all' || !!searchEmployee;
+  const canReset = (isHRUser && selectedDept !== 'all') || (isHRUser && selectedEmployees.length > 0) || selectedLineFilter !== 'all' || !!searchEmployee;
 
   const handleResetFilters = () => {
-    setSelectedDept('all');
-    setSelectedEmployees([]);
+    if (isHRUser) {
+      setSelectedDept('all');
+      setSelectedEmployees([]);
+    }
     setSelectedLineFilter('all');
     setSearchEmployee('');
   };
@@ -951,6 +968,7 @@ export function LineRosterMonthlyView({
           departmentOptions={departments}
           hideDateFilters
           hideStatusFilter
+          isHR={isHRUser}
         />
       )}
     </Stack>

@@ -277,6 +277,16 @@ export const employeeNavData = [
     path: '/leaves',
     icon: <RiAppsLine size={18} />,
   },
+  {
+    title: 'Monthly Shift Roster',
+    path: '/monthly-roster',
+    icon: <RiCalendarScheduleLine size={18} />,
+  },
+  {
+    title: 'Monthly Line Roster',
+    path: '/monthly-line-roster',
+    icon: <LuLayers size={18} />,
+  },
   /*
   {
     title: 'My Request List',

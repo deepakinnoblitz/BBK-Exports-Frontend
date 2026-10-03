@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -16,6 +16,8 @@ import { COMMON_COLORS } from 'src/theme';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+
+import { useAuth } from 'src/auth/auth-context';
 
 import { ShiftRosterMonthlyView } from './shift-roster-monthly-view';
 import { ShiftRosterCalendarView } from './shift-roster-calendar-view';
@@ -117,10 +119,31 @@ function SummaryCard({ item }: SummaryCardProps) {
 // ----------------------------------------------------------------------
 
 export function MonthlyRosterView() {
+  const { user } = useAuth();
   const theme = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
+  const isHR = user?.roles?.some((role: string) =>
+    ['HR Manager', 'HR', 'System Manager', 'Administrator'].includes(role)
+  );
+  const isRestrictedEmployee = user?.roles?.includes('Employee') && !isHR;
+
+  const currentEmployee = useMemo(() => {
+    if (isRestrictedEmployee && user?.employee) {
+      return { name: user.employee, employee_name: user.employee_name || user.employee };
+    }
+    return null;
+  }, [isRestrictedEmployee, user?.employee, user?.employee_name]);
+
+  const [selectedEmployees, setSelectedEmployees] = useState<any[]>(
+    currentEmployee ? [currentEmployee] : []
+  );
+
+  useEffect(() => {
+    if (currentEmployee) {
+      setSelectedEmployees([currentEmployee]);
+    }
+  }, [currentEmployee]);
 
   const urlView = searchParams.get('view');
   const [currentView, setCurrentView] = useState<'monthly' | 'calendar'>(
@@ -149,7 +172,14 @@ export function MonthlyRosterView() {
   });
 
   // For summary counts
-  const { data, total, refetch } = useShiftRoster(1, 100);
+  const summaryCustomFilters = useMemo(() => {
+    if (isRestrictedEmployee && user?.employee) {
+      return [['Employee Shift Roster', 'employee', '=', user.employee]];
+    }
+    return [];
+  }, [isRestrictedEmployee, user?.employee]);
+
+  const { data, total, refetch } = useShiftRoster(1, 100, '', 'effective_from', 'desc', summaryCustomFilters);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const activeCount = data.filter((d) => d.status === 'Active').length;
@@ -267,10 +297,11 @@ export function MonthlyRosterView() {
         {currentView === 'monthly' && (
           <ShiftRosterMonthlyView
             canEdit={false}
-            selectedEmployees={selectedEmployees}
-            onSelectEmployees={setSelectedEmployees}
+            selectedEmployees={currentEmployee ? [currentEmployee] : selectedEmployees}
+            onSelectEmployees={isRestrictedEmployee ? undefined : setSelectedEmployees}
             filterVariant="drawer"
             refreshTrigger={refreshTrigger}
+            isHR={isHR}
           />
         )}
 
@@ -278,9 +309,10 @@ export function MonthlyRosterView() {
           <ShiftRosterCalendarView
             canCreate={false}
             canEdit={false}
-            selectedEmployees={selectedEmployees}
-            onSelectEmployees={setSelectedEmployees}
+            selectedEmployees={currentEmployee ? [currentEmployee] : selectedEmployees}
+            onSelectEmployees={isRestrictedEmployee ? undefined : setSelectedEmployees}
             refreshTrigger={refreshTrigger}
+            isHR={isHR}
           />
         )}
       </Stack>

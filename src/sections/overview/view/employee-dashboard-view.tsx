@@ -113,20 +113,20 @@ export function EmployeeDashboardView() {
 
     return (
         <DashboardContent maxWidth="xl">
-            <Stack
+            {/* <Stack
                 direction={{ xs: 'column', md: 'row' }}
                 alignItems="center"
                 spacing={{ xs: 1.5, md: 2 }}
                 sx={{ display: { xs: 'flex', md: 'none' }, mb: 2 }}
             >
                 <UserStatusBar disableAutoCheckIn />
-            </Stack>
+            </Stack> */}
             <Typography variant="h4" sx={{ mb: { xs: 3, md: 2 } }}>
                 Hello, {data.employee_name || user?.full_name || 'Employee'}, Welcome back !
             </Typography>
 
 
-            <DashboardEomCard />
+            {/* <DashboardEomCard /> */}
 
             {/* <Box sx={{ mt: 3 }}>
                 <TodayPresenceWidget />
@@ -145,9 +145,9 @@ export function EmployeeDashboardView() {
                 </Grid>
 
                 {/* Task Analytics Overview */}
-                <Grid size={{ xs: 12 }}>
+                {/* <Grid size={{ xs: 12 }}>
                     <HRTaskSummaryCards employeeFilter={data.employee} />
-                </Grid>
+                </Grid> */}
 
                 {/* 2. Last Seven Days Working Hours (Premium Widget) */}
                 <Grid size={{ xs: 12 }}>
@@ -168,9 +168,9 @@ export function EmployeeDashboardView() {
                 </Grid>
 
                 {/* Personality Management */}
-                <Grid size={{ xs: 12 }}>
+                {/* <Grid size={{ xs: 12 }}>
                     <PersonalityManagement />
-                </Grid>
+                </Grid> */}
 
                 {/* 4. Calendar Attendance Chart */}
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -327,14 +327,14 @@ export function EmployeeDashboardView() {
                 </Grid>
 
                 {/* 8. Missing Timesheets */}
-                <Grid size={{ xs: 12 }}>
+                {/* <Grid size={{ xs: 12 }}>
                     <MissingTimesheets
                         title="Missing Timesheets - Current Month"
                         data={data.missing_timesheets || []}
                         holidays={data.holidays || []}
                         leave_dates={data.leave_dates || []}
                     />
-                </Grid>
+                </Grid> */}
             </Grid>
         </DashboardContent>
     );

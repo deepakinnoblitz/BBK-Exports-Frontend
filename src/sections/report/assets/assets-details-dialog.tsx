@@ -11,9 +11,12 @@ import { alpha, useTheme } from '@mui/material/styles';
 import DialogContent from '@mui/material/DialogContent';
 
 import { fCurrency } from 'src/utils/format-number';
-    
+
+import { COMMON_COLORS } from 'src/theme';
+
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
+
 
 // ----------------------------------------------------------------------
 
@@ -77,8 +80,8 @@ export function AssetDetailsDialog({ open, onClose, asset }: Props) {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    bgcolor: 'info.lighter',
-                                    color: 'info.main',
+                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                                    color: COMMON_COLORS.emerald.main,
                                 }}
                             >
                                 <Iconify icon={"solar:laptop-bold" as any} width={40} />
@@ -200,7 +203,7 @@ function DetailItem({ label, value, icon }: { label: string; value?: React.React
                     height: 50,
                     borderRadius: 1.5,
                     bgcolor: alpha(theme.palette.primary.main, 0.08),
-                    color: 'info.main',
+                    color: 'primary.main',
                     flexShrink: 0,
                 }}
             >

@@ -25,6 +25,8 @@ import { getDoctypeList } from 'src/api/leads';
 
 import { Iconify } from 'src/components/iconify';
 
+import { useAuth } from 'src/auth/auth-context';
+
 import { LineRosterDialog } from '../line-roster-dialog';
 import { LineRosterTableFiltersDrawer } from '../line-roster-table-filters-drawer';
 
@@ -38,6 +40,7 @@ export function LineRosterCalendarView({
   selectedEmployee,
   onSelectEmployee,
   refreshTrigger,
+  isHR,
 }: {
   canCreate?: boolean;
   canEdit?: boolean;
@@ -46,7 +49,12 @@ export function LineRosterCalendarView({
   selectedEmployee?: any | null;
   onSelectEmployee?: (emp: any | null) => void;
   refreshTrigger?: number;
+  isHR?: boolean;
 }) {
+  const { user } = useAuth();
+  const isHRUser = isHR !== undefined ? isHR : user?.roles?.some((role: string) => ['HR Manager', 'HR', 'System Manager', 'Administrator'].includes(role));
+  const isRestrictedEmployee = user?.roles?.includes('Employee') && !isHRUser;
+
   const theme = useTheme();
   const calendarRef = useRef<FullCalendar>(null);
 
@@ -63,6 +71,9 @@ export function LineRosterCalendarView({
   const [openFilters, setOpenFilters] = useState(false);
 
   const selectedEmployees: any[] = useMemo(() => {
+    if (isRestrictedEmployee && user?.employee) {
+      return [{ name: user.employee, employee_name: user.employee_name || user.employee }];
+    }
     if (controlledEmployees !== undefined) {
       return Array.isArray(controlledEmployees) ? controlledEmployees : controlledEmployees ? [controlledEmployees] : [];
     }
@@ -70,9 +81,10 @@ export function LineRosterCalendarView({
       return Array.isArray(selectedEmployee) ? selectedEmployee : selectedEmployee ? [selectedEmployee] : [];
     }
     return internalEmployees;
-  }, [controlledEmployees, selectedEmployee, internalEmployees]);
+  }, [isRestrictedEmployee, user?.employee, user?.employee_name, controlledEmployees, selectedEmployee, internalEmployees]);
 
   const setSelectedEmployees = (val: any[]) => {
+    if (isRestrictedEmployee) return;
     setInternalEmployees(val);
     onSelectEmployees?.(val);
     onSelectEmployee?.(val.length === 1 ? val[0] : val.length > 0 ? val : null);
@@ -225,22 +237,24 @@ export function LineRosterCalendarView({
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (filters.department !== 'all') count += 1;
-    if (filters.employees.length > 0) count += 1;
+    if (isHRUser && filters.department !== 'all') count += 1;
+    if (isHRUser && filters.employees.length > 0) count += 1;
     if (filters.line_order !== 'all') count += 1;
     return count;
-  }, [filters]);
+  }, [isHRUser, filters]);
 
-  const canReset = filters.department !== 'all' || filters.employees.length > 0 || filters.line_order !== 'all' || !!search;
+  const canReset = (isHRUser && filters.department !== 'all') || (isHRUser && filters.employees.length > 0) || filters.line_order !== 'all' || !!search;
 
   const handleResetFilters = () => {
     setFilters({
       department: 'all',
-      employees: [],
+      employees: isRestrictedEmployee && user?.employee ? [{ name: user.employee, employee_name: user.employee_name || user.employee }] : [],
       line_order: 'all',
       status: 'all',
     });
-    setSelectedEmployees([]);
+    if (isHRUser) {
+      setSelectedEmployees([]);
+    }
     setSearch('');
   };
 
@@ -450,6 +464,7 @@ export function LineRosterCalendarView({
         departmentOptions={departments}
         hideDateFilters
         hideStatusFilter
+        isHR={isHRUser}
       />
     </Stack>
   );

@@ -26,6 +26,7 @@ import {
     CircularProgress,
 } from '@mui/material';
 
+import { COMMON_COLORS } from 'src/theme';
 import {
     fetchAutoLeaveAllocationLogDetails,
 } from 'src/api/leave-allocations';
@@ -36,6 +37,7 @@ import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
 
 import { LeadTableHead as LeavesTableHead } from '../../lead/lead-table-head';
+
 
 // ----------------------------------------------------------------------
 
@@ -132,7 +134,7 @@ export default function AutoAllocateLogDetailsDialog({ open, onClose, logId }: P
             <DialogContent sx={{ my: 2.5, mx: 1.5 }}>
                 {loading ? (
                     <Box sx={{ py: 12, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <CircularProgress sx={{ color: '#059669' }} />
+                        <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                     </Box>
                 ) : !log ? (
                     <Box sx={{ py: 8, textAlign: 'center', color: 'text.secondary' }}>
@@ -308,16 +310,16 @@ export default function AutoAllocateLogDetailsDialog({ open, onClose, logId }: P
                                                                         borderRadius: '50%',
                                                                         alignItems: 'center',
                                                                         justifyContent: 'center',
-                                                                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                                                                        color: 'primary.main',
+                                                                        bgcolor: COMMON_COLORS.snoBadge.bg,
+                                                                        color: COMMON_COLORS.snoBadge.color,
                                                                         typography: 'subtitle2',
                                                                         fontWeight: 800,
-                                                                        border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+                                                                        border: COMMON_COLORS.snoBadge.border,
                                                                         mx: 'auto',
                                                                         transition: (theme) => theme.transitions.create(['all'], { duration: theme.transitions.duration.shorter }),
                                                                         '&:hover': {
-                                                                            bgcolor: 'primary.main',
-                                                                            color: 'primary.contrastText',
+                                                                            bgcolor: COMMON_COLORS.snoBadge.hoverBg,
+                                                                            color: COMMON_COLORS.snoBadge.hoverColor,
                                                                             transform: 'scale(1.1)',
                                                                         },
                                                                     }}

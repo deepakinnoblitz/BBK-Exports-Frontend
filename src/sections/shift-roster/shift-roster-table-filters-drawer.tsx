@@ -45,6 +45,7 @@ type Props = {
   departmentOptions?: any[];
   hideDateFilters?: boolean;
   hideStatusFilter?: boolean;
+  isHR?: boolean;
 };
 
 const STATUS_OPTIONS = [
@@ -66,6 +67,7 @@ export function ShiftRosterTableFiltersDrawer({
   departmentOptions,
   hideDateFilters = false,
   hideStatusFilter = false,
+  isHR = true,
 }: Props) {
   const currentEmployees = useMemo(() => {
     if (filters.employees) return filters.employees;
@@ -153,8 +155,8 @@ export function ShiftRosterTableFiltersDrawer({
 
         <Scrollbar>
           <Stack spacing={3} sx={{ p: 3 }}>
-            {/* Department Filter (if available) */}
-            {departmentOptions && departmentOptions.length > 0 && (
+            {/* Department Filter (if available and HR) */}
+            {isHR && departmentOptions && departmentOptions.length > 0 && (
               <Stack spacing={1.5}>
                 <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
                   Department
@@ -179,67 +181,69 @@ export function ShiftRosterTableFiltersDrawer({
               </Stack>
             )}
 
-            {/* Employee Filter */}
-            <Stack spacing={1.5}>
-              <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
-                Employee
-              </Typography>
-              <Autocomplete
-                multiple
-                disableCloseOnSelect
-                fullWidth
-                size="small"
-                options={employeeOptions}
-                getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
-                filterOptions={(opts, state) => {
-                  const input = state.inputValue.toLowerCase().trim();
-                  if (!input) {
-                    const selectedIds = new Set(currentEmployees.map((ce: any) => (typeof ce === 'string' ? ce : ce?.name)));
-                    const selectedOpts = opts.filter((opt) => selectedIds.has(opt.name));
-                    const unselectedFirst50 = opts.filter((opt) => !selectedIds.has(opt.name)).slice(0, 50);
-                    return [...selectedOpts, ...unselectedFirst50];
-                  }
-                  const terms = input.split(/\s+/).filter(Boolean);
-                  const filtered = opts.filter((opt) => {
-                    const fullName = opt.employee_name || '';
-                    const empId = opt.name || '';
-                    const combined = `${fullName} ${empId} (${empId})`.toLowerCase();
-                    return terms.every((term: string) => combined.includes(term));
-                  });
-                  return filtered.slice(0, 50);
-                }}
-                isOptionEqualToValue={(option, value) => option?.name === value?.name}
-                value={employeeOptions.filter((opt) => currentEmployees.some((ce: any) => (typeof ce === 'string' ? ce === opt.name : ce?.name === opt.name)))}
-                onChange={handleFilterEmployees}
-                renderOption={(props, option, { selected: isSelected }) => (
-                  <li {...props} key={option.name}>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                        {option.employee_name || option.name}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
-                        ID: {option.name}
-                      </Typography>
-                    </Box>
-                    {isSelected && (
-                      <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: 'primary.main', ml: 1 }} />
-                    )}
-                  </li>
-                )}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder={currentEmployees.length === 0 ? "Search employee(s)..." : ""}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 1.5,
-                        bgcolor: 'background.neutral',
-                      },
-                    }}
-                  />
-                )}
-              />
-            </Stack>
+            {/* Employee Filter (if HR) */}
+            {isHR && (
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                  Employee
+                </Typography>
+                <Autocomplete
+                  multiple
+                  disableCloseOnSelect
+                  fullWidth
+                  size="small"
+                  options={employeeOptions}
+                  getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
+                  filterOptions={(opts, state) => {
+                    const input = state.inputValue.toLowerCase().trim();
+                    if (!input) {
+                      const selectedIds = new Set(currentEmployees.map((ce: any) => (typeof ce === 'string' ? ce : ce?.name)));
+                      const selectedOpts = opts.filter((opt) => selectedIds.has(opt.name));
+                      const unselectedFirst50 = opts.filter((opt) => !selectedIds.has(opt.name)).slice(0, 50);
+                      return [...selectedOpts, ...unselectedFirst50];
+                    }
+                    const terms = input.split(/\s+/).filter(Boolean);
+                    const filtered = opts.filter((opt) => {
+                      const fullName = opt.employee_name || '';
+                      const empId = opt.name || '';
+                      const combined = `${fullName} ${empId} (${empId})`.toLowerCase();
+                      return terms.every((term: string) => combined.includes(term));
+                    });
+                    return filtered.slice(0, 50);
+                  }}
+                  isOptionEqualToValue={(option, value) => option?.name === value?.name}
+                  value={employeeOptions.filter((opt) => currentEmployees.some((ce: any) => (typeof ce === 'string' ? ce === opt.name : ce?.name === opt.name)))}
+                  onChange={handleFilterEmployees}
+                  renderOption={(props, option, { selected: isSelected }) => (
+                    <li {...props} key={option.name}>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                          {option.employee_name || option.name}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
+                          ID: {option.name}
+                        </Typography>
+                      </Box>
+                      {isSelected && (
+                        <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: 'primary.main', ml: 1 }} />
+                      )}
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder={currentEmployees.length === 0 ? "Search employee(s)..." : ""}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 1.5,
+                          bgcolor: 'background.neutral',
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </Stack>
+            )}
 
             {/* Shift Filter */}
             <Stack spacing={1.5}>

@@ -26,6 +26,7 @@ import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
 import { fNumber } from 'src/utils/format-number';
 
 import { saveSalarySlip } from 'src/api/salary-slips';
+import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 import { getHRSettings, fetchSalaryComponents } from 'src/api/hr-management';
 
 import { Iconify } from 'src/components/iconify';
@@ -602,7 +603,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                             variant="subtitle2"
                             sx={{
                                 fontWeight: 800,
-                                color: '#10b981',
+                                color: COMMON_COLORS.emerald.main,
                                 textTransform: 'uppercase',
                                 letterSpacing: 1,
                                 fontSize: '0.875rem'
@@ -616,10 +617,10 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                             startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
                             onClick={() => handleAddSalaryRow('earnings')}
                             sx={{
-                                color: '#00a76f',
+                                color: COMMON_COLORS.emerald.main,
                                 fontWeight: 700,
                                 fontSize: '0.85rem',
-                                '&:hover': { bgcolor: alpha('#00a76f', 0.08) }
+                                '&:hover': { bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08) }
                             }}
                         >
                             Add Row
@@ -642,13 +643,13 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                         <Table size="small">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell sx={{ py: 1.25, bgcolor: '#00a76f', color: 'common.white', fontWeight: 700, width: '58%' }}>
+                                    <TableCell sx={{ py: 1.25, bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', fontWeight: 700, width: '58%' }}>
                                         Component Name *
                                     </TableCell>
-                                    <TableCell align="right" sx={{ py: 1.25, bgcolor: '#00a76f', color: 'common.white', fontWeight: 700, width: '34%' }}>
+                                    <TableCell align="right" sx={{ py: 1.25, bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', fontWeight: 700, width: '34%' }}>
                                         Amount
                                     </TableCell>
-                                    <TableCell width={48} sx={{ py: 1.25, bgcolor: '#00a76f' }} />
+                                    <TableCell width={48} sx={{ py: 1.25, bgcolor: COMMON_COLORS.emerald.main }} />
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -741,7 +742,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                                                         variant="standard"
                                                         placeholder="Select Component"
                                                         InputProps={{
-                                                            ...inputParams.InputProps,
+                                                             ...inputParams.InputProps,
                                                             disableUnderline: true,
                                                             sx: { typography: 'body2', fontWeight: 500 }
                                                         }}
@@ -803,15 +804,15 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                                 alignItems: 'center',
                                 px: 2,
                                 py: 1.25,
-                                bgcolor: alpha('#00a76f', 0.08),
-                                borderTop: (theme) => `1px solid ${alpha('#00a76f', 0.2)}`,
+                                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                borderTop: (theme) => `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.2)}`,
                                 mt: 'auto',
                             }}
                         >
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#00a76f', fontSize: '0.875rem' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main, fontSize: '0.875rem' }}>
                                 Gross Earnings
                             </Typography>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#00a76f', fontSize: '0.95rem', display: 'flex', alignItems: 'center' }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main, fontSize: '0.95rem', display: 'flex', alignItems: 'center' }}>
                                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.5, fontSize: '0.85em' }}>
                                     {hrSettings.currency_symbol || '₹'}
                                 </Box>

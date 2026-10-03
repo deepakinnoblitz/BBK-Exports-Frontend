@@ -29,6 +29,7 @@ import { useRouter } from 'src/routes/hooks';
 import { fNumber } from 'src/utils/format-number';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 import { getHRSettings, fetchSalaryComponents } from 'src/api/hr-management';
 import { saveSalarySlip, getSalarySlipWithDetails } from 'src/api/salary-slips';
 
@@ -667,7 +668,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
                             variant="subtitle2"
                             sx={{
                                 fontWeight: 800,
-                                color: '#10b981',
+                                color: COMMON_COLORS.emerald.main,
                                 textTransform: 'uppercase',
                                 letterSpacing: 1,
                                 fontSize: '0.875rem'
@@ -681,10 +682,10 @@ export function SalarySlipEditView({ id: propId }: Props) {
                             startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
                             onClick={() => handleAddSalaryRow('earnings')}
                             sx={{
-                                color: '#00a76f',
+                                color: COMMON_COLORS.emerald.main,
                                 fontWeight: 700,
                                 fontSize: '0.85rem',
-                                '&:hover': { bgcolor: alpha('#00a76f', 0.08) }
+                                '&:hover': { bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08) }
                             }}
                         >
                             Add Row
@@ -707,13 +708,13 @@ export function SalarySlipEditView({ id: propId }: Props) {
                         <Table size="small">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell sx={{ py: 1.25, bgcolor: '#00a76f', color: 'common.white', fontWeight: 700, width: '58%' }}>
+                                    <TableCell sx={{ py: 1.25, bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', fontWeight: 700, width: '58%' }}>
                                         Component Name *
                                     </TableCell>
-                                    <TableCell align="right" sx={{ py: 1.25, bgcolor: '#00a76f', color: 'common.white', fontWeight: 700, width: '34%' }}>
+                                    <TableCell align="right" sx={{ py: 1.25, bgcolor: COMMON_COLORS.emerald.main, color: 'common.white', fontWeight: 700, width: '34%' }}>
                                         Amount
                                     </TableCell>
-                                    <TableCell width={48} sx={{ py: 1.25, bgcolor: '#00a76f' }} />
+                                    <TableCell width={48} sx={{ py: 1.25, bgcolor: COMMON_COLORS.emerald.main }} />
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -868,15 +869,15 @@ export function SalarySlipEditView({ id: propId }: Props) {
                                 alignItems: 'center',
                                 px: 2,
                                 py: 1.25,
-                                bgcolor: alpha('#00a76f', 0.08),
-                                borderTop: (theme) => `1px solid ${alpha('#00a76f', 0.2)}`,
+                                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                borderTop: (theme) => `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.2)}`,
                                 mt: 'auto',
                             }}
                         >
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#00a76f', fontSize: '0.875rem' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main, fontSize: '0.875rem' }}>
                                 Gross Earnings
                             </Typography>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#00a76f', fontSize: '1.15rem', display: 'flex', alignItems: 'center' }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main, fontSize: '1.15rem', display: 'flex', alignItems: 'center' }}>
                                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.5, fontSize: '0.85em' }}>
                                     {hrSettings.currency_symbol || '₹'}
                                 </Box>
@@ -1200,14 +1201,12 @@ export function SalarySlipEditView({ id: propId }: Props) {
                         onClick={handleSave}
                         startIcon={<IoMdCheckmarkCircle size={18} />}
                         sx={{
+                            ...COMMON_BUTTON_STYLES.primary,
                             borderRadius: 1.5,
                             fontWeight: 600,
                             textTransform: 'none',
                             px: 1.75,
                             py: 0.75,
-                            bgcolor: '#059669',
-                            color: 'common.white',
-                            '&:hover': { bgcolor: '#047857' },
                         }}
                     >
                         Save Changes

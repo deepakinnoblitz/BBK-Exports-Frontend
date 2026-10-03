@@ -17,6 +17,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import LinearProgress from '@mui/material/LinearProgress';
 
+import { COMMON_COLORS } from 'src/theme';
 import { getEmployee } from 'src/api/employees';
 import { getHRDoc } from 'src/api/hr-management';
 import { type WorkflowAction, getLeaveAllocationWorkflowActions, applyLeaveAllocationWorkflowAction } from 'src/api/leave-allocations';
@@ -25,6 +26,7 @@ import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 import { useAuth } from 'src/auth/auth-context';
+
 
 // ----------------------------------------------------------------------
 
@@ -318,11 +320,11 @@ export function LeaveAllocationDetailsDialog({ open, onClose, allocationId, onRe
                                     borderRadius: 1,
                                     px: 3,
                                     fontWeight: 800,
-                                    bgcolor: (theme) => alpha(isReject ? theme.palette.error.main : '#086ad8', 0.08),
-                                    color: (theme) => isReject ? theme.palette.error.main : '#086ad8',
-                                    border: (theme) => `1px solid ${alpha(isReject ? theme.palette.error.main : '#086ad8', 0.12)}`,
+                                    bgcolor: (theme) => alpha(isReject ? theme.palette.error.main : COMMON_COLORS.emerald.main, 0.08),
+                                    color: (theme) => isReject ? theme.palette.error.main : COMMON_COLORS.emerald.main,
+                                    border: (theme) => `1px solid ${alpha(isReject ? theme.palette.error.main : COMMON_COLORS.emerald.main, 0.12)}`,
                                     '&:hover': {
-                                        bgcolor: (theme) => alpha(isReject ? theme.palette.error.main : '#086ad8', 0.16),
+                                        bgcolor: (theme) => alpha(isReject ? theme.palette.error.main : COMMON_COLORS.emerald.main, 0.16),
                                     },
                                 }}
                             >
