@@ -1,4 +1,3 @@
-import { PiMoneyWavy } from "react-icons/pi";
 import { useState, useEffect, useCallback } from 'react';
 import { RiKey2Line, RiMailLine, RiImageLine, RiGlobalLine, RiFingerprintLine, RiNotification3Line, RiCheckboxCircleLine } from "react-icons/ri";
 
@@ -25,7 +24,6 @@ import { SettingsLogo } from '../settings-logo';
 import { SettingsLiveKit } from '../settings-livekit';
 import { SettingsCurrency } from '../settings-currency';
 import { SettingsBiometric } from '../settings-biometric';
-import { SettingsSalarySlip } from '../settings-salary-slip';
 import { SettingsCompanyEmail } from '../settings-company-email';
 import { SettingsNotifications } from '../settings-notifications';
 
@@ -34,7 +32,6 @@ import { SettingsNotifications } from '../settings-notifications';
 const TABS = [
   { value: 'logo', label: 'Logo', icon: <RiImageLine size={22} /> },
   { value: 'biometric', label: 'Biometric Integration', icon: <RiFingerprintLine size={22} /> },
-  { value: 'salary', label: 'Salary Slip', icon: <PiMoneyWavy size={22} /> },
   // { value: 'sidebar', label: 'Sidebar', icon: <RiLayoutMasonryLine size={22} /> },
   // { value: 'dashboard', label: 'Dashboard', icon: <RiDashboardLine size={22} /> },
   { value: 'notifications', label: 'Notifications', icon: <RiNotification3Line size={22} /> },
@@ -267,13 +264,6 @@ export function SettingsView() {
 
         {currentTab === 'notifications' && (
           <SettingsNotifications
-            data={formData}
-            onChange={handleUpdateField}
-          />
-        )}
-
-        {currentTab === 'salary' && (
-          <SettingsSalarySlip
             data={formData}
             onChange={handleUpdateField}
           />

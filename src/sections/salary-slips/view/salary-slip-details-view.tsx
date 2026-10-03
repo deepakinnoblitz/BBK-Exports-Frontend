@@ -191,15 +191,32 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
         }
     };
 
+    const isDirectAllocation = (slip?.leave_calc_source || hrSettings?.salary_leave_calculation_source) === 'Via Direct Allocation';
+
     const getFilteredBreakdown = () => {
         const bd = slip?.days_breakdown || [];
         switch (popoverState.type) {
-            case 'present': return bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Holiday'));
+            case 'present': {
+                const days = bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Holiday'));
+                const isDirect = isDirectAllocation || (Number(slip?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status.includes('Paid Leave')));
+                if (isDirect && Number(slip?.no_of_paid_leave || 0) > 0) {
+                    return [
+                        ...days,
+                        {
+                            date: slip?.pay_period_start,
+                            isDirectCredit: true,
+                            holiday_desc: 'Leave Allocation Credit',
+                            status: `Paid Leave (+${slip.no_of_paid_leave} Day${Number(slip.no_of_paid_leave) > 1 ? 's' : ''})`,
+                        }
+                    ];
+                }
+                return days;
+            }
             case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
-            case 'absent': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
+            case 'absent': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave') || d.status.includes('Paid Leave'));
             case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
             case 'holiday': return slip?.holidays_details?.length ? slip.holidays_details : bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
-            case 'unpaid_leave': return bd.filter((d: any) => d.status.includes('Unpaid Leave'));
+            case 'unpaid_leave': return bd.filter((d: any) => d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent')));
             case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave'));
             case 'lop': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
             default: return bd;
@@ -207,6 +224,21 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
     };
 
     const filteredBreakdown = getFilteredBreakdown();
+
+    const getPopoverCount = () => {
+        if (!slip) return filteredBreakdown.length;
+        switch (popoverState.type) {
+            case 'present': return slip.actual_present_days !== undefined && slip.actual_present_days !== null ? slip.actual_present_days : filteredBreakdown.length;
+            case 'physical': return slip.physical_attendance_days !== undefined && slip.physical_attendance_days !== null ? slip.physical_attendance_days : filteredBreakdown.length;
+            case 'absent': return slip.absent_days !== undefined && slip.absent_days !== null ? slip.absent_days : ((slip.lop_days || 0) + (isDirectAllocation ? (slip.no_of_paid_leave || 0) : 0));
+            case 'half_day': return slip.half_day_count !== undefined && slip.half_day_count !== null ? slip.half_day_count : filteredBreakdown.length;
+            case 'holiday': return slip.holiday_count !== undefined && slip.holiday_count !== null ? slip.holiday_count : filteredBreakdown.length;
+            case 'unpaid_leave': return slip.no_of_leave !== undefined && slip.no_of_leave !== null ? slip.no_of_leave : filteredBreakdown.length;
+            case 'paid_leave': return slip.no_of_paid_leave !== undefined && slip.no_of_paid_leave !== null ? slip.no_of_paid_leave : filteredBreakdown.length;
+            case 'lop': return slip.lop_days !== undefined && slip.lop_days !== null ? slip.lop_days : filteredBreakdown.length;
+            default: return filteredBreakdown.length;
+        }
+    };
 
     if (loading) {
         return (
@@ -320,8 +352,11 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 </Box>
                 <Divider sx={{ gridColumn: '1 / -1', my: 1 }} />
                 {(() => {
-                    const renderInfoAction = (type: string) =>
-                        slip.days_breakdown && slip.days_breakdown.length > 0 ? (
+                    const renderInfoAction = (type: string) => {
+                        if (isDirectAllocation && (type === 'paid_leave' || type === 'unpaid_leave')) {
+                            return undefined;
+                        }
+                        return slip.days_breakdown && slip.days_breakdown.length > 0 ? (
                             <IconButton
                                 size="small"
                                 onClick={(e) => handlePopoverOpen(e, type)}
@@ -330,15 +365,16 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 <Iconify icon={'eva:info-outline' as any} width={16} />
                             </IconButton>
                         ) : undefined;
+                    };
 
                     return (
                         <>
                             <InfoRow label="No of Present Days" value={slip.actual_present_days || 0} action={renderInfoAction('present')} />
                             <InfoRow label="Physical Attendance" value={slip.physical_attendance_days || 0} action={renderInfoAction('physical')} />
-                            <InfoRow label="No of Absent" value={slip.lop_days || 0} action={renderInfoAction('absent')} />
+                            <InfoRow label="No of Absent" value={slip.absent_days !== undefined && slip.absent_days !== null ? slip.absent_days : ((slip.lop_days || 0) + (isDirectAllocation ? (slip.no_of_paid_leave || 0) : 0))} action={renderInfoAction('absent')} />
                             <InfoRow label="No of Half Day" value={slip.half_day_count || 0} action={renderInfoAction('half_day')} />
                             <InfoRow label="Holidays Found" value={slip.holiday_count || 0} action={renderInfoAction('holiday')} />
-                            <InfoRow label="No of Unpaid Leave" value={slip.no_of_leave || 0} action={renderInfoAction('unpaid_leave')} />
+                            <InfoRow label="No of Unpaid Leave" value={slip.unpaid_leave_days !== undefined && slip.unpaid_leave_days !== null ? slip.unpaid_leave_days : (slip.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
                             <InfoRow label="No of Paid Leave" value={slip.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
                             <InfoRow label="LOP Days" value={slip.lop_days || 0} action={renderInfoAction('lop')} />
                         </>
@@ -694,7 +730,11 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             textTransform: 'none',
                             px: 1.75,
                             py: 0.75,
-                            ...COMMON_BUTTON_STYLES.primary,
+                            bgcolor: '#2563EB',
+                            color: 'common.white',
+                            '&:hover': {
+                                bgcolor: '#1D4ED8',
+                            },
                         }}
                     >
                         Print
@@ -711,7 +751,11 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 textTransform: 'none',
                                 px: 1.75,
                                 py: 0.75,
-                                ...COMMON_BUTTON_STYLES.primary,
+                                bgcolor: '#D97706',
+                                color: 'common.white',
+                                '&:hover': {
+                                    bgcolor: '#B45309',
+                                },
                             }}
                         >
                             Edit
@@ -729,7 +773,11 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 textTransform: 'none',
                                 px: 1.75,
                                 py: 0.75,
-                                ...COMMON_BUTTON_STYLES.primary,
+                                bgcolor: '#059669',
+                                color: 'common.white',
+                                '&:hover': {
+                                    bgcolor: '#047857',
+                                },
                             }}
                         >
                             Submit
@@ -748,6 +796,11 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 textTransform: 'none',
                                 px: 1.75,
                                 py: 0.75,
+                                bgcolor: '#DC2626',
+                                color: 'common.white',
+                                '&:hover': {
+                                    bgcolor: '#B91C1C',
+                                },
                             }}
                         >
                             Delete
@@ -801,7 +854,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     {getPopoverTitle()}
                     <Box component="span" sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.85em' }}>
-                        {filteredBreakdown.length}
+                        {getPopoverCount()}
                     </Box>
                 </Typography>
                 <Scrollbar>
@@ -833,7 +886,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                         }}
                                     >
                                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                            {dayjs(day.date).format('DD-MM-YYYY')} - {day.holiday_desc || day.description || dayjs(day.date).format('dddd')}
+                                            {day.isDirectCredit ? 'Direct Leave Allocation' : `${dayjs(day.date).format('DD-MM-YYYY')} - ${day.holiday_desc || day.description || dayjs(day.date).format('dddd')}`}
                                         </Typography>
                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                                             <Typography
