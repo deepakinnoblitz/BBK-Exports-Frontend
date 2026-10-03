@@ -901,13 +901,16 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 open={confirmSubmitOpen}
                 onClose={() => setConfirmSubmitOpen(false)}
                 title="Submit Salary Slip"
-                content={`Are you sure you want to submit salary slip ${slip.name}? Once submitted, it will be finalized.`}
+                content="Are you sure you want to submit this salary slip? This action is permanent and will finalize the slip."
+                icon="solar:check-circle-bold"
+                iconColor="success.main"
                 action={
                     <LoadingButton
                         variant="contained"
-                        color="primary"
+                        color="success"
                         loading={submitting}
                         onClick={handleSubmit}
+                        sx={{ borderRadius: 1.5, minWidth: 100 }}
                     >
                         Submit
                     </LoadingButton>
