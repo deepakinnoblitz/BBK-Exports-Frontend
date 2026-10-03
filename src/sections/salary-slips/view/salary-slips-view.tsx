@@ -1,5 +1,6 @@
 import type { SalarySlip } from 'src/api/salary-slips';
 
+import { RiSettings4Fill } from 'react-icons/ri';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Card from '@mui/material/Card';
@@ -7,6 +8,7 @@ import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
+import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import Snackbar from '@mui/material/Snackbar';
 import TableBody from '@mui/material/TableBody';
@@ -316,30 +318,57 @@ export function SalarySlipsView() {
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 5 }}>
                 <Typography variant="h4">Salary Slips</Typography>
 
-                {isHR && canCreateSalarySlip && (
+                {isHR && (
                     <Stack direction="row" spacing={1}>
                         <Button
                             variant="outlined"
-                            color="primary"
-                            startIcon={<Iconify icon={"solar:import-bold-duotone" as any} />}
-                            onClick={() => setOpenAutoAllocate(true)}
-                            sx={{ borderRadius: 1.5, height: 40 }}
+                            startIcon={<RiSettings4Fill size={19} />}
+                            onClick={() => router.push('/salary-slips/settings')}
+                            sx={{
+                                borderRadius: 1.5,
+                                height: 40,
+                                fontWeight: 700,
+                                textTransform: 'none',
+                                px: 2,
+                                borderColor: '#d1d5db',
+                                color: '#374151',
+                                bgcolor: '#f9fafb',
+                                '&:hover': {
+                                    borderColor: '#9ca3af',
+                                    bgcolor: '#f3f4f6',
+                                    color: '#111827',
+                                },
+                            }}
                         >
-                            Bulk Allocate
+                            Settings
                         </Button>
 
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            startIcon={<Iconify icon="mingcute:add-line" />}
-                            onClick={() => {
-                                setEditSlip(null);
-                                setOpenCreate(true);
-                            }}
-                            sx={{ borderRadius: 1.5, height: 40, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
-                        >
-                            New Salary Slip
-                        </Button>
+                        {canCreateSalarySlip && (
+                            <>
+                                <Button
+                                    variant="outlined"
+                                    color="primary"
+                                    startIcon={<Iconify icon={"solar:import-bold-duotone" as any} />}
+                                    onClick={() => setOpenAutoAllocate(true)}
+                                    sx={{ borderRadius: 1.5, height: 40 }}
+                                >
+                                    Bulk Allocate
+                                </Button>
+
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    startIcon={<Iconify icon="mingcute:add-line" />}
+                                    onClick={() => {
+                                        setEditSlip(null);
+                                        setOpenCreate(true);
+                                    }}
+                                    sx={{ borderRadius: 1.5, height: 40, bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
+                                >
+                                    New Salary Slip
+                                </Button>
+                            </>
+                        )}
                     </Stack>
                 )}
             </Stack>
@@ -369,17 +398,21 @@ export function SalarySlipsView() {
 
                 <Scrollbar>
                     <TableContainer sx={{ overflow: 'unset' }}>
-                        <Table sx={{ minWidth: { xs: 300, md: 800 }, borderCollapse: 'collapse' }}>
+                        <Table sx={{ minWidth: { xs: 300, md: 800 }, borderCollapse: 'collapse', '& .MuiTableCell-head': { bgcolor: '#f5f7fb' } }}>
                             <SalarySlipTableHead
                                 order={order}
                                 orderBy={orderBy}
                                 rowCount={data.length}
                                 numSelected={selected.length}
-
-
                                 onSelectAllRows={(checked: boolean) => handleSelectAllRows(checked)}
                                 hideCheckbox
                                 showIndex
+                                sx={{
+                                    bgcolor: '#f5f7fb',
+                                    '& .MuiTableCell-head': {
+                                        bgcolor: '#f5f7fb',
+                                    },
+                                }}
                                 headLabel={[
                                     { id: 'employee_name', label: 'Employee Name' },
                                     { id: 'pay_period_start', label: 'Pay Period' },

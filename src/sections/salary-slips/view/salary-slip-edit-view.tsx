@@ -415,26 +415,42 @@ export function SalarySlipEditView({ id: propId }: Props) {
         }
     };
 
+    const isDirectAllocation = (formData?.leave_calc_source || hrSettings?.salary_leave_calculation_source) === 'Via Direct Allocation';
+
     const getFilteredBreakdown = () => {
         const bd = formData?.days_breakdown || [];
         switch (popoverState.type) {
-            case 'present':
-                return bd.filter(
+            case 'present': {
+                const days = bd.filter(
                     (d: any) =>
                         d.status.includes('Work') ||
                         d.status.includes('Paid Leave') ||
                         d.status.includes('Holiday')
                 );
+                const isDirect = isDirectAllocation || (Number(formData?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status.includes('Paid Leave')));
+                if (isDirect && Number(formData?.no_of_paid_leave || 0) > 0) {
+                    return [
+                        ...days,
+                        {
+                            date: formData?.pay_period_start,
+                            isDirectCredit: true,
+                            holiday_desc: 'Leave Allocation Credit',
+                            status: `Paid Leave (+${formData.no_of_paid_leave} Day${Number(formData.no_of_paid_leave) > 1 ? 's' : ''})`,
+                        }
+                    ];
+                }
+                return days;
+            }
             case 'physical':
                 return bd.filter((d: any) => d.status.includes('Work'));
             case 'absent':
-                return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
+                return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave') || d.status.includes('Paid Leave'));
             case 'half_day':
                 return bd.filter((d: any) => d.status.includes('(0.5)'));
             case 'holiday':
                 return bd.filter((d: any) => d.status.includes('Holiday'));
             case 'unpaid_leave':
-                return bd.filter((d: any) => d.status.includes('Unpaid Leave'));
+                return bd.filter((d: any) => d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent')));
             case 'paid_leave':
                 return bd.filter((d: any) => d.status.includes('Paid Leave'));
             case 'lop':
@@ -444,25 +460,47 @@ export function SalarySlipEditView({ id: propId }: Props) {
         }
     };
 
+    const filteredBreakdown = getFilteredBreakdown();
+
+    const getPopoverCount = () => {
+        if (!formData) return filteredBreakdown.length;
+        switch (popoverState.type) {
+            case 'present': return formData.actual_present_days !== undefined && formData.actual_present_days !== null ? formData.actual_present_days : filteredBreakdown.length;
+            case 'physical': return formData.physical_attendance_days !== undefined && formData.physical_attendance_days !== null ? formData.physical_attendance_days : filteredBreakdown.length;
+            case 'absent': return formData.absent_days !== undefined && formData.absent_days !== null ? formData.absent_days : ((formData.lop_days || 0) + (isDirectAllocation ? (formData.no_of_paid_leave || 0) : 0));
+            case 'half_day': return formData.half_day_count !== undefined && formData.half_day_count !== null ? formData.half_day_count : filteredBreakdown.length;
+            case 'holiday': return formData.holiday_count !== undefined && formData.holiday_count !== null ? formData.holiday_count : filteredBreakdown.length;
+            case 'unpaid_leave': return formData.no_of_leave !== undefined && formData.no_of_leave !== null ? formData.no_of_leave : filteredBreakdown.length;
+            case 'paid_leave': return formData.no_of_paid_leave !== undefined && formData.no_of_paid_leave !== null ? formData.no_of_paid_leave : filteredBreakdown.length;
+            case 'lop': return formData.lop_days !== undefined && formData.lop_days !== null ? formData.lop_days : filteredBreakdown.length;
+            default: return filteredBreakdown.length;
+        }
+    };
+
     const formatHoursToHrMin = (decimalHours: number) => {
         const hours = Math.floor(decimalHours);
         const mins = Math.round((decimalHours - hours) * 60);
         return `${hours}hr ${mins}mins`;
     };
 
-    const renderInfoAction = (type: string) => (
-        <IconButton
-            size="small"
-            onClick={(e) => handleOpenPopover(e, type)}
-            sx={{
-                p: 0,
-                color: 'info.main',
-                '&:hover': { bgcolor: (theme) => alpha(theme.palette.info.main, 0.08) },
-            }}
-        >
-            <Iconify icon={'solar:info-circle-linear' as any} width={16} />
-        </IconButton>
-    );
+    const renderInfoAction = (type: string) => {
+        if (isDirectAllocation && (type === 'paid_leave' || type === 'unpaid_leave')) {
+            return undefined;
+        }
+        return (
+            <IconButton
+                size="small"
+                onClick={(e) => handleOpenPopover(e, type)}
+                sx={{
+                    p: 0,
+                    color: 'info.main',
+                    '&:hover': { bgcolor: (theme) => alpha(theme.palette.info.main, 0.08) },
+                }}
+            >
+                <Iconify icon={'solar:info-circle-linear' as any} width={16} />
+            </IconButton>
+        );
+    };
 
     async function handleSave() {
         try {
@@ -613,8 +651,8 @@ export function SalarySlipEditView({ id: propId }: Props) {
                     />
                     <SleekEditRow
                         label="No of Absent"
-                        value={formData.lop_days}
-                        onChange={(val) => handleInputChange('lop_days', val)}
+                        value={formData.absent_days !== undefined && formData.absent_days !== null ? formData.absent_days : ((formData.lop_days || 0) + (isDirectAllocation ? (formData.no_of_paid_leave || 0) : 0))}
+                        onChange={(val) => handleInputChange('absent_days', val)}
                         action={renderInfoAction('absent')}
                     />
                     <SleekEditRow
@@ -1167,8 +1205,6 @@ export function SalarySlipEditView({ id: propId }: Props) {
         </Box>
     );
 
-    const filteredBreakdown = getFilteredBreakdown();
-
     return (
         <DashboardContent maxWidth={false}>
             {/* Top Heading and Button Style like Invoice Page */}
@@ -1243,8 +1279,11 @@ export function SalarySlipEditView({ id: propId }: Props) {
                 }}
                 disableScrollLock
             >
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700 }}>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     {getPopoverTitle()}
+                    <Box component="span" sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.85em' }}>
+                        {getPopoverCount()}
+                    </Box>
                 </Typography>
                 <Scrollbar>
                     <Stack spacing={1.5}>
@@ -1275,7 +1314,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
                                         }}
                                     >
                                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                            {dayjs(day.date).format('DD-MM-YYYY - dddd')}
+                                            {day.isDirectCredit ? 'Direct Leave Allocation' : dayjs(day.date).format('DD-MM-YYYY - dddd')}
                                         </Typography>
                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                                             <Typography

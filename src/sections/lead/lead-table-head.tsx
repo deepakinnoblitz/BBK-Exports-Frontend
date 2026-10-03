@@ -1,3 +1,5 @@
+import type { Theme, SxProps } from '@mui/material/styles';
+
 import Box from '@mui/material/Box';
 import TableRow from '@mui/material/TableRow';
 import Checkbox from '@mui/material/Checkbox';
@@ -19,6 +21,7 @@ type LeadTableHeadProps = {
   onSelectAllRows: (checked: boolean) => void;
   hideCheckbox?: boolean;
   showIndex?: boolean;
+  sx?: SxProps<Theme>;
 };
 
 export function LeadTableHead({
@@ -31,9 +34,10 @@ export function LeadTableHead({
   onSelectAllRows,
   hideCheckbox = false,
   showIndex = false,
+  sx,
 }: LeadTableHeadProps) {
   return (
-    <TableHead>
+    <TableHead sx={sx}>
       <TableRow>
         {!hideCheckbox && (
           <TableCell padding="checkbox">

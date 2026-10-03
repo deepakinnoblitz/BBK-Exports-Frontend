@@ -102,6 +102,24 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
   return (
     <Card sx={{ p: 4, borderRadius: 3 }}>
       <Stack spacing={4}>
+        {/* Important Note at Top */}
+        <Box sx={{ 
+          p: 2.5, 
+          borderRadius: 2, 
+          bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
+          border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+        }}>
+          <Stack direction="row" spacing={2} sx={{ color: 'text.secondary', alignItems: 'flex-start' }}>
+            <Iconify icon={"solar:shield-warning-bold" as any} sx={{ color: 'warning.main', mt: 0.25, width: 24, height: 24, flexShrink: 0 }} />
+            <Box>
+              <Typography variant="subtitle1" sx={{ mb: 0.5, color: 'text.primary', fontWeight: 700 }}>Important Note</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
+                Changing these settings will affect how the system automatically calculates Loss of Pay (LOP), Overtime, Attendance Bonus, and Professional Tax for newly previewed and generated salary slips.
+              </Typography>
+            </Box>
+          </Stack>
+        </Box>
+
         {/* Section 1: Salary Calculation */}
         <Box>
           <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
@@ -603,26 +621,6 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
               />
             </Grid>
           </Grid>
-        </Box>
-
-        <Divider sx={{ borderStyle: 'dashed' }} />
-
-        {/* Section 4: Info */}
-        <Box sx={{ 
-          p: 2, 
-          borderRadius: 1.5, 
-          bgcolor: (theme) => theme.palette.mode === 'light' ? 'grey.50' : 'grey.900',
-          border: (theme) => `1px dashed ${theme.palette.divider}`
-        }}>
-          <Stack direction="row" spacing={2} sx={{ color: 'text.secondary' }}>
-            <Iconify icon={"solar:shield-warning-bold" as any} sx={{ color: 'warning.main', mt: 0.5 }} />
-            <Box>
-              <Typography variant="subtitle1" sx={{ mb: 0.5, color: 'text.primary' }}>Important Note</Typography>
-              <Typography variant="body2">
-                Changing these settings will affect how the system automatically calculates Loss of Pay (LOP), Overtime, Attendance Bonus, and Professional Tax for newly previewed and generated salary slips.
-              </Typography>
-            </Box>
-          </Stack>
         </Box>
       </Stack>
     </Card>

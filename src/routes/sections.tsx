@@ -183,6 +183,7 @@ export const SalarySlipListPage = lazy(() => import('src/pages/salary-slips/list
 export const SalarySlipPreviewPage = lazy(() => import('src/pages/salary-slips/preview'));
 export const SalarySlipDetailsPage = lazy(() => import('src/pages/salary-slips/details'));
 export const SalarySlipEditPage = lazy(() => import('src/pages/salary-slips/edit'));
+export const SalarySlipSettingsPage = lazy(() => import('src/pages/salary-slips/settings'));
 const JobOpeningsPage = lazy(() => import('src/pages/job-openings'));
 const JobApplicantsPage = lazy(() => import('src/pages/job-applicants'));
 const InterviewPage = lazy(() => import('src/pages/interviews'));
@@ -551,6 +552,7 @@ export const routesSection: RouteObject[] = [
         children: [
           { index: true, element: <RolePermissionGuard actionKey="salary_slips"><SalarySlipListPage /></RolePermissionGuard> },
           { path: 'preview', element: <RolePermissionGuard actionKey="salary_slips"><SalarySlipPreviewPage /></RolePermissionGuard> },
+          { path: 'settings', element: <RolePermissionGuard actionKey="salary_slips"><SalarySlipSettingsPage /></RolePermissionGuard> },
           { path: ':id/edit', element: <RolePermissionGuard actionKey="salary_slips"><SalarySlipEditPage /></RolePermissionGuard> },
           { path: ':id', element: <RolePermissionGuard actionKey="salary_slips"><SalarySlipDetailsPage /></RolePermissionGuard> },
         ],
