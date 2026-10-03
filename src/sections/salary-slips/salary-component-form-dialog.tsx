@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -10,6 +11,7 @@ import Snackbar from '@mui/material/Snackbar';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -32,6 +34,7 @@ type Props = {
 };
 
 const TYPE_OPTIONS = ['Earning', 'Deduction'];
+const BASIS_OPTIONS = ['Full (Total Gross / CTC)', 'Selected Component(s)'];
 
 export function SalaryComponentFormDialog({
     open,
@@ -43,6 +46,9 @@ export function SalaryComponentFormDialog({
     const [componentName, setComponentName] = useState('');
     const [type, setType] = useState<string>('Earning');
     const [percentage, setPercentage] = useState<string>('');
+    const [percentageBasis, setPercentageBasis] = useState<string>('Full (Total Gross / CTC)');
+    const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
+    const [availableEarningOptions, setAvailableEarningOptions] = useState<string[]>([]);
     const [staticAmount, setStaticAmount] = useState<string>('');
     const [isDefault, setIsDefault] = useState(false);
 
@@ -63,9 +69,21 @@ export function SalaryComponentFormDialog({
             setComponentName(initialName);
             setType(defaultType || 'Earning');
             setPercentage('');
+            setPercentageBasis('Full (Total Gross / CTC)');
+            setSelectedComponents([]);
             setStaticAmount('');
             setIsDefault(false);
             setError('');
+
+            fetchSalaryComponents()
+                .then((allComponents) => {
+                    const earningNames = allComponents
+                        .filter((c: any) => c.type === 'Earning')
+                        .map((c: any) => c.component_name || c.name || '')
+                        .filter(Boolean);
+                    setAvailableEarningOptions(earningNames);
+                })
+                .catch(console.error);
         }
     }, [open, initialName, defaultType]);
 
@@ -80,15 +98,16 @@ export function SalaryComponentFormDialog({
             setLoading(true);
             setError('');
 
-            if (isDefault && type === 'Earning') {
-                const val = percentage !== '' ? parseFloat(percentage) : 0;
+            const percentNum = percentage !== '' && !Number.isNaN(parseFloat(percentage)) ? parseFloat(percentage) : 0;
+
+            if (isDefault && type === 'Earning' && percentageBasis === 'Full (Total Gross / CTC)') {
                 const allComponents = await fetchSalaryComponents();
                 const otherDefaultEarningsTotal = allComponents
-                    .filter((c: any) => c.is_default && c.type === 'Earning')
+                    .filter((c: any) => c.is_default && c.type === 'Earning' && (c.percentage_basis || 'Full (Total Gross / CTC)') === 'Full (Total Gross / CTC)')
                     .reduce((sum: number, c: any) => sum + (parseFloat(c.percentage) || 0), 0);
 
-                if (otherDefaultEarningsTotal + val > 100) {
-                    const msg = `Total Default Earnings cannot exceed 100%. Current total with this change: ${(otherDefaultEarningsTotal + val).toFixed(2)}%`;
+                if (otherDefaultEarningsTotal + percentNum > 100) {
+                    const msg = `Total Default Earnings cannot exceed 100%. Current total with this change: ${(otherDefaultEarningsTotal + percentNum).toFixed(2)}%`;
                     setError(msg);
                     setSnackbar({ open: true, message: msg, severity: 'error' });
                     setLoading(false);
@@ -96,10 +115,20 @@ export function SalaryComponentFormDialog({
                 }
             }
 
+            if (percentNum > 0 && percentageBasis === 'Selected Component(s)' && selectedComponents.length === 0) {
+                const msg = 'Please select at least one base earning component for percentage calculation';
+                setError(msg);
+                setSnackbar({ open: true, message: msg, severity: 'error' });
+                setLoading(false);
+                return;
+            }
+
             const data: any = {
                 component_name: componentName.trim(),
                 type,
-                percentage: percentage !== '' && !Number.isNaN(parseFloat(percentage)) ? parseFloat(percentage) : 0,
+                percentage: percentNum,
+                percentage_basis: percentNum > 0 ? percentageBasis : 'Full (Total Gross / CTC)',
+                selected_components: percentNum > 0 && percentageBasis === 'Selected Component(s)' ? JSON.stringify(selectedComponents) : '[]',
                 static_amount: staticAmount !== '' && !Number.isNaN(parseFloat(staticAmount)) ? parseFloat(staticAmount) : 0,
                 is_default: isDefault ? 1 : 0,
             };
@@ -117,6 +146,8 @@ export function SalaryComponentFormDialog({
             setLoading(false);
         }
     };
+
+    const hasPercentage = percentage !== '' && parseFloat(percentage) > 0;
 
     return (
         <Dialog
@@ -169,11 +200,7 @@ export function SalaryComponentFormDialog({
                             fullWidth
                             label="Type"
                             value={type}
-                            onChange={(e) => {
-                                setType(e.target.value);
-                                // clear percentage when switching to Deduction
-                                if (e.target.value === 'Deduction') setPercentage('');
-                            }}
+                            onChange={(e) => setType(e.target.value)}
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                         >
@@ -184,39 +211,100 @@ export function SalaryComponentFormDialog({
                             ))}
                         </TextField>
 
-                        {type === 'Earning' && (
+                        <TextField
+                            fullWidth
+                            label="Percentage (%)"
+                            type="number"
+                            value={percentage}
+                            onChange={(e) => setPercentage(e.target.value)}
+                            disabled={loading}
+                            InputLabelProps={{ shrink: true }}
+                            inputProps={{ min: 0, max: 100, step: 0.01 }}
+                            helperText="Leave blank if not applicable"
+                        />
+
+                        {hasPercentage ? (
                             <TextField
+                                select
                                 fullWidth
-                                label="Percentage (%)"
-                                type="number"
-                                value={percentage}
-                                onChange={(e) => setPercentage(e.target.value)}
+                                label="Percentage Basis"
+                                value={percentageBasis}
+                                onChange={(e) => setPercentageBasis(e.target.value)}
                                 disabled={loading}
                                 InputLabelProps={{ shrink: true }}
-                                inputProps={{ min: 0, max: 100, step: 0.01 }}
+                            >
+                                {BASIS_OPTIONS.map((opt) => (
+                                    <MenuItem key={opt} value={opt}>
+                                        {opt}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        ) : (
+                            <TextField
+                                fullWidth
+                                label="Static Amount"
+                                type="number"
+                                value={staticAmount}
+                                onChange={(e) => setStaticAmount(e.target.value)}
+                                disabled={loading}
+                                InputLabelProps={{ shrink: true }}
+                                inputProps={{ min: 0, step: 0.01 }}
                                 helperText="Leave blank if not applicable"
                             />
                         )}
 
-                        <TextField
-                            fullWidth
-                            label="Static Amount"
-                            type="number"
-                            value={staticAmount}
-                            onChange={(e) => setStaticAmount(e.target.value)}
-                            disabled={loading}
-                            InputLabelProps={{ shrink: true }}
-                            inputProps={{ min: 0, step: 0.01 }}
-                            helperText="Leave blank if not applicable"
-                        />
+                        {hasPercentage && percentageBasis === 'Selected Component(s)' && (
+                            <Box sx={{ gridColumn: '1 / -1' }}>
+                                <Autocomplete
+                                    multiple
+                                    options={availableEarningOptions.filter((opt) => opt !== componentName)}
+                                    value={selectedComponents}
+                                    onChange={(_, newValue) => setSelectedComponents(newValue)}
+                                    renderTags={(tagValue, getTagProps) =>
+                                        tagValue.map((option, index) => (
+                                            <Chip
+                                                label={option}
+                                                size="small"
+                                                color="primary"
+                                                variant="filled"
+                                                {...getTagProps({ index })}
+                                                key={option}
+                                            />
+                                        ))
+                                    }
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="Base Earning Component(s) *"
+                                            placeholder="Select Base Components (e.g. Basic, DA)"
+                                            InputLabelProps={{ shrink: true }}
+                                            helperText="Deduction percentage will be calculated from the sum of these selected components"
+                                        />
+                                    )}
+                                />
+                            </Box>
+                        )}
+
+                        {hasPercentage && (
+                            <TextField
+                                fullWidth
+                                label="Static Amount"
+                                type="number"
+                                value={staticAmount}
+                                onChange={(e) => setStaticAmount(e.target.value)}
+                                disabled={loading}
+                                InputLabelProps={{ shrink: true }}
+                                inputProps={{ min: 0, step: 0.01 }}
+                                helperText="Optional fallback amount"
+                            />
+                        )}
 
                         <Box
                             sx={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                ...(type === 'Earning'
-                                    ? { gridColumn: '1 / -1', mt: 0.5 }
-                                    : { height: 56, gridColumn: { xs: '1 / -1', sm: 'auto' } }),
+                                height: 56,
+                                gridColumn: hasPercentage ? { xs: '1 / -1', sm: 'auto' } : '1 / -1',
                             }}
                         >
                             <FormControlLabel

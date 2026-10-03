@@ -232,13 +232,14 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         const round = (val: number) => Math.round(val * 100) / 100;
 
         const workingDays = getNum(data.total_working_days) || 1;
-        const periodDays = getNum(data.total_days_in_period) || 0;
-        const currentProration = periodDays / workingDays;
+        const lopDays = getNum(data.lop_days);
+        const payableDays = Math.max(0, workingDays - lopDays);
+        const currentProration = workingDays > 0 ? payableDays / workingDays : 1;
 
         // 1. Prorate individual components to the period (only if they haven't been manually edited)
         const updatedEarnings = (data.earnings || baseEarnings).map((item: any, idx: number) => {
             const baseItem = baseEarnings[idx] || item;
-            const baseAmount = getNum(baseItem.base_amount || baseItem.amount);
+            const baseAmount = getNum(baseItem.standard_amount || baseItem.base_amount || baseItem.amount);
             const isManual = item.isManual ?? false;
 
             if (isManual) return { ...item, isManual: true };
@@ -252,14 +253,14 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
 
         const updatedDeductions = (data.deductions || baseDeductions).map((item: any, idx: number) => {
             const baseItem = baseDeductions[idx] || item;
-            const baseAmount = getNum(baseItem.base_amount || baseItem.amount);
+            const baseAmount = getNum(baseItem.standard_amount || baseItem.base_amount || baseItem.amount);
             const isManual = item.isManual ?? false;
 
             if (isManual) return { ...item, isManual: true };
 
             return {
                 ...item,
-                amount: round(baseAmount * currentProration).toFixed(2),
+                amount: round(baseAmount).toFixed(2),
                 isManual: false
             };
         });
@@ -295,13 +296,19 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         const deductionsTotal = round(finalDeductions.reduce((acc: number, curr: any) => acc + getNum(curr.amount), 0));
 
         // 3. Calculate LOP based on absent days relative to month base
-        const lopDays = getNum(data.lop_days);
-        const autoLopAmount = round((finalGrossPay / (currentProration || 1)) * (lopDays / workingDays));
+        const baseGrossPay = round(
+            (data.earnings || baseEarnings).reduce((acc: number, curr: any) => {
+                const name = getCompName(curr).toLowerCase();
+                if (name.includes('overtime') || name.includes('ot') || name.includes('attendance bonus')) return acc;
+                return acc + getNum(curr.standard_amount || curr.base_amount || curr.amount || 0);
+            }, 0)
+        );
+        const autoLopAmount = round(workingDays > 0 ? (baseGrossPay * (lopDays / workingDays)) : 0);
 
         const isManualLop = data.isManualLop ?? (data.lop !== undefined && Math.abs(getNum(data.lop) - autoLopAmount) > 0.1);
         const lopAmount = isManualLop ? getNum(data.lop) : autoLopAmount;
 
-        const totalDeductions = round(deductionsTotal + lopAmount);
+        const totalDeductions = round(deductionsTotal);
         const netPay = round(finalGrossPay - totalDeductions);
 
         return {
@@ -910,8 +917,27 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                                                         const val = typeof newValue === 'string' ? newValue : (newValue?.component_name || '');
                                                         handleSalaryRowChange('deductions', index, 'component_name', val);
                                                         const matched = salaryComponents.find((c) => c.component_name === val);
-                                                        if (matched && matched.static_amount && (!row.amount || row.amount === 0)) {
-                                                            handleSalaryRowChange('deductions', index, 'amount', matched.static_amount);
+                                                        if (matched && (!row.amount || row.amount === 0)) {
+                                                            if (matched.percentage && Number(matched.percentage) > 0) {
+                                                                let baseAmt = Number(formData.gross_pay) || 0;
+                                                                if (matched.percentage_basis === 'Selected Component(s)') {
+                                                                    let sel: string[] = [];
+                                                                    try {
+                                                                        sel = Array.isArray(matched.selected_components) ? matched.selected_components : JSON.parse(matched.selected_components || '[]');
+                                                                    } catch {
+                                                                        sel = (matched.selected_components || '').split(',').map((s: string) => s.trim());
+                                                                    }
+                                                                    if (sel.length > 0) {
+                                                                        baseAmt = (formData.earnings || [])
+                                                                            .filter((e: any) => sel.includes(e.component_name || e.salary_component))
+                                                                            .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
+                                                                    }
+                                                                }
+                                                                const autoVal = Math.round(((baseAmt * Number(matched.percentage)) / 100) * 100) / 100;
+                                                                handleSalaryRowChange('deductions', index, 'amount', autoVal);
+                                                            } else if (matched.static_amount) {
+                                                                handleSalaryRowChange('deductions', index, 'amount', matched.static_amount);
+                                                            }
                                                         }
                                                     }
                                                 }}
