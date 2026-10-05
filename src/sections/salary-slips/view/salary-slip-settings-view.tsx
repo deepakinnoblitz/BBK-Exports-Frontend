@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
 import { IoMdArrowBack } from 'react-icons/io';
 import { RiCheckboxCircleLine } from 'react-icons/ri';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -12,11 +11,15 @@ import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { useRouter } from 'src/routes/hooks';
-import { DashboardContent } from 'src/layouts/dashboard';
+
 import { useSettingsContext } from 'src/hooks/settings-context';
+
 import { updateHRMSSettings } from 'src/api/settings';
-import { useAuth } from 'src/auth/auth-context';
+import { DashboardContent } from 'src/layouts/dashboard';
+
 import { SettingsSalarySlip } from 'src/sections/settings/settings-salary-slip';
+
+import { useAuth } from 'src/auth/auth-context';
 
 // ----------------------------------------------------------------------
 
