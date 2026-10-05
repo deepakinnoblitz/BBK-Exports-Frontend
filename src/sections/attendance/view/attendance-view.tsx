@@ -95,6 +95,8 @@ export function AttendanceView() {
 
     // Alert & Dialog State
     const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: string | null }>({ open: false, id: null });
+    const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({
         open: false,
         message: '',
@@ -620,13 +622,18 @@ export function AttendanceView() {
     };
 
     const handleBulkDelete = async () => {
+        if (!selected.length) return;
         try {
+            setBulkDeleting(true);
             await Promise.all(selected.map((id) => deleteAttendance(id)));
             setSnackbar({ open: true, message: `${selected.length} records deleted successfully`, severity: 'success' });
             setSelected([]);
             await refetch();
         } catch (e: any) {
             setSnackbar({ open: true, message: e.message || 'Error during bulk delete', severity: 'error' });
+        } finally {
+            setBulkDeleting(false);
+            setConfirmBulkDelete(false);
         }
     };
 
@@ -854,7 +861,7 @@ export function AttendanceView() {
                         setFilterName(e.target.value);
                         setPage(0);
                     }}
-                    onDelete={handleBulkDelete}
+                    onDelete={permissions.delete && selected.length > 0 ? () => setConfirmBulkDelete(true) : undefined}
                     searchPlaceholder="Search attendance..."
                     sortOptions={sortOptions}
                     sortBy={getSortByValue()}
@@ -881,10 +888,10 @@ export function AttendanceView() {
                             <AttendanceTableHead
                                 order={order}
                                 orderBy={orderBy}
-                                rowCount={total}
+                                rowCount={data.length}
                                 numSelected={selected.length}
                                 onSelectAllRows={(checked: boolean) => handleSelectAllRows(checked)}
-                                hideCheckbox
+                                hideCheckbox={!permissions.delete}
                                 showIndex
                                 headLabel={[
                                     { id: 'employee_name', label: 'Employee', minWidth: { xs: 130, md: 150 }, sx: { maxWidth: 170, display: { xs: 'none', md: 'table-cell' } } },
@@ -903,7 +910,7 @@ export function AttendanceView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={isSystemManager ? 11 : 10} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={permissions.delete ? (isSystemManager ? 12 : 11) : (isSystemManager ? 11 : 10)} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
@@ -913,7 +920,7 @@ export function AttendanceView() {
                                             <AttendanceTableRow
                                                 key={row.name}
                                                 index={page * rowsPerPage + index}
-                                                hideCheckbox
+                                                hideCheckbox={!permissions.delete}
                                                 row={{
                                                     id: row.name,
                                                     employee: row.employee,
@@ -944,7 +951,7 @@ export function AttendanceView() {
 
                                         {empty && (
                                             <TableRow>
-                                                <TableCell colSpan={9}>
+                                                <TableCell colSpan={permissions.delete ? (isSystemManager ? 12 : 11) : (isSystemManager ? 11 : 10)}>
                                                     <EmptyContent
                                                         title="No attendance records"
                                                         description="You haven't marked any attendance yet."
@@ -1097,6 +1104,19 @@ export function AttendanceView() {
                 action={
                     <Button onClick={handleConfirmDelete} color="error" variant="contained" sx={{ borderRadius: 1.5, minWidth: 100 }}>
                         Delete
+                    </Button>
+                }
+            />
+
+            <ConfirmDialog
+                open={confirmBulkDelete}
+                onClose={() => setConfirmBulkDelete(false)}
+                title="Confirm Bulk Delete"
+                content={`Are you sure you want to delete ${selected.length} selected attendance record(s)?`}
+                isLoading={bulkDeleting}
+                action={
+                    <Button onClick={handleBulkDelete} color="error" variant="contained" disabled={bulkDeleting} sx={{ borderRadius: 1.5, minWidth: 100 }}>
+                        {bulkDeleting ? 'Deleting...' : 'Delete'}
                     </Button>
                 }
             />
