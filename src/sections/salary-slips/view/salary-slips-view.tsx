@@ -25,7 +25,7 @@ import { useSalarySlips } from 'src/hooks/useSalarySlips';
 
 import { getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { deleteSalarySlip, submitSalarySlip } from 'src/api/salary-slips';
+import { deleteSalarySlip, submitSalarySlip, exportBobNeftFile } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -43,6 +43,7 @@ import { useAuth } from 'src/auth/auth-context';
 import SalarySlipCreateDialog from '../salary-slip-create-dialog';
 import { SalarySlipFiltersDrawer } from '../salary-slip-filters-drawer';
 import SalarySlipAutoAllocateDialog from '../salary-slip-auto-allocate-dialog';
+import { SalarySlipReconciliationDialog } from '../salary-slip-reconciliation-dialog';
 import SalarySlipGenerateProgressDialog from '../salary-slip-generate-progress-dialog';
 
 import type { SalarySlipFiltersProps } from '../salary-slip-filters-drawer';
@@ -177,7 +178,50 @@ export function SalarySlipsView() {
     // Dialog state
     const [openCreate, setOpenCreate] = useState(false);
     const [openAutoAllocate, setOpenAutoAllocate] = useState(false);
+    const [openRecon, setOpenRecon] = useState(false);
+    const [exportingBob, setExportingBob] = useState(false);
     const [editSlip, setEditSlip] = useState<SalarySlip | null>(null);
+
+    const handleExportBob = async () => {
+        try {
+            setExportingBob(true);
+            const exportResult = await exportBobNeftFile(
+                filters.pay_period_start || undefined,
+                filters.pay_period_end || undefined,
+                selected.length > 0 ? selected : undefined
+            );
+            if (!exportResult?.records?.length) {
+                setSnackbar({ open: true, message: 'No salary records found for export', severity: 'error' });
+                return;
+            }
+            const headers = ['S.No', 'Emp No', 'Name', 'ACCOUNT NO', 'IFSC Code', 'Bank Name', 'Branch', 'Amount (In INR)', 'Narration'];
+            const rows = exportResult.records.map((r: any) => [
+                r.s_no,
+                `"${r.employee}"`,
+                `"${r.employee_name}"`,
+                `"${r.account_no}"`,
+                `"${r.ifsc_code}"`,
+                `"${r.bank_name}"`,
+                `"${r.branch}"`,
+                r.amount,
+                `"${r.narration}"`
+            ]);
+            const csvContent = [headers.join(','), ...rows.map((row: any) => row.join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `BBK_BOB_NEFT_Disbursement_${exportResult.period.replace(/\s+/g, '_')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setSnackbar({ open: true, message: `Exported BOB NEFT file for ${exportResult.total_employees} records (₹${exportResult.total_amount.toLocaleString()})`, severity: 'success' });
+        } catch (err: any) {
+            setSnackbar({ open: true, message: err.message || 'Failed to export BOB file', severity: 'error' });
+        } finally {
+            setExportingBob(false);
+        }
+    };
 
 
 
@@ -342,6 +386,25 @@ export function SalarySlipsView() {
                         >
                             Settings
                         </Button>
+
+                        {/* <Button
+                            variant="outlined"
+                            startIcon={<Iconify icon="solar:chart-2-bold-duotone" />}
+                            onClick={() => setOpenRecon(true)}
+                            sx={{ borderRadius: 1.5, height: 40, textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
+                        >
+                            Reconciliation
+                        </Button>
+
+                        <LoadingButton
+                            variant="outlined"
+                            loading={exportingBob}
+                            startIcon={<Iconify icon={"solar:card-send-bold-duotone" as any} />}
+                            onClick={handleExportBob}
+                            sx={{ borderRadius: 1.5, height: 40, textTransform: 'none', fontWeight: 600, color: '#1d4ed8', borderColor: '#bfdbfe', bgcolor: '#eff6ff', '&:hover': { bgcolor: '#dbeafe', borderColor: '#93c5fd' } }}
+                        >
+                            Bank Export (BOB)
+                        </LoadingButton> */}
 
                         {canCreateSalarySlip && (
                             <>
@@ -618,6 +681,14 @@ export function SalarySlipsView() {
                         Submit
                     </LoadingButton>
                 }
+            />
+
+            {/* Reconciliation Dialog */}
+            <SalarySlipReconciliationDialog
+                open={openRecon}
+                onClose={() => setOpenRecon(false)}
+                startDate={filters.pay_period_start}
+                endDate={filters.pay_period_end}
             />
 
         </DashboardContent>

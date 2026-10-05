@@ -108,7 +108,7 @@ export function SalarySlipSettingsView() {
             startIcon={<IoMdArrowBack size={18} />}
             onClick={() => router.push('/salary-slips')}
             sx={{
-              borderRadius: 1,
+              borderRadius: 1.5,
               fontWeight: 600,
               textTransform: 'none',
               px: 2,
@@ -126,7 +126,7 @@ export function SalarySlipSettingsView() {
             sx={{
               bgcolor: '#059669',
               '&:hover': { bgcolor: '#047857' },
-              borderRadius: 1,
+              borderRadius: 1.5,
               textTransform: 'none',
               fontWeight: 600,
               height: 40,

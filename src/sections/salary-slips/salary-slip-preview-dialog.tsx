@@ -452,6 +452,134 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
         </Box>
     );
 
+    // ── Employer Contributions & CTC ──────────────────────────────────────────
+    const renderEmployerContributions = (
+        <Box sx={{ mb: 4, mt: 3 }}>
+            <SectionHeader title="Employer Contributions & Cost to Company (CTC)" icon="solar:buildings-bold" color="info.main" />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.2fr 0.8fr' }, gap: 3 }}>
+                {/* Statutory Contributions */}
+                <Box
+                    sx={{
+                        p: 2.5,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.info.main, 0.04),
+                        border: (theme) => `1px solid ${alpha(theme.palette.info.main, 0.12)}`,
+                    }}
+                >
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'info.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Iconify icon={"solar:shield-check-bold" as any} width={18} />
+                        Employer Statutory Contributions
+                    </Typography>
+                    <Stack spacing={1}>
+                        <AmountRow
+                            label={`Employer PF Contribution (${data.employer_pf_rate ?? hrSettings?.employer_pf_rate ?? 12}%)`}
+                            amount={data.employer_pf || 0}
+                            hrSettings={hrSettings}
+                        />
+                        <AmountRow
+                            label={`PF Admin Charges (${data.pf_admin_rate ?? hrSettings?.pf_admin_rate ?? 0.5}%)`}
+                            amount={data.pf_admin_charges || 0}
+                            hrSettings={hrSettings}
+                        />
+                        <AmountRow
+                            label={`EDLI Charges (${data.edli_rate ?? hrSettings?.edli_rate ?? 0.5}%)`}
+                            amount={data.edli_charges || 0}
+                            hrSettings={hrSettings}
+                        />
+                        <AmountRow
+                            label={`Employer ESI Contribution (${data.employer_esi_rate ?? hrSettings?.employer_esi_rate ?? 3.25}%)`}
+                            amount={data.employer_esi || 0}
+                            hrSettings={hrSettings}
+                        />
+                        {Number(data.tea_expenses || 0) > 0 && (
+                            <AmountRow
+                                label="Tea Expenses (Employer)"
+                                amount={data.tea_expenses || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+                        <AmountRow
+                            label="Total Employer Contribution"
+                            amount={data.total_employer_contribution || 0}
+                            isTotal
+                            color="info.main"
+                            hrSettings={hrSettings}
+                        />
+                    </Stack>
+                </Box>
+
+                {/* Provisions & Total CTC */}
+                <Box
+                    sx={{
+                        p: 2.5,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                        border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                    }}
+                >
+                    <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Iconify icon={"solar:wallet-money-bold" as any} width={18} />
+                            Statutory Provisions & CTC
+                        </Typography>
+                        <Stack spacing={1}>
+                            {(data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false) && (
+                                <AmountRow
+                                    label={`Bonus Provision (${data.bonus_provision_rate ?? hrSettings?.bonus_provision_rate ?? 8.33}%)`}
+                                    amount={data.bonus_provision || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            )}
+                            {(data.enable_el_provision !== 0 && data.enable_el_provision !== false) && (
+                                <AmountRow
+                                    label={`Earned Leave (EL) Provision (${data.el_provision_days_per_year ?? hrSettings?.el_provision_days_per_year ?? 15.6}d/yr)`}
+                                    amount={data.el_provision || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            )}
+                            <AmountRow
+                                label="Gross Salary (Employee)"
+                                amount={data.gross_pay || 0}
+                                hrSettings={hrSettings}
+                            />
+                        </Stack>
+                    </Box>
+
+                    <Box
+                        sx={{
+                            mt: 2,
+                            p: 2,
+                            borderRadius: 1.5,
+                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                            border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Box>
+                                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    Total Monthly CTC
+                                </Typography>
+                                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: 11 }}>
+                                    (Gross + Contrib + Provisions)
+                                </Typography>
+                            </Box>
+                            <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
+                                <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.85em' }}>
+                                    {hrSettings.currency_symbol}
+                                </Box>
+                                {fNumber(data.total_monthly_ctc || ((Number(data.gross_pay) || 0) + (Number(data.total_employer_contribution) || 0) + (Number(data.bonus_provision) || 0) + (Number(data.el_provision) || 0)), { locale: hrSettings.default_locale })}
+                            </Typography>
+                        </Box>
+                    </Box>
+                </Box>
+            </Box>
+        </Box>
+    );
+
     const isDirectAllocation = (data?.leave_calc_source || hrSettings?.salary_leave_calculation_source) === 'Via Direct Allocation';
 
     const getFilteredBreakdown = () => {
@@ -543,6 +671,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                         <Divider sx={{ my: 4, borderStyle: 'dashed' }} />
                         {renderSalaryBreakdown}
                         {renderNetPay}
+                        {renderEmployerContributions}
 
                         <Box sx={{ mt: 4, textAlign: 'center' }}>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
