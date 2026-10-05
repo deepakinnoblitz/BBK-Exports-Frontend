@@ -24,6 +24,13 @@ export function SettingsNotifications({ data, onChange }: Props) {
       icon: 'solar:calendar-date-bold-duotone',
       color: '#FFAB00',
     },
+    {
+      label: 'Salary Slip Mail',
+      fieldname: 'salary_slip_notification',
+      description: 'Receive email alerts when salary slips are generated or submitted.',
+      icon: 'solar:bill-bold-duotone',
+      color: '#059669',
+    },
     /*
     {
       label: 'WFH Attendance Mail',

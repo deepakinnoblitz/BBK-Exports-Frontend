@@ -20,6 +20,7 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
+import ListItemText from '@mui/material/ListItemText';
 import TableContainer from '@mui/material/TableContainer';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
@@ -830,6 +831,55 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
               </Box>
             </Grid>
           </Grid>
+        </Box>
+
+        {/* Section 7: Mail Notification Settings */}
+        <Box>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
+            <Typography variant="h6">Mail Notification Settings</Typography>
+          </Stack>
+
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={2}
+            sx={{
+              p: 2,
+              borderRadius: 1.5,
+              border: (theme) => `solid 1px ${theme.palette.divider}`,
+              transition: (theme) => theme.transitions.create(['all']),
+              '&:hover': {
+                bgcolor: 'background.neutral',
+              },
+            }}
+          >
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                display: 'flex',
+                borderRadius: 1.5,
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: (theme) => (theme.palette.mode === 'light' ? '#05966914' : '#05966929'),
+                color: '#059669',
+              }}
+            >
+              <Iconify icon={"solar:bill-bold-duotone" as any} width={28} />
+            </Box>
+
+            <ListItemText
+              primary="Salary Slip Mail"
+              secondary="Receive email alerts when salary slips are generated or submitted."
+              primaryTypographyProps={{ variant: 'subtitle1', fontWeight: 'fontWeightBold' }}
+              secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+            />
+
+            <CustomSwitch
+              checked={data.salary_slip_notification !== 0 && data.salary_slip_notification !== false && data.salary_slip_notification !== '0'}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => onChange('salary_slip_notification', event.target.checked ? 1 : 0)}
+            />
+          </Stack>
         </Box>
       </Stack>
     </Card>
