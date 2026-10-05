@@ -1,18 +1,19 @@
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { 
-    IoMdPrint, IoMdTrash, IoMdCreate, IoMdArrowBack, IoMdCheckmarkCircle 
-} from 'react-icons/io';
+import { IoMdArrowDropdown } from 'react-icons/io';
+import { IoMdPrint, IoMdTrash, IoMdCreate, IoMdArrowBack, IoMdCheckmarkCircle } from 'react-icons/io';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Menu from '@mui/material/Menu';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
+import MenuItem from '@mui/material/MenuItem';
 import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -116,12 +117,23 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
         setPopoverState((prev) => ({ ...prev, el: null }));
     };
 
-    const openPopover = Boolean(popoverState.el);
+    const handlePrintFormat = (formatName?: string) => {
+        if (!slip?.name) return;
+        const empType = (slip?.employee_type || '').toLowerCase();
+        let defaultFormat: string | undefined;
+        if (empType.includes('north indian')) {
+            defaultFormat = 'North Indian Form 25B Pay Slip';
+        } else if (empType.includes('worker')) {
+            defaultFormat = 'Worker Form 25B Pay Slip';
+        } else {
+            defaultFormat = undefined;
+        }
+        const url = getSalarySlipDownloadUrl(slip.name, formatName || defaultFormat);
+        window.open(url, '_blank');
+    };
 
     const handleDownload = () => {
-        if (!slip?.name) return;
-        const url = getSalarySlipDownloadUrl(slip.name);
-        window.open(url, '_blank');
+        handlePrintFormat();
     };
 
     const handleDelete = async () => {
@@ -694,6 +706,135 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
             </Typography>
         </Box>
     );
+    const openPopover = Boolean(popoverState.el);
+
+    // ── Employer Contributions & CTC ──────────────────────────────────────────
+    const renderEmployerContributions = (
+        <Box sx={{ mb: 4, mt: 3 }}>
+            <SectionHeader title="Employer Contributions & Cost to Company (CTC)" icon="solar:buildings-bold" color="info.main" />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.2fr 0.8fr' }, gap: 3 }}>
+                {/* Statutory Contributions */}
+                <Box
+                    sx={{
+                        p: 2.5,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.info.main, 0.04),
+                        border: (theme) => `1px solid ${alpha(theme.palette.info.main, 0.12)}`,
+                    }}
+                >
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'info.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Iconify icon={"solar:shield-check-bold" as any} width={18} />
+                        Employer Statutory Contributions
+                    </Typography>
+                    <Stack spacing={1}>
+                        <AmountRow
+                            label={`Employer PF Contribution (${slip.employer_pf_rate ?? hrSettings?.employer_pf_rate ?? 12}%)`}
+                            amount={slip.employer_pf || 0}
+                            hrSettings={hrSettings}
+                        />
+                        <AmountRow
+                            label={`PF Admin Charges (${slip.pf_admin_rate ?? hrSettings?.pf_admin_rate ?? 0.5}%)`}
+                            amount={slip.pf_admin_charges || 0}
+                            hrSettings={hrSettings}
+                        />
+                        <AmountRow
+                            label={`EDLI Charges (${slip.edli_rate ?? hrSettings?.edli_rate ?? 0.5}%)`}
+                            amount={slip.edli_charges || 0}
+                            hrSettings={hrSettings}
+                        />
+                        <AmountRow
+                            label={`Employer ESI Contribution (${slip.employer_esi_rate ?? hrSettings?.employer_esi_rate ?? 3.25}%)`}
+                            amount={slip.employer_esi || 0}
+                            hrSettings={hrSettings}
+                        />
+                        {Number(slip.tea_expenses || 0) > 0 && (
+                            <AmountRow
+                                label="Tea Expenses (Employer)"
+                                amount={slip.tea_expenses || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+                        <AmountRow
+                            label="Total Employer Contribution"
+                            amount={slip.total_employer_contribution || 0}
+                            isTotal
+                            color="info.main"
+                            hrSettings={hrSettings}
+                        />
+                    </Stack>
+                </Box>
+
+                {/* Provisions & Total CTC */}
+                <Box
+                    sx={{
+                        p: 2.5,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                        border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                    }}
+                >
+                    <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Iconify icon={"solar:wallet-money-bold" as any} width={18} />
+                            Statutory Provisions & CTC
+                        </Typography>
+                        <Stack spacing={1}>
+                            {(slip.enable_bonus_provision !== 0 && slip.enable_bonus_provision !== false) && (
+                                <AmountRow
+                                    label={`Bonus Provision (${slip.bonus_provision_rate ?? hrSettings?.bonus_provision_rate ?? 8.33}%)`}
+                                    amount={slip.bonus_provision || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            )}
+                            {(slip.enable_el_provision !== 0 && slip.enable_el_provision !== false) && (
+                                <AmountRow
+                                    label={`Earned Leave (EL) Provision (${slip.el_provision_days_per_year ?? hrSettings?.el_provision_days_per_year ?? 15.6}d/yr)`}
+                                    amount={slip.el_provision || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            )}
+                            <AmountRow
+                                label="Gross Salary (Employee)"
+                                amount={slip.gross_pay || 0}
+                                hrSettings={hrSettings}
+                            />
+                        </Stack>
+                    </Box>
+
+                    <Box
+                        sx={{
+                            mt: 2,
+                            p: 2,
+                            borderRadius: 1.5,
+                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                            border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Box>
+                                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    Total Monthly CTC
+                                </Typography>
+                                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: 11 }}>
+                                    (Gross + Contrib + Provisions)
+                                </Typography>
+                            </Box>
+                            <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
+                                <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.85em' }}>
+                                    {hrSettings.currency_symbol}
+                                </Box>
+                                {fNumber(slip.total_monthly_ctc || ((Number(slip.gross_pay) || 0) + (Number(slip.total_employer_contribution) || 0) + (Number(slip.bonus_provision) || 0) + (Number(slip.el_provision) || 0)), { locale: hrSettings.default_locale })}
+                            </Typography>
+                        </Box>
+                    </Box>
+                </Box>
+            </Box>
+        </Box>
+    );
 
     return (
         <DashboardContent maxWidth={false}>
@@ -723,7 +864,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
 
                     <Button
                         variant="contained"
-                        onClick={handleDownload}
+                        onClick={() => handlePrintFormat()}
                         startIcon={<IoMdPrint size={18} />}
                         sx={{
                             borderRadius: 1.5,
@@ -825,6 +966,8 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 {renderDetailedSummary}
                 <Divider sx={{ my: 4, borderStyle: 'dashed' }} />
                 {renderSalaryBreakdown}
+                <Divider sx={{ my: 4, borderStyle: 'dashed' }} />
+                {renderEmployerContributions}
                 {renderNetPay}
 
                 <Box sx={{ mt: 4, textAlign: 'center' }}>

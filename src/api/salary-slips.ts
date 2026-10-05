@@ -207,8 +207,9 @@ export async function getSalarySlipPermissions() {
     return (await res.json()).message || { read: false, write: false, delete: false };
 }
 
-export function getSalarySlipDownloadUrl(name: string) {
-    return `/api/method/frappe.utils.print_format.download_pdf?doctype=Salary%20Slip&name=${encodeURIComponent(name)}`;
+export function getSalarySlipDownloadUrl(name: string, format?: string) {
+    const formatParam = format ? `&format=${encodeURIComponent(format)}` : '';
+    return `/api/method/frappe.utils.print_format.download_pdf?doctype=Salary%20Slip&name=${encodeURIComponent(name)}${formatParam}`;
 }
 
 export async function previewSalarySlip(employee: string, start_date: string, end_date: string) {
@@ -260,5 +261,51 @@ export async function generateSalarySlipsForEmployees(year: number, month: numbe
 
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || "Failed to generate salary slips");
+    return json.message;
+}
+
+export async function exportBobNeftFile(startDate?: string, endDate?: string, salarySlips?: string[]) {
+    const res = await frappeRequest("/api/method/company.company.doctype.salary_slip.salary_slip.export_bob_neft_file", {
+        method: "POST",
+        body: JSON.stringify({
+            start_date: startDate,
+            end_date: endDate,
+            salary_slips: salarySlips ? JSON.stringify(salarySlips) : undefined
+        })
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to export BOB NEFT file");
+    return json.message;
+}
+
+export async function exportChequeRegister(startDate?: string, endDate?: string, salarySlips?: string[]) {
+    const res = await frappeRequest("/api/method/company.company.doctype.salary_slip.salary_slip.export_cheque_register", {
+        method: "POST",
+        body: JSON.stringify({
+            start_date: startDate,
+            end_date: endDate,
+            salary_slips: salarySlips ? JSON.stringify(salarySlips) : undefined
+        })
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to export Cheque Register");
+    return json.message;
+}
+
+export async function getWagesReconciliationStatement(currentStartDate: string, currentEndDate: string, prevStartDate?: string, prevEndDate?: string) {
+    const res = await frappeRequest("/api/method/company.company.doctype.salary_slip.salary_slip.get_wages_reconciliation_statement", {
+        method: "POST",
+        body: JSON.stringify({
+            current_start_date: currentStartDate,
+            current_end_date: currentEndDate,
+            prev_start_date: prevStartDate,
+            prev_end_date: prevEndDate
+        })
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to fetch reconciliation statement");
     return json.message;
 }

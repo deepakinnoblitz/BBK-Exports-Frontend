@@ -4,6 +4,7 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
+import Switch from '@mui/material/Switch';
 import Select from '@mui/material/Select';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
@@ -20,10 +21,13 @@ import Typography from '@mui/material/Typography';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import TableContainer from '@mui/material/TableContainer';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 
 import { Iconify } from 'src/components/iconify';
+
+import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
 
 // ----------------------------------------------------------------------
 
@@ -103,9 +107,9 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
     <Card sx={{ p: 4, borderRadius: 3 }}>
       <Stack spacing={4}>
         {/* Important Note at Top */}
-        <Box sx={{ 
-          p: 2.5, 
-          borderRadius: 2, 
+        <Box sx={{
+          p: 2.5,
+          borderRadius: 2,
           bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
           border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
         }}>
@@ -125,7 +129,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
           <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
             <Typography variant="h6">Salary Calculation Rules</Typography>
           </Stack>
-          
+
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: (data.salary_working_days_basis === 'Fixed Number of Days') ? 6 : 12 }}>
               <FormControl fullWidth>
@@ -619,6 +623,211 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   htmlInput: { min: 0, step: 100 },
                 }}
               />
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Divider sx={{ borderStyle: 'dashed' }} />
+
+        {/* Section 4: Employer Statutory Contributions & Provisions (CTC Rules) */}
+        <Box>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
+            <Iconify icon="solar:buildings-bold" width={22} sx={{ color: 'info.main' }} />
+            <Typography variant="h6">Employer Statutory Contributions & CTC Rules</Typography>
+          </Stack>
+          <Typography variant="caption" sx={{ color: 'text.secondary', mb: 3, display: 'block' }}>
+            Configure the employer statutory contribution percentages and toggle annual provision calculations.
+          </Typography>
+
+          <Grid container spacing={3}>
+            {/* Employer PF Rate */}
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Employer PF Rate (%)"
+                value={data.employer_pf_rate ?? '12'}
+                onChange={(e) => onChange('employer_pf_rate', e.target.value)}
+                placeholder="12"
+                helperText="EPF Contribution on Basic + DA (up to ₹15,000 cap)."
+                slotProps={{
+                  input: {
+                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                  },
+                  htmlInput: { min: 0, max: 100, step: 0.1 },
+                }}
+              />
+            </Grid>
+
+            {/* PF Admin Charges */}
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="PF Admin Charges (%)"
+                value={data.pf_admin_rate ?? '0.5'}
+                onChange={(e) => onChange('pf_admin_rate', e.target.value)}
+                placeholder="0.5"
+                helperText="EPFO Admin charges rate."
+                slotProps={{
+                  input: {
+                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                  },
+                  htmlInput: { min: 0, max: 10, step: 0.01 },
+                }}
+              />
+            </Grid>
+
+            {/* EDLI Charges */}
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="EDLI Charges (%)"
+                value={data.edli_rate ?? '0.5'}
+                onChange={(e) => onChange('edli_rate', e.target.value)}
+                placeholder="0.5"
+                helperText="Deposit Linked Insurance rate."
+                slotProps={{
+                  input: {
+                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                  },
+                  htmlInput: { min: 0, max: 10, step: 0.01 },
+                }}
+              />
+            </Grid>
+
+            {/* Employer ESI Rate */}
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Employer ESI Rate (%)"
+                value={data.employer_esi_rate ?? '3.25'}
+                onChange={(e) => onChange('employer_esi_rate', e.target.value)}
+                placeholder="3.25"
+                helperText="ESI Contribution (when gross ≤ ₹21,000)."
+                slotProps={{
+                  input: {
+                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                  },
+                  htmlInput: { min: 0, max: 100, step: 0.05 },
+                }}
+              />
+            </Grid>
+
+            {/* Bonus Provision Card */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Box
+                sx={{
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                  border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+                }}
+              >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      Bonus Provision (Payment of Bonus Act)
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Calculate monthly bonus provision towards annual bonus payment.
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 700,
+                        color: (data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false && data.enable_bonus_provision !== '0') ? '#059669' : 'text.secondary',
+                      }}
+                    >
+                      {(data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false && data.enable_bonus_provision !== '0') ? 'Enabled' : 'Disabled'}
+                    </Typography>
+                    <CustomSwitch
+                      checked={data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false && data.enable_bonus_provision !== '0'}
+                      onChange={(e) => onChange('enable_bonus_provision', e.target.checked ? 1 : 0)}
+                    />
+                  </Stack>
+                </Stack>
+
+                {(data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false && data.enable_bonus_provision !== '0') && (
+                  <TextField
+                    fullWidth
+                    size="medium"
+                    type="number"
+                    label="Bonus Provision Rate (%)"
+                    value={data.bonus_provision_rate ?? '8.33'}
+                    onChange={(e) => onChange('bonus_provision_rate', e.target.value)}
+                    placeholder="8.33"
+                    helperText="Default standard statutory rate: 8.33% (1 month basic pay/year)."
+                    slotProps={{
+                      input: {
+                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, max: 100, step: 0.01 },
+                    }}
+                  />
+                )}
+              </Box>
+            </Grid>
+
+            {/* Earned Leave (EL) Provision Card */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Box
+                sx={{
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: (theme) => alpha(theme.palette.success.main, 0.04),
+                  border: (theme) => `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
+                }}
+              >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      Earned Leave (EL) Provision
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Calculate monthly provision for annual earned leave accruals.
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 700,
+                        color: (data.enable_el_provision !== 0 && data.enable_el_provision !== false && data.enable_el_provision !== '0') ? '#059669' : 'text.secondary',
+                      }}
+                    >
+                      {(data.enable_el_provision !== 0 && data.enable_el_provision !== false && data.enable_el_provision !== '0') ? 'Enabled' : 'Disabled'}
+                    </Typography>
+                    <CustomSwitch
+                      checked={data.enable_el_provision !== 0 && data.enable_el_provision !== false && data.enable_el_provision !== '0'}
+                      onChange={(e) => onChange('enable_el_provision', e.target.checked ? 1 : 0)}
+                    />
+                  </Stack>
+                </Stack>
+
+                {(data.enable_el_provision !== 0 && data.enable_el_provision !== false && data.enable_el_provision !== '0') && (
+                  <TextField
+                    fullWidth
+                    size="medium"
+                    type="number"
+                    label="EL Provision Days / Year"
+                    value={data.el_provision_days_per_year ?? '15.6'}
+                    onChange={(e) => onChange('el_provision_days_per_year', e.target.value)}
+                    placeholder="15.6"
+                    helperText="Formula: (Basic / 26) × (EL Days / 12 months). Default: 15.6 days."
+                    slotProps={{
+                      input: {
+                        endAdornment: <InputAdornment position="end">days/yr</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, max: 365, step: 0.1 },
+                    }}
+                  />
+                )}
+              </Box>
             </Grid>
           </Grid>
         </Box>

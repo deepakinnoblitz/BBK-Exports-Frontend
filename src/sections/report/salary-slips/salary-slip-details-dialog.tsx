@@ -56,7 +56,16 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
     const openPopover = Boolean(popoverState.el);
 
     const handleDownload = () => {
-        const url = getSalarySlipDownloadUrl(slip.name);
+        const empType = (slip?.employee_type || '').toLowerCase();
+        let format: string | undefined;
+        if (empType.includes('north indian')) {
+            format = 'North Indian Form 25B Pay Slip';
+        } else if (empType.includes('worker')) {
+            format = 'Worker Form 25B Pay Slip';
+        } else {
+            format = undefined;
+        }
+        const url = getSalarySlipDownloadUrl(slip.name, format);
         window.open(url, '_blank');
     };
 
