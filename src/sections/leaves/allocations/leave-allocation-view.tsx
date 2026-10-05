@@ -347,10 +347,12 @@ export function LeaveAllocationView() {
     };
 
     const handleSelectAllRows = (checked: boolean) => {
+        const currentPageIds = data.map((row) => row.name);
         if (checked) {
-            setSelected(data.map((row) => row.name));
+            setSelected((prev) => Array.from(new Set([...prev, ...currentPageIds])));
         } else {
-            setSelected([]);
+            const pageIdSet = new Set(currentPageIds);
+            setSelected((prev) => prev.filter((id) => !pageIdSet.has(id)));
         }
     };
 
@@ -386,7 +388,7 @@ export function LeaveAllocationView() {
 
     useEffect(() => {
         setSelected([]);
-    }, [page, rowsPerPage, filters, filterName, currentTab]);
+    }, [filters, filterName, currentTab]);
 
     const handleCloseCreate = () => {
         setOpenCreate(false);
@@ -510,7 +512,7 @@ export function LeaveAllocationView() {
                                 order={order}
                                 orderBy={orderBy}
                                 rowCount={data.length}
-                                numSelected={selected.length}
+                                numSelected={data.filter((row) => selected.includes(row.name)).length}
                                 onSelectAllRows={(checked: boolean) => handleSelectAllRows(checked)}
                                 hideCheckbox={!permissions.delete}
                                 showIndex

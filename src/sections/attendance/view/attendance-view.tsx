@@ -594,31 +594,19 @@ export function AttendanceView() {
 
 
     const handleSelectAllRows = (checked: boolean) => {
+        const currentPageIds = data.map((n) => n.name);
         if (checked) {
-            const newSelected = data.map((n) => n.name);
-            setSelected(newSelected);
-            return;
+            setSelected((prev) => Array.from(new Set([...prev, ...currentPageIds])));
+        } else {
+            const pageIdSet = new Set(currentPageIds);
+            setSelected((prev) => prev.filter((id) => !pageIdSet.has(id)));
         }
-        setSelected([]);
     };
 
     const handleSelectRow = (id: string) => {
-        const selectedIndex = selected.indexOf(id);
-        let newSelected: string[] = [];
-
-        if (selectedIndex === -1) {
-            newSelected = newSelected.concat(selected, id);
-        } else if (selectedIndex === 0) {
-            newSelected = newSelected.concat(selected.slice(1));
-        } else if (selectedIndex === selected.length - 1) {
-            newSelected = newSelected.concat(selected.slice(0, -1));
-        } else if (selectedIndex > 0) {
-            newSelected = newSelected.concat(
-                selected.slice(0, selectedIndex),
-                selected.slice(selectedIndex + 1)
-            );
-        }
-        setSelected(newSelected);
+        setSelected((prev) =>
+            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+        );
     };
 
     const handleBulkDelete = async () => {
@@ -889,7 +877,7 @@ export function AttendanceView() {
                                 order={order}
                                 orderBy={orderBy}
                                 rowCount={data.length}
-                                numSelected={selected.length}
+                                numSelected={data.filter((row) => selected.includes(row.name)).length}
                                 onSelectAllRows={(checked: boolean) => handleSelectAllRows(checked)}
                                 hideCheckbox={!permissions.delete}
                                 showIndex
