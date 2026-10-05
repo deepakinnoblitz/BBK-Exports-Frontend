@@ -18,6 +18,7 @@ import TableHead from '@mui/material/TableHead';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -63,6 +64,7 @@ import { getHolidayList, populateHolidays, createHolidayList, updateHolidayList,
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
+import { ConfirmDialog } from 'src/components/confirm-dialog';
 
 import { TableNoData } from 'src/sections/lead/table-no-data';
 import { TableEmptyRows } from 'src/sections/lead/table-empty-rows';
@@ -129,6 +131,7 @@ export function HolidaysView() {
     const [isEdit, setIsEdit] = useState(false);
     const [currentHoliday, setCurrentHoliday] = useState<any>(null);
     const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: string | null }>({ open: false, id: null });
+    const [deleting, setDeleting] = useState(false);
 
     // View state
     const [openView, setOpenView] = useState(false);
@@ -311,12 +314,14 @@ export function HolidaysView() {
     const handleConfirmDelete = async () => {
         if (!confirmDelete.id) return;
         try {
+            setDeleting(true);
             await deleteHolidayList(confirmDelete.id);
             setSnackbar({ open: true, message: 'Holiday list deleted successfully', severity: 'success' });
             refetch();
         } catch (error: any) {
             setSnackbar({ open: true, message: error.message || 'Failed to delete holiday list', severity: 'error' });
         } finally {
+            setDeleting(false);
             setConfirmDelete({ open: false, id: null });
         }
     };
@@ -712,6 +717,25 @@ export function HolidaysView() {
                 open={openView}
                 onClose={() => setOpenView(false)}
                 holidayList={viewHoliday}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                open={confirmDelete.open}
+                onClose={() => setConfirmDelete({ open: false, id: null })}
+                title="Delete Holiday List"
+                content="Are you sure you want to delete this holiday list? This action cannot be undone."
+                action={
+                    <LoadingButton
+                        variant="contained"
+                        color="error"
+                        loading={deleting}
+                        onClick={handleConfirmDelete}
+                        sx={{ borderRadius: 1.5, minWidth: 100 }}
+                    >
+                        Delete
+                    </LoadingButton>
+                }
             />
 
             {/* Snackbar */}
