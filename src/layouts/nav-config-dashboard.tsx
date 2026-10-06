@@ -13,7 +13,7 @@ import { TbReport, TbTargetArrow } from "react-icons/tb";
 import { FaWhatsapp, FaHandshake } from "react-icons/fa";
 import { FaMeta, FaLink, FaBuildingUser } from "react-icons/fa6";
 import { MdContacts, MdOutlineLaptopWindows } from "react-icons/md";
-import { LuLayers, LuUsersRound, LuUserRoundSearch } from "react-icons/lu";
+import { LuLayers, LuUsersRound, LuUserRoundSearch, LuCoffee } from "react-icons/lu";
 import { RiAppsLine, RiUserAddLine, RiMailSendLine, RiCalendarScheduleLine  } from "react-icons/ri";
 
 import { Iconify } from 'src/components/iconify';
@@ -99,7 +99,7 @@ export const hrNavData = [
   {
     title: 'Canteen',
     path: '/canteen',
-    icon: <Iconify icon={"solar:cup-hot-bold-duotone" as any} width={20} />,
+    icon: <LuCoffee size={18} />,
   },
   {
     title: 'Leaves Records',
@@ -295,7 +295,7 @@ export const employeeNavData = [
   {
     title: 'Canteen',
     path: '/canteen',
-    icon: <Iconify icon={"solar:cup-hot-bold-duotone" as any} width={20} />,
+    icon: <LuCoffee size={18} />,
   },
   /*
   {
