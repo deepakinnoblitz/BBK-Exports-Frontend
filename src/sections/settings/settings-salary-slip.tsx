@@ -988,7 +988,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
               </Typography>
 
               <Grid container spacing={3}>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     type="number"
@@ -1011,7 +1011,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   />
                 </Grid>
 
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     type="number"
@@ -1034,7 +1034,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   />
                 </Grid>
 
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     type="number"
@@ -1052,29 +1052,6 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                         ),
                       },
                       htmlInput: { min: 0, step: 100 },
-                    }}
-                  />
-                </Grid>
-
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Workers Tea Allowance"
-                    value={data.workers_tea_allowance_per_day ?? '5'}
-                    onChange={(e) => onChange('workers_tea_allowance_per_day', e.target.value)}
-                    placeholder="5"
-                    helperText="Allowance per day worked (Days Worked × ₹/day)."
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                          </InputAdornment>
-                        ),
-                        endAdornment: <InputAdornment position="end">/day</InputAdornment>,
-                      },
-                      htmlInput: { min: 0, step: 1 },
                     }}
                   />
                 </Grid>
@@ -1332,6 +1309,68 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             endAdornment: <InputAdornment position="end">days/yr</InputAdornment>,
                           },
                           htmlInput: { min: 0, max: 365, step: 0.1 },
+                        }}
+                      />
+                    )}
+                  </Box>
+                </Grid>
+
+                {/* Workers Tea Expenses (Employer) Card */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Box
+                    sx={{
+                      p: 2.5,
+                      borderRadius: 2,
+                      bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
+                      border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          Workers Tea Expenses (Employer)
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          Company tea expense incurred per day worked for worker employees.
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 700,
+                            color: (data.enable_workers_tea_allowance !== 0 && data.enable_workers_tea_allowance !== false && data.enable_workers_tea_allowance !== '0') ? '#059669' : 'text.secondary',
+                          }}
+                        >
+                          {(data.enable_workers_tea_allowance !== 0 && data.enable_workers_tea_allowance !== false && data.enable_workers_tea_allowance !== '0') ? 'Enabled' : 'Disabled'}
+                        </Typography>
+                        <CustomSwitch
+                          checked={data.enable_workers_tea_allowance !== 0 && data.enable_workers_tea_allowance !== false && data.enable_workers_tea_allowance !== '0'}
+                          onChange={(e) => onChange('enable_workers_tea_allowance', e.target.checked ? 1 : 0)}
+                        />
+                      </Stack>
+                    </Stack>
+
+                    {(data.enable_workers_tea_allowance !== 0 && data.enable_workers_tea_allowance !== false && data.enable_workers_tea_allowance !== '0') && (
+                      <TextField
+                        fullWidth
+                        size="medium"
+                        type="number"
+                        label="Workers Tea Allowance Rate"
+                        value={data.workers_tea_allowance_per_day ?? '5'}
+                        onChange={(e) => onChange('workers_tea_allowance_per_day', e.target.value)}
+                        placeholder="5"
+                        helperText="Calculated on Employer CTC only (Days Worked × ₹/day)."
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                              </InputAdornment>
+                            ),
+                            endAdornment: <InputAdornment position="end">/day</InputAdornment>,
+                          },
+                          htmlInput: { min: 0, step: 1 },
                         }}
                       />
                     )}
