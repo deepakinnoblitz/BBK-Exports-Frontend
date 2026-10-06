@@ -117,7 +117,7 @@ export function SalarySlipPreviewView() {
     if (loading) {
         return (
             <DashboardContent maxWidth={false}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh', width: '100%' }}>
                     <CircularProgress />
                 </Box>
             </DashboardContent>

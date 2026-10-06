@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react';
+
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
+import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
@@ -9,6 +12,7 @@ import Select from '@mui/material/Select';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
+import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
 import MenuItem from '@mui/material/MenuItem';
 import { InputAdornment } from '@mui/material';
@@ -20,9 +24,11 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
+import Autocomplete from '@mui/material/Autocomplete';
 import TableContainer from '@mui/material/TableContainer';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
+import { fetchSalaryComponents } from 'src/api/hr-management';
 import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 
 import { Iconify } from 'src/components/iconify';
@@ -54,6 +60,46 @@ type Props = {
 };
 
 export function SettingsSalarySlip({ data, onChange }: Props) {
+  const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchSalaryComponents()
+      .then((comps) => {
+        if (Array.isArray(comps)) {
+          setSalaryComponents(comps);
+        }
+      })
+      .catch((err) => console.error('Failed to load salary components for HRMS Settings:', err));
+  }, []);
+
+  const earningComponents = salaryComponents.filter((c) => c.type === 'Earning');
+  const earningOptions = earningComponents.length > 0
+    ? earningComponents.map((c) => c.component_name)
+    : ['Basic Pay', 'DA', 'Other Allowance'];
+
+  const getSelectedPfComponents = (): string[] => {
+    if (!data.pf_wage_basis) return earningOptions;
+    if (Array.isArray(data.pf_wage_basis)) return data.pf_wage_basis;
+    if (typeof data.pf_wage_basis === 'string') {
+      try {
+        const parsed = JSON.parse(data.pf_wage_basis);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        if (data.pf_wage_basis === 'Earned Basic + DA') {
+          return earningOptions.filter((name: string) => /basic|da|dearness/i.test(name));
+        }
+        if (data.pf_wage_basis === 'Earned Gross (Basic + DA + Others)') {
+          return earningOptions;
+        }
+        if (data.pf_wage_basis.includes(',')) {
+          return data.pf_wage_basis.split(',').map((s: string) => s.trim()).filter(Boolean);
+        }
+        return [data.pf_wage_basis];
+      }
+    }
+    return earningOptions;
+  };
+
   const getParsedSlabs = (): PTSlabItem[] => {
     if (!data.pt_slabs) return DEFAULT_PT_SLABS;
     if (Array.isArray(data.pt_slabs)) return data.pt_slabs;
@@ -265,7 +311,301 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 
-        {/* Section 2: Professional Tax (PT) Settings */}
+        {/* Section 2: Employee Statutory Deductions (PF & ESI) */}
+        <Box>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
+            <Iconify icon={"solar:shield-check-bold" as any} width={22} sx={{ color: 'primary.main' }} />
+            <Typography variant="h6">Employee Statutory Deductions (PF & ESI) Rules</Typography>
+          </Stack>
+          <Typography variant="caption" sx={{ color: 'text.secondary', mb: 3, display: 'block' }}>
+            Configure automatic Employee Provident Fund (PF) and Employee State Insurance (ESI) deduction formulas, rates, and statutory ceilings.
+          </Typography>
+
+          <Grid container spacing={3}>
+            {/* PF Config Card */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Box
+                sx={{
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                  border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+                  height: '100%',
+                }}
+              >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2.5 }}>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Iconify icon={"solar:wallet-money-bold" as any} width={20} sx={{ color: 'primary.main' }} />
+                      Employee PF (Provident Fund)
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Auto-calculate EPF deduction based on earned wage & ceiling cap.
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 700,
+                        color: (data.enable_auto_pf !== 0 && data.enable_auto_pf !== false && data.enable_auto_pf !== '0') ? '#059669' : 'text.secondary',
+                      }}
+                    >
+                      {(data.enable_auto_pf !== 0 && data.enable_auto_pf !== false && data.enable_auto_pf !== '0') ? 'Enabled' : 'Disabled'}
+                    </Typography>
+                    <CustomSwitch
+                      checked={data.enable_auto_pf !== 0 && data.enable_auto_pf !== false && data.enable_auto_pf !== '0'}
+                      onChange={(e) => onChange('enable_auto_pf', e.target.checked ? 1 : 0)}
+                    />
+                  </Stack>
+                </Stack>
+
+                <Stack spacing={2.5}>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Employee PF Rate (%)"
+                        value={data.employee_pf_rate ?? '12'}
+                        onChange={(e) => onChange('employee_pf_rate', e.target.value)}
+                        placeholder="12"
+                        helperText="Standard EPF rate (12%)."
+                        disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
+                        slotProps={{
+                          input: {
+                            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                          },
+                          htmlInput: { min: 0, max: 100, step: 0.1 },
+                        }}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="PF Wage Ceiling"
+                        value={data.pf_wage_ceiling ?? '15000'}
+                        onChange={(e) => onChange('pf_wage_ceiling', e.target.value)}
+                        placeholder="15000"
+                        helperText="Statutory Wage Ceiling (Max ₹1,800)."
+                        disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                              </InputAdornment>
+                            ),
+                          },
+                          htmlInput: { min: 0, step: 1000 },
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <Box sx={{ width: '100%' }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                        PF Wage Basis Components
+                      </Typography>
+                      <Stack direction="row" spacing={0.5}>
+                        <Button
+                          size="small"
+                          variant="text"
+                          disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
+                          onClick={() => onChange('pf_wage_basis', JSON.stringify(earningOptions))}
+                          sx={{ fontSize: '0.75rem', py: 0.25, px: 0.75, minWidth: 0 }}
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="text"
+                          disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
+                          onClick={() => {
+                            const basicDaOnly = earningOptions.filter((name: string) => /basic|da|dearness/i.test(name));
+                            onChange('pf_wage_basis', JSON.stringify(basicDaOnly.length > 0 ? basicDaOnly : ['Basic Pay', 'DA']));
+                          }}
+                          sx={{ fontSize: '0.75rem', py: 0.25, px: 0.75, minWidth: 0 }}
+                        >
+                          Basic + DA Only
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="text"
+                          color="inherit"
+                          disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
+                          onClick={() => onChange('pf_wage_basis', JSON.stringify([]))}
+                          sx={{ fontSize: '0.75rem', py: 0.25, px: 0.75, minWidth: 0, color: 'text.secondary' }}
+                        >
+                          Clear
+                        </Button>
+                      </Stack>
+                    </Stack>
+
+                    <Autocomplete
+                      multiple
+                      disableCloseOnSelect
+                      disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
+                      options={earningOptions}
+                      value={getSelectedPfComponents()}
+                      onChange={(_, newValue) => {
+                        onChange('pf_wage_basis', JSON.stringify(newValue));
+                      }}
+                      renderOption={(props, option, { selected }) => (
+                        <li {...props} key={option}>
+                          <Checkbox
+                            size="small"
+                            checked={selected}
+                            sx={{ mr: 1, p: 0.5 }}
+                          />
+                          <Typography variant="body2">{option}</Typography>
+                        </li>
+                      )}
+                      renderTags={(tagValue, getTagProps) =>
+                        tagValue.map((option, index) => (
+                          <Chip
+                            {...getTagProps({ index })}
+                            key={option}
+                            label={option}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            sx={{
+                              fontWeight: 600,
+                              borderRadius: 1,
+                              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                            }}
+                          />
+                        ))
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder={getSelectedPfComponents().length === 0 ? "Select earning components for PF..." : ""}
+                          helperText="Only earned amounts from these selected earning components will be summed for PF."
+                        />
+                      )}
+                    />
+
+                    <Typography variant="caption" sx={{ mt: 1, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Iconify icon={"eva:info-outline" as any} width={15} sx={{ color: 'info.main', flexShrink: 0 }} />
+                      Formula: =ROUND(MIN(Sum(Selected Components), PF Ceiling) × PF Rate, 0)
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Box>
+            </Grid>
+
+            {/* ESI Config Card */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Box
+                sx={{
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: (theme) => alpha(theme.palette.success.main, 0.04),
+                  border: (theme) => `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
+                  height: '100%',
+                }}
+              >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2.5 }}>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Iconify icon={"solar:health-bold" as any} width={20} sx={{ color: 'success.main' }} />
+                      Employee ESI (State Insurance)
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Auto-calculate ESI on total earned wages (Gross + OT + Bonus).
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 700,
+                        color: (data.enable_auto_esi !== 0 && data.enable_auto_esi !== false && data.enable_auto_esi !== '0') ? '#059669' : 'text.secondary',
+                      }}
+                    >
+                      {(data.enable_auto_esi !== 0 && data.enable_auto_esi !== false && data.enable_auto_esi !== '0') ? 'Enabled' : 'Disabled'}
+                    </Typography>
+                    <CustomSwitch
+                      checked={data.enable_auto_esi !== 0 && data.enable_auto_esi !== false && data.enable_auto_esi !== '0'}
+                      onChange={(e) => onChange('enable_auto_esi', e.target.checked ? 1 : 0)}
+                    />
+                  </Stack>
+                </Stack>
+
+                <Stack spacing={2.5}>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Employee ESI Rate (%)"
+                        value={data.employee_esi_rate ?? '0.75'}
+                        onChange={(e) => onChange('employee_esi_rate', e.target.value)}
+                        placeholder="0.75"
+                        helperText="Statutory rate: 0.75% on Total Gross."
+                        disabled={data.enable_auto_esi === 0 || data.enable_auto_esi === false || data.enable_auto_esi === '0'}
+                        slotProps={{
+                          input: {
+                            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                          },
+                          htmlInput: { min: 0, max: 100, step: 0.05 },
+                        }}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="ESI Wage Ceiling"
+                        value={data.esi_wage_ceiling ?? '21000'}
+                        onChange={(e) => onChange('esi_wage_ceiling', e.target.value)}
+                        placeholder="21000"
+                        helperText="Eligibility Limit (Gross ≤ ₹21,000)."
+                        disabled={data.enable_auto_esi === 0 || data.enable_auto_esi === false || data.enable_auto_esi === '0'}
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                              </InputAdornment>
+                            ),
+                          },
+                          htmlInput: { min: 0, step: 1000 },
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <FormControl fullWidth disabled={data.enable_auto_esi === 0 || data.enable_auto_esi === false || data.enable_auto_esi === '0'}>
+                    <InputLabel id="esi-rounding-method-label">ESI Rounding Method</InputLabel>
+                    <Select
+                      labelId="esi-rounding-method-label"
+                      id="esi_rounding_method"
+                      value={data.esi_rounding_method || 'Round Up to Next Rupee (ROUNDUP / CEIL)'}
+                      label="ESI Rounding Method"
+                      onChange={(e) => onChange('esi_rounding_method', e.target.value)}
+                    >
+                      <MenuItem value="Round Up to Next Rupee (ROUNDUP / CEIL)">Round Up to Next Rupee (ROUNDUP / CEIL - Standard)</MenuItem>
+                      <MenuItem value="Standard Nearest Rupee (ROUND)">Standard Nearest Rupee (ROUND)</MenuItem>
+                    </Select>
+                    <Typography variant="caption" sx={{ mt: 1, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Iconify icon={"eva:info-outline" as any} width={15} sx={{ color: 'info.main', flexShrink: 0 }} />
+                      Formula: =ROUNDUP(Total Gross Earnings × 0.75%, 0)
+                    </Typography>
+                  </FormControl>
+                </Stack>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Divider sx={{ borderStyle: 'dashed' }} />
+
+        {/* Section 3: Professional Tax (PT) Settings */}
         <Box>
           <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
             <Iconify icon="solar:bill-list-bold" width={22} sx={{ color: 'primary.main' }} />

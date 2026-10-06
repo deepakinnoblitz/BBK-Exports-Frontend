@@ -130,7 +130,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
         return String(c);
     };
 
-    function calculateDynamicRules(data: any, grossPay: number) {
+    function calculateDynamicRules(data: any, grossPay: number, earnedGrossSalary?: number, earnedBasicDa?: number, earningsList?: any[]) {
         const getNum = (v: any) => parseFloat(v) || 0;
         const round = (val: number) => Math.round(val * 100) / 100;
 
@@ -184,7 +184,71 @@ export function SalarySlipEditView({ id: propId }: Props) {
             else ptAmount = 1250;
         }
 
-        return { otAmount, attendanceBonus, ptAmount };
+        // PF Calculation
+        let pfAmount = 0;
+        const enablePf = hrSettings.enable_auto_pf !== 0 && hrSettings.enable_auto_pf !== false && hrSettings.enable_auto_pf !== '0';
+        if (enablePf) {
+            const pfRate = (getNum(hrSettings.employee_pf_rate) || 12.0) / 100.0;
+            const pfCeiling = getNum(hrSettings.pf_wage_ceiling) || 15000.0;
+            const pfBasisRaw = hrSettings.pf_wage_basis;
+            let selectedComponents: string[] = [];
+            if (pfBasisRaw) {
+                if (Array.isArray(pfBasisRaw)) {
+                    selectedComponents = pfBasisRaw.map((x: any) => String(x).toLowerCase().trim()).filter(Boolean);
+                } else if (typeof pfBasisRaw === 'string') {
+                    try {
+                        const parsed = JSON.parse(pfBasisRaw);
+                        if (Array.isArray(parsed)) {
+                            selectedComponents = parsed.map((x: any) => String(x).toLowerCase().trim()).filter(Boolean);
+                        }
+                    } catch {
+                        if (pfBasisRaw.trim() === 'Earned Basic + DA') {
+                            selectedComponents = ['basic pay', 'da', 'basic', 'dearness'];
+                        } else if (pfBasisRaw.includes(',')) {
+                            selectedComponents = pfBasisRaw.split(',').map((x: string) => x.toLowerCase().trim()).filter(Boolean);
+                        }
+                    }
+                }
+            }
+
+            let baseWage = earnedGrossSalary || grossPay;
+            if (selectedComponents.length > 0 && earningsList && earningsList.length > 0) {
+                const matchingTotal = earningsList.reduce((acc: number, curr: any) => {
+                    const cName = getCompName(curr).toLowerCase().trim();
+                    if (selectedComponents.includes(cName) || selectedComponents.some((sc) => cName.includes(sc))) {
+                        return acc + getNum(curr.amount);
+                    }
+                    return acc;
+                }, 0);
+                baseWage = matchingTotal;
+            } else if (pfBasisRaw === 'Earned Basic + DA') {
+                baseWage = earnedBasicDa || grossPay;
+            }
+
+            const eligibleWage = pfCeiling > 0 ? Math.min(baseWage, pfCeiling) : baseWage;
+            pfAmount = Math.round(eligibleWage * pfRate);
+        }
+
+        // ESI Calculation
+        let esiAmount = 0;
+        const enableEsi = hrSettings.enable_auto_esi !== 0 && hrSettings.enable_auto_esi !== false && hrSettings.enable_auto_esi !== '0';
+        if (enableEsi) {
+            const esiCeiling = getNum(hrSettings.esi_wage_ceiling) || 21000.0;
+            const stdEarnings = getNum(data.base_gross_pay || data.total_earnings || grossPay);
+            const baseForEligibility = earnedGrossSalary || grossPay;
+            if (esiCeiling <= 0 || baseForEligibility <= esiCeiling || stdEarnings <= esiCeiling) {
+                const esiRate = (getNum(hrSettings.employee_esi_rate) || 0.75) / 100.0;
+                const roundingMethod = hrSettings.esi_rounding_method || 'Round Up to Next Rupee (ROUNDUP / CEIL)';
+                const rawEsi = grossPay * esiRate;
+                if (roundingMethod.includes('Round Up') || roundingMethod.includes('ROUNDUP') || roundingMethod.includes('CEIL')) {
+                    esiAmount = Math.ceil(rawEsi);
+                } else {
+                    esiAmount = Math.round(rawEsi);
+                }
+            }
+        }
+
+        return { otAmount, attendanceBonus, ptAmount, pfAmount, esiAmount };
     }
 
     function recalculateTotals(data: any) {
@@ -226,11 +290,28 @@ export function SalarySlipEditView({ id: propId }: Props) {
         });
 
         // 2. Sum up totals
+        const earnedGrossSalary = round(
+            updatedEarnings.reduce((acc: number, curr: any) => {
+                const name = getCompName(curr).toLowerCase();
+                if (name.includes('overtime') || name.includes('ot') || name.includes('attendance bonus') || name.includes('tea')) return acc;
+                return acc + getNum(curr.amount);
+            }, 0)
+        );
+
+        const earnedBasicDa = round(
+            updatedEarnings.reduce((acc: number, curr: any) => {
+                const name = getCompName(curr).toLowerCase();
+                if (name.includes('basic') || name.includes('da') || name.includes('dearness')) {
+                    return acc + getNum(curr.amount);
+                }
+                return acc;
+            }, 0)
+        );
+
         const grossPay = round(updatedEarnings.reduce((acc: number, curr: any) => acc + getNum(curr.amount), 0));
 
-        // Dynamic rules for OT, Attendance Bonus, and PT
-        const { otAmount, attendanceBonus, ptAmount } = calculateDynamicRules(data, grossPay);
-
+        // Dynamic rules for OT, Attendance Bonus, PT, PF, and ESI
+        const { otAmount, attendanceBonus, ptAmount, pfAmount, esiAmount } = calculateDynamicRules(data, grossPay, earnedGrossSalary, earnedBasicDa, updatedEarnings);
 
         // Update OT / Bonus in earnings if present and not manual
         const finalEarnings = updatedEarnings.map((item: any) => {
@@ -244,11 +325,17 @@ export function SalarySlipEditView({ id: propId }: Props) {
             return item;
         });
 
-        // Update PT in deductions if present and not manual
+        // Update PT, PF, ESI in deductions if present and not manual
         const finalDeductions = updatedDeductions.map((item: any) => {
             const name = getCompName(item).toLowerCase();
-            if (name.includes('professional tax') || name.includes('pt') || name.includes('prof tax')) {
+            if (name.includes('professional tax') || name.includes('pt') || name.includes('prof tax') || name.includes('prof.tax')) {
                 if (!item.isManual) return { ...item, amount: ptAmount.toFixed(2) };
+            }
+            if ((name.includes('provident fund') || name.includes('pf') || name.includes('epf')) && !name.includes('employer') && !name.includes('admin')) {
+                if (!item.isManual && pfAmount > 0) return { ...item, amount: pfAmount.toFixed(2) };
+            }
+            if ((name.includes('esi') || name.includes('esic')) && !name.includes('employer')) {
+                if (!item.isManual && esiAmount > 0) return { ...item, amount: esiAmount.toFixed(2) };
             }
             return item;
         });
@@ -549,8 +636,18 @@ export function SalarySlipEditView({ id: propId }: Props) {
 
     if (loading) {
         return (
-            <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                <CircularProgress />
+            <DashboardContent maxWidth={false}>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: '70vh',
+                        width: '100%',
+                    }}
+                >
+                    <CircularProgress />
+                </Box>
             </DashboardContent>
         );
     }

@@ -281,8 +281,18 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
 
     if (loading) {
         return (
-            <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                <CircularProgress />
+            <DashboardContent maxWidth={false}>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: '70vh',
+                        width: '100%',
+                    }}
+                >
+                    <CircularProgress />
+                </Box>
             </DashboardContent>
         );
     }
