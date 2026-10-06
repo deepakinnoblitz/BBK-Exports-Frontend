@@ -144,19 +144,13 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                 sx={{
                     p: 3,
                     borderRadius: 2,
-                    display: 'grid',
-                    gap: 3,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2.5,
                     bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
                     border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.12)}`,
-                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
                 }}
             >
-                <InfoRow label="Pay Period Days" value={slip.total_days_in_period || 0} />
-                <Box /> {/* spacer */}
-                <Box sx={{ gridColumn: { md: 'span 2' } }}>
-                    <InfoRow label="Calculation Base (Month)" value={slip.total_working_days || 0} />
-                </Box>
-                <Divider sx={{ gridColumn: '1 / -1', my: 1 }} />
                 {(() => {
                     const renderInfoAction = (type: string) => slip.days_breakdown && slip.days_breakdown.length > 0 ? (
                         <IconButton size="small" onClick={(e) => handlePopoverOpen(e, type)} sx={{ p: 0.5, color: 'info.main' }}>
@@ -166,16 +160,53 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
 
                     return (
                         <>
-                            <InfoRow label="No of Present Days" value={slip.actual_present_days || 0} action={renderInfoAction('present')} />
-                            <InfoRow label="Physical Attendance" value={slip.physical_attendance_days || 0} action={renderInfoAction('physical')} />
-                            <InfoRow label="No of Absent" value={slip.lop_days || 0} action={renderInfoAction('absent')} />
-                            <InfoRow label="No of Half Day" value={slip.half_day_count || 0} action={renderInfoAction('half_day')} />
-                            <InfoRow label="Holidays Found" value={slip.holiday_count || 0} action={renderInfoAction('holiday')} />
-                            <InfoRow label="No of Unpaid Leave" value={slip.no_of_leave || 0} action={renderInfoAction('unpaid_leave')} />
-                            <InfoRow label="No of Paid Leave" value={slip.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                            <InfoRow label="LOP Days" value={slip.lop_days || 0} action={renderInfoAction('lop')} />
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gap: 3,
+                                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                                }}
+                            >
+                                <InfoRow
+                                    label="Working Days"
+                                    value={
+                                        slip.working_days_basis === 'Fixed Number of Days'
+                                            ? `Fixed (${slip.fixed_working_days || 26} Days)`
+                                            : `${slip.total_working_days || 26} Days`
+                                    }
+                                />
+                                <InfoRow
+                                    label="Days Worked"
+                                    value={`${slip.holiday_working_days ?? ((slip.total_days_in_period || 30) - (slip.holiday_count || 0))} Days`}
+                                />
+                                <InfoRow
+                                    label="Holidays Found"
+                                    value={slip.holiday_count || 0}
+                                    action={renderInfoAction('holiday')}
+                                />
+                                <InfoRow label="Overtime (OT) Hours" value={slip.ot_hours ? `${slip.ot_hours} hrs` : '0 hrs'} />
+                            </Box>
+
+                            <Divider sx={{ my: 0.5 }} />
+
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gap: 3,
+                                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                                }}
+                            >
+                                <InfoRow label="No of Present Days" value={slip.actual_present_days || 0} action={renderInfoAction('present')} />
+                                <InfoRow label="Physical Attendance" value={slip.physical_attendance_days || 0} action={renderInfoAction('physical')} />
+                                <InfoRow label="No of Absent" value={slip.lop_days || 0} action={renderInfoAction('absent')} />
+                                <InfoRow label="No of Half Day" value={slip.half_day_count || 0} action={renderInfoAction('half_day')} />
+                                <InfoRow label="No of Unpaid Leave" value={slip.no_of_leave || 0} action={renderInfoAction('unpaid_leave')} />
+                                <InfoRow label="No of Paid Leave" value={slip.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
+                                <InfoRow label="Compensatory Off" value={slip.no_of_comp_off || 0} action={renderInfoAction('comp_off')} />
+                                <InfoRow label="LOP Days" value={slip.lop_days || 0} action={renderInfoAction('lop')} />
+                            </Box>
                         </>
-                    )
+                    );
                 })()}
             </Box>
         </Box>
@@ -297,14 +328,15 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
     const getFilteredBreakdown = () => {
         const bd = slip?.days_breakdown || [];
         switch (popoverState.type) {
-            case 'present': return bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Holiday'));
+            case 'present': return bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Compensatory Off'));
             case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
-            case 'absent': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
+            case 'absent': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
             case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
             case 'holiday': return bd.filter((d: any) => d.status.includes('Holiday'));
-            case 'unpaid_leave': return bd.filter((d: any) => d.status.includes('Unpaid Leave'));
-            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave'));
-            case 'lop': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
+            case 'unpaid_leave': return bd.filter((d: any) => (d.status.includes('Unpaid Leave') || d.status.includes('Absent')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
+            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave') && !d.status.includes('Compensatory Off'));
+            case 'comp_off': return bd.filter((d: any) => d.status.includes('Compensatory Off'));
+            case 'lop': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
             default: return bd;
         }
     };
@@ -318,6 +350,7 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
             case 'holiday': return "Holidays";
             case 'unpaid_leave': return "Unpaid Leaves";
             case 'paid_leave': return "Paid Leaves";
+            case 'comp_off': return "Compensatory Off";
             case 'lop': return "LOP Days";
             default: return "Attendance Breakdown";
         }

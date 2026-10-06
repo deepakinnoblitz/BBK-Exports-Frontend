@@ -70,10 +70,20 @@ export function SalarySlipSettingsView() {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
-  if (settingsLoading && !formData) {
+  if (settingsLoading || !formData) {
     return (
-      <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
+      <DashboardContent maxWidth={false}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '70vh',
+            width: '100%',
+          }}
+        >
+          <CircularProgress />
+        </Box>
       </DashboardContent>
     );
   }

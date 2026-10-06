@@ -134,13 +134,10 @@ export async function updateSalarySlip(name: string, data: Partial<SalarySlip>) 
 }
 
 export async function saveSalarySlip(doc: any) {
-    const res = await frappeRequest("/api/method/frappe.client.save", {
+    const res = await frappeRequest("/api/method/company.company.doctype.salary_slip.salary_slip.save_salary_slip", {
         method: "POST",
         body: JSON.stringify({
-            doc: {
-                doctype: "Salary Slip",
-                ...doc
-            }
+            doc
         })
     });
 
@@ -151,10 +148,9 @@ export async function saveSalarySlip(doc: any) {
 
 
 export async function deleteSalarySlip(name: string) {
-    const res = await frappeRequest("/api/method/frappe.client.delete", {
+    const res = await frappeRequest("/api/method/company.company.doctype.salary_slip.salary_slip.delete_salary_slip", {
         method: "POST",
         body: JSON.stringify({
-            doctype: "Salary Slip",
             name
         })
     });
@@ -172,6 +168,17 @@ export async function submitSalarySlip(name: string) {
 
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || "Failed to submit salary slip");
+    return json.message;
+}
+
+export async function cancelSalarySlip(name: string) {
+    const res = await frappeRequest("/api/method/company.company.doctype.salary_slip.salary_slip.cancel_salary_slip", {
+        method: "POST",
+        body: JSON.stringify({ name })
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to cancel salary slip");
     return json.message;
 }
 

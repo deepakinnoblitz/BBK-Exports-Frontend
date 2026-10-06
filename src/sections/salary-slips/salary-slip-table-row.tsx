@@ -50,6 +50,7 @@ type Props = {
     onView: () => void;
     onEdit: () => void;
     onSubmit: () => void;
+    onCancel?: () => void;
     onDelete: () => void;
     canEdit?: boolean;
     canDelete?: boolean;
@@ -65,6 +66,7 @@ export function SalarySlipTableRow({
     onView,
     onEdit,
     onSubmit,
+    onCancel,
     onDelete,
     canEdit = true,
     canDelete = true,
@@ -180,14 +182,18 @@ export function SalarySlipTableRow({
                                     <Iconify icon={"solar:check-circle-bold" as any} />
                                 </IconButton>
                             )}
-                            {row.docstatus === 0 && canEdit && (
-                                <IconButton onClick={onEdit} sx={{ color: 'primary.main' }}>
+                            {row.docstatus === 1 && canEdit && onCancel && (
+                                <IconButton onClick={onCancel} sx={{ color: 'warning.main' }} title="Cancel Slip">
+                                    <Iconify icon={"solar:close-circle-bold" as any} />
+                                </IconButton>
+                            )}
+                            {(row.docstatus === 0 || row.docstatus === 2) && canEdit && (
+                                <IconButton onClick={onEdit} sx={{ color: 'primary.main' }} title="Edit Slip">
                                     <Iconify icon={"solar:pen-bold" as any} />
                                 </IconButton>
                             )}
-                            {row.docstatus === 0 && canDelete && (
-
-                                <IconButton onClick={onDelete} sx={{ color: 'error.main' }}>
+                            {(row.docstatus === 0 || row.docstatus === 2) && canDelete && (
+                                <IconButton onClick={onDelete} sx={{ color: 'error.main' }} title="Delete Slip">
                                     <Iconify icon={"solar:trash-bin-trash-bold" as any} />
                                 </IconButton>
                             )}

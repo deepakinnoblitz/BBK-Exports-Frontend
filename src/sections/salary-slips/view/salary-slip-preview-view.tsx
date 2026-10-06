@@ -117,7 +117,7 @@ export function SalarySlipPreviewView() {
     if (loading) {
         return (
             <DashboardContent maxWidth={false}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh', width: '100%' }}>
                     <CircularProgress />
                 </Box>
             </DashboardContent>
@@ -225,20 +225,13 @@ export function SalarySlipPreviewView() {
                 sx={{
                     p: 3,
                     borderRadius: 2,
-                    display: 'grid',
-                    gap: 3,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2.5,
                     bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
                     border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.12)}`,
-                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
                 }}
             >
-                <InfoRow label="Pay Period Days" value={data.total_days_in_period || 0} />
-                <InfoRow label="Overtime (OT) Hours" value={data.ot_hours ? `${data.ot_hours} hrs` : '0 hrs'} />
-                <Box sx={{ gridColumn: { md: 'span 2' } }}>
-                    <InfoRow label="Calculation Base (Month)" value={data.total_working_days || 0} />
-                </Box>
-                <Divider sx={{ gridColumn: '1 / -1', my: 1 }} />
-
                 {(() => {
                     const isDirectAllocation = (data?.leave_calc_source || hrSettings?.salary_leave_calculation_source) === 'Via Direct Allocation';
                     const renderInfoAction = (type: string) => {
@@ -254,14 +247,51 @@ export function SalarySlipPreviewView() {
 
                     return (
                         <>
-                            <InfoRow label="No of Present Days" value={data.actual_present_days || 0} action={renderInfoAction('present')} />
-                            <InfoRow label="Physical Attendance" value={data.physical_attendance_days || 0} action={renderInfoAction('physical')} />
-                            <InfoRow label="No of Absent" value={data.absent_days !== undefined && data.absent_days !== null ? data.absent_days : ((data.lop_days || 0) + (isDirectAllocation ? (data.no_of_paid_leave || 0) : 0))} action={renderInfoAction('absent')} />
-                            <InfoRow label="No of Half Day" value={data.half_day_count || 0} action={renderInfoAction('half_day')} />
-                            <InfoRow label="Holidays Found" value={data.holiday_count || 0} action={renderInfoAction('holiday')} />
-                            <InfoRow label="No of Unpaid Leave" value={data.unpaid_leave_days !== undefined && data.unpaid_leave_days !== null ? data.unpaid_leave_days : (data.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
-                            <InfoRow label="No of Paid Leave" value={data.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                            <InfoRow label="LOP Days" value={data.lop_days || 0} action={renderInfoAction('lop')} />
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gap: 3,
+                                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                                }}
+                            >
+                                <InfoRow
+                                    label="Working Days"
+                                    value={
+                                        data.working_days_basis === 'Fixed Number of Days'
+                                            ? `Fixed (${data.fixed_working_days || 26} Days)`
+                                            : `${data.total_working_days || 26} Days`
+                                    }
+                                />
+                                <InfoRow
+                                    label="Days Worked"
+                                    value={`${data.holiday_working_days ?? ((data.total_days_in_period || 30) - (data.holiday_count || 0))} Days`}
+                                />
+                                <InfoRow
+                                    label="Holidays Found"
+                                    value={data.holiday_count || 0}
+                                    action={renderInfoAction('holiday')}
+                                />
+                                <InfoRow label="Overtime (OT) Hours" value={data.ot_hours ? `${data.ot_hours} hrs` : '0 hrs'} />
+                            </Box>
+
+                            <Divider sx={{ my: 0.5 }} />
+
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gap: 3,
+                                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                                }}
+                            >
+                                <InfoRow label="No of Present Days" value={data.actual_present_days || 0} action={renderInfoAction('present')} />
+                                <InfoRow label="Physical Attendance" value={data.physical_attendance_days || 0} action={renderInfoAction('physical')} />
+                                <InfoRow label="No of Absent" value={data.absent_days !== undefined && data.absent_days !== null ? data.absent_days : ((data.lop_days || 0) + (isDirectAllocation ? (data.no_of_paid_leave || 0) : 0))} action={renderInfoAction('absent')} />
+                                <InfoRow label="No of Half Day" value={data.half_day_count || 0} action={renderInfoAction('half_day')} />
+                                <InfoRow label="No of Unpaid Leave" value={data.unpaid_leave_days !== undefined && data.unpaid_leave_days !== null ? data.unpaid_leave_days : (data.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
+                                <InfoRow label="No of Paid Leave" value={data.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
+                                <InfoRow label="Compensatory Off" value={data.no_of_comp_off || 0} action={renderInfoAction('comp_off')} />
+                                <InfoRow label="LOP Days" value={data.lop_days || 0} action={renderInfoAction('lop')} />
+                            </Box>
                         </>
                     );
                 })()}
@@ -582,7 +612,7 @@ export function SalarySlipPreviewView() {
         const bd = data?.days_breakdown || [];
         switch (popoverState.type) {
             case 'present': {
-                const days = bd.filter((d: any) => d.status?.includes('Work') || d.status?.includes('Paid Leave') || d.status?.includes('Holiday'));
+                const days = bd.filter((d: any) => d.status?.includes('Work') || d.status?.includes('Paid Leave') || d.status?.includes('Compensatory Off'));
                 const isDirect = isDirectAllocation || (Number(data?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status?.includes('Paid Leave')));
                 if (isDirect && Number(data?.no_of_paid_leave || 0) > 0) {
                     return [
@@ -598,12 +628,13 @@ export function SalarySlipPreviewView() {
                 return days;
             }
             case 'physical': return bd.filter((d: any) => d.status?.includes('Work'));
-            case 'absent': return bd.filter((d: any) => d.status?.includes('Absent') || d.status?.includes('Unpaid Leave') || d.status?.includes('Paid Leave'));
+            case 'absent': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave'));
             case 'half_day': return bd.filter((d: any) => d.status?.includes('(0.5)'));
             case 'holiday': return data?.holidays_details?.length ? data.holidays_details : bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
-            case 'unpaid_leave': return bd.filter((d: any) => d.status?.includes('Unpaid Leave') || (!isDirectAllocation && d.status?.includes('Absent')));
-            case 'paid_leave': return bd.filter((d: any) => d.status?.includes('Paid Leave'));
-            case 'lop': return bd.filter((d: any) => d.status?.includes('Absent') || d.status?.includes('Unpaid Leave'));
+            case 'unpaid_leave': return bd.filter((d: any) => (d.status?.includes('Unpaid Leave') || (!isDirectAllocation && d.status?.includes('Absent'))) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave'));
+            case 'paid_leave': return bd.filter((d: any) => d.status?.includes('Paid Leave') && !d.status?.includes('Compensatory Off'));
+            case 'comp_off': return bd.filter((d: any) => d.status?.includes('Compensatory Off'));
+            case 'lop': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave'));
             default: return bd;
         }
     };
@@ -617,6 +648,7 @@ export function SalarySlipPreviewView() {
             case 'holiday': return 'Holidays';
             case 'unpaid_leave': return 'Unpaid Leaves';
             case 'paid_leave': return 'Paid Leaves';
+            case 'comp_off': return 'Compensatory Off';
             case 'lop': return 'LOP Days';
             default: return 'Attendance Breakdown';
         }
@@ -634,6 +666,7 @@ export function SalarySlipPreviewView() {
             case 'holiday': return data.holiday_count !== undefined && data.holiday_count !== null ? data.holiday_count : filteredBreakdown.length;
             case 'unpaid_leave': return data.no_of_leave !== undefined && data.no_of_leave !== null ? data.no_of_leave : filteredBreakdown.length;
             case 'paid_leave': return data.no_of_paid_leave !== undefined && data.no_of_paid_leave !== null ? data.no_of_paid_leave : filteredBreakdown.length;
+            case 'comp_off': return data.no_of_comp_off !== undefined && data.no_of_comp_off !== null ? data.no_of_comp_off : filteredBreakdown.length;
             case 'lop': return data.lop_days !== undefined && data.lop_days !== null ? data.lop_days : filteredBreakdown.length;
             default: return filteredBreakdown.length;
         }

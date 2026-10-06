@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { IoMdArrowDropdown } from 'react-icons/io';
-import { IoMdPrint, IoMdTrash, IoMdCreate, IoMdArrowBack, IoMdCheckmarkCircle } from 'react-icons/io';
+import { IoMdPrint, IoMdTrash, IoMdCreate, IoMdArrowBack, IoMdCheckmarkCircle, IoMdCloseCircle } from 'react-icons/io';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -30,6 +30,7 @@ import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 import {
     deleteSalarySlip,
     submitSalarySlip,
+    cancelSalarySlip,
     getSalarySlipDownloadUrl,
     getSalarySlipWithDetails,
 } from 'src/api/salary-slips';
@@ -61,8 +62,10 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
     const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+    const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
 
     const [hrSettings, setHRSettings] = useState<any>({
         default_currency: 'INR',
@@ -176,6 +179,26 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
         }
     };
 
+    const handleCancel = async () => {
+        if (!id) return;
+        try {
+            setCancelling(true);
+            await cancelSalarySlip(id);
+            setSnackbar({ open: true, message: 'Salary slip cancelled successfully', severity: 'success' });
+            setConfirmCancelOpen(false);
+            fetchSlip();
+        } catch (err: any) {
+            console.error('Failed to cancel salary slip:', err);
+            setSnackbar({
+                open: true,
+                message: err.message || 'Failed to cancel salary slip',
+                severity: 'error',
+            });
+        } finally {
+            setCancelling(false);
+        }
+    };
+
     const formatDate = (date: string) => {
         if (!date) return '-';
         return dayjs(date).format('DD-MM-YYYY');
@@ -199,6 +222,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
             case 'holiday': return 'Holidays';
             case 'unpaid_leave': return 'Unpaid Leaves';
             case 'paid_leave': return 'Paid Leaves';
+            case 'comp_off': return 'Compensatory Off';
             case 'lop': return 'LOP Days';
             default: return 'Attendance Breakdown';
         }
@@ -210,7 +234,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
         const bd = slip?.days_breakdown || [];
         switch (popoverState.type) {
             case 'present': {
-                const days = bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Holiday'));
+                const days = bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Compensatory Off'));
                 const isDirect = isDirectAllocation || (Number(slip?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status.includes('Paid Leave')));
                 if (isDirect && Number(slip?.no_of_paid_leave || 0) > 0) {
                     return [
@@ -226,12 +250,13 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 return days;
             }
             case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
-            case 'absent': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave') || d.status.includes('Paid Leave'));
+            case 'absent': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
             case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
             case 'holiday': return slip?.holidays_details?.length ? slip.holidays_details : bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
-            case 'unpaid_leave': return bd.filter((d: any) => d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent')));
-            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave'));
-            case 'lop': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
+            case 'unpaid_leave': return bd.filter((d: any) => (d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent'))) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
+            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave') && !d.status.includes('Compensatory Off'));
+            case 'comp_off': return bd.filter((d: any) => d.status.includes('Compensatory Off'));
+            case 'lop': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
             default: return bd;
         }
     };
@@ -248,6 +273,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
             case 'holiday': return slip.holiday_count !== undefined && slip.holiday_count !== null ? slip.holiday_count : filteredBreakdown.length;
             case 'unpaid_leave': return slip.no_of_leave !== undefined && slip.no_of_leave !== null ? slip.no_of_leave : filteredBreakdown.length;
             case 'paid_leave': return slip.no_of_paid_leave !== undefined && slip.no_of_paid_leave !== null ? slip.no_of_paid_leave : filteredBreakdown.length;
+            case 'comp_off': return slip.no_of_comp_off !== undefined && slip.no_of_comp_off !== null ? slip.no_of_comp_off : filteredBreakdown.length;
             case 'lop': return slip.lop_days !== undefined && slip.lop_days !== null ? slip.lop_days : filteredBreakdown.length;
             default: return filteredBreakdown.length;
         }
@@ -255,8 +281,18 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
 
     if (loading) {
         return (
-            <DashboardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                <CircularProgress />
+            <DashboardContent maxWidth={false}>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: '70vh',
+                        width: '100%',
+                    }}
+                >
+                    <CircularProgress />
+                </Box>
             </DashboardContent>
         );
     }
@@ -344,26 +380,13 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 sx={{
                     p: 3,
                     borderRadius: 2,
-                    display: 'grid',
-                    gap: 3,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2.5,
                     bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
                     border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.12)}`,
-                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
                 }}
             >
-                <InfoRow label="Pay Period Days" value={slip.total_days_in_period || 0} />
-                <InfoRow label="Overtime (OT) Hours" value={slip.ot_hours ? `${slip.ot_hours} hrs` : '0 hrs'} />
-                <Box sx={{ gridColumn: { md: 'span 2' } }}>
-                    <InfoRow
-                        label="Calculation Base (Month)"
-                        value={
-                            slip.working_days_basis === 'Fixed Number of Days'
-                                ? `Fixed (${slip.fixed_working_days || 26} Days)`
-                                : `${slip.total_working_days || 30} Days`
-                        }
-                    />
-                </Box>
-                <Divider sx={{ gridColumn: '1 / -1', my: 1 }} />
                 {(() => {
                     const renderInfoAction = (type: string) => {
                         if (isDirectAllocation && (type === 'paid_leave' || type === 'unpaid_leave')) {
@@ -382,14 +405,51 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
 
                     return (
                         <>
-                            <InfoRow label="No of Present Days" value={slip.actual_present_days || 0} action={renderInfoAction('present')} />
-                            <InfoRow label="Physical Attendance" value={slip.physical_attendance_days || 0} action={renderInfoAction('physical')} />
-                            <InfoRow label="No of Absent" value={slip.absent_days !== undefined && slip.absent_days !== null ? slip.absent_days : ((slip.lop_days || 0) + (isDirectAllocation ? (slip.no_of_paid_leave || 0) : 0))} action={renderInfoAction('absent')} />
-                            <InfoRow label="No of Half Day" value={slip.half_day_count || 0} action={renderInfoAction('half_day')} />
-                            <InfoRow label="Holidays Found" value={slip.holiday_count || 0} action={renderInfoAction('holiday')} />
-                            <InfoRow label="No of Unpaid Leave" value={slip.unpaid_leave_days !== undefined && slip.unpaid_leave_days !== null ? slip.unpaid_leave_days : (slip.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
-                            <InfoRow label="No of Paid Leave" value={slip.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                            <InfoRow label="LOP Days" value={slip.lop_days || 0} action={renderInfoAction('lop')} />
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gap: 3,
+                                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                                }}
+                            >
+                                <InfoRow
+                                    label="Working Days"
+                                    value={
+                                        slip.working_days_basis === 'Fixed Number of Days'
+                                            ? `Fixed (${slip.fixed_working_days || 26} Days)`
+                                            : `${slip.total_working_days || 26} Days`
+                                    }
+                                />
+                                <InfoRow
+                                    label="Days Worked"
+                                    value={`${slip.holiday_working_days ?? ((slip.total_days_in_period || 30) - (slip.holiday_count || 0))} Days`}
+                                />
+                                <InfoRow
+                                    label="Holidays Found"
+                                    value={slip.holiday_count || 0}
+                                    action={renderInfoAction('holiday')}
+                                />
+                                <InfoRow label="Overtime (OT) Hours" value={slip.ot_hours ? `${slip.ot_hours} hrs` : '0 hrs'} />
+                            </Box>
+
+                            <Divider sx={{ my: 0.5 }} />
+
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gap: 3,
+                                    gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                                }}
+                            >
+                                <InfoRow label="No of Present Days" value={slip.actual_present_days || 0} action={renderInfoAction('present')} />
+                                <InfoRow label="Physical Attendance" value={slip.physical_attendance_days || 0} action={renderInfoAction('physical')} />
+                                <InfoRow label="No of Absent" value={slip.absent_days !== undefined && slip.absent_days !== null ? slip.absent_days : ((slip.lop_days || 0) + (isDirectAllocation ? (slip.no_of_paid_leave || 0) : 0))} action={renderInfoAction('absent')} />
+                                <InfoRow label="No of Half Day" value={slip.half_day_count || 0} action={renderInfoAction('half_day')} />
+                                <InfoRow label="No of Unpaid Leave" value={slip.unpaid_leave_days !== undefined && slip.unpaid_leave_days !== null ? slip.unpaid_leave_days : (slip.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
+                                <InfoRow label="No of Paid Leave" value={slip.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
+                                <InfoRow label="Compensatory Off" value={slip.no_of_comp_off || 0} action={renderInfoAction('comp_off')} />
+                                <InfoRow label="LOP Days" value={slip.lop_days || 0} action={renderInfoAction('lop')} />
+                            </Box>
                         </>
                     );
                 })()}
@@ -882,7 +942,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         Print
                     </Button>
 
-                    {isDraft && canEditSalarySlip && (
+                    {(isDraft || slip.docstatus === 2) && canEditSalarySlip && (
                         <Button
                             variant="contained"
                             onClick={() => router.push(`/salary-slips/${id}/edit`)}
@@ -926,7 +986,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         </Button>
                     )}
 
-                    {isDraft && canDeleteSalarySlip && (
+                    {(isDraft || slip.docstatus === 2) && canDeleteSalarySlip && (
                         <Button
                             variant="contained"
                             color="error"
@@ -946,6 +1006,28 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             }}
                         >
                             Delete
+                        </Button>
+                    )}
+
+                    {slip.docstatus === 1 && canEditSalarySlip && (
+                        <Button
+                            variant="contained"
+                            onClick={() => setConfirmCancelOpen(true)}
+                            startIcon={<IoMdCloseCircle size={18} />}
+                            sx={{
+                                borderRadius: 1.5,
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                px: 1.75,
+                                py: 0.75,
+                                bgcolor: '#D97706',
+                                color: 'common.white',
+                                '&:hover': {
+                                    bgcolor: '#B45309',
+                                },
+                            }}
+                        >
+                            Cancel Doc
                         </Button>
                     )}
                 </Stack>
@@ -1109,6 +1191,27 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         sx={{ borderRadius: 1.5, minWidth: 100 }}
                     >
                         Submit
+                    </LoadingButton>
+                }
+            />
+
+            {/* Confirm Cancel Dialog */}
+            <ConfirmDialog
+                open={confirmCancelOpen}
+                onClose={() => setConfirmCancelOpen(false)}
+                title="Cancel Salary Slip"
+                content={`Are you sure you want to cancel salary slip ${slip.name}? This action will mark the document as cancelled.`}
+                icon="solar:close-circle-bold"
+                iconColor="warning.main"
+                action={
+                    <LoadingButton
+                        variant="contained"
+                        color="warning"
+                        loading={cancelling}
+                        onClick={handleCancel}
+                        sx={{ borderRadius: 1.5, minWidth: 100 }}
+                    >
+                        Cancel Slip
                     </LoadingButton>
                 }
             />

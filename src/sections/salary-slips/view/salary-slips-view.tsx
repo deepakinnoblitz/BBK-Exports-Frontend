@@ -25,7 +25,7 @@ import { useSalarySlips } from 'src/hooks/useSalarySlips';
 
 import { getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { deleteSalarySlip, submitSalarySlip, exportBobNeftFile } from 'src/api/salary-slips';
+import { deleteSalarySlip, submitSalarySlip, cancelSalarySlip, exportBobNeftFile } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -248,6 +248,17 @@ export function SalarySlipsView() {
 
     const [submitting, setSubmitting] = useState(false);
 
+    // Cancel confirmation
+    const [cancelDialog, setCancelDialog] = useState<{
+        open: boolean;
+        slipName: string;
+    }>({
+        open: false,
+        slipName: '',
+    });
+
+    const [cancelling, setCancelling] = useState(false);
+
     // Snackbar
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
@@ -334,6 +345,32 @@ export function SalarySlipsView() {
             setSubmitting(false);
         }
     }, [submitDialog.slipName, refetch]);
+
+    const handleCancelRow = useCallback((name: string) => {
+        setCancelDialog({ open: true, slipName: name });
+    }, []);
+
+    const handleConfirmCancel = useCallback(async () => {
+        setCancelling(true);
+        try {
+            await cancelSalarySlip(cancelDialog.slipName);
+            setSnackbar({
+                open: true,
+                message: 'Salary slip cancelled successfully',
+                severity: 'success',
+            });
+            setCancelDialog({ open: false, slipName: '' });
+            refetch();
+        } catch (error: any) {
+            setSnackbar({
+                open: true,
+                message: error.message || 'Failed to cancel record',
+                severity: 'error',
+            });
+        } finally {
+            setCancelling(false);
+        }
+    }, [cancelDialog.slipName, refetch]);
 
 
     const handleChangePage = (event: unknown, newPage: number) => {
@@ -516,6 +553,7 @@ export function SalarySlipsView() {
                                                 onView={() => handleViewRow(row)}
                                                 onEdit={() => handleEditRow(row)}
                                                 onSubmit={() => handleSubmitRow(row.name)}
+                                                onCancel={() => handleCancelRow(row.name)}
                                                 onDelete={() => handleDeleteRow(row.name)}
                                                 canEdit={canEditSalarySlip}
                                                 canDelete={canDeleteSalarySlip}
@@ -679,6 +717,27 @@ export function SalarySlipsView() {
                         sx={{ borderRadius: 1.5, minWidth: 100 }}
                     >
                         Submit
+                    </LoadingButton>
+                }
+            />
+
+            {/* Cancel Confirmation Dialog */}
+            <ConfirmDialog
+                open={cancelDialog.open}
+                onClose={() => setCancelDialog({ open: false, slipName: '' })}
+                title="Cancel Salary Slip"
+                content="Are you sure you want to cancel this submitted salary slip? This action will mark the document as cancelled."
+                icon="solar:close-circle-bold"
+                iconColor="warning.main"
+                action={
+                    <LoadingButton
+                        variant="contained"
+                        color="warning"
+                        loading={cancelling}
+                        onClick={handleConfirmCancel}
+                        sx={{ borderRadius: 1.5, minWidth: 100 }}
+                    >
+                        Cancel Slip
                     </LoadingButton>
                 }
             />
