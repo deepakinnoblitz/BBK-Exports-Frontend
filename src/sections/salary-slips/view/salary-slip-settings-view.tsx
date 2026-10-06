@@ -70,7 +70,7 @@ export function SalarySlipSettingsView() {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
-  if (settingsLoading && !formData) {
+  if (settingsLoading || !formData) {
     return (
       <DashboardContent maxWidth={false}>
         <Box

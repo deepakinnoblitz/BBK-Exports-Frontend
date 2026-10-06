@@ -307,8 +307,12 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 baseWage = earnedBasicDa || grossPay;
             }
 
-            const eligibleWage = pfCeiling > 0 ? Math.min(baseWage, pfCeiling) : baseWage;
-            pfAmount = Math.round(eligibleWage * pfRate);
+            const maxPfAmount = getNum(hrSettings.employee_pf_max_amount) || (pfCeiling > 0 ? pfCeiling * pfRate : 1800);
+            if (pfCeiling > 0 && baseWage >= pfCeiling) {
+                pfAmount = Math.round(maxPfAmount);
+            } else {
+                pfAmount = Math.round(baseWage * pfRate);
+            }
         }
 
         // ESI Calculation
