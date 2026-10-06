@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { IoMdArrowDropdown } from 'react-icons/io';
-import { IoMdPrint, IoMdTrash, IoMdCreate, IoMdArrowBack, IoMdCheckmarkCircle } from 'react-icons/io';
+import { IoMdPrint, IoMdTrash, IoMdCreate, IoMdArrowBack, IoMdCheckmarkCircle, IoMdCloseCircle } from 'react-icons/io';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -30,6 +30,7 @@ import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 import {
     deleteSalarySlip,
     submitSalarySlip,
+    cancelSalarySlip,
     getSalarySlipDownloadUrl,
     getSalarySlipWithDetails,
 } from 'src/api/salary-slips';
@@ -61,8 +62,10 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
     const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+    const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
 
     const [hrSettings, setHRSettings] = useState<any>({
         default_currency: 'INR',
@@ -173,6 +176,26 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
             });
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleCancel = async () => {
+        if (!id) return;
+        try {
+            setCancelling(true);
+            await cancelSalarySlip(id);
+            setSnackbar({ open: true, message: 'Salary slip cancelled successfully', severity: 'success' });
+            setConfirmCancelOpen(false);
+            fetchSlip();
+        } catch (err: any) {
+            console.error('Failed to cancel salary slip:', err);
+            setSnackbar({
+                open: true,
+                message: err.message || 'Failed to cancel salary slip',
+                severity: 'error',
+            });
+        } finally {
+            setCancelling(false);
         }
     };
 
@@ -882,7 +905,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         Print
                     </Button>
 
-                    {isDraft && canEditSalarySlip && (
+                    {(isDraft || slip.docstatus === 2) && canEditSalarySlip && (
                         <Button
                             variant="contained"
                             onClick={() => router.push(`/salary-slips/${id}/edit`)}
@@ -926,7 +949,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         </Button>
                     )}
 
-                    {isDraft && canDeleteSalarySlip && (
+                    {(isDraft || slip.docstatus === 2) && canDeleteSalarySlip && (
                         <Button
                             variant="contained"
                             color="error"
@@ -946,6 +969,28 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             }}
                         >
                             Delete
+                        </Button>
+                    )}
+
+                    {slip.docstatus === 1 && canEditSalarySlip && (
+                        <Button
+                            variant="contained"
+                            onClick={() => setConfirmCancelOpen(true)}
+                            startIcon={<IoMdCloseCircle size={18} />}
+                            sx={{
+                                borderRadius: 1.5,
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                px: 1.75,
+                                py: 0.75,
+                                bgcolor: '#D97706',
+                                color: 'common.white',
+                                '&:hover': {
+                                    bgcolor: '#B45309',
+                                },
+                            }}
+                        >
+                            Cancel Doc
                         </Button>
                     )}
                 </Stack>
@@ -1109,6 +1154,27 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         sx={{ borderRadius: 1.5, minWidth: 100 }}
                     >
                         Submit
+                    </LoadingButton>
+                }
+            />
+
+            {/* Confirm Cancel Dialog */}
+            <ConfirmDialog
+                open={confirmCancelOpen}
+                onClose={() => setConfirmCancelOpen(false)}
+                title="Cancel Salary Slip"
+                content={`Are you sure you want to cancel salary slip ${slip.name}? This action will mark the document as cancelled.`}
+                icon="solar:close-circle-bold"
+                iconColor="warning.main"
+                action={
+                    <LoadingButton
+                        variant="contained"
+                        color="warning"
+                        loading={cancelling}
+                        onClick={handleCancel}
+                        sx={{ borderRadius: 1.5, minWidth: 100 }}
+                    >
+                        Cancel Slip
                     </LoadingButton>
                 }
             />

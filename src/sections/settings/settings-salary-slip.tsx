@@ -546,18 +546,18 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 
-        {/* Section 3: Overtime & Bonus Rules */}
+        {/* Section 3: Overtime, Allowance & Bonus Rules */}
         <Box>
           <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
             <Iconify icon="solar:wad-of-money-bold" width={22} sx={{ color: 'success.main' }} />
-            <Typography variant="h6">Overtime (OT) & Attendance Bonus Rules</Typography>
+            <Typography variant="h6">Overtime (OT), Allowance & Attendance Bonus Rules</Typography>
           </Stack>
           <Typography variant="caption" sx={{ color: 'text.secondary', mb: 3, display: 'block' }}>
-            Configure role-based Overtime calculation formulas and attendance bonus policies.
+            Configure role-based Overtime calculation formulas, tea allowances, and attendance bonus policies.
           </Typography>
 
           <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -580,7 +580,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
               />
             </Grid>
 
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -603,7 +603,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
               />
             </Grid>
 
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -621,6 +621,29 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                     ),
                   },
                   htmlInput: { min: 0, step: 100 },
+                }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Workers Tea Allowance"
+                value={data.workers_tea_allowance_per_day ?? '5'}
+                onChange={(e) => onChange('workers_tea_allowance_per_day', e.target.value)}
+                placeholder="5"
+                helperText="Allowance per day worked (Days Worked × ₹/day)."
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                      </InputAdornment>
+                    ),
+                    endAdornment: <InputAdornment position="end">/day</InputAdornment>,
+                  },
+                  htmlInput: { min: 0, step: 1 },
                 }}
               />
             </Grid>
