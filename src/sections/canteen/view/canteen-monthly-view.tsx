@@ -52,9 +52,10 @@ export function CanteenMonthlyView({
   onSelectEmployees,
   selectedEmployee,
   onSelectEmployee,
-  filterVariant = 'drawer',
   refreshTrigger,
   isHR,
+  currentDate: controlledDate,
+  onDateChange,
 }: {
   canEdit?: boolean;
   selectedEmployees?: any[];
@@ -64,6 +65,8 @@ export function CanteenMonthlyView({
   filterVariant?: 'drawer' | 'inline';
   refreshTrigger?: number;
   isHR?: boolean;
+  currentDate?: dayjs.Dayjs;
+  onDateChange?: (date: dayjs.Dayjs) => void;
 }) {
   const theme = useTheme();
   const { user } = useAuth();
@@ -75,7 +78,8 @@ export function CanteenMonthlyView({
         );
   const isRestrictedEmployee = user?.roles?.includes('Employee') && !isHRUser;
 
-  const [currentDate, setCurrentDate] = useState<dayjs.Dayjs>(dayjs());
+  const [internalDate, setInternalDate] = useState<dayjs.Dayjs>(dayjs());
+  const currentDate = controlledDate || internalDate;
   const [selectedDept, setSelectedDept] = useState('all');
   const [selectedMealType, setSelectedMealType] = useState('all');
   const [searchEmployee, setSearchEmployee] = useState('');
@@ -254,15 +258,21 @@ export function CanteenMonthlyView({
   }, [rosterData?.employees, searchEmployee]);
 
   const handlePrevMonth = () => {
-    setCurrentDate((prev) => prev.subtract(1, 'month'));
+    const nextDate = currentDate.subtract(1, 'month');
+    if (onDateChange) onDateChange(nextDate);
+    else setInternalDate(nextDate);
   };
 
   const handleNextMonth = () => {
-    setCurrentDate((prev) => prev.add(1, 'month'));
+    const nextDate = currentDate.add(1, 'month');
+    if (onDateChange) onDateChange(nextDate);
+    else setInternalDate(nextDate);
   };
 
   const handleCurrentMonth = () => {
-    setCurrentDate(dayjs());
+    const nextDate = dayjs();
+    if (onDateChange) onDateChange(nextDate);
+    else setInternalDate(nextDate);
   };
 
   const handleCellClick = (emp: any, d: any) => {
@@ -552,7 +562,7 @@ export function CanteenMonthlyView({
               H
             </Box>
             <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-              Holiday / Sunday
+              Holiday
             </Typography>
           </Stack>
 
@@ -616,7 +626,7 @@ export function CanteenMonthlyView({
                 </TableCell>
 
                 {rosterData?.days?.map((d) => {
-                  const isSunOrHol = d.is_weekend || d.is_holiday;
+                  const isHoliday = !!d.is_holiday;
                   return (
                     <TableCell
                       key={d.date}
@@ -628,13 +638,13 @@ export function CanteenMonthlyView({
                         px: 0.5,
                         minWidth: 42,
                         maxWidth: 42,
-                        bgcolor: isSunOrHol ? '#fef3c7 !important' : undefined,
-                        color: isSunOrHol ? '#b45309' : d.is_weekend ? 'text.secondary' : 'text.primary',
+                        bgcolor: isHoliday ? '#fef3c7 !important' : undefined,
+                        color: isHoliday ? '#b45309' : 'text.primary',
                         borderRight: (t) => `1px solid ${t.palette.divider}`,
                         borderBottom: (t) => `1px solid ${t.palette.divider}`,
                       }}
                     >
-                      <Tooltip title={d.is_holiday ? `Holiday: ${d.holiday_name}` : d.is_weekend ? 'Sunday (Weekly Off)' : ''}>
+                      <Tooltip title={isHoliday ? (d.holiday_name ? `Holiday: ${d.holiday_name}` : 'Holiday') : ''}>
                         <Box>
                           <Box sx={{ fontSize: '0.65rem', textTransform: 'uppercase', opacity: 0.8, fontWeight: 800 }}>
                             {d.day_name}
@@ -715,7 +725,7 @@ export function CanteenMonthlyView({
                     {rosterData?.days?.map((d) => {
                       const entry = emp.entries[d.date];
                       const availed = entry?.availed && entry?.meal_count > 0;
-                      const isSunOrHol = d.is_weekend || d.is_holiday;
+                      const isHoliday = !!d.is_holiday;
 
                       return (
                         <TableCell
@@ -728,7 +738,7 @@ export function CanteenMonthlyView({
                             minWidth: 42,
                             maxWidth: 42,
                             cursor: canEdit ? 'pointer' : 'default',
-                            bgcolor: isSunOrHol ? '#fffbeb' : undefined,
+                            bgcolor: isHoliday ? '#fffbeb' : undefined,
                             borderRight: (t) => `1px solid ${t.palette.divider}`,
                             borderBottom: (t) => `1px solid ${t.palette.divider}`,
                             transition: 'background-color 0.15s ease',

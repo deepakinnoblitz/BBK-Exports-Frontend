@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -29,6 +30,7 @@ export function CanteenView() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const [currentDate, setCurrentDate] = useState<dayjs.Dayjs>(dayjs());
   const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
 
   const isHRUser = user?.roles?.some((role: string) =>
@@ -193,6 +195,8 @@ export function CanteenView() {
             onSelectEmployees={setSelectedEmployees}
             refreshTrigger={refreshTrigger}
             isHR={isHRUser}
+            currentDate={currentDate}
+            onDateChange={setCurrentDate}
           />
         )}
 
@@ -223,6 +227,8 @@ export function CanteenView() {
           open={openImportDialog}
           onClose={() => setOpenImportDialog(false)}
           onSuccess={handleImportSuccess}
+          defaultMonth={currentDate.month() + 1}
+          defaultYear={currentDate.year()}
         />
       )}
     </DashboardContent>
