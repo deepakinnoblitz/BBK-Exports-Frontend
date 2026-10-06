@@ -97,6 +97,11 @@ export const hrNavData = [
     ],
   },
   {
+    title: 'Canteen',
+    path: '/canteen',
+    icon: <Iconify icon={"solar:cup-hot-bold-duotone" as any} width={20} />,
+  },
+  {
     title: 'Leaves Records',
     path: '/leaves',
     icon: <RiAppsLine size={18} />,
@@ -286,6 +291,11 @@ export const employeeNavData = [
     title: 'Monthly Line Roster',
     path: '/monthly-line-roster',
     icon: <LuLayers size={18} />,
+  },
+  {
+    title: 'Canteen',
+    path: '/canteen',
+    icon: <Iconify icon={"solar:cup-hot-bold-duotone" as any} width={20} />,
   },
   /*
   {

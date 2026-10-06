@@ -230,6 +230,7 @@ export const LineOrderPage = lazy(() => import('src/pages/line-order'));
 export const LineRosterPage = lazy(() => import('src/pages/line-roster'));
 export const MonthlyLineRosterPage = lazy(() => import('src/pages/monthly-line-roster'));
 export const LineRotationPage = lazy(() => import('src/pages/line-rotation'));
+export const CanteenPage = lazy(() => import('src/pages/canteen'));
 export const ShiftPage = lazy(() => import('src/pages/shift'));
 export const ShiftRosterPage = lazy(() => import('src/pages/shift-roster'));
 export const MonthlyRosterPage = lazy(() => import('src/pages/monthly-roster'));
@@ -514,6 +515,7 @@ export const routesSection: RouteObject[] = [
       { path: 'line-roster', element: <RolePermissionGuard actionKey="line_roster"><LineRosterPage /></RolePermissionGuard> },
       { path: 'monthly-line-roster', element: <RolePermissionGuard actionKey="line_roster"><MonthlyLineRosterPage /></RolePermissionGuard> },
       { path: 'line-rotation', element: <RolePermissionGuard actionKey="line_rotation"><LineRotationPage /></RolePermissionGuard> },
+      { path: 'canteen', element: <CanteenPage /> },
       { path: 'shift', element: <RolePermissionGuard actionKey="master_shift"><ShiftPage /></RolePermissionGuard> },
       { path: 'shift-roster', element: <RolePermissionGuard actionKey="shift_roster"><ShiftRosterPage /></RolePermissionGuard> },
       { path: 'monthly-roster', element: <RolePermissionGuard actionKey="shift_roster"><MonthlyRosterPage /></RolePermissionGuard> },
