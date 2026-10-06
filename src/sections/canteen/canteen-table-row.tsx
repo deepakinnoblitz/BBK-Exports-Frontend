@@ -186,7 +186,7 @@ export function CanteenTableRow({
 
       {/* Source */}
       <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
-        <Label color={source === 'Excel Import' ? 'info' : 'default'} variant="outlined">
+        <Label color={source === 'Excel Import' ? 'info' : 'default'} variant="soft">
           {(source || 'Manual').toUpperCase()}
         </Label>
       </TableCell>
