@@ -103,16 +103,23 @@ export function CanteenDialog({
   }, [open, editData, initialDate]);
 
   useEffect(() => {
-    if (open && employees.length > 0) {
+    if (open) {
       const empId = editData?.employee || initialEmployee;
       if (empId) {
-        const found = employees.find((e) => e.name === empId);
-        if (found) {
-          setSelectedEmployee(found);
-        } else if (editData?.employee) {
-          setSelectedEmployee({ name: editData.employee, employee_name: editData.employee_name });
+        if (employees.length > 0) {
+          const found = employees.find((e) => e.name === empId);
+          if (found) {
+            setSelectedEmployee(found);
+            return;
+          }
         }
-      } else if (!editData) {
+        setSelectedEmployee({
+          name: empId,
+          employee_name: editData?.employee_name || empId,
+          department: editData?.department,
+          designation: editData?.designation,
+        });
+      } else {
         setSelectedEmployee(null);
       }
     }

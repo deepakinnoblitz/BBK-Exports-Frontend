@@ -1,3 +1,5 @@
+import type { CanteenEntry } from 'src/api/canteen';
+
 import dayjs from 'dayjs';
 import listPlugin from '@fullcalendar/list';
 import FullCalendar from '@fullcalendar/react';
@@ -135,6 +137,7 @@ export function CanteenCalendarView({
 
   // Quick dialog state
   const [openDialog, setOpenDialog] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<CanteenEntry | null>(null);
   const [targetEmployee, setTargetEmployee] = useState<string | undefined>();
   const [targetDate, setTargetDate] = useState<string | undefined>();
 
@@ -220,6 +223,7 @@ export function CanteenCalendarView({
 
   const handleDateSelect = (selectInfo: any) => {
     if (canCreate) {
+      setSelectedEntry(null);
       setTargetDate(selectInfo.startStr);
       setTargetEmployee(
         selectedEmployees.length === 1
@@ -233,10 +237,21 @@ export function CanteenCalendarView({
   const handleEventClick = (clickInfo: any) => {
     if (clickInfo.event.extendedProps?.is_holiday) return;
     if (canEdit) {
-      const emp = clickInfo.event.extendedProps?.employee;
-      const dStr = clickInfo.event.extendedProps?.canteen_date || clickInfo.event.startStr;
-      setTargetEmployee(emp);
-      setTargetDate(dStr);
+      const ext = clickInfo.event.extendedProps;
+      setSelectedEntry({
+        name: ext?.entry_id || clickInfo.event.id,
+        employee: ext?.employee,
+        employee_name: ext?.employee_name,
+        department: ext?.department,
+        canteen_date: ext?.canteen_date || clickInfo.event.startStr,
+        meal_type: ext?.meal_type || 'Lunch',
+        meal_count: ext?.meal_count ?? 1,
+        status: ext?.status || 'Availed',
+        source: ext?.source || 'Manual',
+        remarks: ext?.remarks || '',
+      });
+      setTargetEmployee(undefined);
+      setTargetDate(undefined);
       setOpenDialog(true);
     }
   };
@@ -482,12 +497,14 @@ export function CanteenCalendarView({
           open={openDialog}
           onClose={() => {
             setOpenDialog(false);
+            setSelectedEntry(null);
             setTargetEmployee(undefined);
             setTargetDate(undefined);
           }}
           onSuccess={() => {
             refetch();
           }}
+          editData={selectedEntry}
           initialEmployee={targetEmployee}
           initialDate={targetDate}
         />

@@ -1,3 +1,5 @@
+import type { CanteenEntry } from 'src/api/canteen';
+
 import dayjs from 'dayjs';
 import { useRef, useMemo, useState, useEffect } from 'react';
 
@@ -120,6 +122,7 @@ export function CanteenMonthlyView({
 
   // Dialog state for adding/editing entry from a cell
   const [openDialog, setOpenDialog] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<CanteenEntry | null>(null);
   const [targetEmployee, setTargetEmployee] = useState<string | undefined>();
   const [targetDate, setTargetDate] = useState<string | undefined>();
 
@@ -262,11 +265,30 @@ export function CanteenMonthlyView({
     setCurrentDate(dayjs());
   };
 
-  const handleCellClick = (employeeId: string, dateStr: string) => {
+  const handleCellClick = (emp: any, d: any) => {
     if (dragMoved.current > 6) return;
     if (!canEdit) return;
-    setTargetEmployee(employeeId);
-    setTargetDate(dateStr);
+    const entry = emp.entries?.[d.date];
+    if (entry?.availed) {
+      setSelectedEntry({
+        name: entry.entry_id || '',
+        employee: emp.employee,
+        employee_name: emp.employee_name,
+        department: emp.department,
+        designation: emp.designation,
+        canteen_date: d.date,
+        meal_type: entry.meal_type || 'Lunch',
+        meal_count: entry.meal_count ?? 1,
+        status: 'Availed',
+        source: entry.source || 'Manual',
+      });
+      setTargetEmployee(undefined);
+      setTargetDate(undefined);
+    } else {
+      setSelectedEntry(null);
+      setTargetEmployee(emp.employee);
+      setTargetDate(d.date);
+    }
     setOpenDialog(true);
   };
 
@@ -699,7 +721,7 @@ export function CanteenMonthlyView({
                         <TableCell
                           key={d.date}
                           align="center"
-                          onClick={() => handleCellClick(emp.employee, d.date)}
+                          onClick={() => handleCellClick(emp, d)}
                           sx={{
                             px: 0.5,
                             py: 0.8,
@@ -922,12 +944,14 @@ export function CanteenMonthlyView({
           open={openDialog}
           onClose={() => {
             setOpenDialog(false);
+            setSelectedEntry(null);
             setTargetEmployee(undefined);
             setTargetDate(undefined);
           }}
           onSuccess={() => {
             refetch();
           }}
+          editData={selectedEntry}
           initialEmployee={targetEmployee}
           initialDate={targetDate}
         />
