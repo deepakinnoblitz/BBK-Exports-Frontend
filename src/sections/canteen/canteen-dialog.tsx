@@ -1,6 +1,7 @@
 import type { CanteenEntry } from 'src/api/canteen';
 
 import dayjs from 'dayjs';
+import { useSnackbar } from 'notistack';
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -20,8 +21,6 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-
-import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
@@ -50,6 +49,7 @@ export function CanteenDialog({
   initialEmployee,
   initialDate,
 }: Props) {
+  const { enqueueSnackbar } = useSnackbar();
   const isEdit = Boolean(editData?.name);
 
   const [employees, setEmployees] = useState<any[]>([]);
@@ -58,7 +58,7 @@ export function CanteenDialog({
   const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
   const [canteenDate, setCanteenDate] = useState<dayjs.Dayjs | null>(null);
   const [mealType, setMealType] = useState('Lunch');
-  const [mealCount, setMealCount] = useState<number>(1);
+  const [mealCount, setMealCount] = useState<number | string>(1);
   const [status, setStatus] = useState('Availed');
   const [remarks, setRemarks] = useState('');
 
@@ -88,7 +88,7 @@ export function CanteenDialog({
       if (editData) {
         setCanteenDate(editData.canteen_date ? dayjs(editData.canteen_date) : null);
         setMealType(editData.meal_type || 'Lunch');
-        setMealCount(editData.meal_count || 1);
+        setMealCount(editData.meal_count !== undefined && editData.meal_count !== null ? editData.meal_count : 1);
         setStatus(editData.status || 'Availed');
         setRemarks(editData.remarks || '');
       } else {
@@ -107,7 +107,11 @@ export function CanteenDialog({
       const empId = editData?.employee || initialEmployee;
       if (empId) {
         const found = employees.find((e) => e.name === empId);
-        if (found) setSelectedEmployee(found);
+        if (found) {
+          setSelectedEmployee(found);
+        } else if (editData?.employee) {
+          setSelectedEmployee({ name: editData.employee, employee_name: editData.employee_name });
+        }
       } else if (!editData) {
         setSelectedEmployee(null);
       }
@@ -118,15 +122,17 @@ export function CanteenDialog({
     setErrorMessage(null);
 
     if (!selectedEmployee) {
-      setErrorMessage('Please select an employee');
+      setErrorMessage('Please select an employee.');
       return;
     }
     if (!canteenDate || !canteenDate.isValid()) {
-      setErrorMessage('Please select a valid date');
+      setErrorMessage('Please select a valid date.');
       return;
     }
-    if (!mealCount || mealCount < 1) {
-      setErrorMessage('Meal count must be at least 1');
+
+    const count = typeof mealCount === 'string' ? parseInt(mealCount, 10) : mealCount;
+    if (!count || Number.isNaN(count) || count < 1) {
+      setErrorMessage('Meal count must be at least 1.');
       return;
     }
 
@@ -139,7 +145,7 @@ export function CanteenDialog({
         designation: selectedEmployee.designation,
         canteen_date: canteenDate.format('YYYY-MM-DD'),
         meal_type: mealType,
-        meal_count: Number(mealCount),
+        meal_count: count,
         status: status as any,
         remarks: remarks.trim() || undefined,
         source: isEdit ? editData?.source || 'Manual' : 'Manual',
@@ -147,151 +153,202 @@ export function CanteenDialog({
 
       if (isEdit && editData?.name) {
         await updateCanteenEntry(editData.name, payload);
+        enqueueSnackbar('Canteen entry updated successfully', { variant: 'success' });
       } else {
         await createCanteenEntry(payload);
+        enqueueSnackbar('Canteen entry created successfully', { variant: 'success' });
       }
 
       onSuccess();
       onClose();
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to save canteen entry');
+      enqueueSnackbar(err.message || 'Failed to save canteen entry', { variant: 'error' });
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          {isEdit ? 'Edit Canteen Entry' : 'New Canteen Entry'}
-        </Typography>
-        <IconButton size="small" onClick={onClose}>
-          <Iconify icon="solar:close-circle-bold" width={22} />
-        </IconButton>
-      </DialogTitle>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6">{isEdit ? 'Edit Canteen Entry' : 'New Canteen Entry'}</Typography>
+          <IconButton onClick={onClose} sx={{ color: (theme) => theme.palette.grey[500] }}>
+            <Iconify icon="mingcute:close-line" />
+          </IconButton>
+        </DialogTitle>
 
-      <DialogContent dividers sx={{ pt: 2.5, pb: 3 }}>
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <Stack spacing={2.5}>
+        <DialogContent dividers>
+          <Stack spacing={3} sx={{ py: 2 }}>
             {errorMessage && (
               <Alert severity="error" onClose={() => setErrorMessage(null)}>
                 {errorMessage}
               </Alert>
             )}
 
-            {loadingData ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress size={32} />
-              </Box>
-            ) : (
-              <>
-                {/* Employee Selector */}
-                <Autocomplete
-                  options={employees}
-                  getOptionLabel={(option) => `${option.employee_name || option.name} (${option.name})`}
-                  filterOptions={filterEmployeeOptions}
-                  value={selectedEmployee}
-                  onChange={(_, newValue) => setSelectedEmployee(newValue)}
-                  disabled={isEdit}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Employee *"
-                      placeholder="Search employee by name or ID..."
-                      helperText={
-                        selectedEmployee
-                          ? `${selectedEmployee.department || 'No Dept'} • ${selectedEmployee.designation || 'No Designation'}`
-                          : 'Select the employee'
-                      }
-                    />
+            {/* Employee Selector */}
+            <Autocomplete
+              options={employees}
+              loading={loadingData}
+              disabled={isEdit}
+              getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
+              filterOptions={(opts, state) => {
+                const input = state.inputValue.toLowerCase().trim();
+                if (!input) {
+                  return opts.slice(0, 50);
+                }
+                const terms = input.split(/\s+/).filter(Boolean);
+                const filtered = opts.filter((opt) => {
+                  const fullName = opt.employee_name || '';
+                  const empId = opt.name || '';
+                  const combined = `${fullName} ${empId} (${empId})`.toLowerCase();
+                  return terms.every((term: string) => combined.includes(term));
+                });
+                return filtered.slice(0, 50);
+              }}
+              isOptionEqualToValue={(option, value) => option?.name === value?.name}
+              value={selectedEmployee}
+              onChange={(_, val) => setSelectedEmployee(val)}
+              renderOption={(props, option, { selected: isSelected }) => (
+                <li {...props} key={option.name}>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                      {option.employee_name || option.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
+                      ID: {option.name}
+                    </Typography>
+                  </Box>
+                  {isSelected && (
+                    <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: 'primary.main', ml: 1 }} />
                   )}
-                />
-
-                {/* Date Picker */}
-                <DatePicker
-                  label="Date *"
-                  value={canteenDate}
-                  onChange={(val) => setCanteenDate(val)}
-                  format="DD-MMM-YYYY"
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                    },
-                  }}
-                />
-
-                {/* Meal Type & Count */}
-                <Stack direction="row" spacing={2}>
-                  <TextField
-                    select
-                    fullWidth
-                    label="Meal Type *"
-                    value={mealType}
-                    onChange={(e) => setMealType(e.target.value)}
-                  >
-                    {MEAL_TYPES.map((type) => (
-                      <MenuItem key={type} value={type}>
-                        {type}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-
-                  <TextField
-                    type="number"
-                    fullWidth
-                    label="Meal Count *"
-                    value={mealCount}
-                    onChange={(e) => setMealCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                    inputProps={{ min: 1, max: 20 }}
-                  />
-                </Stack>
-
-                {/* Status */}
+                </li>
+              )}
+              renderInput={(params) => (
                 <TextField
-                  select
-                  fullWidth
-                  label="Status"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <MenuItem value="Availed">Availed</MenuItem>
-                  <MenuItem value="Cancelled">Cancelled</MenuItem>
-                </TextField>
-
-                {/* Remarks */}
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Remarks"
-                  placeholder="Optional remarks or notes..."
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
+                  {...params}
+                  required
+                  label="Employee"
+                  placeholder="Select Employee..."
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
                 />
-              </>
-            )}
+              )}
+            />
+
+            {/* Date Field */}
+            <DatePicker
+              label="Date"
+              format="DD-MM-YYYY"
+              value={canteenDate}
+              onChange={(val) => setCanteenDate(val)}
+              slotProps={{
+                textField: {
+                  required: true,
+                  fullWidth: true,
+                  InputLabelProps: { shrink: true },
+                  sx: { '& .MuiFormLabel-asterisk': { color: 'red' } },
+                },
+              }}
+            />
+
+            {/* Meal Type & Count in a 2-column grid */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <TextField
+                select
+                fullWidth
+                required
+                label="Meal Type"
+                value={mealType}
+                onChange={(e) => setMealType(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
+              >
+                {MEAL_TYPES.map((type) => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <TextField
+                type="number"
+                fullWidth
+                required
+                label="Meal Count"
+                value={mealCount}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setMealCount('');
+                  } else {
+                    const parsed = parseInt(val, 10);
+                    setMealCount(Number.isNaN(parsed) ? '' : Math.max(1, parsed));
+                  }
+                }}
+                onBlur={() => {
+                  if (mealCount === '' || Number(mealCount) < 1) {
+                    setMealCount(1);
+                  }
+                }}
+                inputProps={{ min: 1, max: 20 }}
+                InputLabelProps={{ shrink: true }}
+                sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
+              />
+            </Box>
+
+            {/* Status */}
+            <TextField
+              select
+              fullWidth
+              label="Status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            >
+              <MenuItem value="Availed">Availed</MenuItem>
+              <MenuItem value="Cancelled">Cancelled</MenuItem>
+            </TextField>
+
+            {/* Description / Remarks */}
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Description / Reason"
+              placeholder="Add a brief description (Optional)"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              disabled={submitting}
+              InputLabelProps={{ shrink: true }}
+            />
           </Stack>
-        </LocalizationProvider>
-      </DialogContent>
+        </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button variant="outlined" color="inherit" onClick={onClose} disabled={submitting}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={submitting || loadingData}
-          sx={{
-            bgcolor: COMMON_COLORS.primaryButton.bg,
-            color: COMMON_COLORS.primaryButton.color,
-            '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
-          }}
-        >
-          {submitting ? 'Saving...' : isEdit ? 'Update Entry' : 'Create Entry'}
-        </Button>
-      </DialogActions>
-    </Dialog>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            fullWidth
+            disabled={submitting || loadingData}
+            startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : null}
+            sx={{ bgcolor: COMMON_COLORS.primaryButton.bg, '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg } }}
+          >
+            {isEdit ? 'Save Changes' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </LocalizationProvider>
   );
 }

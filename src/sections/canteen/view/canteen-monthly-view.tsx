@@ -7,19 +7,15 @@ import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Badge from '@mui/material/Badge';
 import Button from '@mui/material/Button';
-import Select from '@mui/material/Select';
 import Tooltip from '@mui/material/Tooltip';
-import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
-import TextField from '@mui/material/TextField';
-import InputLabel from '@mui/material/InputLabel';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import FormControl from '@mui/material/FormControl';
-import Autocomplete from '@mui/material/Autocomplete';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -27,12 +23,9 @@ import { alpha, useTheme } from '@mui/material/styles';
 
 import { useMonthlyCanteen } from 'src/hooks/use-canteen';
 
-import { filterEmployeeOptions } from 'src/utils/filter-employees';
-
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 import { useAuth } from 'src/auth/auth-context';
@@ -41,6 +34,15 @@ import { CanteenDialog } from '../canteen-dialog';
 import { CanteenTableFiltersDrawer } from '../canteen-table-filters-drawer';
 
 // ----------------------------------------------------------------------
+
+const sortOptions = [
+  { value: 'modified_desc', label: 'Newest First' },
+  { value: 'modified_asc', label: 'Oldest First' },
+  { value: 'employee_name_asc', label: 'Employee Name: A to Z' },
+  { value: 'employee_name_desc', label: 'Employee Name: Z to A' },
+  { value: 'department_asc', label: 'Department: A to Z' },
+  { value: 'department_desc', label: 'Department: Z to A' },
+];
 
 export function CanteenMonthlyView({
   canEdit = true,
@@ -121,58 +123,46 @@ export function CanteenMonthlyView({
   const [targetEmployee, setTargetEmployee] = useState<string | undefined>();
   const [targetDate, setTargetDate] = useState<string | undefined>();
 
-  // Drag-scroll horizontal container
-  const tableContainerRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
-  const isMouseDownRef = useRef(false);
+  // Drag-scroll horizontal container (zero re-renders)
+  const gridScrollRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const scrollStartLeft = useRef(0);
+  const dragMoved = useRef(0);
 
-  useEffect(() => {
-    const el = tableContainerRef.current;
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const el = gridScrollRef.current;
     if (!el) return;
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    scrollStartLeft.current = el.scrollLeft;
+    dragMoved.current = 0;
+    el.style.cursor = 'grabbing';
+  };
 
-    const handleMouseDown = (e: MouseEvent) => {
-      if ((e.target as HTMLElement).closest('button, input, select, a, [role="button"]')) return;
-      isMouseDownRef.current = true;
-      isDraggingRef.current = false;
-      startXRef.current = e.pageX - el.offsetLeft;
-      scrollLeftRef.current = el.scrollLeft;
-    };
+  const handleMouseLeave = () => {
+    const el = gridScrollRef.current;
+    if (!el) return;
+    isDragging.current = false;
+    el.style.cursor = 'grab';
+  };
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isMouseDownRef.current) return;
-      const x = e.pageX - el.offsetLeft;
-      const walk = (x - startXRef.current) * 1.2;
-      if (Math.abs(walk) > 5) {
-        isDraggingRef.current = true;
-        el.style.cursor = 'grabbing';
-        el.style.userSelect = 'none';
-        el.scrollLeft = scrollLeftRef.current - walk;
-      }
-    };
+  const handleMouseUp = () => {
+    const el = gridScrollRef.current;
+    if (!el) return;
+    isDragging.current = false;
+    el.style.cursor = 'grab';
+  };
 
-    const handleMouseUp = () => {
-      isMouseDownRef.current = false;
-      if (el) {
-        el.style.cursor = 'default';
-        el.style.userSelect = '';
-      }
-      setTimeout(() => {
-        isDraggingRef.current = false;
-      }, 50);
-    };
-
-    el.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      el.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current) return;
+    const el = gridScrollRef.current;
+    if (!el) return;
+    e.preventDefault();
+    const dx = e.clientX - dragStartX.current;
+    dragMoved.current = Math.abs(dx);
+    el.scrollLeft = scrollStartLeft.current - dx;
+  };
 
   // Fetch Master Data
   useEffect(() => {
@@ -198,7 +188,10 @@ export function CanteenMonthlyView({
     return undefined;
   }, [selectedEmployees]);
 
-  // Hook for monthly data
+  const [sortBy, setSortBy] = useState('modified_desc');
+  const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
+
+  // Hook for monthly data with server-side sorting
   const {
     data: rosterData,
     loading,
@@ -213,8 +206,27 @@ export function CanteenMonthlyView({
     selectedDept,
     employeeFilterParam,
     selectedMealType,
-    50
+    50,
+    sortBy
   );
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (sentinelRef.current && hasMore && !loading && !loadingMore) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+            loadMore();
+          }
+        },
+        { root: null, rootMargin: '200px', threshold: 0.1 }
+      );
+      observer.observe(sentinelRef.current);
+      return () => observer.disconnect();
+    }
+    return undefined;
+  }, [hasMore, loading, loadingMore, loadMore]);
 
   useEffect(() => {
     if (refreshTrigger) {
@@ -222,17 +234,20 @@ export function CanteenMonthlyView({
     }
   }, [refreshTrigger, refetch]);
 
-  // Filter employees client-side for immediate search responsiveness
+  // Filter employees client-side for immediate search term responsiveness
   const filteredEmployees = useMemo(() => {
     if (!rosterData?.employees) return [];
-    if (!searchEmployee) return rosterData.employees;
-    const term = searchEmployee.toLowerCase();
-    return rosterData.employees.filter(
-      (emp) =>
-        emp.employee_name.toLowerCase().includes(term) ||
-        emp.employee.toLowerCase().includes(term) ||
-        emp.department.toLowerCase().includes(term)
-    );
+    let list = [...rosterData.employees];
+    if (searchEmployee) {
+      const term = searchEmployee.toLowerCase();
+      list = list.filter(
+        (emp) =>
+          emp.employee_name.toLowerCase().includes(term) ||
+          emp.employee.toLowerCase().includes(term) ||
+          emp.department.toLowerCase().includes(term)
+      );
+    }
+    return list;
   }, [rosterData?.employees, searchEmployee]);
 
   const handlePrevMonth = () => {
@@ -248,6 +263,7 @@ export function CanteenMonthlyView({
   };
 
   const handleCellClick = (employeeId: string, dateStr: string) => {
+    if (dragMoved.current > 6) return;
     if (!canEdit) return;
     setTargetEmployee(employeeId);
     setTargetDate(dateStr);
@@ -260,153 +276,224 @@ export function CanteenMonthlyView({
     (selectedEmployees.length > 0 ? 1 : 0);
 
   return (
-    <>
-      <Card sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-        {/* Controls Toolbar */}
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          alignItems={{ xs: 'flex-start', md: 'center' }}
-          justifyContent="space-between"
-          spacing={2}
-          sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}
-        >
-          {/* Search bar */}
-          <Stack direction="row" spacing={2} alignItems="center" flexGrow={1} sx={{ minWidth: 260, maxWidth: { xs: '100%', md: 480 } }}>
-            <OutlinedInput
-              fullWidth
-              size="small"
-              value={searchEmployee}
-              onChange={(e) => setSearchEmployee(e.target.value)}
-              placeholder="Search employee, department..."
-              startAdornment={
-                <InputAdornment position="start">
-                  <Iconify width={18} icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
+    <Stack spacing={2.5}>
+      {/* Controls Toolbar Card */}
+      <Card
+        sx={{
+          p: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 2,
+          bgcolor: 'background.paper',
+          border: (t) => `1px solid ${t.palette.divider}`,
+        }}
+      >
+        {/* Search bar */}
+        <Stack direction="row" spacing={2} alignItems="center" flexGrow={1} sx={{ minWidth: 260, maxWidth: { xs: '100%', md: 480 } }}>
+          <OutlinedInput
+            fullWidth
+            size="small"
+            value={searchEmployee}
+            onChange={(e) => setSearchEmployee(e.target.value)}
+            placeholder="Search employee, department..."
+            startAdornment={
+              <InputAdornment position="start">
+                <Iconify width={18} icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
+              </InputAdornment>
+            }
+            endAdornment={
+              searchEmployee ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => setSearchEmployee('')}
+                    edge="end"
+                    aria-label="clear search"
+                    sx={{ p: 0.5, color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
+                  >
+                    <Iconify icon={"solar:close-circle-bold" as any} width={18} />
+                  </IconButton>
                 </InputAdornment>
-              }
-              endAdornment={
-                searchEmployee ? (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      onClick={() => setSearchEmployee('')}
-                      edge="end"
-                      aria-label="clear search"
-                      sx={{ p: 0.5, color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
-                    >
-                      <Iconify icon={"solar:close-circle-bold" as any} width={18} />
-                    </IconButton>
-                  </InputAdornment>
-                ) : null
-              }
-              sx={{
-                height: 44,
-                borderRadius: 1.25,
-                bgcolor: 'background.paper',
-                '& .MuiOutlinedInput-input': { py: 0, fontSize: '0.875rem' },
-                '& fieldset': { borderColor: 'divider' },
-                '&:hover fieldset': { borderColor: 'text.secondary' },
-                '&.Mui-focused fieldset': { borderColor: COMMON_COLORS.emerald.main },
-              }}
-            />
+              ) : null
+            }
+            sx={{
+              height: 44,
+              borderRadius: 1.25,
+              bgcolor: 'background.paper',
+              '& .MuiOutlinedInput-input': { py: 0, fontSize: '0.875rem' },
+              '& fieldset': { borderColor: 'divider' },
+              '&:hover fieldset': { borderColor: 'text.secondary' },
+              '&.Mui-focused fieldset': { borderColor: COMMON_COLORS.emerald.main },
+            }}
+          />
+        </Stack>
+
+        {/* Month Navigation & Action Controls */}
+        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={{
+              p: 0.5,
+              px: 1,
+              borderRadius: 1,
+              bgcolor: 'background.paper',
+              border: (t) => `1px solid ${t.palette.divider}`,
+            }}
+          >
+            <Button
+              variant="text"
+              size="small"
+              onClick={handleCurrentMonth}
+              sx={{ fontWeight: 700, color: COMMON_COLORS.emerald.main, px: 1 }}
+            >
+              Current Month
+            </Button>
+
+            <IconButton size="small" onClick={handlePrevMonth}>
+              <Iconify icon={"solar:alt-arrow-left-linear" as any} width={18} />
+            </IconButton>
+            <Typography variant="subtitle2" sx={{ minWidth: 140, textAlign: 'center', fontWeight: 800 }}>
+              {currentDate.format('MMMM YYYY')}
+            </Typography>
+            <IconButton size="small" onClick={handleNextMonth}>
+              <Iconify icon={"solar:alt-arrow-right-linear" as any} width={18} />
+            </IconButton>
           </Stack>
 
-          {/* Month Navigation & Action Controls */}
-          <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={1}
-              sx={{
-                p: 0.5,
-                px: 1,
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-                border: (t) => `1px solid ${t.palette.divider}`,
-              }}
-            >
-              <Button
-                variant="text"
-                size="small"
-                onClick={handleCurrentMonth}
-                sx={{ fontWeight: 700, color: COMMON_COLORS.emerald.main, px: 1 }}
-              >
-                Current Month
-              </Button>
-
-              <IconButton size="small" onClick={handlePrevMonth}>
-                <Iconify icon={"solar:alt-arrow-left-linear" as any} width={18} />
-              </IconButton>
-              <Typography variant="subtitle2" sx={{ minWidth: 140, textAlign: 'center', fontWeight: 800 }}>
-                {currentDate.format('MMMM YYYY')}
-              </Typography>
-              <IconButton size="small" onClick={handleNextMonth}>
-                <Iconify icon={"solar:alt-arrow-right-linear" as any} width={18} />
-              </IconButton>
-            </Stack>
-
-            {/* Filter Drawer Trigger Button */}
-            <Button
-              disableRipple
-              onClick={() => setOpenFilters(true)}
-              sx={{
-                height: 42,
-                px: 2,
-                bgcolor: COMMON_COLORS.filterButton.bg,
-                color: COMMON_COLORS.filterButton.color,
-                borderRadius: 1.25,
-                fontWeight: 700,
-                fontSize: '0.875rem',
-                textTransform: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 1,
+          {/* Filter Drawer Trigger Button */}
+          <Button
+            disableRipple
+            onClick={() => setOpenFilters(true)}
+            sx={{
+              height: 42,
+              px: 2,
+              bgcolor: COMMON_COLORS.filterButton.bg,
+              color: COMMON_COLORS.filterButton.color,
+              borderRadius: 1.25,
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              textTransform: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1,
+              boxShadow: 'none',
+              border: 'none',
+              transition: 'all 0.15s ease',
+              '&:hover': {
+                bgcolor: COMMON_COLORS.filterButton.hoverBg,
                 boxShadow: 'none',
-                border: 'none',
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: COMMON_COLORS.filterButton.hoverBg,
-                  boxShadow: 'none',
+              },
+            }}
+          >
+            <Badge
+              color="error"
+              variant="dot"
+              invisible={activeFiltersCount === 0}
+              sx={{
+                '& .MuiBadge-badge': {
+                  top: 2,
+                  right: 2,
                 },
               }}
             >
-              <Badge
-                color="error"
-                variant="dot"
-                invisible={activeFiltersCount === 0}
+              <Iconify icon={"solar:filter-linear" as any} width={18} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
+            </Badge>
+            <Box component="span" sx={{ whiteSpace: 'nowrap', display: 'inline', fontWeight: 700 }}>
+              {activeFiltersCount > 0 ? `Filters (${activeFiltersCount})` : 'Filters'}
+            </Box>
+            <Iconify icon={"eva:chevron-down-fill" as any} width={16} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
+          </Button>
+
+          {/* Sort Button & Menu */}
+          <Button
+            onClick={(e) => setSortAnchorEl(e.currentTarget)}
+            sx={{
+              height: 42,
+              minWidth: 165,
+              px: 1.5,
+              py: 0.5,
+              bgcolor: COMMON_COLORS.sortButton.bg,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1.25,
+              textTransform: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1.25,
+              transition: 'all 0.15s ease',
+              '&:hover': {
+                bgcolor: 'action.hover',
+                borderColor: 'text.secondary',
+              },
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Iconify icon={"solar:sort-vertical-linear" as any} width={18} sx={{ color: COMMON_COLORS.sortButton.labelColor, flexShrink: 0 }} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+                <Typography component="span" sx={{ fontSize: '0.675rem', fontWeight: 500, color: COMMON_COLORS.sortButton.labelColor, lineHeight: 1.1 }}>
+                  Sort by
+                </Typography>
+                <Typography component="span" sx={{ fontSize: '0.8125rem', fontWeight: 700, color: COMMON_COLORS.sortButton.valueColor, lineHeight: 1.2 }}>
+                  {sortOptions.find((o) => o.value === sortBy)?.label || 'Newest First'}
+                </Typography>
+              </Box>
+            </Box>
+            <Iconify icon={"eva:chevron-down-fill" as any} width={16} sx={{ color: COMMON_COLORS.sortButton.labelColor, flexShrink: 0 }} />
+          </Button>
+
+          <Menu
+            anchorEl={sortAnchorEl}
+            open={Boolean(sortAnchorEl)}
+            onClose={() => setSortAnchorEl(null)}
+            PaperProps={{
+              sx: {
+                mt: 1,
+                minWidth: 190,
+                borderRadius: 1.25,
+                boxShadow: '0 4px 20px 0 rgba(0,0,0,0.08)',
+              },
+            }}
+          >
+            {sortOptions.map((option) => (
+              <MenuItem
+                key={option.value}
+                selected={option.value === sortBy}
+                onClick={() => {
+                  setSortBy(option.value);
+                  setSortAnchorEl(null);
+                }}
                 sx={{
-                  '& .MuiBadge-badge': {
-                    top: 2,
-                    right: 2,
-                  },
+                  fontSize: '0.875rem',
+                  fontWeight: option.value === sortBy ? 600 : 400,
+                  py: 1,
+                  px: 2,
                 }}
               >
-                <Iconify icon={"solar:filter-linear" as any} width={18} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
-              </Badge>
-              <Box component="span" sx={{ whiteSpace: 'nowrap', display: 'inline', fontWeight: 700 }}>
-                {activeFiltersCount > 0 ? `Filters (${activeFiltersCount})` : 'Filters'}
-              </Box>
-              <Iconify icon={"eva:chevron-down-fill" as any} width={16} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
-            </Button>
-          </Stack>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Menu>
         </Stack>
+      </Card>
 
+      {/* Main Board Card */}
+      <Card sx={{ p: 2.5 }}>
         {/* Legend Bar */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={2}
-          flexWrap="wrap"
-          sx={{ px: 2.5, py: 1.25, bgcolor: alpha(theme.palette.grey[500], 0.04), borderBottom: '1px solid', borderColor: 'divider' }}
-        >
-          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.5 }}>
+        <Stack direction="row" spacing={2} sx={{ mb: 2.5, flexWrap: 'wrap', gap: 1.5 }} alignItems="center">
+          <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase' }}>
             LEGEND:
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center">
             <Box
               sx={{
-                width: 20,
-                height: 20,
-                borderRadius: 0.5,
+                width: 26,
+                height: 22,
+                borderRadius: '6px',
                 bgcolor: alpha(COMMON_COLORS.emerald.main, 0.15),
                 color: COMMON_COLORS.emerald.dark,
                 fontWeight: 700,
@@ -419,7 +506,7 @@ export function CanteenMonthlyView({
             >
               1
             </Box>
-            <Typography variant="caption" sx={{ fontWeight: 600 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
               Meal Availed (Count)
             </Typography>
           </Stack>
@@ -427,9 +514,9 @@ export function CanteenMonthlyView({
           <Stack direction="row" spacing={1} alignItems="center">
             <Box
               sx={{
-                width: 20,
-                height: 20,
-                borderRadius: 0.5,
+                width: 26,
+                height: 22,
+                borderRadius: '6px',
                 bgcolor: '#fef3c7',
                 border: '1px solid #fde68a',
                 color: '#b45309',
@@ -442,7 +529,7 @@ export function CanteenMonthlyView({
             >
               H
             </Box>
-            <Typography variant="caption" sx={{ fontWeight: 600 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
               Holiday / Sunday
             </Typography>
           </Stack>
@@ -450,112 +537,134 @@ export function CanteenMonthlyView({
           <Stack direction="row" spacing={1} alignItems="center">
             <Box
               sx={{
-                width: 20,
-                height: 20,
-                borderRadius: 0.5,
-                bgcolor: alpha(theme.palette.grey[500], 0.08),
-                border: '1px dashed #d1d5db',
+                width: 26,
+                height: 22,
+                borderRadius: '6px',
+                bgcolor: '#f8fafc',
+                border: '1px dashed #cbd5e1',
               }}
             />
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
               No Meal
             </Typography>
           </Stack>
         </Stack>
 
-        {/* Matrix Grid Container */}
+        {/* Scrollable Matrix Grid Container */}
         <Box
-          ref={tableContainerRef}
+          ref={gridScrollRef}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
           sx={{
             width: '100%',
             overflowX: 'auto',
-            maxHeight: 'calc(100vh - 280px)',
-            position: 'relative',
+            borderRadius: '12px',
+            border: (t) => `1px solid ${t.palette.divider}`,
+            bgcolor: 'background.paper',
+            cursor: 'grab',
+            userSelect: 'none',
+            '&::-webkit-scrollbar': { height: 8 },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'rgba(0,0,0,0.15)',
+              borderRadius: 4,
+            },
           }}
         >
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
-              <CircularProgress size={36} />
-            </Box>
-          ) : (
-            <Table
-              size="small"
-              stickyHeader
-              sx={{
-                minWidth: 1000,
-                borderCollapse: 'separate',
-                borderSpacing: 0,
-                '& th, & td': {
-                  borderRight: `1px solid ${theme.palette.divider}`,
-                  borderBottom: `1px solid ${theme.palette.divider}`,
-                },
-              }}
-            >
-              <TableHead>
-                {/* Day Names & Day Numbers Header */}
-                <TableRow sx={{ '& th': { bgcolor: 'background.paper', zIndex: 3 } }}>
-                  <TableCell
-                    sx={{
-                      position: 'sticky',
-                      left: 0,
-                      zIndex: 5,
-                      bgcolor: 'background.paper',
-                      minWidth: 240,
-                      fontWeight: 700,
-                      boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
-                    }}
-                  >
-                    Employee ({filteredEmployees.length} of {totalCount || filteredEmployees.length})
-                  </TableCell>
+          <Table size="small" sx={{ borderCollapse: 'separate', borderSpacing: 0, minWidth: 900 }}>
+            <TableHead>
+              {/* Day Names & Day Numbers Header */}
+              <TableRow sx={{ bgcolor: 'background.neutral' }}>
+                <TableCell
+                  sx={{
+                    fontWeight: 800,
+                    color: 'text.primary',
+                    py: 1.5,
+                    minWidth: 200,
+                    position: 'sticky',
+                    left: 0,
+                    bgcolor: 'background.neutral',
+                    zIndex: 11,
+                    borderRight: (t) => `1px solid ${t.palette.divider}`,
+                    borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                  }}
+                >
+                  Employee ({filteredEmployees.length}{totalCount ? ` of ${totalCount}` : ''})
+                </TableCell>
 
-                  {rosterData?.days.map((d) => {
-                    const isSunOrHol = d.is_weekend || d.is_holiday;
-                    return (
-                      <TableCell
-                        key={d.date}
-                        align="center"
-                        sx={{
-                          p: 0.75,
-                          minWidth: 38,
-                          maxWidth: 42,
-                          bgcolor: isSunOrHol ? '#fef3c7 !important' : 'background.neutral',
-                          color: isSunOrHol ? '#b45309' : 'text.primary',
-                        }}
-                      >
-                        <Tooltip title={d.is_holiday ? `Holiday: ${d.holiday_name}` : d.is_weekend ? 'Sunday (Weekly Off)' : ''}>
-                          <div>
-                            <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem', fontWeight: 700 }}>
-                              {d.day_name.toUpperCase()}
-                            </Typography>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.8rem' }}>
-                              {String(d.day).padStart(2, '0')}
-                            </Typography>
-                          </div>
-                        </Tooltip>
-                      </TableCell>
-                    );
-                  })}
+                {rosterData?.days?.map((d) => {
+                  const isSunOrHol = d.is_weekend || d.is_holiday;
+                  return (
+                    <TableCell
+                      key={d.date}
+                      align="center"
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: '0.75rem',
+                        py: 1,
+                        px: 0.5,
+                        minWidth: 42,
+                        maxWidth: 42,
+                        bgcolor: isSunOrHol ? '#fef3c7 !important' : undefined,
+                        color: isSunOrHol ? '#b45309' : d.is_weekend ? 'text.secondary' : 'text.primary',
+                        borderRight: (t) => `1px solid ${t.palette.divider}`,
+                        borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                      }}
+                    >
+                      <Tooltip title={d.is_holiday ? `Holiday: ${d.holiday_name}` : d.is_weekend ? 'Sunday (Weekly Off)' : ''}>
+                        <Box>
+                          <Box sx={{ fontSize: '0.65rem', textTransform: 'uppercase', opacity: 0.8, fontWeight: 800 }}>
+                            {d.day_name}
+                          </Box>
+                          <Box sx={{ fontSize: '0.85rem', fontWeight: 800 }}>
+                            {d.day < 10 ? `0${d.day}` : d.day}
+                          </Box>
+                        </Box>
+                      </Tooltip>
+                    </TableCell>
+                  );
+                })}
 
-                  <TableCell
-                    align="center"
-                    sx={{
-                      minWidth: 64,
-                      fontWeight: 700,
-                      bgcolor: 'background.neutral',
-                    }}
-                  >
-                    Total
+                <TableCell
+                  align="center"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    py: 1.5,
+                    px: 1,
+                    minWidth: 70,
+                    color: 'text.primary',
+                    borderRight: (t) => `1px solid ${t.palette.divider}`,
+                    borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                  }}
+                >
+                  Total
+                </TableCell>
+              </TableRow>
+            </TableHead>
+
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={(rosterData?.days?.length || 0) + 2} align="center" sx={{ py: 10 }}>
+                    <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                   </TableCell>
                 </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {filteredEmployees.map((emp) => (
+              ) : filteredEmployees.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={(rosterData?.days?.length || 0) + 2} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                    No employees matching the selected criteria.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredEmployees.map((emp) => (
                   <TableRow
                     key={emp.employee}
                     hover
                     sx={{
                       '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.03) },
+                      '& td': { py: 1.2 },
                     }}
                   >
                     {/* Sticky Employee Name Column */}
@@ -563,23 +672,25 @@ export function CanteenMonthlyView({
                       sx={{
                         position: 'sticky',
                         left: 0,
-                        zIndex: 2,
                         bgcolor: 'background.paper',
-                        boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
-                        py: 1,
-                        px: 1.5,
+                        zIndex: 10,
+                        borderRight: (t) => `1px solid ${t.palette.divider}`,
+                        borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                        boxShadow: '4px 0 8px -4px rgba(0,0,0,0.12)',
+                        minWidth: 200,
+                        maxWidth: 240,
                       }}
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                      <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
                         {emp.employee_name}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}>
-                        {emp.employee} {emp.department ? `• ${emp.department}` : ''}
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                        {emp.employee} {emp.department && emp.department !== '-' ? `• ${emp.department}` : ''}
                       </Typography>
                     </TableCell>
 
                     {/* Day Cells */}
-                    {rosterData?.days.map((d) => {
+                    {rosterData?.days?.map((d) => {
                       const entry = emp.entries[d.date];
                       const availed = entry?.availed && entry?.meal_count > 0;
                       const isSunOrHol = d.is_weekend || d.is_holiday;
@@ -590,13 +701,18 @@ export function CanteenMonthlyView({
                           align="center"
                           onClick={() => handleCellClick(emp.employee, d.date)}
                           sx={{
-                            p: 0.5,
+                            px: 0.5,
+                            py: 0.8,
+                            minWidth: 42,
+                            maxWidth: 42,
                             cursor: canEdit ? 'pointer' : 'default',
-                            bgcolor: isSunOrHol ? '#fffbeb' : 'inherit',
-                            transition: 'all 0.15s ease',
+                            bgcolor: isSunOrHol ? '#fffbeb' : undefined,
+                            borderRight: (t) => `1px solid ${t.palette.divider}`,
+                            borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                            transition: 'background-color 0.15s ease',
                             '&:hover': canEdit
                               ? {
-                                  bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                                  bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
                                 }
                               : {},
                           }}
@@ -611,12 +727,12 @@ export function CanteenMonthlyView({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   width: 26,
-                                  height: 26,
-                                  borderRadius: 1,
+                                  height: 22,
+                                  borderRadius: '6px',
                                   bgcolor: COMMON_COLORS.emerald.main,
                                   color: '#ffffff',
                                   fontWeight: 700,
-                                  fontSize: '0.8rem',
+                                  fontSize: '0.75rem',
                                   boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
                                 }}
                               >
@@ -627,7 +743,7 @@ export function CanteenMonthlyView({
                             <Box
                               sx={{
                                 width: '100%',
-                                height: 26,
+                                height: 22,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -648,6 +764,9 @@ export function CanteenMonthlyView({
                       sx={{
                         fontWeight: 700,
                         bgcolor: alpha(theme.palette.primary.main, 0.04),
+                        borderRight: (t) => `1px solid ${t.palette.divider}`,
+                        borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                        minWidth: 70,
                       }}
                     >
                       <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
@@ -655,85 +774,117 @@ export function CanteenMonthlyView({
                       </Typography>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+              )}
 
-                {/* Daily Totals Footer Row (Image 1 bottom sum row) */}
-                {rosterData && filteredEmployees.length > 0 && (
-                  <TableRow
+              {/* Daily Totals Footer Row */}
+              {rosterData && filteredEmployees.length > 0 && (
+                <TableRow
+                  sx={{
+                    bgcolor: 'background.neutral',
+                  }}
+                >
+                  <TableCell
                     sx={{
                       position: 'sticky',
-                      bottom: 0,
-                      zIndex: 3,
+                      left: 0,
+                      zIndex: 10,
                       bgcolor: 'background.neutral',
-                      '& td': {
-                        borderTop: '2px solid',
-                        borderColor: 'divider',
-                        fontWeight: 800,
-                        bgcolor: 'background.neutral',
-                      },
+                      fontWeight: 800,
+                      boxShadow: '4px 0 8px -4px rgba(0,0,0,0.12)',
+                      borderRight: (t) => `1px solid ${t.palette.divider}`,
+                      borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                      borderTop: (t) => `2px solid ${t.palette.divider}`,
+                      py: 1.2,
+                      px: 1.5,
+                      minWidth: 200,
+                      maxWidth: 240,
                     }}
                   >
-                    <TableCell
-                      sx={{
-                        position: 'sticky',
-                        left: 0,
-                        zIndex: 4,
-                        bgcolor: 'background.neutral',
-                        fontWeight: 800,
-                        boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
-                      }}
-                    >
-                      Daily Totals (Sum)
-                    </TableCell>
+                    Daily Totals (Sum)
+                  </TableCell>
 
-                    {rosterData.days.map((d) => {
-                      const count = rosterData.daily_totals?.[d.date] || 0;
-                      return (
-                        <TableCell key={d.date} align="center">
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontWeight: 800,
-                              color: count > 0 ? COMMON_COLORS.emerald.dark : 'text.disabled',
-                            }}
-                          >
-                            {count > 0 ? count : '-'}
+                  {rosterData.days.map((d) => {
+                    const count = rosterData.daily_totals?.[d.date] || 0;
+                    return (
+                      <TableCell
+                        key={d.date}
+                        align="center"
+                        sx={{
+                          px: 0.5,
+                          py: 1,
+                          minWidth: 42,
+                          maxWidth: 42,
+                          borderRight: (t) => `1px solid ${t.palette.divider}`,
+                          borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                          borderTop: (t) => `2px solid ${t.palette.divider}`,
+                          bgcolor: 'background.neutral',
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 800,
+                            color: count > 0 ? COMMON_COLORS.emerald.dark : 'text.disabled',
+                          }}
+                        >
+                          {count > 0 ? count : '-'}
+                        </Typography>
+                      </TableCell>
+                    );
+                  })}
+
+                  <TableCell
+                    align="center"
+                    sx={{
+                      bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                      color: COMMON_COLORS.emerald.dark,
+                      borderRight: (t) => `1px solid ${t.palette.divider}`,
+                      borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                      borderTop: (t) => `2px solid ${t.palette.divider}`,
+                      minWidth: 70,
+                    }}
+                  >
+                    <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>
+                      {rosterData.grand_total}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {/* Sentinel and Load More row */}
+              {hasMore && (
+                <TableRow>
+                  <TableCell
+                    colSpan={(rosterData?.days?.length || 31) + 2}
+                    align="center"
+                    sx={{ py: 2, bgcolor: 'background.neutral' }}
+                  >
+                    <Box ref={sentinelRef} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
+                      {loadingMore ? (
+                        <Stack direction="row" spacing={1.5} alignItems="center">
+                          <CircularProgress size={20} color="primary" />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                            Loading more employees... ({filteredEmployees.length} of {totalCount})
                           </Typography>
-                        </TableCell>
-                      );
-                    })}
-
-                    <TableCell
-                      align="center"
-                      sx={{
-                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
-                        color: COMMON_COLORS.emerald.dark,
-                      }}
-                    >
-                      <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>
-                        {rosterData.grand_total}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-
-          {/* Load More Button if hasMore */}
-          {hasMore && (
-            <Box sx={{ p: 2, textAlign: 'center' }}>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={loadMore}
-                disabled={loadingMore}
-                startIcon={loadingMore ? <CircularProgress size={16} /> : null}
-              >
-                {loadingMore ? 'Loading More Employees...' : 'Load More Employees'}
-              </Button>
-            </Box>
-          )}
+                        </Stack>
+                      ) : (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => loadMore()}
+                          startIcon={<Iconify icon={"solar:alt-arrow-down-linear" as any} />}
+                          sx={{ fontWeight: 700 }}
+                        >
+                          Load More ({Math.min(50, (totalCount || filteredEmployees.length) - filteredEmployees.length)} remaining)
+                        </Button>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </Box>
       </Card>
 
@@ -758,10 +909,11 @@ export function CanteenMonthlyView({
           setSelectedMealType('all');
           setSelectedEmployees([]);
         }}
-        employeeOptions={employees}
+        employeeOptions={selectedDept === 'all' ? employees : employees.filter((e) => e.department === selectedDept)}
         departmentOptions={departments}
         hideDateFilters
         hideStatusFilter
+        isHR={isHRUser}
       />
 
       {/* Add / Edit Entry Dialog for clicked cell */}
@@ -780,6 +932,7 @@ export function CanteenMonthlyView({
           initialDate={targetDate}
         />
       )}
-    </>
+    </Stack>
   );
 }
+

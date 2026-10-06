@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
-import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 
@@ -43,7 +41,7 @@ export function CanteenView() {
     urlView === 'list' ? 'list' : urlView === 'calendar' ? 'calendar' : 'monthly'
   );
 
-  const isSingleEmployee = selectedEmployees.length === 1;
+  const isSingleEmployee = selectedEmployees.length === 1 || (isRestrictedEmployee && Boolean(user?.employee));
 
   useEffect(() => {
     if (!isSingleEmployee && currentView === 'calendar') {
@@ -52,17 +50,6 @@ export function CanteenView() {
     }
   }, [isSingleEmployee, currentView, setSearchParams]);
 
-  // Snackbar State
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info' | 'warning';
-  }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-
   // Dialog State
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openImportDialog, setOpenImportDialog] = useState(false);
@@ -70,20 +57,14 @@ export function CanteenView() {
 
   const { refetch } = useCanteen(1, 100);
 
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-
   const handleCreateSuccess = () => {
     refetch();
     setRefreshTrigger((prev) => prev + 1);
-    setSnackbar({ open: true, message: 'Canteen entry created successfully', severity: 'success' });
   };
 
   const handleImportSuccess = () => {
     refetch();
     setRefreshTrigger((prev) => prev + 1);
-    setSnackbar({ open: true, message: 'Canteen Excel data imported successfully', severity: 'success' });
   };
 
   const handleViewChange = (newView: string) => {
@@ -143,67 +124,52 @@ export function CanteenView() {
           </Stack>
         </Stack>
 
-        {/* View Switcher Tabs */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="flex-end"
-          spacing={1}
-        >
-          <Button
-            size="small"
-            variant={currentView === 'list' ? 'contained' : 'text'}
-            color={currentView === 'list' ? 'primary' : 'inherit'}
-            startIcon={<Iconify icon="solar:list-bold" />}
-            onClick={() => handleViewChange('list')}
+        {/* View Switcher Pill styled like Employee Shift Assignment */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Box
             sx={{
-              fontWeight: 600,
-              bgcolor: currentView === 'list' ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-              color: currentView === 'list' ? theme.palette.primary.main : 'text.secondary',
-              '&:hover': {
-                bgcolor: currentView === 'list' ? alpha(theme.palette.primary.main, 0.16) : alpha(theme.palette.grey[500], 0.08),
-              },
+              display: 'inline-flex',
+              bgcolor: alpha(theme.palette.grey[500], 0.06),
+              p: 0.5,
+              borderRadius: '24px',
+              border: `1px solid ${alpha(theme.palette.grey[500], 0.08)}`,
             }}
           >
-            List View
-          </Button>
-
-          <Button
-            size="small"
-            variant={currentView === 'monthly' ? 'contained' : 'text'}
-            color={currentView === 'monthly' ? 'primary' : 'inherit'}
-            startIcon={<Iconify icon="solar:calendar-date-bold" />}
-            onClick={() => handleViewChange('monthly')}
-            sx={{
-              fontWeight: 600,
-              bgcolor: currentView === 'monthly' ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-              color: currentView === 'monthly' ? theme.palette.primary.main : 'text.secondary',
-              '&:hover': {
-                bgcolor: currentView === 'monthly' ? alpha(theme.palette.primary.main, 0.16) : alpha(theme.palette.grey[500], 0.08),
-              },
-            }}
-          >
-            Monthly Roster View
-          </Button>
-
-          <Button
-            size="small"
-            variant={currentView === 'calendar' ? 'contained' : 'text'}
-            color={currentView === 'calendar' ? 'primary' : 'inherit'}
-            startIcon={<Iconify icon="solar:calendar-bold" />}
-            onClick={() => handleViewChange('calendar')}
-            sx={{
-              fontWeight: 600,
-              bgcolor: currentView === 'calendar' ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-              color: currentView === 'calendar' ? theme.palette.primary.main : 'text.secondary',
-              '&:hover': {
-                bgcolor: currentView === 'calendar' ? alpha(theme.palette.primary.main, 0.16) : alpha(theme.palette.grey[500], 0.08),
-              },
-            }}
-          >
-            Calendar View
-          </Button>
-        </Stack>
+            {[
+              { value: 'list', label: 'List View', icon: 'solar:list-bold' },
+              { value: 'monthly', label: 'Monthly Roster View', icon: 'solar:calendar-date-bold' },
+              ...(isSingleEmployee
+                ? [{ value: 'calendar', label: 'Calendar View', icon: 'solar:calendar-bold' }]
+                : []),
+            ].map((tab) => {
+              const isActive = currentView === tab.value;
+              return (
+                <Button
+                  key={tab.value}
+                  onClick={() => handleViewChange(tab.value)}
+                  startIcon={<Iconify icon={tab.icon as any} width={16} />}
+                  sx={{
+                    borderRadius: '20px',
+                    px: 3,
+                    py: 0.75,
+                    fontSize: '0.825rem',
+                    fontWeight: isActive ? 700 : 600,
+                    color: isActive ? '#fff' : theme.palette.text.secondary,
+                    bgcolor: isActive ? COMMON_COLORS.emerald.main : 'transparent',
+                    boxShadow: isActive ? `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.3)}` : 'none',
+                    textTransform: 'capitalize',
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      bgcolor: isActive ? COMMON_COLORS.emerald.dark : alpha(theme.palette.grey[500], 0.08),
+                    },
+                  }}
+                >
+                  {tab.label}
+                </Button>
+              );
+            })}
+          </Box>
+        </Box>
       </Stack>
 
       {/* Main View Render */}
@@ -216,6 +182,7 @@ export function CanteenView() {
             canDelete={!isRestrictedEmployee}
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
+            isHR={isHRUser}
           />
         )}
 
@@ -225,6 +192,7 @@ export function CanteenView() {
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
             refreshTrigger={refreshTrigger}
+            isHR={isHRUser}
           />
         )}
 
@@ -235,6 +203,7 @@ export function CanteenView() {
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
             refreshTrigger={refreshTrigger}
+            isHR={isHRUser}
           />
         )}
       </Box>
@@ -256,18 +225,6 @@ export function CanteenView() {
           onSuccess={handleImportSuccess}
         />
       )}
-
-      {/* Notification Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </DashboardContent>
   );
 }

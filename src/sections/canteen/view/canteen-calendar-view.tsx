@@ -56,8 +56,8 @@ export function CanteenCalendarView({
     isHR !== undefined
       ? isHR
       : user?.roles?.some((role: string) =>
-          ['HR Manager', 'HR', 'System Manager', 'Administrator'].includes(role)
-        );
+        ['HR Manager', 'HR', 'System Manager', 'Administrator'].includes(role)
+      );
   const isRestrictedEmployee = user?.roles?.includes('Employee') && !isHRUser;
 
   const theme = useTheme();
@@ -156,9 +156,16 @@ export function CanteenCalendarView({
   };
 
   const employeeFilterParam = useMemo(() => {
-    if (selectedEmployees.length === 0) return undefined;
-    return selectedEmployees.map((e) => (typeof e === 'string' ? e : e.name));
-  }, [selectedEmployees]);
+    if (filters.employees && filters.employees.length > 0) {
+      const ids = filters.employees.map((e) => (typeof e === 'string' ? e : e.name)).filter(Boolean);
+      return ids.length === 1 ? ids[0] : ids;
+    }
+    if (selectedEmployees.length > 0) {
+      const ids = selectedEmployees.map((e) => (typeof e === 'string' ? e : e.name)).filter(Boolean);
+      return ids.length === 1 ? ids[0] : ids;
+    }
+    return undefined;
+  }, [filters.employees, selectedEmployees]);
 
   const { events = [], loading, refetch } = useCalendarCanteen(
     startDate,
@@ -454,13 +461,19 @@ export function CanteenCalendarView({
         onOpen={() => setOpenFilters(true)}
         onClose={() => setOpenFilters(false)}
         filters={filters}
-        onFilters={(update) => setFilters((prev) => ({ ...prev, ...update }))}
+        onFilters={(update) => {
+          setFilters((prev) => ({ ...prev, ...update }));
+          if (update.employees !== undefined) {
+            setSelectedEmployees(update.employees);
+          }
+        }}
         canReset={canReset}
         onResetFilters={handleResetFilters}
-        employeeOptions={employees}
+        employeeOptions={filters.department === 'all' ? employees : employees.filter((e) => e.department === filters.department)}
         departmentOptions={departments}
         hideDateFilters
         hideStatusFilter
+        isHR={isHRUser}
       />
 
       {/* Add / Edit Entry Dialog */}

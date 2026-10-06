@@ -63,7 +63,7 @@ export interface MonthlyCanteenResponse {
 
 // Fetch list of Canteen entries
 export const fetchCanteenList = (params: any) => {
-  const { search, ...rest } = params;
+  const { search, limit, page_size, order_by, orderBy, order, ...rest } = params;
   const cleanSearch = search?.trim();
 
   const or_filters = rest.or_filters || [];
@@ -77,7 +77,21 @@ export const fetchCanteenList = (params: any) => {
     );
   }
 
-  return fetchFrappeList('Canteen Entry', { ...rest, or_filters });
+  let finalOrderBy = orderBy;
+  let finalOrder = order;
+  if (order_by && !finalOrderBy) {
+    const parts = order_by.split(' ');
+    finalOrderBy = parts[0];
+    finalOrder = parts[1] || 'desc';
+  }
+
+  return fetchFrappeList('Canteen Entry', {
+    ...rest,
+    page_size: page_size || limit || 10,
+    orderBy: finalOrderBy,
+    order: finalOrder,
+    or_filters,
+  });
 };
 
 // Create Canteen Entry
@@ -157,6 +171,7 @@ export async function fetchMonthlyCanteen(params: {
   meal_type?: string;
   start?: number;
   limit?: number;
+  order_by?: string;
 }): Promise<MonthlyCanteenResponse> {
   const headers = await getAuthHeaders();
   const query = new URLSearchParams();
@@ -174,6 +189,7 @@ export async function fetchMonthlyCanteen(params: {
   }
   if (params.start !== undefined) query.set('start', String(params.start));
   if (params.limit !== undefined) query.set('limit', String(params.limit));
+  if (params.order_by) query.set('order_by', params.order_by);
 
   const res = await frappeRequest(`/api/method/company.company.canteen_api.get_monthly_canteen?${query.toString()}`, {
     method: 'GET',

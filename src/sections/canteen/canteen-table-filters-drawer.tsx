@@ -97,14 +97,6 @@ export function CanteenTableFiltersDrawer({
     onFilters({ status: event.target.value });
   };
 
-  const handleFilterFromDate = (date: dayjs.Dayjs | null) => {
-    onFilters({ fromDate: date });
-  };
-
-  const handleFilterToDate = (date: dayjs.Dayjs | null) => {
-    onFilters({ toDate: date });
-  };
-
   const renderHead = (
     <Box
       sx={{
@@ -117,7 +109,7 @@ export function CanteenTableFiltersDrawer({
         borderColor: 'divider',
       }}
     >
-      <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700 }}>
+      <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
         Filters
       </Typography>
 
@@ -125,134 +117,159 @@ export function CanteenTableFiltersDrawer({
         onClick={onResetFilters}
         disabled={!canReset}
         sx={{
-          mr: 1,
+          mr: 0.5,
           color: canReset ? 'primary.main' : 'text.disabled',
+          '&:hover': {
+            bgcolor: canReset ? 'primary.lighter' : 'transparent',
+          },
         }}
       >
         <Badge color="error" variant="dot" invisible={!canReset}>
-          <Iconify icon="solar:restart-bold" />
+          <Iconify icon="solar:restart-bold" width={20} />
         </Badge>
       </IconButton>
 
-      <IconButton onClick={onClose}>
-        <Iconify icon="solar:close-circle-bold" />
+      <IconButton
+        onClick={onClose}
+        sx={{
+          color: 'text.secondary',
+          '&:hover': {
+            bgcolor: 'action.hover',
+          },
+        }}
+      >
+        <Iconify icon="mingcute:close-line" width={20} />
       </IconButton>
     </Box>
   );
 
   return (
-    <Drawer
-      anchor="right"
-      open={open}
-      onClose={onClose}
-      slotProps={{
-        backdrop: { invisible: true },
-      }}
-      PaperProps={{
-        sx: { width: 340 },
-      }}
-    >
-      {renderHead}
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Drawer
+        anchor="right"
+        open={open}
+        onClose={onClose}
+        slotProps={{
+          paper: {
+            sx: {
+              width: 320,
+              boxShadow: (theme: any) => theme.customShadows?.z24,
+            },
+          },
+        }}
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 100,
+        }}
+      >
+        {renderHead}
 
-      <Scrollbar>
-        <Stack spacing={3} sx={{ p: 3 }}>
-          {/* Date Range Filter */}
-          {!hideDateFilters && (
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <Scrollbar>
+          <Stack spacing={3} sx={{ p: 3 }}>
+            {/* Department Filter (if available and HR) */}
+            {isHR && departmentOptions && departmentOptions.length > 0 && (
               <Stack spacing={1.5}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  Date Range
+                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                  Department
                 </Typography>
-                <DatePicker
-                  label="From Date"
-                  value={filters.fromDate || null}
-                  onChange={handleFilterFromDate}
-                  slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                />
-                <DatePicker
-                  label="To Date"
-                  value={filters.toDate || null}
-                  onChange={handleFilterToDate}
-                  slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={filters.department || 'all'}
+                    onChange={handleFilterDepartment}
+                    sx={{
+                      borderRadius: 1.5,
+                      bgcolor: 'background.neutral',
+                    }}
+                  >
+                    <MenuItem value="all">All Departments</MenuItem>
+                    {departmentOptions.map((d) => (
+                      <MenuItem key={d.name} value={d.name}>
+                        {d.department_name || d.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+            )}
+
+            {/* Employee Filter (if HR) */}
+            {isHR && (
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                  Employee
+                </Typography>
+                <Autocomplete
+                  multiple
+                  disableCloseOnSelect
+                  fullWidth
+                  size="small"
+                  options={employeeOptions}
+                  getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
+                  filterOptions={(opts, state) => {
+                    const input = state.inputValue.toLowerCase().trim();
+                    if (!input) {
+                      const selectedIds = new Set(currentEmployees.map((ce: any) => (typeof ce === 'string' ? ce : ce?.name)));
+                      const selectedOpts = opts.filter((opt) => selectedIds.has(opt.name));
+                      const unselectedFirst50 = opts.filter((opt) => !selectedIds.has(opt.name)).slice(0, 50);
+                      return [...selectedOpts, ...unselectedFirst50];
+                    }
+                    const terms = input.split(/\s+/).filter(Boolean);
+                    const filtered = opts.filter((opt) => {
+                      const fullName = opt.employee_name || '';
+                      const empId = opt.name || '';
+                      const combined = `${fullName} ${empId} (${empId})`.toLowerCase();
+                      return terms.every((term: string) => combined.includes(term));
+                    });
+                    return filtered.slice(0, 50);
+                  }}
+                  isOptionEqualToValue={(option, value) => option?.name === value?.name}
+                  value={employeeOptions.filter((opt) => currentEmployees.some((ce: any) => (typeof ce === 'string' ? ce === opt.name : ce?.name === opt.name)))}
+                  onChange={handleFilterEmployees}
+                  renderOption={(props, option, { selected: isSelected }) => (
+                    <li {...props} key={option.name}>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                          {option.employee_name || option.name}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
+                          ID: {option.name}
+                        </Typography>
+                      </Box>
+                      {isSelected && (
+                        <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: 'primary.main', ml: 1 }} />
+                      )}
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder={currentEmployees.length === 0 ? "Search employee(s)..." : ""}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 1.5,
+                          bgcolor: 'background.neutral',
+                        },
+                      }}
+                    />
+                  )}
                 />
               </Stack>
-            </LocalizationProvider>
-          )}
+            )}
 
-          {/* Department Filter */}
-          {departmentOptions && (
+            {/* Meal Type Filter */}
             <Stack spacing={1.5}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                Department
+              <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                Meal Type
               </Typography>
               <FormControl fullWidth size="small">
                 <Select
-                  value={filters.department || 'all'}
-                  onChange={handleFilterDepartment}
+                  value={filters.meal_type || 'all'}
+                  onChange={handleFilterMealType}
+                  sx={{
+                    borderRadius: 1.5,
+                    bgcolor: 'background.neutral',
+                  }}
                 >
-                  <MenuItem value="all">All Departments</MenuItem>
-                  {departmentOptions.map((dept) => (
-                    <MenuItem key={dept.name} value={dept.name}>
-                      {dept.department_name || dept.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Stack>
-          )}
-
-          {/* Employee Filter */}
-          {isHR && (
-            <Stack spacing={1.5}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                Employees
-              </Typography>
-              <Autocomplete
-                multiple
-                size="small"
-                options={employeeOptions}
-                getOptionLabel={(option) => `${option.employee_name || option.name} (${option.name})`}
-                value={currentEmployees}
-                isOptionEqualToValue={(option, val) => option.name === val.name}
-                onChange={handleFilterEmployees}
-                renderInput={(params) => (
-                  <TextField {...params} placeholder="Search employees..." />
-                )}
-              />
-            </Stack>
-          )}
-
-          {/* Meal Type Filter */}
-          <Stack spacing={1.5}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              Meal Type
-            </Typography>
-            <FormControl fullWidth size="small">
-              <Select
-                value={filters.meal_type || 'all'}
-                onChange={handleFilterMealType}
-              >
-                {MEAL_TYPE_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
-
-          {/* Status Filter */}
-          {!hideStatusFilter && (
-            <Stack spacing={1.5}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                Status
-              </Typography>
-              <FormControl fullWidth size="small">
-                <Select
-                  value={filters.status || 'all'}
-                  onChange={handleFilterStatus}
-                >
-                  {STATUS_OPTIONS.map((opt) => (
+                  {MEAL_TYPE_OPTIONS.map((opt) => (
                     <MenuItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </MenuItem>
@@ -260,9 +277,85 @@ export function CanteenTableFiltersDrawer({
                 </Select>
               </FormControl>
             </Stack>
-          )}
-        </Stack>
-      </Scrollbar>
-    </Drawer>
+
+            {/* Status Filter */}
+            {!hideStatusFilter && (
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                  Status
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={filters.status || 'all'}
+                    onChange={handleFilterStatus}
+                    sx={{
+                      borderRadius: 1.5,
+                      bgcolor: 'background.neutral',
+                    }}
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <MenuItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+            )}
+
+            {/* Date Range Filters */}
+            {!hideDateFilters && (
+              <>
+                <Stack spacing={1.5}>
+                  <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                    From Date
+                  </Typography>
+                  <DatePicker
+                    value={filters.fromDate || null}
+                    onChange={(v) => onFilters({ fromDate: v })}
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        fullWidth: true,
+                        placeholder: 'DD-MM-YYYY',
+                        sx: {
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 1.5,
+                            bgcolor: 'background.neutral',
+                          },
+                        },
+                      },
+                    }}
+                  />
+                </Stack>
+
+                <Stack spacing={1.5}>
+                  <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                    To Date
+                  </Typography>
+                  <DatePicker
+                    value={filters.toDate || null}
+                    onChange={(v) => onFilters({ toDate: v })}
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        fullWidth: true,
+                        placeholder: 'DD-MM-YYYY',
+                        sx: {
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 1.5,
+                            bgcolor: 'background.neutral',
+                          },
+                        },
+                      },
+                    }}
+                  />
+                </Stack>
+              </>
+            )}
+          </Stack>
+        </Scrollbar>
+      </Drawer>
+    </LocalizationProvider>
   );
 }

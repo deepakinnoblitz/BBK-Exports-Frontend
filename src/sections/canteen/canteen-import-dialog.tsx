@@ -2,18 +2,22 @@ import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import dayjs from 'dayjs';
+import { useSnackbar } from 'notistack';
 import { useState, useRef } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Step from '@mui/material/Step';
 import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
+import Stepper from '@mui/material/Stepper';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
+import StepLabel from '@mui/material/StepLabel';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
@@ -27,7 +31,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TableContainer from '@mui/material/TableContainer';
 import LinearProgress from '@mui/material/LinearProgress';
-import { alpha, useTheme } from '@mui/material/styles';
 
 import { COMMON_COLORS } from 'src/theme';
 import { bulkImportCanteenEntries } from 'src/api/canteen';
@@ -36,6 +39,8 @@ import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
+
+const STEPS = ['Upload', 'Map Columns', 'Preview', 'Import'];
 
 const MONTHS = [
   { value: 1, label: 'January' },
@@ -68,9 +73,10 @@ type Props = {
 };
 
 export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
-  const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [activeStep, setActiveStep] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number>(dayjs().month() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(dayjs().year());
@@ -92,18 +98,23 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
     errors: string[];
   } | null>(null);
 
-  const handleReset = () => {
+  const reset = () => {
+    setActiveStep(0);
     setSelectedFile(null);
     setParsedRows([]);
     setTotalMealsCount(0);
     setErrorMessage(null);
     setImportResult(null);
+    setLoading(false);
+    setImporting(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleClose = () => {
-    handleReset();
-    onClose();
+    if (!importing) {
+      reset();
+      onClose();
+    }
   };
 
   // Helper to detect Month and Year from strings like "LUNCH EXPENSES FOR THE MONTH OF AUG-26" or "August 2026"
@@ -139,7 +150,6 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
 
     for (const [abbr, mNum] of Object.entries(monthAbbrs)) {
       if (clean.includes(abbr)) {
-        // Look for year like 2026 or 26
         const yrMatch = clean.match(/(20\d{2}|\b\d{2}\b)/);
         let yr = dayjs().year();
         if (yrMatch) {
@@ -169,7 +179,6 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: 'array' });
 
-      // Prefer sheet named "Lunch" or "Canteen" or fallback to first sheet
       const sheetName =
         workbook.SheetNames.find((s) => /lunch|canteen|expenses/i.test(s)) || workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
@@ -180,7 +189,7 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
         throw new Error('The selected Excel file is empty.');
       }
 
-      // Check top rows for month / year title (e.g. "LUNCH EXPENSES FOR THE MONTH OF AUG-26")
+      // Check top rows for month / year title
       for (let i = 0; i < Math.min(5, rawData.length); i++) {
         const rowText = rawData[i].join(' ');
         const detected = extractMonthYearFromText(rowText);
@@ -221,7 +230,6 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
         if (foundEmp || dayColsFound >= 5) {
           headerRowIndex = r;
           if (empNumCol === -1) {
-            // Fallback: column B is usually Emp Number (index 1), column C is Name (index 2)
             empNumCol = 1;
             empNameCol = 2;
           }
@@ -231,7 +239,7 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
 
       if (headerRowIndex === -1 || Object.keys(dayColMap).length === 0) {
         throw new Error(
-          'Could not find day columns (1..31) in the Excel file. Please ensure format matches Image 1.'
+          'Could not find day columns (1..31) in the Excel file. Please ensure format matches the Lunch Expenses template.'
         );
       }
 
@@ -248,7 +256,6 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
         const rawEmpId = String(row[empNumCol] || '').trim();
         const rawEmpName = empNameCol !== -1 ? String(row[empNameCol] || '').trim() : '';
 
-        // Skip header re-occurrence or summary footer rows (e.g., "Total" in emp column)
         if (
           !rawEmpId ||
           /total|sum|grand/i.test(rawEmpId) ||
@@ -273,7 +280,6 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
           }
         }
 
-        // Only include rows if employee number is valid
         if (rawEmpId.length >= 2) {
           rows.push({
             emp_number: rawEmpId,
@@ -314,7 +320,6 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
       views: [{ showGridLines: true }],
     });
 
-    // Determine which days in the selected month/year are Sundays (or default to 5, 12, 19, 26 matching the image)
     const sundayDays = new Set<number>();
     for (let d = 1; d <= daysInMonth; d++) {
       const dateObj = new Date(selectedYear, selectedMonth - 1, d);
@@ -376,13 +381,12 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
           cell.fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'FFFFFF00' }, // Yellow fill matching Image 4
+            fgColor: { argb: 'FFFFFF00' },
           };
         }
       }
     });
 
-    // 20 Employee Rows matching the exact image dataset
     const rawEmployees = [
       { sl: 1, id: 'BEPL0002', name: 'Sivakumar D S', days: {} },
       { sl: 2, id: 'BEPL0072', name: 'Deepika S', days: {} },
@@ -436,17 +440,24 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
 
       // Cols 4..34: Days 1..31
       for (let d = 1; d <= daysInMonth; d++) {
-        const cellDay = row.getCell(3 + d);
-        const count = (emp.days as any)[d] || '';
-        if (count) {
-          cellDay.value = Number(count);
-          rowTotal += Number(count);
-        } else {
-          cellDay.value = '';
-        }
+        const cellDay = row.getCell(d + 3);
+        const mealCount = (emp.days as Record<number, number>)[d] || '';
+        cellDay.value = mealCount;
         cellDay.font = { name: 'Calibri', size: 10 };
         cellDay.alignment = { horizontal: 'center', vertical: 'middle' };
         cellDay.border = thinBorder;
+
+        if (typeof mealCount === 'number') {
+          rowTotal += mealCount;
+        }
+
+        if (sundayDays.has(d)) {
+          cellDay.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFFF00' },
+          };
+        }
       }
 
       // Col 35: Total
@@ -457,26 +468,26 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
       cellTotal.border = thinBorder;
     });
 
-    // Set Column Widths to match Image 4
-    sheet.getColumn(1).width = 5.5;   // Sl.No
-    sheet.getColumn(2).width = 12;    // Emp Number
-    sheet.getColumn(3).width = 24;    // Name
+    sheet.getColumn(1).width = 5.5;
+    sheet.getColumn(2).width = 12;
+    sheet.getColumn(3).width = 24;
     for (let c = 4; c <= 34; c++) {
-      sheet.getColumn(c).width = 3.6; // Days 1..31
+      sheet.getColumn(c).width = 3.6;
     }
-    sheet.getColumn(35).width = 6.5;  // Total
+    sheet.getColumn(35).width = 6.5;
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, `Salary - ${monthAbbr}'${yearShort}.xlsx`);
   };
 
-  const handleImportSubmit = async () => {
+  const handleStartImport = async () => {
     if (parsedRows.length === 0) return;
 
     try {
       setImporting(true);
       setErrorMessage(null);
+      setActiveStep(3);
 
       const res = await bulkImportCanteenEntries({
         month: selectedMonth,
@@ -486,59 +497,269 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
       });
 
       setImportResult(res);
+      enqueueSnackbar(
+        `Successfully imported ${res.created_count + res.updated_count} entries (${res.total_meals} meals)`,
+        { variant: 'success' }
+      );
       onSuccess();
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to import canteen entries.');
+      enqueueSnackbar(err.message || 'Failed to import canteen entries', { variant: 'error' });
     } finally {
       setImporting(false);
     }
   };
 
-  return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1.5 }}>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 1.5,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
-              color: COMMON_COLORS.emerald.main,
-            }}
-          >
-            <Iconify icon={"solar:document-add-bold-duotone" as any} width={24} />
-          </Box>
-          <div>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Import Canteen Data
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Upload Excel sheet matching the Lunch Expenses template format
-            </Typography>
-          </div>
+  // ----------------------------------------------------------------------
+  // STEP RENDERERS
+
+  const renderUpload = (
+    <Box sx={{ py: 4, display: 'flex', flexFlow: 'column', alignItems: 'center' }}>
+      <Box
+        sx={{
+          p: 5,
+          width: '100%',
+          maxWidth: 400,
+          border: '2px dashed',
+          borderColor: 'divider',
+          borderRadius: 1.5,
+          cursor: 'pointer',
+          bgcolor: 'background.neutral',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: (theme) => theme.transitions.create('opacity'),
+          '&:hover': { opacity: 0.72 },
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+        component="label"
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          hidden
+          accept=".csv, .xlsx, .xls"
+          onChange={handleFileChange}
+        />
+        <Iconify
+          icon={"solar:cloud-upload-bold-duotone" as any}
+          width={64}
+          sx={{ mb: 2, color: 'primary.main', position: 'relative', zIndex: 1 }}
+        />
+        <Typography variant="h6" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          {selectedFile ? selectedFile.name : 'Select data file'}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{ color: 'text.secondary', position: 'relative', zIndex: 1, textAlign: 'center' }}
+        >
+          Drop file here or click to browse
+        </Typography>
+      </Box>
+
+      <Button
+        size="small"
+        color="primary"
+        startIcon={<Iconify icon={"solar:download-bold-duotone" as any} />}
+        onClick={handleDownloadTemplate}
+        sx={{ mt: 2 }}
+      >
+        Download Sample Template
+      </Button>
+
+      {loading && (
+        <Stack spacing={1} sx={{ width: '100%', maxWidth: 400, mt: 3 }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center' }}>
+            Reading spreadsheet...
+          </Typography>
+          <LinearProgress />
+        </Stack>
+      )}
+    </Box>
+  );
+
+  const renderMapping = (
+    <Box sx={{ py: 2 }}>
+      <Typography variant="subtitle2" sx={{ mb: 2 }}>
+        Import Configuration & Header Mapping
+      </Typography>
+
+      <Stack spacing={3}>
+        {/* Month, Year & Meal Type Configuration */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2 }}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Month</InputLabel>
+            <Select
+              value={selectedMonth}
+              label="Month"
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            >
+              {MONTHS.map((m) => (
+                <MenuItem key={m.value} value={m.value}>
+                  {m.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            size="small"
+            type="number"
+            label="Year"
+            fullWidth
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+          />
+
+          <FormControl fullWidth size="small">
+            <InputLabel>Meal Type</InputLabel>
+            <Select
+              value={mealType}
+              label="Meal Type"
+              onChange={(e) => setMealType(e.target.value)}
+            >
+              {MEAL_TYPES.map((t) => (
+                <MenuItem key={t} value={t}>
+                  {t}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+
+        <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ '& th': { bgcolor: 'background.neutral', fontWeight: 700 } }}>
+                <TableCell>Excel Template Column</TableCell>
+                <TableCell>Mapped Canteen Field</TableCell>
+                <TableCell align="center">Status</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell>
+                  <Typography variant="subtitle2">Emp Number / Employee ID</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Sample: {parsedRows[0]?.emp_number || 'BEPL0002'}
+                  </Typography>
+                </TableCell>
+                <TableCell>Employee (Link: Employee)</TableCell>
+                <TableCell align="center">
+                  <Label color="success">Auto-Mapped</Label>
+                </TableCell>
+              </TableRow>
+
+              <TableRow>
+                <TableCell>
+                  <Typography variant="subtitle2">Name / Employee Name</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Sample: {parsedRows[0]?.employee_name || 'Sivakumar D S'}
+                  </Typography>
+                </TableCell>
+                <TableCell>Employee Name (Data)</TableCell>
+                <TableCell align="center">
+                  <Label color="success">Auto-Mapped</Label>
+                </TableCell>
+              </TableRow>
+
+              <TableRow>
+                <TableCell>
+                  <Typography variant="subtitle2">Days Matrix (Columns 1 .. 31)</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Detected {detectedDaysCount} Day Columns in Sheet
+                  </Typography>
+                </TableCell>
+                <TableCell>Meal Date + Meal Count ({mealType})</TableCell>
+                <TableCell align="center">
+                  <Label color="success">Auto-Mapped</Label>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Stack>
+    </Box>
+  );
+
+  const renderPreview = (
+    <Box sx={{ py: 2 }}>
+      <Stack spacing={2}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ px: 0.5 }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            Data Preview
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            <Label color="info">{parsedRows.length} Employees</Label>
+            <Label color="success">{totalMealsCount} Total Meals</Label>
+            <Label color="default">{detectedDaysCount} Days</Label>
+            <Label color="primary">{mealType}</Label>
+          </Stack>
         </Stack>
 
-        <IconButton size="small" onClick={handleClose}>
-          <Iconify icon="solar:close-circle-bold" width={22} />
-        </IconButton>
-      </DialogTitle>
+        <TableContainer
+          component={Card}
+          variant="outlined"
+          sx={{ maxHeight: 350, overflowY: 'auto' }}
+        >
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow sx={{ '& th': { bgcolor: 'background.neutral', fontWeight: 700 } }}>
+                <TableCell>Emp ID</TableCell>
+                <TableCell>Employee Name</TableCell>
+                <TableCell align="center">Days with Meals</TableCell>
+                <TableCell align="center">Total Meals</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {parsedRows.slice(0, 15).map((row, idx) => (
+                <TableRow key={idx} hover>
+                  <TableCell sx={{ fontWeight: 600 }}>{row.emp_number}</TableCell>
+                  <TableCell>{row.employee_name || '-'}</TableCell>
+                  <TableCell align="center">{Object.keys(row.days).length} days</TableCell>
+                  <TableCell align="center">
+                    <Label color="primary">{row.total_meals}</Label>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {parsedRows.length > 15 && (
+                <TableRow>
+                  <TableCell colSpan={4} align="center" sx={{ color: 'text.secondary', py: 1 }}>
+                    ... and {parsedRows.length - 15} more employee rows
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Stack>
+    </Box>
+  );
 
-      <DialogContent dividers sx={{ pt: 2.5, pb: 3 }}>
-        <Stack spacing={3}>
-          {errorMessage && (
-            <Alert severity="error" onClose={() => setErrorMessage(null)}>
-              {errorMessage}
-            </Alert>
-          )}
+  const renderImport = (
+    <Box sx={{ py: 3 }}>
+      <Stack spacing={3} alignItems="center">
+        {importing && (
+          <Box sx={{ width: '100%', textAlign: 'center', py: 2 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 600 }}>
+              Importing Canteen Records...
+            </Typography>
+            <LinearProgress />
+          </Box>
+        )}
 
-          {importResult && (
+        {importResult && (
+          <Box sx={{ width: '100%' }}>
             <Alert
               severity={importResult.error_count > 0 ? 'warning' : 'success'}
-              onClose={() => setImportResult(null)}
+              sx={{ mb: 2 }}
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                 Import Completed!
@@ -561,188 +782,105 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
                 </Box>
               )}
             </Alert>
-          )}
-
-          {/* Month, Year & Meal Type Configuration */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-            <FormControl fullWidth size="small">
-              <InputLabel>Month</InputLabel>
-              <Select
-                value={selectedMonth}
-                label="Month"
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              >
-                {MONTHS.map((m) => (
-                  <MenuItem key={m.value} value={m.value}>
-                    {m.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <TextField
-              size="small"
-              type="number"
-              label="Year"
-              fullWidth
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-            />
-
-            <FormControl fullWidth size="small">
-              <InputLabel>Meal Type</InputLabel>
-              <Select
-                value={mealType}
-                label="Meal Type"
-                onChange={(e) => setMealType(e.target.value)}
-              >
-                {MEAL_TYPES.map((t) => (
-                  <MenuItem key={t} value={t}>
-                    {t}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Button
-              variant="outlined"
-              size="medium"
-              startIcon={<Iconify icon={"solar:download-minimalistic-bold" as any} />}
-              onClick={handleDownloadTemplate}
-              sx={{ whiteSpace: 'nowrap', minWidth: 170 }}
-            >
-              Template
-            </Button>
-          </Stack>
-
-          {/* File Upload Drop Area */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx, .xls, .csv"
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-          />
-
-          <Box
-            onClick={() => fileInputRef.current?.click()}
-            sx={{
-              p: 3.5,
-              border: `2px dashed ${selectedFile ? theme.palette.primary.main : theme.palette.divider}`,
-              borderRadius: 2,
-              textAlign: 'center',
-              cursor: 'pointer',
-              bgcolor: selectedFile
-                ? alpha(theme.palette.primary.main, 0.04)
-                : alpha(theme.palette.grey[500], 0.04),
-              transition: theme.transitions.create(['border-color', 'background-color']),
-              '&:hover': {
-                borderColor: theme.palette.primary.main,
-                bgcolor: alpha(theme.palette.primary.main, 0.06),
-              },
-            }}
-          >
-            <Iconify
-              icon={(selectedFile ? 'solar:file-check-bold' : 'solar:cloud-upload-bold-duotone') as any}
-              width={48}
-              sx={{
-                mb: 1.5,
-                color: selectedFile ? theme.palette.primary.main : 'text.secondary',
-              }}
-            />
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              {selectedFile ? selectedFile.name : 'Click to upload or drag & drop Excel sheet'}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-              Supports .xlsx, .xls formats (Image 1 "Lunch Expenses" structure)
-            </Typography>
           </Box>
+        )}
+      </Stack>
+    </Box>
+  );
 
-          {loading && (
-            <Stack spacing={1}>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Parsing spreadsheet...
-              </Typography>
-              <LinearProgress />
-            </Stack>
-          )}
+  return (
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
+      <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        Import Canteen Data
+        <IconButton onClick={handleClose} disabled={importing}>
+          <Iconify icon="mingcute:close-line" />
+        </IconButton>
+      </DialogTitle>
 
-          {/* Preview Section */}
-          {parsedRows.length > 0 && (
-            <Stack spacing={1.5}>
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                sx={{ px: 0.5 }}
-              >
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  Parsed Data Preview
-                </Typography>
-                <Stack direction="row" spacing={1}>
-                  <Label color="info">{parsedRows.length} Employees</Label>
-                  <Label color="success">{totalMealsCount} Total Meals</Label>
-                  <Label color="default">{detectedDaysCount} Days</Label>
-                </Stack>
-              </Stack>
+      <DialogContent dividers sx={{ pb: 4 }}>
+        <Stepper activeStep={activeStep} sx={{ py: 2 }}>
+          {STEPS.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
 
-              <TableContainer
-                component={Card}
-                variant="outlined"
-                sx={{ maxHeight: 240, overflowY: 'auto' }}
-              >
-                <Table size="small" stickyHeader>
-                  <TableHead>
-                    <TableRow sx={{ '& th': { bgcolor: 'background.neutral', fontWeight: 700 } }}>
-                      <TableCell>Emp ID</TableCell>
-                      <TableCell>Employee Name</TableCell>
-                      <TableCell align="center">Days with Meals</TableCell>
-                      <TableCell align="center">Total Meals</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {parsedRows.slice(0, 10).map((row, idx) => (
-                      <TableRow key={idx} hover>
-                        <TableCell sx={{ fontWeight: 600 }}>{row.emp_number}</TableCell>
-                        <TableCell>{row.employee_name || '-'}</TableCell>
-                        <TableCell align="center">{Object.keys(row.days).length} days</TableCell>
-                        <TableCell align="center">
-                          <Label color="primary">{row.total_meals}</Label>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {parsedRows.length > 10 && (
-                      <TableRow>
-                        <TableCell colSpan={4} align="center" sx={{ color: 'text.secondary', py: 1 }}>
-                          ... and {parsedRows.length - 10} more employee rows
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Stack>
-          )}
-        </Stack>
+        {errorMessage && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setErrorMessage(null)}>
+            {errorMessage}
+          </Alert>
+        )}
+
+        {activeStep === 0 && renderUpload}
+        {activeStep === 1 && renderMapping}
+        {activeStep === 2 && renderPreview}
+        {activeStep === 3 && renderImport}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button variant="outlined" color="inherit" onClick={handleClose} disabled={importing}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleImportSubmit}
-          disabled={parsedRows.length === 0 || importing || loading}
-          startIcon={<Iconify icon="solar:upload-bold" />}
-          sx={{
-            bgcolor: COMMON_COLORS.emerald.main,
-            color: '#fff',
-            '&:hover': { bgcolor: COMMON_COLORS.emerald.dark },
-          }}
-        >
-          {importing ? 'Importing Data...' : `Import ${parsedRows.length} Records`}
-        </Button>
+      <DialogActions sx={{ p: 2 }}>
+        {activeStep > 0 && activeStep < 3 && (
+          <Button variant="outlined" onClick={() => setActiveStep(activeStep - 1)} disabled={importing}>
+            Back
+          </Button>
+        )}
+
+        <Box sx={{ flexGrow: 1 }} />
+
+        {activeStep === 0 && (
+          <Button
+            variant="contained"
+            onClick={() => setActiveStep(1)}
+            disabled={!selectedFile || loading || parsedRows.length === 0}
+            sx={{
+              bgcolor: COMMON_COLORS.primaryButton.bg,
+              '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+            }}
+          >
+            {loading ? 'Processing...' : 'Next: Mapping'}
+          </Button>
+        )}
+
+        {activeStep === 1 && (
+          <Button
+            variant="contained"
+            onClick={() => setActiveStep(2)}
+            disabled={loading || parsedRows.length === 0}
+            sx={{
+              bgcolor: COMMON_COLORS.primaryButton.bg,
+              '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+            }}
+          >
+            Next: Preview
+          </Button>
+        )}
+
+        {activeStep === 2 && (
+          <Button
+            variant="contained"
+            onClick={handleStartImport}
+            disabled={importing || parsedRows.length === 0}
+            sx={{
+              bgcolor: COMMON_COLORS.primaryButton.bg,
+              '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+            }}
+          >
+            {importing ? 'Importing...' : 'Start Import'}
+          </Button>
+        )}
+
+        {activeStep === 3 && !importing && (
+          <Button
+            variant="contained"
+            onClick={handleClose}
+            sx={{
+              bgcolor: COMMON_COLORS.primaryButton.bg,
+              '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+            }}
+          >
+            Finish
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

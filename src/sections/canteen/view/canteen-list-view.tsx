@@ -1,12 +1,11 @@
 import type dayjs from 'dayjs';
 import type { CanteenEntry } from 'src/api/canteen';
 
+import { useSnackbar } from 'notistack';
 import { useMemo, useState, useEffect } from 'react';
 
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
-import Alert from '@mui/material/Alert';
-import Snackbar from '@mui/material/Snackbar';
 import TableRow from '@mui/material/TableRow';
 import Checkbox from '@mui/material/Checkbox';
 import TableHead from '@mui/material/TableHead';
@@ -19,6 +18,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useCanteen } from 'src/hooks/use-canteen';
 
+import { useAuth } from 'src/auth/auth-context';
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
 import { deleteCanteenEntry, bulkDeleteCanteenEntries } from 'src/api/canteen';
@@ -41,6 +41,10 @@ const sortOptions = [
   { value: 'modified_asc', label: 'Oldest First' },
   { value: 'canteen_date_desc', label: 'Date: Newest' },
   { value: 'canteen_date_asc', label: 'Date: Oldest' },
+  { value: 'employee_name_asc', label: 'Employee Name: A to Z' },
+  { value: 'employee_name_desc', label: 'Employee Name: Z to A' },
+  { value: 'department_asc', label: 'Department: A to Z' },
+  { value: 'department_desc', label: 'Department: Z to A' },
 ];
 
 export function CanteenListView({
@@ -52,6 +56,7 @@ export function CanteenListView({
   onSelectEmployees,
   selectedEmployee,
   onSelectEmployee,
+  isHR,
 }: {
   onCreateNew: VoidFunction;
   canCreate?: boolean;
@@ -61,7 +66,17 @@ export function CanteenListView({
   onSelectEmployees?: (emps: any[]) => void;
   selectedEmployee?: any | null;
   onSelectEmployee?: (emp: any | null) => void;
+  isHR?: boolean;
 }) {
+  const { enqueueSnackbar } = useSnackbar();
+  const { user } = useAuth();
+  const isHRUser =
+    isHR !== undefined
+      ? isHR
+      : user?.roles?.some((role: string) =>
+          ['HR Manager', 'HR', 'System Manager', 'Administrator'].includes(role)
+        );
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
@@ -115,21 +130,6 @@ export function CanteenListView({
   // Loading States for Actions
   const [isDeleting, setIsDeleting] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-
-  // Snackbar State
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info' | 'warning';
-  }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
 
   useEffect(() => {
     const loadMasters = async () => {
@@ -196,28 +196,16 @@ export function CanteenListView({
   const empty = !data.length && !search && !loading;
 
   const handleSortChange = (value: string) => {
-    if (value === 'modified_desc') {
-      setOrderBy('modified');
-      setOrder('desc');
-    } else if (value === 'modified_asc') {
-      setOrderBy('modified');
-      setOrder('asc');
-    } else if (value === 'canteen_date_desc') {
-      setOrderBy('canteen_date');
-      setOrder('desc');
-    } else if (value === 'canteen_date_asc') {
-      setOrderBy('canteen_date');
-      setOrder('asc');
+    const lastUnderscore = value.lastIndexOf('_');
+    if (lastUnderscore !== -1) {
+      const field = value.substring(0, lastUnderscore);
+      const direction = value.substring(lastUnderscore + 1) as 'asc' | 'desc';
+      setOrderBy(field);
+      setOrder(direction);
     }
   };
 
-  const getSortByValue = () => {
-    if (orderBy === 'modified' && order === 'desc') return 'modified_desc';
-    if (orderBy === 'modified' && order === 'asc') return 'modified_asc';
-    if (orderBy === 'canteen_date' && order === 'desc') return 'canteen_date_desc';
-    if (orderBy === 'canteen_date' && order === 'asc') return 'canteen_date_asc';
-    return 'modified_desc';
-  };
+  const getSortByValue = () => `${orderBy}_${order}`;
 
   const handleSelectAllRows = (checked: boolean) => {
     if (checked) {
@@ -250,10 +238,10 @@ export function CanteenListView({
       setIsDeleting(true);
       await deleteCanteenEntry(singleDeleteTarget);
       setSelected((prev) => prev.filter((id) => id !== singleDeleteTarget));
-      setSnackbar({ open: true, message: 'Canteen entry deleted', severity: 'success' });
+      enqueueSnackbar('Canteen entry deleted successfully', { variant: 'success' });
       refetch();
     } catch (err: any) {
-      setSnackbar({ open: true, message: err.message || 'Failed to delete', severity: 'error' });
+      enqueueSnackbar(err.message || 'Failed to delete canteen entry', { variant: 'error' });
     } finally {
       setIsDeleting(false);
       setSingleDeleteTarget(null);
@@ -266,14 +254,12 @@ export function CanteenListView({
       setIsBulkDeleting(true);
       await bulkDeleteCanteenEntries(selected);
       setSelected([]);
-      setSnackbar({
-        open: true,
-        message: `${selected.length} canteen entries deleted successfully`,
-        severity: 'success',
+      enqueueSnackbar(`${selected.length} canteen entries deleted successfully`, {
+        variant: 'success',
       });
       refetch();
     } catch (err: any) {
-      setSnackbar({ open: true, message: err.message || 'Failed to bulk delete', severity: 'error' });
+      enqueueSnackbar(err.message || 'Failed to bulk delete', { variant: 'error' });
     } finally {
       setIsBulkDeleting(false);
       setConfirmBulkDelete(false);
@@ -442,7 +428,7 @@ export function CanteenListView({
             setRowsPerPage(parseInt(e.target.value, 10));
             setPage(0);
           }}
-          rowsPerPageOptions={[10, 25, 50, 100]}
+          rowsPerPageOptions={[10, 25, 50]}
         />
       </Card>
 
@@ -454,6 +440,10 @@ export function CanteenListView({
         filters={filters}
         onFilters={(update) => {
           setFilters((prev) => ({ ...prev, ...update }));
+          if (update.employees !== undefined) {
+            onSelectEmployees?.(update.employees);
+            onSelectEmployee?.(update.employees.length === 1 ? update.employees[0] : null);
+          }
           setPage(0);
         }}
         canReset={canReset}
@@ -467,9 +457,12 @@ export function CanteenListView({
             toDate: null,
           });
           setPage(0);
+          onSelectEmployees?.([]);
+          onSelectEmployee?.(null);
         }}
-        employeeOptions={employees}
+        employeeOptions={filters.department === 'all' ? employees : employees.filter((e) => e.department === filters.department)}
         departmentOptions={departments}
+        isHR={isHRUser}
       />
 
       {/* Edit Dialog */}
@@ -482,7 +475,6 @@ export function CanteenListView({
           }}
           onSuccess={() => {
             refetch();
-            setSnackbar({ open: true, message: 'Canteen entry updated successfully', severity: 'success' });
           }}
           editData={selectedEntry}
         />
@@ -523,18 +515,6 @@ export function CanteenListView({
           </LoadingButton>
         }
       />
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </>
   );
 }

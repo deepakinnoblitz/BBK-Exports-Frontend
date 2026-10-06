@@ -72,7 +72,8 @@ export function useMonthlyCanteen(
   department?: string,
   employee?: string | string[],
   mealType?: string,
-  pageSize: number = 50
+  pageSize: number = 50,
+  orderBy: string = 'modified_desc'
 ) {
   const [data, setData] = useState<MonthlyCanteenResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,6 +94,7 @@ export function useMonthlyCanteen(
         meal_type: mealType,
         start: 0,
         limit: pageSize,
+        order_by: orderBy,
       });
       setData(res);
       setHasMore(!!res?.has_more);
@@ -102,7 +104,7 @@ export function useMonthlyCanteen(
     } finally {
       setLoading(false);
     }
-  }, [month, year, department, JSON.stringify(employee), mealType, pageSize]);
+  }, [month, year, department, JSON.stringify(employee), mealType, pageSize, orderBy]);
 
   const loadMore = useCallback(async () => {
     if (!data || loadingMore || !hasMore) return;
@@ -117,6 +119,7 @@ export function useMonthlyCanteen(
         meal_type: mealType,
         start: currentCount,
         limit: pageSize,
+        order_by: orderBy,
       });
 
       setData((prev) => {
@@ -132,7 +135,7 @@ export function useMonthlyCanteen(
     } finally {
       setLoadingMore(false);
     }
-  }, [data, loadingMore, hasMore, month, year, department, JSON.stringify(employee), mealType, pageSize]);
+  }, [data, loadingMore, hasMore, month, year, department, JSON.stringify(employee), mealType, pageSize, orderBy]);
 
   useEffect(() => {
     fetchData();
