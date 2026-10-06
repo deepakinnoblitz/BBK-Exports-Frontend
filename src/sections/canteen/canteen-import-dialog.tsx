@@ -427,9 +427,9 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
         cellSl.alignment = { horizontal: 'center', vertical: 'middle' };
         cellSl.border = thinBorder;
 
-        // Col 2: Emp Number
+        // Col 2: Emp Number (Format: EMP01002 / EMP...)
         const cellId = row.getCell(2);
-        cellId.value = emp.employee_id || emp.name;
+        cellId.value = emp.name || emp.employee_id || '';
         cellId.font = { name: 'Calibri', size: 10 };
         cellId.alignment = { horizontal: 'center', vertical: 'middle' };
         cellId.border = thinBorder;
