@@ -18,9 +18,9 @@ import { useAuth } from 'src/auth/auth-context';
 
 import { CanteenDialog } from '../canteen-dialog';
 import { CanteenListView } from './canteen-list-view';
-import { CanteenImportDialog } from '../canteen-import-dialog';
 import { CanteenMonthlyView } from './canteen-monthly-view';
 import { CanteenCalendarView } from './canteen-calendar-view';
+import { CanteenImportDialog } from '../canteen-import-dialog';
 
 // ----------------------------------------------------------------------
 

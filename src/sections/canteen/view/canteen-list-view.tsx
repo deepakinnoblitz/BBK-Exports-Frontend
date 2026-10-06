@@ -18,9 +18,9 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useCanteen } from 'src/hooks/use-canteen';
 
-import { useAuth } from 'src/auth/auth-context';
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
+import { useAuth } from 'src/auth/auth-context';
 import { deleteCanteenEntry, bulkDeleteCanteenEntries } from 'src/api/canteen';
 
 import { Scrollbar } from 'src/components/scrollbar';
