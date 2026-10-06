@@ -113,6 +113,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
             case 'holiday': return 'Holidays';
             case 'unpaid_leave': return 'Unpaid Leaves';
             case 'paid_leave': return 'Paid Leaves';
+            case 'comp_off': return 'Compensatory Off';
             case 'lop': return 'LOP Days';
             default: return 'Attendance Breakdown';
         }
@@ -124,7 +125,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         const bd = formData?.days_breakdown || [];
         switch (popoverState.type) {
             case 'present': {
-                const days = bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Holiday'));
+                const days = bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Compensatory Off'));
                 const isDirect = isDirectAllocation || (Number(formData?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status.includes('Paid Leave')));
                 if (isDirect && Number(formData?.no_of_paid_leave || 0) > 0) {
                     return [
@@ -140,12 +141,13 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 return days;
             }
             case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
-            case 'absent': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave') || d.status.includes('Paid Leave'));
+            case 'absent': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
             case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
             case 'holiday': return bd.filter((d: any) => d.status.includes('Holiday'));
-            case 'unpaid_leave': return bd.filter((d: any) => d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent')));
-            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave'));
-            case 'lop': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
+            case 'unpaid_leave': return bd.filter((d: any) => (d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent'))) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
+            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave') && !d.status.includes('Compensatory Off'));
+            case 'comp_off': return bd.filter((d: any) => d.status.includes('Compensatory Off'));
+            case 'lop': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
             default: return bd;
         }
     };
@@ -161,6 +163,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
             case 'holiday': return formData.holiday_count !== undefined && formData.holiday_count !== null ? formData.holiday_count : bd.length;
             case 'unpaid_leave': return formData.no_of_leave !== undefined && formData.no_of_leave !== null ? formData.no_of_leave : bd.length;
             case 'paid_leave': return formData.no_of_paid_leave !== undefined && formData.no_of_paid_leave !== null ? formData.no_of_paid_leave : bd.length;
+            case 'comp_off': return formData.no_of_comp_off !== undefined && formData.no_of_comp_off !== null ? formData.no_of_comp_off : bd.length;
             case 'lop': return formData.lop_days !== undefined && formData.lop_days !== null ? formData.lop_days : bd.length;
             default: return bd.length;
         }
@@ -561,14 +564,14 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                     }}
                 >
                     <SleekEditRow
-                        label="Pay Period Days"
-                        value={formData.total_days_in_period}
-                        onChange={(val) => handleInputChange('total_days_in_period', val)}
-                    />
-                    <SleekEditRow
-                        label="Calculation Base (Month)"
+                        label="Working Days"
                         value={formData.total_working_days}
                         onChange={(val) => handleInputChange('total_working_days', val)}
+                    />
+                    <SleekEditRow
+                        label="Days Worked"
+                        value={formData.holiday_working_days ?? ((formData.total_days_in_period || 30) - (formData.holiday_count || 0))}
+                        onChange={(val) => handleInputChange('holiday_working_days', val)}
                     />
                     <SleekEditRow
                         label="No of Present Days"
@@ -611,6 +614,12 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                         value={formData.no_of_paid_leave || 0}
                         onChange={(val) => handleInputChange('no_of_paid_leave', val)}
                         action={renderInfoAction('paid_leave')}
+                    />
+                    <SleekEditRow
+                        label="Compensatory Off"
+                        value={formData.no_of_comp_off || 0}
+                        onChange={(val) => handleInputChange('no_of_comp_off', val)}
+                        action={renderInfoAction('comp_off')}
                     />
                     <SleekEditRow
                         label="LOP Days"
