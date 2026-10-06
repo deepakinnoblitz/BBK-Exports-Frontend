@@ -113,6 +113,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
             case 'holiday': return 'Holidays';
             case 'unpaid_leave': return 'Unpaid Leaves';
             case 'paid_leave': return 'Paid Leaves';
+            case 'comp_off': return 'Compensatory Off';
             case 'lop': return 'LOP Days';
             default: return 'Attendance Breakdown';
         }
@@ -124,7 +125,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         const bd = formData?.days_breakdown || [];
         switch (popoverState.type) {
             case 'present': {
-                const days = bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Holiday'));
+                const days = bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Compensatory Off'));
                 const isDirect = isDirectAllocation || (Number(formData?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status.includes('Paid Leave')));
                 if (isDirect && Number(formData?.no_of_paid_leave || 0) > 0) {
                     return [
@@ -140,12 +141,13 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 return days;
             }
             case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
-            case 'absent': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave') || d.status.includes('Paid Leave'));
+            case 'absent': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
             case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
             case 'holiday': return bd.filter((d: any) => d.status.includes('Holiday'));
-            case 'unpaid_leave': return bd.filter((d: any) => d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent')));
-            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave'));
-            case 'lop': return bd.filter((d: any) => d.status.includes('Absent') || d.status.includes('Unpaid Leave'));
+            case 'unpaid_leave': return bd.filter((d: any) => (d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent'))) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
+            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave') && !d.status.includes('Compensatory Off'));
+            case 'comp_off': return bd.filter((d: any) => d.status.includes('Compensatory Off'));
+            case 'lop': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
             default: return bd;
         }
     };
@@ -161,6 +163,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
             case 'holiday': return formData.holiday_count !== undefined && formData.holiday_count !== null ? formData.holiday_count : bd.length;
             case 'unpaid_leave': return formData.no_of_leave !== undefined && formData.no_of_leave !== null ? formData.no_of_leave : bd.length;
             case 'paid_leave': return formData.no_of_paid_leave !== undefined && formData.no_of_paid_leave !== null ? formData.no_of_paid_leave : bd.length;
+            case 'comp_off': return formData.no_of_comp_off !== undefined && formData.no_of_comp_off !== null ? formData.no_of_comp_off : bd.length;
             case 'lop': return formData.lop_days !== undefined && formData.lop_days !== null ? formData.lop_days : bd.length;
             default: return bd.length;
         }
@@ -209,7 +212,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         return String(c);
     };
 
-    function calculateDynamicRules(data: any, grossPay: number) {
+    function calculateDynamicRules(data: any, grossPay: number, earnedGrossSalary?: number, earnedBasicDa?: number, earningsList?: any[]) {
         const getNum = (v: any) => parseFloat(v) || 0;
         const round = (val: number) => Math.round(val * 100) / 100;
 
@@ -263,7 +266,75 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
             else ptAmount = 1250;
         }
 
-        return { otAmount, attendanceBonus, ptAmount };
+        // PF Calculation
+        let pfAmount = 0;
+        const enablePf = hrSettings.enable_auto_pf !== 0 && hrSettings.enable_auto_pf !== false && hrSettings.enable_auto_pf !== '0';
+        if (enablePf) {
+            const pfRate = (getNum(hrSettings.employee_pf_rate) || 12.0) / 100.0;
+            const pfCeiling = getNum(hrSettings.pf_wage_ceiling) || 15000.0;
+            const pfBasisRaw = hrSettings.pf_wage_basis;
+            let selectedComponents: string[] = [];
+            if (pfBasisRaw) {
+                if (Array.isArray(pfBasisRaw)) {
+                    selectedComponents = pfBasisRaw.map((x: any) => String(x).toLowerCase().trim()).filter(Boolean);
+                } else if (typeof pfBasisRaw === 'string') {
+                    try {
+                        const parsed = JSON.parse(pfBasisRaw);
+                        if (Array.isArray(parsed)) {
+                            selectedComponents = parsed.map((x: any) => String(x).toLowerCase().trim()).filter(Boolean);
+                        }
+                    } catch {
+                        if (pfBasisRaw.trim() === 'Earned Basic + DA') {
+                            selectedComponents = ['basic pay', 'da', 'basic', 'dearness'];
+                        } else if (pfBasisRaw.includes(',')) {
+                            selectedComponents = pfBasisRaw.split(',').map((x: string) => x.toLowerCase().trim()).filter(Boolean);
+                        }
+                    }
+                }
+            }
+
+            let baseWage = earnedGrossSalary || grossPay;
+            if (selectedComponents.length > 0 && earningsList && earningsList.length > 0) {
+                const matchingTotal = earningsList.reduce((acc: number, curr: any) => {
+                    const cName = getCompName(curr).toLowerCase().trim();
+                    if (selectedComponents.includes(cName) || selectedComponents.some((sc) => cName.includes(sc))) {
+                        return acc + getNum(curr.amount);
+                    }
+                    return acc;
+                }, 0);
+                baseWage = matchingTotal;
+            } else if (pfBasisRaw === 'Earned Basic + DA') {
+                baseWage = earnedBasicDa || grossPay;
+            }
+
+            const maxPfAmount = getNum(hrSettings.employee_pf_max_amount) || (pfCeiling > 0 ? pfCeiling * pfRate : 1800);
+            if (pfCeiling > 0 && baseWage >= pfCeiling) {
+                pfAmount = Math.round(maxPfAmount);
+            } else {
+                pfAmount = Math.round(baseWage * pfRate);
+            }
+        }
+
+        // ESI Calculation
+        let esiAmount = 0;
+        const enableEsi = hrSettings.enable_auto_esi !== 0 && hrSettings.enable_auto_esi !== false && hrSettings.enable_auto_esi !== '0';
+        if (enableEsi) {
+            const esiCeiling = getNum(hrSettings.esi_wage_ceiling) || 21000.0;
+            const stdEarnings = getNum(data.base_gross_pay || data.total_earnings || grossPay);
+            const baseForEligibility = earnedGrossSalary || grossPay;
+            if (esiCeiling <= 0 || baseForEligibility <= esiCeiling || stdEarnings <= esiCeiling) {
+                const esiRate = (getNum(hrSettings.employee_esi_rate) || 0.75) / 100.0;
+                const roundingMethod = hrSettings.esi_rounding_method || 'Round Up to Next Rupee (ROUNDUP / CEIL)';
+                const rawEsi = grossPay * esiRate;
+                if (roundingMethod.includes('Round Up') || roundingMethod.includes('ROUNDUP') || roundingMethod.includes('CEIL')) {
+                    esiAmount = Math.ceil(rawEsi);
+                } else {
+                    esiAmount = Math.round(rawEsi);
+                }
+            }
+        }
+
+        return { otAmount, attendanceBonus, ptAmount, pfAmount, esiAmount };
     }
 
     function recalculateTotals(data: any) {
@@ -305,10 +376,28 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         });
 
         // 2. Sum up totals
+        const earnedGrossSalary = round(
+            updatedEarnings.reduce((acc: number, curr: any) => {
+                const name = getCompName(curr).toLowerCase();
+                if (name.includes('overtime') || name.includes('ot') || name.includes('attendance bonus') || name.includes('tea')) return acc;
+                return acc + getNum(curr.amount);
+            }, 0)
+        );
+
+        const earnedBasicDa = round(
+            updatedEarnings.reduce((acc: number, curr: any) => {
+                const name = getCompName(curr).toLowerCase();
+                if (name.includes('basic') || name.includes('da') || name.includes('dearness')) {
+                    return acc + getNum(curr.amount);
+                }
+                return acc;
+            }, 0)
+        );
+
         const grossPay = round(updatedEarnings.reduce((acc: number, curr: any) => acc + getNum(curr.amount), 0));
 
-        // Dynamic rules for OT, Attendance Bonus, and PT
-        const { otAmount, attendanceBonus, ptAmount } = calculateDynamicRules(data, grossPay);
+        // Dynamic rules for OT, Attendance Bonus, PT, PF, and ESI
+        const { otAmount, attendanceBonus, ptAmount, pfAmount, esiAmount } = calculateDynamicRules(data, grossPay, earnedGrossSalary, earnedBasicDa, updatedEarnings);
 
         // Update OT / Bonus in earnings if present and not manual
         const finalEarnings = updatedEarnings.map((item: any) => {
@@ -322,11 +411,17 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
             return item;
         });
 
-        // Update PT in deductions if present and not manual
+        // Update PT, PF, ESI in deductions if present and not manual
         const finalDeductions = updatedDeductions.map((item: any) => {
             const name = getCompName(item).toLowerCase();
-            if (name.includes('professional tax') || name.includes('pt') || name.includes('prof tax')) {
+            if (name.includes('professional tax') || name.includes('pt') || name.includes('prof tax') || name.includes('prof.tax')) {
                 if (!item.isManual) return { ...item, amount: ptAmount.toFixed(2) };
+            }
+            if ((name.includes('provident fund') || name.includes('pf') || name.includes('epf')) && !name.includes('employer') && !name.includes('admin')) {
+                if (!item.isManual && pfAmount > 0) return { ...item, amount: pfAmount.toFixed(2) };
+            }
+            if ((name.includes('esi') || name.includes('esic')) && !name.includes('employer')) {
+                if (!item.isManual && esiAmount > 0) return { ...item, amount: esiAmount.toFixed(2) };
             }
             return item;
         });
@@ -561,14 +656,14 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                     }}
                 >
                     <SleekEditRow
-                        label="Pay Period Days"
-                        value={formData.total_days_in_period}
-                        onChange={(val) => handleInputChange('total_days_in_period', val)}
-                    />
-                    <SleekEditRow
-                        label="Calculation Base (Month)"
+                        label="Working Days"
                         value={formData.total_working_days}
                         onChange={(val) => handleInputChange('total_working_days', val)}
+                    />
+                    <SleekEditRow
+                        label="Days Worked"
+                        value={formData.holiday_working_days ?? ((formData.total_days_in_period || 30) - (formData.holiday_count || 0))}
+                        onChange={(val) => handleInputChange('holiday_working_days', val)}
                     />
                     <SleekEditRow
                         label="No of Present Days"
@@ -611,6 +706,12 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                         value={formData.no_of_paid_leave || 0}
                         onChange={(val) => handleInputChange('no_of_paid_leave', val)}
                         action={renderInfoAction('paid_leave')}
+                    />
+                    <SleekEditRow
+                        label="Compensatory Off"
+                        value={formData.no_of_comp_off || 0}
+                        onChange={(val) => handleInputChange('no_of_comp_off', val)}
+                        action={renderInfoAction('comp_off')}
                     />
                     <SleekEditRow
                         label="LOP Days"
