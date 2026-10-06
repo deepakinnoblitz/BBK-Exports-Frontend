@@ -33,6 +33,7 @@ import TableContainer from '@mui/material/TableContainer';
 import LinearProgress from '@mui/material/LinearProgress';
 
 import { COMMON_COLORS } from 'src/theme';
+import { getDoctypeList } from 'src/api/leads';
 import { bulkImportCanteenEntries } from 'src/api/canteen';
 
 import { Label } from 'src/components/label';
@@ -306,179 +307,184 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
   };
 
   const handleDownloadTemplate = async () => {
-    const daysInMonth = 31;
-    const monthAbbr = MONTHS.find((m) => m.value === selectedMonth)?.label.toUpperCase().slice(0, 3) || 'AUG';
-    const yearShort = String(selectedYear).slice(-2);
+    try {
+      setLoading(true);
+      const daysInMonth =
+        dayjs(`${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`).daysInMonth() || 31;
+      const monthAbbr =
+        MONTHS.find((m) => m.value === selectedMonth)?.label.toUpperCase().slice(0, 3) || 'OCT';
+      const yearShort = String(selectedYear).slice(-2);
 
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'BBK Exports';
-    workbook.lastModifiedBy = 'BBK Exports';
-    workbook.created = new Date();
-    workbook.modified = new Date();
-
-    const sheet = workbook.addWorksheet('Lunch', {
-      views: [{ showGridLines: true }],
-    });
-
-    const sundayDays = new Set<number>();
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateObj = new Date(selectedYear, selectedMonth - 1, d);
-      if (dateObj.getDay() === 0) {
-        sundayDays.add(d);
-      }
-    }
-    if (sundayDays.size === 0) {
-      [5, 12, 19, 26].forEach((d) => sundayDays.add(d));
-    }
-
-    const thinBorder: Partial<ExcelJS.Borders> = {
-      top: { style: 'thin', color: { argb: 'FF000000' } },
-      left: { style: 'thin', color: { argb: 'FF000000' } },
-      bottom: { style: 'thin', color: { argb: 'FF000000' } },
-      right: { style: 'thin', color: { argb: 'FF000000' } },
-    };
-
-    // Row 1: Company Name
-    sheet.mergeCells(1, 1, 1, 35);
-    const row1Cell = sheet.getCell('A1');
-    row1Cell.value = 'BBK EXPORTS PRIVATE LIMITED';
-    row1Cell.font = { name: 'Calibri', size: 11, bold: true };
-    row1Cell.alignment = { horizontal: 'center', vertical: 'middle' };
-    sheet.getRow(1).height = 20;
-
-    // Row 2: Title
-    sheet.mergeCells(2, 1, 2, 35);
-    const row2Cell = sheet.getCell('A2');
-    row2Cell.value = `LUNCH EXPENSES FOR THE MONTH OF ${monthAbbr}-${yearShort}`;
-    row2Cell.font = { name: 'Calibri', size: 11, bold: true };
-    row2Cell.alignment = { horizontal: 'center', vertical: 'middle' };
-    sheet.getRow(2).height = 20;
-
-    for (let c = 1; c <= 35; c++) {
-      sheet.getRow(1).getCell(c).border = thinBorder;
-      sheet.getRow(2).getCell(c).border = thinBorder;
-    }
-
-    // Row 3: Headers
-    const headers = ['Sl.No', 'Emp\nNumber', 'Name'];
-    for (let d = 1; d <= daysInMonth; d++) {
-      headers.push(String(d));
-    }
-    headers.push('Total');
-
-    const headerRow = sheet.getRow(3);
-    headerRow.height = 26;
-    headers.forEach((h, idx) => {
-      const cell = headerRow.getCell(idx + 1);
-      cell.value = h;
-      cell.font = { name: 'Calibri', size: 10, bold: true };
-      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-      cell.border = thinBorder;
-
-      if (idx >= 3 && idx <= 33) {
-        const dayNum = idx - 2;
-        if (sundayDays.has(dayNum)) {
-          cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFFFFF00' },
-          };
+      // Fetch all employees in the system
+      let employeeList: any[] = [];
+      try {
+        const empRes = await getDoctypeList(
+          'Employee',
+          ['name', 'employee_name', 'employee_id', 'status'],
+          { status: 'Active' },
+          5000
+        );
+        if (empRes && empRes.length > 0) {
+          employeeList = empRes;
+        } else {
+          const allRes = await getDoctypeList(
+            'Employee',
+            ['name', 'employee_name', 'employee_id'],
+            undefined,
+            5000
+          );
+          employeeList = allRes || [];
         }
+      } catch (err) {
+        console.error('Failed to load employees for template:', err);
       }
-    });
 
-    const rawEmployees = [
-      { sl: 1, id: 'BEPL0002', name: 'Sivakumar D S', days: {} },
-      { sl: 2, id: 'BEPL0072', name: 'Deepika S', days: {} },
-      { sl: 3, id: 'BEPL0074', name: 'Rajarajeshwari S', days: { 4: 1, 6: 1, 7: 1, 13: 1, 23: 1 } },
-      { sl: 4, id: 'BEPL0075', name: 'Banu P', days: { 25: 1, 29: 1 } },
-      { sl: 5, id: 'BEPL0080', name: 'Ranjith Kumar J', days: {} },
-      { sl: 6, id: 'BEPL0086', name: 'Arun Kumar S', days: {} },
-      { sl: 7, id: 'BEPL0088', name: 'Ramesh Kumar R', days: { 22: 1 } },
-      { sl: 8, id: 'BEPL0097', name: 'Althaf M', days: {} },
-      { sl: 9, id: 'BEPL0102', name: 'Sudhish K', days: {} },
-      { sl: 10, id: 'BEPL0107', name: 'Prakash T', days: {} },
-      { sl: 11, id: 'BEPL0108', name: 'Sangeetha R', days: {} },
-      { sl: 12, id: 'BEPL0109', name: 'Muthaiya I', days: { 9: 1, 27: 1 } },
-      { sl: 13, id: 'BEPL0114', name: 'Kruthika R', days: {} },
-      { sl: 14, id: 'BEPL0117', name: 'Ali M D', days: {} },
-      { sl: 15, id: 'BEPL0127', name: 'Deepa R', days: { 4: 1, 8: 1, 10: 1, 13: 1, 14: 1, 19: 1, 21: 1, 24: 1, 28: 1, 30: 1 } },
-      { sl: 16, id: 'BEPL0131', name: 'Manikandan B', days: {} },
-      { sl: 17, id: 'BEPL0135', name: 'Remiyath S', days: {} },
-      { sl: 18, id: 'BEPL0141', name: 'Sushmitha J', days: {} },
-      { sl: 19, id: 'BEPL0153', name: 'Manigandan P', days: {} },
-      { sl: 20, id: 'BEPL0164', name: 'Kumar A', days: { 1: 2, 3: 1, 4: 2, 5: 1, 6: 1, 7: 1, 8: 2, 11: 2, 12: 2, 13: 1, 14: 2, 15: 1, 18: 1, 19: 1, 20: 1, 21: 2, 22: 2, 23: 2, 25: 2, 27: 2 } },
-    ];
+      const totalCols = 3 + daysInMonth + 1;
 
-    rawEmployees.forEach((emp, rIdx) => {
-      const rowNum = 4 + rIdx;
-      const row = sheet.getRow(rowNum);
-      row.height = 18;
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'BBK Exports';
+      workbook.lastModifiedBy = 'BBK Exports';
+      workbook.created = new Date();
+      workbook.modified = new Date();
 
-      let rowTotal = 0;
+      const sheet = workbook.addWorksheet('Lunch', {
+        views: [{ showGridLines: true }],
+      });
 
-      // Col 1: Sl.No
-      const cellSl = row.getCell(1);
-      cellSl.value = emp.sl;
-      cellSl.font = { name: 'Calibri', size: 10 };
-      cellSl.alignment = { horizontal: 'center', vertical: 'middle' };
-      cellSl.border = thinBorder;
-
-      // Col 2: Emp Number
-      const cellId = row.getCell(2);
-      cellId.value = emp.id;
-      cellId.font = { name: 'Calibri', size: 10 };
-      cellId.alignment = { horizontal: 'center', vertical: 'middle' };
-      cellId.border = thinBorder;
-
-      // Col 3: Name
-      const cellName = row.getCell(3);
-      cellName.value = emp.name;
-      cellName.font = { name: 'Calibri', size: 10 };
-      cellName.alignment = { horizontal: 'left', vertical: 'middle' };
-      cellName.border = thinBorder;
-
-      // Cols 4..34: Days 1..31
+      const sundayDays = new Set<number>();
       for (let d = 1; d <= daysInMonth; d++) {
-        const cellDay = row.getCell(d + 3);
-        const mealCount = (emp.days as Record<number, number>)[d] || '';
-        cellDay.value = mealCount;
-        cellDay.font = { name: 'Calibri', size: 10 };
-        cellDay.alignment = { horizontal: 'center', vertical: 'middle' };
-        cellDay.border = thinBorder;
-
-        if (typeof mealCount === 'number') {
-          rowTotal += mealCount;
-        }
-
-        if (sundayDays.has(d)) {
-          cellDay.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFFFFF00' },
-          };
+        const dateObj = new Date(selectedYear, selectedMonth - 1, d);
+        if (dateObj.getDay() === 0) {
+          sundayDays.add(d);
         }
       }
 
-      // Col 35: Total
-      const cellTotal = row.getCell(35);
-      cellTotal.value = rowTotal;
-      cellTotal.font = { name: 'Calibri', size: 10 };
-      cellTotal.alignment = { horizontal: 'center', vertical: 'middle' };
-      cellTotal.border = thinBorder;
-    });
+      const thinBorder: Partial<ExcelJS.Borders> = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } },
+      };
 
-    sheet.getColumn(1).width = 5.5;
-    sheet.getColumn(2).width = 12;
-    sheet.getColumn(3).width = 24;
-    for (let c = 4; c <= 34; c++) {
-      sheet.getColumn(c).width = 3.6;
+      // Row 1: Company Name
+      sheet.mergeCells(1, 1, 1, totalCols);
+      const row1Cell = sheet.getCell('A1');
+      row1Cell.value = 'BBK EXPORTS PRIVATE LIMITED';
+      row1Cell.font = { name: 'Calibri', size: 11, bold: true };
+      row1Cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      sheet.getRow(1).height = 20;
+
+      // Row 2: Title
+      sheet.mergeCells(2, 1, 2, totalCols);
+      const row2Cell = sheet.getCell('A2');
+      row2Cell.value = `LUNCH EXPENSES FOR THE MONTH OF ${monthAbbr}-${yearShort}`;
+      row2Cell.font = { name: 'Calibri', size: 11, bold: true };
+      row2Cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      sheet.getRow(2).height = 20;
+
+      for (let c = 1; c <= totalCols; c++) {
+        sheet.getRow(1).getCell(c).border = thinBorder;
+        sheet.getRow(2).getCell(c).border = thinBorder;
+      }
+
+      // Row 3: Headers
+      const headers = ['Sl.No', 'Emp\nNumber', 'Name'];
+      for (let d = 1; d <= daysInMonth; d++) {
+        headers.push(String(d));
+      }
+      headers.push('Total');
+
+      const headerRow = sheet.getRow(3);
+      headerRow.height = 26;
+      headers.forEach((h, idx) => {
+        const cell = headerRow.getCell(idx + 1);
+        cell.value = h;
+        cell.font = { name: 'Calibri', size: 10, bold: true };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border = thinBorder;
+
+        if (idx >= 3 && idx < 3 + daysInMonth) {
+          const dayNum = idx - 2;
+          if (sundayDays.has(dayNum)) {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFFF00' },
+            };
+          }
+        }
+      });
+
+      employeeList.forEach((emp, rIdx) => {
+        const rowNum = 4 + rIdx;
+        const row = sheet.getRow(rowNum);
+        row.height = 18;
+
+        // Col 1: Sl.No
+        const cellSl = row.getCell(1);
+        cellSl.value = rIdx + 1;
+        cellSl.font = { name: 'Calibri', size: 10 };
+        cellSl.alignment = { horizontal: 'center', vertical: 'middle' };
+        cellSl.border = thinBorder;
+
+        // Col 2: Emp Number
+        const cellId = row.getCell(2);
+        cellId.value = emp.employee_id || emp.name;
+        cellId.font = { name: 'Calibri', size: 10 };
+        cellId.alignment = { horizontal: 'center', vertical: 'middle' };
+        cellId.border = thinBorder;
+
+        // Col 3: Name
+        const cellName = row.getCell(3);
+        cellName.value = emp.employee_name || emp.name;
+        cellName.font = { name: 'Calibri', size: 10 };
+        cellName.alignment = { horizontal: 'left', vertical: 'middle' };
+        cellName.border = thinBorder;
+
+        // Cols 4..(3 + daysInMonth): Empty cells (clean without mock numbers)
+        for (let d = 1; d <= daysInMonth; d++) {
+          const cellDay = row.getCell(d + 3);
+          cellDay.value = '';
+          cellDay.font = { name: 'Calibri', size: 10 };
+          cellDay.alignment = { horizontal: 'center', vertical: 'middle' };
+          cellDay.border = thinBorder;
+
+          if (sundayDays.has(d)) {
+            cellDay.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFFF00' },
+            };
+          }
+        }
+
+        // Col Total
+        const cellTotal = row.getCell(totalCols);
+        cellTotal.value = 0;
+        cellTotal.font = { name: 'Calibri', size: 10 };
+        cellTotal.alignment = { horizontal: 'center', vertical: 'middle' };
+        cellTotal.border = thinBorder;
+      });
+
+      sheet.getColumn(1).width = 5.5;
+      sheet.getColumn(2).width = 12;
+      sheet.getColumn(3).width = 24;
+      for (let c = 4; c <= 3 + daysInMonth; c++) {
+        sheet.getColumn(c).width = 3.6;
+      }
+      sheet.getColumn(totalCols).width = 6.5;
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      saveAs(blob, `Salary - ${monthAbbr}'${yearShort}.xlsx`);
+    } catch (err: any) {
+      console.error('Failed to generate template:', err);
+      enqueueSnackbar('Failed to download template', { variant: 'error' });
+    } finally {
+      setLoading(false);
     }
-    sheet.getColumn(35).width = 6.5;
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `Salary - ${monthAbbr}'${yearShort}.xlsx`);
   };
 
   const handleStartImport = async () => {

@@ -769,12 +769,8 @@ export function CanteenMonthlyView({
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: isSunOrHol ? '#d97706' : 'text.disabled',
-                                fontSize: '0.75rem',
                               }}
-                            >
-                              {d.is_holiday ? 'H' : ''}
-                            </Box>
+                            />
                           )}
                         </TableCell>
                       );
