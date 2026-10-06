@@ -20,12 +20,13 @@ import { useCanteen } from 'src/hooks/use-canteen';
 
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
-import { useAuth } from 'src/auth/auth-context';
 import { deleteCanteenEntry, bulkDeleteCanteenEntries } from 'src/api/canteen';
 
 import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/confirm-dialog';
+
+import { useAuth } from 'src/auth/auth-context';
 
 import { CanteenDialog } from '../canteen-dialog';
 import { TableNoData } from '../../lead/table-no-data';
