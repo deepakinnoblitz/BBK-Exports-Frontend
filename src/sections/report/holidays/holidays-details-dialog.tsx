@@ -113,6 +113,9 @@ export function HolidayDetailsDialog({ open, onClose, holidayList }: Props) {
                                                     <Box component="th" sx={{ p: 2, textAlign: 'center', fontWeight: 700, borderBottom: '1px solid', borderColor: 'divider' }}>
                                                         Working Day
                                                     </Box>
+                                                    <Box component="th" sx={{ p: 2, textAlign: 'center', fontWeight: 700, borderBottom: '1px solid', borderColor: 'divider' }}>
+                                                        Holiday
+                                                    </Box>
                                                 </Box>
                                             </Box>
                                             <Box component="tbody">
@@ -138,6 +141,13 @@ export function HolidayDetailsDialog({ open, onClose, holidayList }: Props) {
                                                                 <Iconify icon={"solar:check-circle-bold" as any} width={24} sx={{ color: 'success.main' }} />
                                                             ) : (
                                                                 <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 700, fontSize: '1.2rem' }}>✗</Typography>
+                                                            )}
+                                                        </Box>
+                                                        <Box component="td" sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
+                                                            {holiday.is_holiday ? (
+                                                                <Iconify icon={"solar:check-circle-bold" as any} width={24} sx={{ color: 'warning.main' }} />
+                                                            ) : (
+                                                                <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 600 }}>—</Typography>
                                                             )}
                                                         </Box>
                                                     </Box>

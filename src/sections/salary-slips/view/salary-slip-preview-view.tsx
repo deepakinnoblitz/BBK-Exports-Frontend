@@ -5,7 +5,9 @@ import { useSearchParams } from 'react-router-dom';
 import { IoMdArrowBack, IoMdCheckmarkCircle } from 'react-icons/io';
 
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
+import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
@@ -52,6 +54,7 @@ export function SalarySlipPreviewView() {
         el: null,
         type: '',
     });
+    const [holidayTab, setHolidayTab] = useState<'holiday' | 'not_working_days'>('holiday');
 
     useEffect(() => {
         getHRSettings().then(setHRSettings).catch(console.error);
@@ -267,7 +270,7 @@ export function SalarySlipPreviewView() {
                                     value={`${data.holiday_working_days ?? ((data.total_days_in_period || 30) - (data.holiday_count || 0))} Days`}
                                 />
                                 <InfoRow
-                                    label="Holidays Found"
+                                    label="Holiday"
                                     value={data.holiday_count || 0}
                                     action={renderInfoAction('holiday')}
                                 />
@@ -630,7 +633,18 @@ export function SalarySlipPreviewView() {
             case 'physical': return bd.filter((d: any) => d.status?.includes('Work'));
             case 'absent': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave'));
             case 'half_day': return bd.filter((d: any) => d.status?.includes('(0.5)'));
-            case 'holiday': return data?.holidays_details?.length ? data.holidays_details : bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
+            case 'holiday': {
+                if (holidayTab === 'not_working_days') {
+                    if (data?.non_working_days_details?.length) {
+                        return data.non_working_days_details;
+                    }
+                    return bd.filter((d: any) => d.is_non_working_day || d.status?.includes('Non Working Day') || d.status?.includes('Weekly Off'));
+                }
+                if (data?.holidays_details?.length) {
+                    return data.holidays_details;
+                }
+                return bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
+            }
             case 'unpaid_leave': return bd.filter((d: any) => (d.status?.includes('Unpaid Leave') || (!isDirectAllocation && d.status?.includes('Absent'))) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave'));
             case 'paid_leave': return bd.filter((d: any) => d.status?.includes('Paid Leave') && !d.status?.includes('Compensatory Off'));
             case 'comp_off': return bd.filter((d: any) => d.status?.includes('Compensatory Off'));
@@ -655,6 +669,9 @@ export function SalarySlipPreviewView() {
     };
 
     const filteredBreakdown = getFilteredBreakdown();
+
+    const holidayListCount = data?.holiday_count !== undefined ? data.holiday_count : (data?.holidays_details?.length ?? (data?.days_breakdown || []).filter((d: any) => d.is_holiday || d.status?.includes('Holiday')).length);
+    const notWorkingListCount = data?.non_working_count !== undefined ? data.non_working_count : (data?.non_working_days_details?.length ?? (data?.days_breakdown || []).filter((d: any) => d.is_non_working_day || d.status?.includes('Non Working Day') || d.status?.includes('Weekly Off')).length);
 
     const getPopoverCount = () => {
         if (!data) return filteredBreakdown.length;
@@ -752,18 +769,63 @@ export function SalarySlipPreviewView() {
                 }}
                 disableScrollLock
             >
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    {getPopoverTitle()}
-                    <Box component="span" sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.85em' }}>
-                        {getPopoverCount()}
+                {popoverState.type === 'holiday' ? (
+                    <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                        <Tabs
+                            value={holidayTab}
+                            onChange={(e, val) => setHolidayTab(val)}
+                            variant="fullWidth"
+                            sx={{
+                                minHeight: 36,
+                                '& .MuiTab-root': {
+                                    minHeight: 36,
+                                    py: 0.5,
+                                    px: 1,
+                                    fontSize: '0.85rem',
+                                    fontWeight: 700,
+                                    textTransform: 'none',
+                                },
+                            }}
+                        >
+                            <Tab
+                                value="holiday"
+                                label={
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                        <span>Holiday</span>
+                                        <Box component="span" sx={{ px: 0.75, py: 0.1, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700 }}>
+                                            {holidayListCount}
+                                        </Box>
+                                    </Box>
+                                }
+                            />
+                            <Tab
+                                value="not_working_days"
+                                label={
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                        <span>Not Working Days</span>
+                                        <Box component="span" sx={{ px: 0.75, py: 0.1, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700 }}>
+                                            {notWorkingListCount}
+                                        </Box>
+                                    </Box>
+                                }
+                            />
+                        </Tabs>
                     </Box>
-                </Typography>
+                ) : (
+                    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        {getPopoverTitle()}
+                        <Box component="span" sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.85em' }}>
+                            {getPopoverCount()}
+                        </Box>
+                    </Typography>
+                )}
                 <Scrollbar>
                     <Stack spacing={1.5}>
                         {filteredBreakdown.length > 0 ? (
                             filteredBreakdown.map((day: any, idx: number) => {
                                 let colorStr = 'text.secondary';
-                                if (day.status?.includes('Work') && day.status?.includes('Absent')) colorStr = 'warning.main';
+                                if (day.status?.includes('Non Working Day') || day.status?.includes('Weekly Off')) colorStr = 'text.secondary';
+                                else if (day.status?.includes('Work') && day.status?.includes('Absent')) colorStr = 'warning.main';
                                 else if (day.status?.includes('Absent')) colorStr = 'error.main';
                                 else if (day.status?.includes('Work')) colorStr = 'success.main';
                                 else if (day.status?.includes('Holiday')) colorStr = 'info.main';
@@ -807,11 +869,13 @@ export function SalarySlipPreviewView() {
                                                 }}
                                             >
                                                 {(() => {
+                                                    if (day.status?.includes('Non Working Day') || day.status?.includes('Weekly Off'))
+                                                        return 'Non Working Day';
                                                     if ((popoverState.type === 'absent' || popoverState.type === 'lop') && day.status?.includes('Work') && day.status?.includes('Absent'))
                                                         return 'Half Day Absent';
                                                     if (['present', 'physical', 'half_day'].includes(popoverState.type) && day.status?.includes('Work') && day.status?.includes('Absent'))
                                                         return 'Present Half Day';
-                                                    return day.status?.replaceAll('(1.0)', 'Full Day').replaceAll('(0.5)', 'Half Day').replace('Work', 'Present');
+                                                    return day.status?.replaceAll('(1.0)', 'Full Day').replaceAll('(0.5)', 'Half Day').replace(/\bWork\b/g, 'Present');
                                                 })()}
                                             </Typography>
                                             {day.hours ? (
