@@ -97,11 +97,6 @@ export const hrNavData = [
     ],
   },
   {
-    title: 'Canteen',
-    path: '/canteen',
-    icon: <LuCoffee size={18} />,
-  },
-  {
     title: 'Leaves Records',
     path: '/leaves',
     icon: <RiAppsLine size={18} />,
@@ -140,6 +135,11 @@ export const hrNavData = [
     title: 'Holidays List',
     path: '/holidays',
     icon: <GoTasklist size={22} />,
+  },
+    {
+    title: 'Canteen',
+    path: '/canteen',
+    icon: <LuCoffee size={18} />,
   },
   /*
   {
