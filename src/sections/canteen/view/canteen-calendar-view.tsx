@@ -1,14 +1,13 @@
 import type { CanteenEntry } from 'src/api/canteen';
 
 import dayjs from 'dayjs';
-import { LuFilter } from 'react-icons/lu';
 import listPlugin from '@fullcalendar/list';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useRef, useMemo, useState, useEffect } from 'react';
-import { FiCalendar, FiChevronLeft, FiCheckSquare, FiChevronRight } from 'react-icons/fi';
+import { FiCalendar, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -89,7 +88,6 @@ export function CanteenCalendarView({
 
   const [title, setTitle] = useState('');
   const [activeView, setActiveView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listMonth'>('dayGridMonth');
-  const [mealCategoryFilter, setMealCategoryFilter] = useState<string>('All');
 
   // Mini Calendar Selected Date
   const [miniCalDate, setMiniCalDate] = useState<dayjs.Dayjs>(dayjs());
@@ -196,12 +194,10 @@ export function CanteenCalendarView({
     return undefined;
   }, [filters.employees, selectedEmployees]);
 
-  const effectiveMealType = useMemo(() => {
-    if (mealCategoryFilter !== 'All' && mealCategoryFilter !== 'Holidays') {
-      return mealCategoryFilter;
-    }
-    return filters.meal_type !== 'all' ? filters.meal_type : undefined;
-  }, [mealCategoryFilter, filters.meal_type]);
+  const effectiveMealType = useMemo(
+    () => (filters.meal_type !== 'all' ? filters.meal_type : undefined),
+    [filters.meal_type]
+  );
 
   const { events = [], loading, refetch } = useCalendarCanteen(
     startDate,
@@ -314,17 +310,9 @@ export function CanteenCalendarView({
     }
   };
 
-  // Filter events by search and category pill
+  // Filter events by search
   const filteredEvents = useMemo(() => {
     let list = events;
-
-    if (mealCategoryFilter === 'Holidays') {
-      list = list.filter((e) => e.extendedProps?.is_holiday);
-    } else if (mealCategoryFilter !== 'All') {
-      list = list.filter(
-        (e) => !e.extendedProps?.is_holiday && e.extendedProps?.meal_type === mealCategoryFilter
-      );
-    }
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -337,7 +325,7 @@ export function CanteenCalendarView({
       );
     }
     return list;
-  }, [events, search, mealCategoryFilter]);
+  }, [events, search]);
 
   // Today / selected mini calendar date events for the sidebar
   const selectedDateEvents = useMemo(() => {
@@ -371,7 +359,6 @@ export function CanteenCalendarView({
     });
     setSearch('');
     setSelectedEmployees([]);
-    setMealCategoryFilter('All');
   };
 
   // Format events for FullCalendar with proper styling
@@ -537,64 +524,8 @@ export function CanteenCalendarView({
             </Typography>
           </Box>
 
-          {/* Right controls: Category filter pills & View switcher buttons */}
+          {/* Right controls: View switcher buttons & Filters */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0, flexWrap: 'nowrap' }}>
-            {/* Category Filter Pills */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                p: 0.45,
-                bgcolor: '#F4F6F8',
-                border: '1px solid #E5E7EB',
-                borderRadius: '999px',
-                gap: 0.35,
-              }}
-            >
-              {[
-                { label: 'All', icon: <LuFilter size={14} /> },
-                { label: 'Lunch', icon: <Iconify icon={"solar:chef-hat-bold-duotone" as any} width={15} /> },
-                { label: 'Breakfast', icon: <Iconify icon={"solar:cup-paper-bold" as any} width={15} /> },
-                { label: 'Dinner', icon: <Iconify icon={"solar:moon-stars-bold" as any} width={15} /> },
-                { label: 'Holidays', icon: <FiCheckSquare size={14} /> },
-              ].map((item) => {
-                const isSelected = mealCategoryFilter === item.label;
-                return (
-                  <Box
-                    key={item.label}
-                    onClick={() => setMealCategoryFilter(item.label)}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.65,
-                      px: 1.6,
-                      py: 0.45,
-                      borderRadius: '999px',
-                      cursor: 'pointer',
-                      transition: 'all 0.25s ease',
-                      bgcolor: isSelected ? COMMON_COLORS.emerald.main : 'transparent',
-                      color: isSelected ? '#fff' : '#637381',
-                      boxShadow: isSelected ? `0 3px 10px ${alpha(COMMON_COLORS.emerald.main, 0.3)}` : 'none',
-                      '&:hover': {
-                        bgcolor: isSelected ? COMMON_COLORS.emerald.main : alpha(COMMON_COLORS.emerald.main, 0.08),
-                      },
-                    }}
-                  >
-                    {item.icon}
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: '0.8rem',
-                        fontWeight: isSelected ? 700 : 600,
-                      }}
-                    >
-                      {item.label}
-                    </Typography>
-                  </Box>
-                );
-              })}
-            </Box>
-
             {/* View Switcher Buttons */}
             <Box
               sx={{
