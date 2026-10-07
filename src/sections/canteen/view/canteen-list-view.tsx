@@ -38,14 +38,16 @@ import { LeadTableToolbar as CanteenTableToolbar } from '../../lead/lead-table-t
 // ----------------------------------------------------------------------
 
 const sortOptions = [
-  { value: 'modified_desc', label: 'Newest First' },
-  { value: 'modified_asc', label: 'Oldest First' },
+  { value: 'employee_asc', label: 'Employee ID: Low to High' },
+  { value: 'employee_desc', label: 'Employee ID: High to Low' },
   { value: 'canteen_date_desc', label: 'Date: Newest' },
   { value: 'canteen_date_asc', label: 'Date: Oldest' },
   { value: 'employee_name_asc', label: 'Employee Name: A to Z' },
   { value: 'employee_name_desc', label: 'Employee Name: Z to A' },
   { value: 'department_asc', label: 'Department: A to Z' },
   { value: 'department_desc', label: 'Department: Z to A' },
+  { value: 'modified_desc', label: 'Newest First' },
+  { value: 'modified_asc', label: 'Oldest First' },
 ];
 
 export function CanteenListView({
@@ -81,8 +83,8 @@ export function CanteenListView({
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
-  const [orderBy, setOrderBy] = useState('modified');
-  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+  const [orderBy, setOrderBy] = useState('employee');
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [selected, setSelected] = useState<string[]>([]);
 
   // Filters State

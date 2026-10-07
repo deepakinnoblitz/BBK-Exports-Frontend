@@ -38,12 +38,14 @@ import { CanteenTableFiltersDrawer } from '../canteen-table-filters-drawer';
 // ----------------------------------------------------------------------
 
 const sortOptions = [
-  { value: 'modified_desc', label: 'Newest First' },
-  { value: 'modified_asc', label: 'Oldest First' },
+  { value: 'employee_id_asc', label: 'Employee ID: Low to High' },
+  { value: 'employee_id_desc', label: 'Employee ID: High to Low' },
   { value: 'employee_name_asc', label: 'Employee Name: A to Z' },
   { value: 'employee_name_desc', label: 'Employee Name: Z to A' },
   { value: 'department_asc', label: 'Department: A to Z' },
   { value: 'department_desc', label: 'Department: Z to A' },
+  { value: 'modified_desc', label: 'Newest First' },
+  { value: 'modified_asc', label: 'Oldest First' },
 ];
 
 export function CanteenMonthlyView({
@@ -195,7 +197,7 @@ export function CanteenMonthlyView({
     return undefined;
   }, [selectedEmployees]);
 
-  const [sortBy, setSortBy] = useState('modified_desc');
+  const [sortBy, setSortBy] = useState('employee_id_asc');
   const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
 
   // Hook for monthly data with server-side sorting
@@ -471,7 +473,7 @@ export function CanteenMonthlyView({
                   Sort by
                 </Typography>
                 <Typography component="span" sx={{ fontSize: '0.8125rem', fontWeight: 700, color: COMMON_COLORS.sortButton.valueColor, lineHeight: 1.2 }}>
-                  {sortOptions.find((o) => o.value === sortBy)?.label || 'Newest First'}
+                  {sortOptions.find((o) => o.value === sortBy)?.label || 'Employee ID: Low to High'}
                 </Typography>
               </Box>
             </Box>
