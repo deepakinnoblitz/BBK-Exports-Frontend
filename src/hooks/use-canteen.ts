@@ -73,7 +73,7 @@ export function useMonthlyCanteen(
   employee?: string | string[],
   mealType?: string,
   pageSize: number = 50,
-  orderBy: string = 'modified_desc'
+  orderBy: string = 'employee_id_asc'
 ) {
   const [data, setData] = useState<MonthlyCanteenResponse | null>(null);
   const [loading, setLoading] = useState(true);

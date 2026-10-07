@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { useSnackbar } from 'notistack';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -34,7 +34,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
-import { bulkImportCanteenEntries } from 'src/api/canteen';
+import { fetchMonthlyCanteen, bulkImportCanteenEntries } from 'src/api/canteen';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -71,17 +71,26 @@ type Props = {
   open: boolean;
   onClose: VoidFunction;
   onSuccess: VoidFunction;
+  defaultMonth?: number;
+  defaultYear?: number;
 };
 
-export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
+export function CanteenImportDialog({ open, onClose, onSuccess, defaultMonth, defaultYear }: Props) {
   const { enqueueSnackbar } = useSnackbar();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeStep, setActiveStep] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<number>(dayjs().month() + 1);
-  const [selectedYear, setSelectedYear] = useState<number>(dayjs().year());
+  const [selectedMonth, setSelectedMonth] = useState<number>(defaultMonth || dayjs().month() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(defaultYear || dayjs().year());
   const [mealType, setMealType] = useState<string>('Lunch');
+
+  useEffect(() => {
+    if (open) {
+      if (defaultMonth) setSelectedMonth(defaultMonth);
+      if (defaultYear) setSelectedYear(defaultYear);
+    }
+  }, [open, defaultMonth, defaultYear]);
 
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [detectedDaysCount, setDetectedDaysCount] = useState<number>(31);
@@ -315,6 +324,25 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
         MONTHS.find((m) => m.value === selectedMonth)?.label.toUpperCase().slice(0, 3) || 'OCT';
       const yearShort = String(selectedYear).slice(-2);
 
+      // Fetch holidays for the selected month/year from Monthly Roster (Holiday List records)
+      const holidayDays = new Set<number>();
+      try {
+        const rosterRes = await fetchMonthlyCanteen({
+          month: selectedMonth,
+          year: selectedYear,
+          limit: 1,
+        });
+        if (rosterRes?.days) {
+          rosterRes.days.forEach((d) => {
+            if (d.is_holiday) {
+              holidayDays.add(d.day);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch holidays for template:', err);
+      }
+
       // Fetch all employees in the system
       let employeeList: any[] = [];
       try {
@@ -350,14 +378,6 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
       const sheet = workbook.addWorksheet('Lunch', {
         views: [{ showGridLines: true }],
       });
-
-      const sundayDays = new Set<number>();
-      for (let d = 1; d <= daysInMonth; d++) {
-        const dateObj = new Date(selectedYear, selectedMonth - 1, d);
-        if (dateObj.getDay() === 0) {
-          sundayDays.add(d);
-        }
-      }
 
       const thinBorder: Partial<ExcelJS.Borders> = {
         top: { style: 'thin', color: { argb: 'FF000000' } },
@@ -405,7 +425,7 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
 
         if (idx >= 3 && idx < 3 + daysInMonth) {
           const dayNum = idx - 2;
-          if (sundayDays.has(dayNum)) {
+          if (holidayDays.has(dayNum)) {
             cell.fill = {
               type: 'pattern',
               pattern: 'solid',
@@ -449,7 +469,7 @@ export function CanteenImportDialog({ open, onClose, onSuccess }: Props) {
           cellDay.alignment = { horizontal: 'center', vertical: 'middle' };
           cellDay.border = thinBorder;
 
-          if (sundayDays.has(d)) {
+          if (holidayDays.has(d)) {
             cellDay.fill = {
               type: 'pattern',
               pattern: 'solid',

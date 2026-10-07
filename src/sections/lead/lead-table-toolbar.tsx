@@ -348,9 +348,11 @@ export function LeadTableToolbar({
                   onClick={handleSortClick}
                   sx={{
                     flexGrow: { xs: 1, md: 0 },
-                    minWidth: { xs: '0', md: 175 },
+                    flexShrink: 0,
+                    minWidth: 'fit-content',
+                    whiteSpace: 'nowrap',
                     height: 50,
-                    px: 1.5,
+                    px: 1.75,
                     py: 0.5,
                     bgcolor: COMMON_COLORS.sortButton.bg,
                     border: '1px solid',
@@ -368,13 +370,13 @@ export function LeadTableToolbar({
                     },
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, whiteSpace: 'nowrap' }}>
                     <Iconify icon={"solar:sort-vertical-linear" as any} width={18} sx={{ color: COMMON_COLORS.sortButton.labelColor, flexShrink: 0 }} />
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
-                      <Typography component="span" sx={{ fontSize: '0.675rem', fontWeight: 500, color: COMMON_COLORS.sortButton.labelColor, lineHeight: 1.1 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                      <Typography component="span" sx={{ fontSize: '0.675rem', fontWeight: 500, color: COMMON_COLORS.sortButton.labelColor, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                         Sort by
                       </Typography>
-                      <Typography component="span" sx={{ fontSize: '0.8125rem', fontWeight: 700, color: COMMON_COLORS.sortButton.valueColor, lineHeight: 1.2 }}>
+                      <Typography component="span" sx={{ fontSize: '0.8125rem', fontWeight: 700, color: COMMON_COLORS.sortButton.valueColor, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
                         {currentSortLabel}
                       </Typography>
                     </Box>
