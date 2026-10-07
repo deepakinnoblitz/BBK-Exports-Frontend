@@ -85,7 +85,7 @@ export function CanteenView() {
           spacing={2}
         >
           <div>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            <Typography variant="h4">
               Canteen
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>

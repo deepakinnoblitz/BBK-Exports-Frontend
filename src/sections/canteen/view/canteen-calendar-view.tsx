@@ -1,24 +1,31 @@
 import type { CanteenEntry } from 'src/api/canteen';
 
 import dayjs from 'dayjs';
+import { LuFilter } from 'react-icons/lu';
 import listPlugin from '@fullcalendar/list';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useRef, useMemo, useState, useEffect } from 'react';
+import { FiCalendar, FiChevronLeft, FiCheckSquare, FiChevronRight } from 'react-icons/fi';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Badge from '@mui/material/Badge';
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
+import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import { alpha, useTheme } from '@mui/material/styles';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
+import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 import CircularProgress from '@mui/material/CircularProgress';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useCalendarCanteen } from 'src/hooks/use-canteen';
 
@@ -33,6 +40,22 @@ import { CanteenDialog } from '../canteen-dialog';
 import { CanteenTableFiltersDrawer } from '../canteen-table-filters-drawer';
 
 // ----------------------------------------------------------------------
+
+const MEAL_COLORS: Record<string, string> = {
+  Lunch: COMMON_COLORS.emerald.main,
+  Breakfast: '#F59E0B',
+  Dinner: '#10B981',
+  Snacks: '#0D9488',
+  Tea: '#06B6D4',
+  Holiday: '#EF4444',
+  Default: COMMON_COLORS.emerald.main,
+};
+
+const getMealColor = (mealType?: string, isHoliday?: boolean) => {
+  if (isHoliday) return MEAL_COLORS.Holiday;
+  if (!mealType) return MEAL_COLORS.Default;
+  return MEAL_COLORS[mealType] || MEAL_COLORS.Default;
+};
 
 export function CanteenCalendarView({
   canCreate = true,
@@ -62,11 +85,14 @@ export function CanteenCalendarView({
       );
   const isRestrictedEmployee = user?.roles?.includes('Employee') && !isHRUser;
 
-  const theme = useTheme();
   const calendarRef = useRef<FullCalendar>(null);
 
   const [title, setTitle] = useState('');
-  const [activeView, setActiveView] = useState('dayGridMonth');
+  const [activeView, setActiveView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listMonth'>('dayGridMonth');
+  const [mealCategoryFilter, setMealCategoryFilter] = useState<string>('All');
+
+  // Mini Calendar Selected Date
+  const [miniCalDate, setMiniCalDate] = useState<dayjs.Dayjs>(dayjs());
 
   // Filters State
   const [employees, setEmployees] = useState<any[]>([]);
@@ -132,8 +158,8 @@ export function CanteenCalendarView({
 
   // Calendar dates
   const [currentDate, setCurrentDate] = useState<dayjs.Dayjs>(dayjs());
-  const startDate = currentDate.startOf('month').subtract(7, 'day').format('YYYY-MM-DD');
-  const endDate = currentDate.endOf('month').add(7, 'day').format('YYYY-MM-DD');
+  const startDate = currentDate.startOf('month').subtract(14, 'day').format('YYYY-MM-DD');
+  const endDate = currentDate.endOf('month').add(14, 'day').format('YYYY-MM-DD');
 
   // Quick dialog state
   const [openDialog, setOpenDialog] = useState(false);
@@ -170,12 +196,19 @@ export function CanteenCalendarView({
     return undefined;
   }, [filters.employees, selectedEmployees]);
 
+  const effectiveMealType = useMemo(() => {
+    if (mealCategoryFilter !== 'All' && mealCategoryFilter !== 'Holidays') {
+      return mealCategoryFilter;
+    }
+    return filters.meal_type !== 'all' ? filters.meal_type : undefined;
+  }, [mealCategoryFilter, filters.meal_type]);
+
   const { events = [], loading, refetch } = useCalendarCanteen(
     startDate,
     endDate,
     filters.department !== 'all' ? filters.department : undefined,
     employeeFilterParam,
-    filters.meal_type !== 'all' ? filters.meal_type : undefined
+    effectiveMealType
   );
 
   useEffect(() => {
@@ -184,12 +217,22 @@ export function CanteenCalendarView({
     }
   }, [refreshTrigger, refetch]);
 
+  // Sync title on mount / calendar ready
+  useEffect(() => {
+    if (calendarRef.current) {
+      const api = calendarRef.current.getApi();
+      setTitle(api.view.title);
+    }
+  }, []);
+
   // Calendar Navigation
   const handlePrev = () => {
     const calendarApi = calendarRef.current?.getApi();
     if (calendarApi) {
       calendarApi.prev();
-      setCurrentDate(dayjs(calendarApi.getDate()));
+      const newDate = dayjs(calendarApi.getDate());
+      setCurrentDate(newDate);
+      setMiniCalDate(newDate);
       setTitle(calendarApi.view.title);
     }
   };
@@ -198,7 +241,9 @@ export function CanteenCalendarView({
     const calendarApi = calendarRef.current?.getApi();
     if (calendarApi) {
       calendarApi.next();
-      setCurrentDate(dayjs(calendarApi.getDate()));
+      const newDate = dayjs(calendarApi.getDate());
+      setCurrentDate(newDate);
+      setMiniCalDate(newDate);
       setTitle(calendarApi.view.title);
     }
   };
@@ -207,16 +252,29 @@ export function CanteenCalendarView({
     const calendarApi = calendarRef.current?.getApi();
     if (calendarApi) {
       calendarApi.today();
-      setCurrentDate(dayjs(calendarApi.getDate()));
+      const newDate = dayjs(calendarApi.getDate());
+      setCurrentDate(newDate);
+      setMiniCalDate(newDate);
       setTitle(calendarApi.view.title);
     }
   };
 
-  const handleChangeView = (newView: string) => {
+  const handleChangeView = (newView: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listMonth') => {
     const calendarApi = calendarRef.current?.getApi();
     if (calendarApi) {
       calendarApi.changeView(newView);
       setActiveView(newView);
+      setTitle(calendarApi.view.title);
+    }
+  };
+
+  const handleMiniCalChange = (newVal: dayjs.Dayjs | null) => {
+    if (!newVal) return;
+    setMiniCalDate(newVal);
+    setCurrentDate(newVal);
+    const calendarApi = calendarRef.current?.getApi();
+    if (calendarApi) {
+      calendarApi.gotoDate(newVal.toDate());
       setTitle(calendarApi.view.title);
     }
   };
@@ -256,20 +314,39 @@ export function CanteenCalendarView({
     }
   };
 
-  // Filter events by search
+  // Filter events by search and category pill
   const filteredEvents = useMemo(() => {
     let list = events;
+
+    if (mealCategoryFilter === 'Holidays') {
+      list = list.filter((e) => e.extendedProps?.is_holiday);
+    } else if (mealCategoryFilter !== 'All') {
+      list = list.filter(
+        (e) => !e.extendedProps?.is_holiday && e.extendedProps?.meal_type === mealCategoryFilter
+      );
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
         (e) =>
           e.title?.toLowerCase().includes(q) ||
           e.extendedProps?.employee_name?.toLowerCase().includes(q) ||
-          e.extendedProps?.employee?.toLowerCase().includes(q)
+          e.extendedProps?.employee?.toLowerCase().includes(q) ||
+          e.extendedProps?.holiday_name?.toLowerCase().includes(q)
       );
     }
     return list;
-  }, [events, search]);
+  }, [events, search, mealCategoryFilter]);
+
+  // Today / selected mini calendar date events for the sidebar
+  const selectedDateEvents = useMemo(() => {
+    const selectedDateStr = (miniCalDate || dayjs()).format('YYYY-MM-DD');
+    return events.filter((e) => {
+      const startStr = e.start ? dayjs(e.start).format('YYYY-MM-DD') : '';
+      return startStr === selectedDateStr;
+    });
+  }, [events, miniCalDate]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -294,179 +371,737 @@ export function CanteenCalendarView({
     });
     setSearch('');
     setSelectedEmployees([]);
+    setMealCategoryFilter('All');
+  };
+
+  // Format events for FullCalendar with proper styling
+  const formattedEvents = useMemo(
+    () =>
+      filteredEvents.map((evt) => {
+        const isHoliday = Boolean(evt.extendedProps?.is_holiday);
+        const mealType = evt.extendedProps?.meal_type;
+        const chipColor = getMealColor(mealType, isHoliday);
+
+        return {
+          ...evt,
+          backgroundColor: chipColor,
+          borderColor: chipColor,
+          textColor: '#ffffff',
+          extendedProps: {
+            ...evt.extendedProps,
+            chipColor,
+          },
+        };
+      }),
+    [filteredEvents]
+  );
+
+  const renderEventContent = (eventInfo: any) => {
+    const isHoliday = Boolean(eventInfo.event.extendedProps?.is_holiday);
+    const chipColor = eventInfo.event.extendedProps?.chipColor || (isHoliday ? '#EF4444' : COMMON_COLORS.emerald.main);
+
+    let icon = 'solar:cup-bold';
+    if (isHoliday) {
+      icon = 'solar:calendar-bold';
+    } else {
+      const mealType = eventInfo.event.extendedProps?.meal_type;
+      if (mealType === 'Breakfast') icon = 'solar:cup-paper-bold';
+      else if (mealType === 'Dinner') icon = 'solar:moon-stars-bold';
+      else if (mealType === 'Snacks' || mealType === 'Tea') icon = 'solar:cup-hot-bold';
+      else icon = 'solar:chef-hat-bold-duotone';
+    }
+
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0.75,
+          px: '8px',
+          py: '3px',
+          fontSize: '11.5px',
+          fontWeight: 700,
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+          width: '100%',
+          borderRadius: '6px',
+          bgcolor: chipColor,
+          color: '#ffffff',
+          boxSizing: 'border-box',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+        }}
+      >
+        <Iconify icon={icon as any} width={13} sx={{ flexShrink: 0, color: '#ffffff' }} />
+        <span
+          style={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            color: '#ffffff',
+            minWidth: 0,
+            flex: 1,
+          }}
+        >
+          {eventInfo.event.title}
+        </span>
+      </Box>
+    );
   };
 
   return (
     <>
       <Card
         sx={{
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          p: 2.5,
+          borderRadius: 2,
+          boxShadow: '0 8px 24px -4px rgba(145, 158, 171, 0.2), 0 0 2px 0 rgba(145, 158, 171, 0.24)',
+          border: '1px solid rgba(145, 158, 171, 0.12)',
           position: 'relative',
+          height: 850,
+          display: 'flex',
+          flexDirection: 'column',
+          bgcolor: 'background.paper',
+          overflow: 'visible',
         }}
       >
-        {/* Calendar Header Controls */}
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          alignItems={{ xs: 'flex-start', md: 'center' }}
-          justifyContent="space-between"
-          spacing={2}
-          sx={{ mb: 2.5 }}
+        {/* Top Header Toolbar */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            px: 2.5,
+            py: 2,
+            bgcolor: '#FFFFFF',
+            borderTopLeftRadius: '16px',
+            borderTopRightRadius: '16px',
+            borderBottom: '1px solid #E2E8F0',
+            height: 72,
+            boxSizing: 'border-box',
+            flexShrink: 0,
+            zIndex: 30,
+          }}
         >
-          {/* Search */}
-          <OutlinedInput
-            size="small"
-            placeholder="Search events, employees..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            startAdornment={
-              <InputAdornment position="start">
-                <Iconify icon="eva:search-fill" width={18} sx={{ color: 'text.disabled' }} />
-              </InputAdornment>
-            }
-            sx={{ width: { xs: '100%', sm: 260 } }}
-          />
-
-          {/* Navigation */}
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-            <Button size="small" variant="outlined" onClick={handleToday}>
-              Today
-            </Button>
-            <IconButton size="small" onClick={handlePrev}>
-              <Iconify icon="solar:alt-arrow-left-bold" width={18} />
-            </IconButton>
-            <Typography variant="h6" sx={{ minWidth: 160, textAlign: 'center', fontWeight: 700 }}>
-              {title || currentDate.format('MMMM YYYY')}
-            </Typography>
-            <IconButton size="small" onClick={handleNext}>
-              <Iconify icon="solar:alt-arrow-right-bold" width={18} />
-            </IconButton>
-          </Stack>
-
-          {/* View Toggles & Filters */}
-          <Stack direction="row" spacing={1} alignItems="center">
+          {/* Left controls: Today button, < >, Title */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Button
-              size="small"
-              variant={activeView === 'dayGridMonth' ? 'contained' : 'outlined'}
-              onClick={() => handleChangeView('dayGridMonth')}
-            >
-              Month
-            </Button>
-            <Button
-              size="small"
-              variant={activeView === 'timeGridWeek' ? 'contained' : 'outlined'}
-              onClick={() => handleChangeView('timeGridWeek')}
-            >
-              Week
-            </Button>
-            <Button
-              size="small"
-              variant={activeView === 'listMonth' ? 'contained' : 'outlined'}
-              onClick={() => handleChangeView('listMonth')}
-            >
-              List
-            </Button>
-
-            <Button
-              disableRipple
-              onClick={() => setOpenFilters(true)}
+              variant="contained"
+              size="medium"
+              onClick={handleToday}
+              startIcon={<FiCalendar size={18} style={{ color: '#0F172A' }} />}
               sx={{
-                height: 36,
-                px: 1.75,
-                bgcolor: COMMON_COLORS.filterButton.bg,
-                color: COMMON_COLORS.filterButton.color,
-                borderRadius: 1.25,
-                fontWeight: 700,
-                fontSize: '0.8125rem',
+                borderRadius: '10px',
+                bgcolor: '#FFFFFF',
+                color: '#0F172A',
                 textTransform: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.75,
-                boxShadow: 'none',
-                border: 'none',
-                transition: 'all 0.15s ease',
+                fontWeight: 700,
+                fontSize: '0.925rem',
+                px: 2,
+                py: 0.7,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                border: '1px solid #E2E8F0',
                 '&:hover': {
-                  bgcolor: COMMON_COLORS.filterButton.hoverBg,
-                  boxShadow: 'none',
+                  bgcolor: '#F8FAFC',
                 },
               }}
             >
-              <Badge
-                color="error"
-                variant="dot"
-                invisible={activeFilterCount === 0}
+              Today
+            </Button>
+            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+              <IconButton
+                size="small"
+                onClick={handlePrev}
+                sx={{ color: '#334155', p: 0.5 }}
+              >
+                <FiChevronLeft size={22} />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={handleNext}
+                sx={{ color: '#334155', p: 0.5 }}
+              >
+                <FiChevronRight size={22} />
+              </IconButton>
+            </Box>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                ml: 1,
+                color: '#1E293B',
+                fontSize: '1.45rem',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {title || currentDate.format('MMMM YYYY')}
+            </Typography>
+          </Box>
+
+          {/* Right controls: Category filter pills & View switcher buttons */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0, flexWrap: 'nowrap' }}>
+            {/* Category Filter Pills */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                p: 0.45,
+                bgcolor: '#F4F6F8',
+                border: '1px solid #E5E7EB',
+                borderRadius: '999px',
+                gap: 0.35,
+              }}
+            >
+              {[
+                { label: 'All', icon: <LuFilter size={14} /> },
+                { label: 'Lunch', icon: <Iconify icon={"solar:chef-hat-bold-duotone" as any} width={15} /> },
+                { label: 'Breakfast', icon: <Iconify icon={"solar:cup-paper-bold" as any} width={15} /> },
+                { label: 'Dinner', icon: <Iconify icon={"solar:moon-stars-bold" as any} width={15} /> },
+                { label: 'Holidays', icon: <FiCheckSquare size={14} /> },
+              ].map((item) => {
+                const isSelected = mealCategoryFilter === item.label;
+                return (
+                  <Box
+                    key={item.label}
+                    onClick={() => setMealCategoryFilter(item.label)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.65,
+                      px: 1.6,
+                      py: 0.45,
+                      borderRadius: '999px',
+                      cursor: 'pointer',
+                      transition: 'all 0.25s ease',
+                      bgcolor: isSelected ? COMMON_COLORS.emerald.main : 'transparent',
+                      color: isSelected ? '#fff' : '#637381',
+                      boxShadow: isSelected ? `0 3px 10px ${alpha(COMMON_COLORS.emerald.main, 0.3)}` : 'none',
+                      '&:hover': {
+                        bgcolor: isSelected ? COMMON_COLORS.emerald.main : alpha(COMMON_COLORS.emerald.main, 0.08),
+                      },
+                    }}
+                  >
+                    {item.icon}
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: '0.8rem',
+                        fontWeight: isSelected ? 700 : 600,
+                      }}
+                    >
+                      {item.label}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+
+            {/* View Switcher Buttons */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                p: 0.45,
+                bgcolor: '#F4F6F8',
+                border: '1px solid #E5E7EB',
+                borderRadius: '999px',
+                gap: 0.35,
+              }}
+            >
+              {[
+                { label: 'Day', view: 'timeGridDay' as const },
+                { label: 'Week', view: 'timeGridWeek' as const },
+                { label: 'Month', view: 'dayGridMonth' as const },
+                { label: 'Agenda', view: 'listMonth' as const },
+              ].map((item) => {
+                const isSelected = activeView === item.view;
+                return (
+                  <Box
+                    key={item.label}
+                    onClick={() => handleChangeView(item.view)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      px: 2,
+                      py: 0.45,
+                      borderRadius: '999px',
+                      cursor: 'pointer',
+                      transition: 'all 0.25s ease',
+                      bgcolor: isSelected ? COMMON_COLORS.emerald.darker : 'transparent',
+                      color: isSelected ? '#fff' : '#637381',
+                      boxShadow: isSelected ? `0 3px 10px ${alpha(COMMON_COLORS.emerald.darker, 0.35)}` : 'none',
+                      '&:hover': {
+                        bgcolor: isSelected ? COMMON_COLORS.emerald.darker : alpha(COMMON_COLORS.emerald.darker, 0.08),
+                      },
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: isSelected ? 700 : 600,
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      {item.label}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+
+            {/* Advanced Filters Button (matching Monthly Roster View filter size) */}
+            {isHRUser && (
+              <Button
+                disableRipple
+                onClick={() => setOpenFilters(true)}
                 sx={{
-                  '& .MuiBadge-badge': {
-                    top: 2,
-                    right: 2,
+                  height: 42,
+                  px: 2,
+                  bgcolor: COMMON_COLORS.filterButton.bg,
+                  color: COMMON_COLORS.filterButton.color,
+                  borderRadius: 1.25,
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  textTransform: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  boxShadow: 'none',
+                  border: 'none',
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    bgcolor: COMMON_COLORS.filterButton.hoverBg,
+                    boxShadow: 'none',
                   },
                 }}
               >
-                <Iconify icon={"solar:filter-linear" as any} width={16} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
-              </Badge>
-              <Box component="span" sx={{ whiteSpace: 'nowrap', display: 'inline', fontWeight: 700 }}>
-                {activeFilterCount > 0 ? `Filters (${activeFilterCount})` : 'Filters'}
-              </Box>
-              <Iconify icon={"eva:chevron-down-fill" as any} width={14} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
-            </Button>
-          </Stack>
-        </Stack>
+                <Badge
+                  color="error"
+                  variant="dot"
+                  invisible={activeFilterCount === 0}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      top: 2,
+                      right: 2,
+                    },
+                  }}
+                >
+                  <Iconify icon={"solar:filter-linear" as any} width={18} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
+                </Badge>
+                <Box component="span" sx={{ whiteSpace: 'nowrap', display: 'inline', fontWeight: 700 }}>
+                  {activeFilterCount > 0 ? `Filters (${activeFilterCount})` : 'Filters'}
+                </Box>
+                <Iconify icon={"eva:chevron-down-fill" as any} width={16} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
+              </Button>
+            )}
+          </Box>
+        </Box>
 
-        {loading && (
+        {/* Content Body: Left Sidebar + Main Calendar Grid */}
+        <Box sx={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
+          {/* ---- Left Sidebar ---- */}
           <Box
             sx={{
               position: 'absolute',
               top: 0,
               left: 0,
-              right: 0,
               bottom: 0,
-              bgcolor: alpha('#fff', 0.6),
-              zIndex: 10,
+              width: 290,
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              flexDirection: 'column',
+              borderRight: '1px solid #E2E8F0',
+              bgcolor: 'background.paper',
+              overflowY: 'auto',
+              zIndex: 20,
             }}
           >
-            <CircularProgress size={40} />
-          </Box>
-        )}
+            {/* Mini Month Calendar */}
+            <Box
+              sx={{
+                '& .MuiDateCalendar-root': {
+                  width: '100%',
+                  height: 'auto',
+                  maxHeight: 'none',
+                  minHeight: 285,
+                  mt: 0.5,
+                  px: 1,
+                },
+                '& .MuiPickersCalendarHeader-root': {
+                  pl: 1.5,
+                  pr: 1,
+                  mt: 0.5,
+                  mb: 0.5,
+                },
+                '& .MuiPickersCalendarHeader-label': {
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  color: '#1E293B',
+                },
+                '& .MuiDayCalendar-header': {
+                  justifyContent: 'space-around',
+                },
+                '& .MuiDayCalendar-weekContainer': {
+                  justifyContent: 'space-around',
+                  my: 0.25,
+                },
+                '& .MuiDayCalendar-weekDayLabel': {
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: '#64748B',
+                  width: 32,
+                  height: 28,
+                },
+                '& .MuiPickersDay-root': {
+                  width: 32,
+                  height: 32,
+                  fontSize: '0.82rem',
+                  fontWeight: 500,
+                  color: '#1E293B',
+                  '&.Mui-selected': {
+                    bgcolor: `${COMMON_COLORS.emerald.main} !important`,
+                    color: '#fff',
+                    fontWeight: 700,
+                    '&:hover': { bgcolor: `${COMMON_COLORS.emerald.dark} !important` },
+                  },
+                  '&.MuiPickersDay-today:not(.Mui-selected)': {
+                    borderColor: `${COMMON_COLORS.emerald.main} !important`,
+                    color: `${COMMON_COLORS.emerald.main} !important`,
+                    fontWeight: 700,
+                  },
+                },
+                '& .MuiDayCalendar-slideTransition': {
+                  minHeight: 235,
+                  overflowY: 'hidden',
+                },
+              }}
+            >
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DateCalendar
+                  value={miniCalDate}
+                  onChange={handleMiniCalChange}
+                  showDaysOutsideCurrentMonth
+                  slots={{
+                    day: (props) => {
+                      const { day, outsideCurrentMonth, ...other } = props;
+                      const dateStr = day.format('YYYY-MM-DD');
 
-        {/* FullCalendar Component */}
-        <Box
-          sx={{
-            '& .fc': {
-              '--fc-border-color': theme.palette.divider,
-              '--fc-today-bg-color': alpha(theme.palette.primary.main, 0.06),
-              fontSize: '0.85rem',
-            },
-            '& .fc-header-toolbar': {
-              display: 'none',
-            },
-            '& .fc-event': {
-              cursor: 'pointer',
-              borderRadius: '4px',
-              padding: '2px 4px',
-              fontWeight: 600,
-            },
-          }}
-        >
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-            initialView="dayGridMonth"
-            selectable={canCreate}
-            selectMirror
-            dayMaxEvents={4}
-            events={filteredEvents}
-            select={handleDateSelect}
-            eventClick={handleEventClick}
-            datesSet={(dateInfo) => {
-              setTitle(dateInfo.view.title);
+                      const dayEvents = outsideCurrentMonth
+                        ? []
+                        : events.filter((evt) => {
+                          const s = evt.start ? dayjs(evt.start).format('YYYY-MM-DD') : '';
+                          return s === dateStr;
+                        });
+
+                      const dots = dayEvents.slice(0, 3).map((evt, idx) => {
+                        const isHol = Boolean(evt.extendedProps?.is_holiday);
+                        const bg = getMealColor(evt.extendedProps?.meal_type, isHol);
+                        return (
+                          <Box
+                            key={`${evt.id || idx}-${idx}`}
+                            sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: bg }}
+                          />
+                        );
+                      });
+
+                      return (
+                        <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                          <PickersDay {...other} outsideCurrentMonth={outsideCurrentMonth} day={day} />
+                          {dots.length > 0 && (
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                bottom: 2,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                display: 'flex',
+                                gap: '2px',
+                                pointerEvents: 'none',
+                              }}
+                            >
+                              {dots}
+                            </Box>
+                          )}
+                        </Box>
+                      );
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+            </Box>
+
+            <Divider sx={{ borderColor: '#E2E8F0' }} />
+
+            {/* Search Box */}
+            <Box sx={{ p: 2, pb: 1.5 }}>
+              <OutlinedInput
+                fullWidth
+                size="small"
+                placeholder="Search events..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                startAdornment={
+                  <InputAdornment position="start">
+                    <Iconify icon="eva:search-fill" width={18} sx={{ color: 'text.disabled' }} />
+                  </InputAdornment>
+                }
+                sx={{
+                  borderRadius: 2,
+                  fontSize: '0.85rem',
+                  bgcolor: '#F8FAFC',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#E2E8F0',
+                  },
+                }}
+              />
+            </Box>
+
+            <Divider sx={{ borderColor: '#E2E8F0' }} />
+
+            {/* Today / Selected Date Cards */}
+            <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: 2 }}>
+              {/* Today Meals Section */}
+              <Stack spacing={1.5} sx={{ mb: 2.5 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: COMMON_COLORS.emerald.main,
+                    fontWeight: 800,
+                    letterSpacing: 1,
+                    textTransform: 'uppercase',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    fontSize: '0.72rem',
+                  }}
+                >
+                  <Iconify icon={"solar:chef-hat-bold-duotone" as any} width={14} />
+                  {miniCalDate.isSame(dayjs(), 'day') ? 'TODAY MEALS' : `${miniCalDate.format('MMM D')} MEALS`}
+                </Typography>
+
+                {(() => {
+                  const meals = selectedDateEvents.filter((e) => !e.extendedProps?.is_holiday);
+                  if (meals.length === 0) {
+                    return (
+                      <Box
+                        sx={{
+                          py: 1.5,
+                          px: 2,
+                          borderRadius: '10px',
+                          bgcolor: '#F8FAFC',
+                          border: '1px solid #E2E8F0',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ color: '#94A3B8', fontSize: '0.825rem', fontWeight: 600 }}>
+                          No Meals Today
+                        </Typography>
+                      </Box>
+                    );
+                  }
+
+                  return (
+                    <Stack spacing={1}>
+                      {meals.slice(0, 10).map((evt) => {
+                        const mealType = evt.extendedProps?.meal_type || 'Meal';
+                        const color = getMealColor(mealType, false);
+                        return (
+                          <Box
+                            key={evt.id}
+                            onClick={() => handleEventClick({ event: evt })}
+                            sx={{
+                              p: 1.25,
+                              borderRadius: '8px',
+                              bgcolor: '#FFFFFF',
+                              border: '1px solid #E2E8F0',
+                              borderLeft: `4px solid ${color}`,
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                bgcolor: '#F8FAFC',
+                                transform: 'translateY(-1px)',
+                                boxShadow: '0 3px 8px rgba(0,0,0,0.06)',
+                              },
+                            }}
+                          >
+                            <Typography
+                              variant="subtitle2"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: '0.8125rem',
+                                color: '#1E293B',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {evt.extendedProps?.employee_name || evt.title}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.725rem', fontWeight: 600 }}>
+                              {mealType} (x{evt.extendedProps?.meal_count ?? 1}) • {evt.extendedProps?.department || 'General'}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  );
+                })()}
+              </Stack>
+            </Box>
+          </Box>
+
+          {/* ---- Main Calendar Area ---- */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 290,
+              right: 0,
+              bottom: 0,
+              overflow: 'auto',
+              p: 0,
+              bgcolor: '#FFFFFF',
+              '& .fc': {
+                height: '100%',
+                fontFamily: 'inherit',
+              },
+              '& .fc-header-toolbar': {
+                display: 'none',
+              },
+              '& .fc-theme-standard, & .fc-scrollgrid': {
+                border: 'none !important',
+              },
+              '& .fc-theme-standard td, & .fc-theme-standard th': {
+                borderColor: '#E2E8F0',
+              },
+              '& .fc-col-header-cell': {
+                py: 1.75,
+                bgcolor: '#FAFAFA',
+                color: '#303538',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                borderTop: 'none !important',
+                borderLeft: 'none !important',
+                borderRight: 'none !important',
+                borderBottom: '1px solid #E2E8F0 !important',
+              },
+              '& .fc-col-header-cell.fc-day-sun': {
+                color: '#E11D48 !important',
+              },
+              '& .fc-daygrid-day-number': {
+                color: '#475569',
+                fontWeight: 600,
+                fontSize: '0.8125rem',
+                p: 1,
+              },
+              '& .fc-day-today': {
+                backgroundColor: `${alpha(COMMON_COLORS.emerald.main, 0.06)} !important`,
+              },
+              '& .fc-day-today .fc-daygrid-day-number': {
+                color: `${COMMON_COLORS.emerald.main} !important`,
+                fontWeight: 700,
+              },
+              '& .fc-event': {
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: 'none',
+                bgcolor: 'transparent !important',
+                p: 0,
+                mb: '4px',
+                transition: 'transform 0.15s ease',
+                '&:hover': {
+                  transform: 'translateY(-1px)',
+                },
+              },
+              '& .fc-daygrid-event-harness': {
+                mb: '4px',
+              },
+              '& .fc-h-event, & .fc-v-event': {
+                bgcolor: 'transparent !important',
+                border: 'none !important',
+              },
+              '& .fc-daygrid-more-link': {
+                color: '#637381',
+                fontWeight: 600,
+                fontSize: '0.785rem',
+                textDecoration: 'none',
+                mt: 0.5,
+                display: 'block',
+                textAlign: 'center',
+                cursor: 'pointer',
+                '&:hover': {
+                  color: `${COMMON_COLORS.emerald.dark} !important`,
+                  textDecoration: 'underline',
+                },
+              },
+              '& .fc-popover, & .fc-more-popover': {
+                borderRadius: '12px !important',
+                border: '1px solid #E2E8F0 !important',
+                boxShadow: '0 12px 30px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1) !important',
+                overflow: 'hidden !important',
+                zIndex: '999999 !important',
+                minWidth: '220px !important',
+                maxWidth: '300px !important',
+                bgcolor: '#FFFFFF !important',
+              },
+              '& .fc-popover-header': {
+                bgcolor: '#F8FAFC !important',
+                p: '8px 12px !important',
+                fontWeight: '700 !important',
+                color: '#1E293B !important',
+                fontSize: '0.85rem !important',
+                borderBottom: '1px solid #E2E8F0 !important',
+              },
+              '& .fc-popover-body': {
+                p: '8px !important',
+                maxHeight: '260px',
+                overflowY: 'auto',
+                boxSizing: 'border-box !important',
+                width: '100% !important',
+              },
             }}
-            height="auto"
-          />
+          >
+            {loading && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  bgcolor: 'rgba(255, 255, 255, 0.7)',
+                  backdropFilter: 'blur(2px)',
+                  zIndex: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <CircularProgress size={40} sx={{ color: COMMON_COLORS.emerald.main }} />
+              </Box>
+            )}
+
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+              initialView={activeView}
+              headerToolbar={false}
+              selectable={canCreate}
+              selectMirror
+              dayMaxEvents={3}
+              events={formattedEvents}
+              eventContent={renderEventContent}
+              select={handleDateSelect}
+              eventClick={(clickInfo) => handleEventClick(clickInfo)}
+              datesSet={(dateInfo) => {
+                setTitle(dateInfo.view.title);
+              }}
+              height="100%"
+            />
+          </Box>
         </Box>
       </Card>
 
