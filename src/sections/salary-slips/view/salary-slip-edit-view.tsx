@@ -149,8 +149,8 @@ export function SalarySlipEditView({ id: propId }: Props) {
             otAmount = 0;
         } else if (isWorker) {
             const multiplier = getNum(hrSettings.workers_ot_rate_multiplier) || 2.0;
-            // Formula: Gross / 26 / 8 * OT Hours * Multiplier
-            otAmount = round((grossPay / 26 / 8) * otHours * multiplier);
+            // Formula: ROUND(Gross / 26 / 8 * OT Hours, 0) * Multiplier
+            otAmount = Math.round((grossPay / 26 / 8) * otHours) * multiplier;
         } else if (isNorthIndian) {
             const rate = getNum(hrSettings.north_indian_ot_rate) || 100.0;
             // Formula: 100 / Per Hour
@@ -264,37 +264,17 @@ export function SalarySlipEditView({ id: propId }: Props) {
 
         const workingDays = getNum(data.total_working_days) || 1;
         const lopDays = getNum(data.lop_days);
-        const payableDays = Math.max(0, workingDays - lopDays);
-        const currentProration = workingDays > 0 ? payableDays / workingDays : 1;
 
-        // 1. Prorate individual components to the period (only if they haven't been manually edited)
-        const updatedEarnings = (data.earnings || baseEarnings).map((item: any, idx: number) => {
-            const baseItem = baseEarnings[idx] || item;
-            const baseAmount = getNum(baseItem.standard_amount || baseItem.base_amount || baseItem.amount);
-            const isManual = item.isManual ?? false;
+        // 1. Preserve individual components as entered/loaded (do not overwrite with standard amounts)
+        const updatedEarnings = (data.earnings || baseEarnings || []).map((item: any) => ({
+            ...item,
+            amount: item.amount !== undefined && item.amount !== null ? item.amount : (item.standard_amount ?? 0),
+        }));
 
-            if (isManual) return { ...item, isManual: true };
-
-            return {
-                ...item,
-                amount: round(baseAmount * currentProration).toFixed(2),
-                isManual: false,
-            };
-        });
-
-        const updatedDeductions = (data.deductions || baseDeductions).map((item: any, idx: number) => {
-            const baseItem = baseDeductions[idx] || item;
-            const baseAmount = getNum(baseItem.standard_amount || baseItem.base_amount || baseItem.amount);
-            const isManual = item.isManual ?? false;
-
-            if (isManual) return { ...item, isManual: true };
-
-            return {
-                ...item,
-                amount: round(baseAmount).toFixed(2),
-                isManual: false,
-            };
-        });
+        const updatedDeductions = (data.deductions || baseDeductions || []).map((item: any) => ({
+            ...item,
+            amount: item.amount !== undefined && item.amount !== null ? item.amount : (item.standard_amount ?? 0),
+        }));
 
         // 2. Sum up totals
         const earnedGrossSalary = round(
@@ -320,7 +300,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
         // Dynamic rules for OT, Attendance Bonus, PT, PF, and ESI
         const { otAmount, attendanceBonus, ptAmount, pfAmount, esiAmount } = calculateDynamicRules(data, grossPay, earnedGrossSalary, earnedBasicDa, updatedEarnings);
 
-        // Update OT / Bonus in earnings if present and not manual
+        // Update OT / Bonus in earnings only if present and not manual
         const finalEarnings = updatedEarnings.map((item: any) => {
             const name = getCompName(item).toLowerCase();
             if (name.includes('overtime') || name.includes('ot amount') || name === 'ot') {
@@ -332,7 +312,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
             return item;
         });
 
-        // Update PT, PF, ESI in deductions if present and not manual
+        // Update PT, PF, ESI in deductions only if present and not manual (keep Canteen, Advance, etc. intact)
         const finalDeductions = updatedDeductions.map((item: any) => {
             const name = getCompName(item).toLowerCase();
             if (name.includes('professional tax') || name.includes('pt') || name.includes('prof tax') || name.includes('prof.tax')) {
@@ -352,7 +332,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
 
         // 3. Calculate LOP based on absent days relative to month base
         const baseGrossPay = round(
-            (data.earnings || baseEarnings).reduce((acc: number, curr: any) => {
+            (data.earnings || baseEarnings || []).reduce((acc: number, curr: any) => {
                 const name = getCompName(curr).toLowerCase();
                 if (name.includes('overtime') || name.includes('ot') || name.includes('attendance bonus')) return acc;
                 return acc + getNum(curr.standard_amount || curr.base_amount || curr.amount || 0);
@@ -466,9 +446,14 @@ export function SalarySlipEditView({ id: propId }: Props) {
             setLoading(true);
             getSalarySlipWithDetails(id)
                 .then((data) => {
-                    setBaseEarnings(data.earnings || []);
-                    setBaseDeductions(data.deductions || []);
-                    setFormData(recalculateTotals(data));
+                    const formattedData = {
+                        ...data,
+                        earnings: (data.earnings || []).map((e: any) => ({ ...e, isManual: true })),
+                        deductions: (data.deductions || []).map((d: any) => ({ ...d, isManual: true })),
+                    };
+                    setBaseEarnings(formattedData.earnings);
+                    setBaseDeductions(formattedData.deductions);
+                    setFormData(recalculateTotals(formattedData));
                 })
                 .catch((err) => {
                     console.error('Failed to load salary slip:', err);
