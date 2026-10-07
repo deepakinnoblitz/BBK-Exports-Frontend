@@ -126,34 +126,13 @@ export function CanteenTableRow({
       </TableCell>
 
       {/* Employee */}
-      <TableCell sx={{ minWidth: 200, px: 1.5 }}>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              bgcolor: COMMON_COLORS.emerald.lighter,
-              color: COMMON_COLORS.emerald.dark,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              flexShrink: 0,
-            }}
-          >
-            {(employee_name || employee || '?').charAt(0).toUpperCase()}
-          </Box>
-          <Box>
-            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }}>
-              {employee_name || employee}
-            </Typography>
-            <Typography variant="caption" noWrap sx={{ color: 'text.secondary', display: 'block' }}>
-              {employee}
-            </Typography>
-          </Box>
-        </Stack>
+      <TableCell sx={{ minWidth: 180, px: 1.5 }}>
+        <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }}>
+          {employee_name || employee}
+        </Typography>
+        <Typography variant="caption" noWrap sx={{ color: 'text.secondary', display: 'block' }}>
+          {employee}
+        </Typography>
       </TableCell>
 
       {/* Department */}
