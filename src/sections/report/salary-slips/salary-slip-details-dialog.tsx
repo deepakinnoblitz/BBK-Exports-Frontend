@@ -2,6 +2,8 @@ import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -38,6 +40,7 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
     });
 
     const [popoverState, setPopoverState] = useState<{ el: HTMLButtonElement | null; type: string }>({ el: null, type: '' });
+    const [holidayTab, setHolidayTab] = useState<'holiday' | 'not_working_days'>('holiday');
 
     useEffect(() => {
         getHRSettings().then(setHRSettings).catch(console.error);
@@ -180,7 +183,7 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                                     value={`${slip.holiday_working_days ?? ((slip.total_days_in_period || 30) - (slip.holiday_count || 0))} Days`}
                                 />
                                 <InfoRow
-                                    label="Holidays Found"
+                                    label="Holiday"
                                     value={slip.holiday_count || 0}
                                     action={renderInfoAction('holiday')}
                                 />
@@ -328,15 +331,26 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
     const getFilteredBreakdown = () => {
         const bd = slip?.days_breakdown || [];
         switch (popoverState.type) {
-            case 'present': return bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Compensatory Off'));
-            case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
-            case 'absent': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
-            case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
-            case 'holiday': return bd.filter((d: any) => d.status.includes('Holiday'));
-            case 'unpaid_leave': return bd.filter((d: any) => (d.status.includes('Unpaid Leave') || d.status.includes('Absent')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
-            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave') && !d.status.includes('Compensatory Off'));
-            case 'comp_off': return bd.filter((d: any) => d.status.includes('Compensatory Off'));
-            case 'lop': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
+            case 'present': return bd.filter((d: any) => d.status?.includes('Work') || d.status?.includes('Paid Leave') || d.status?.includes('Compensatory Off'));
+            case 'physical': return bd.filter((d: any) => d.status?.includes('Work'));
+            case 'absent': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave'));
+            case 'half_day': return bd.filter((d: any) => d.status?.includes('(0.5)'));
+            case 'holiday': {
+                if (holidayTab === 'not_working_days') {
+                    if (slip?.non_working_days_details?.length) {
+                        return slip.non_working_days_details;
+                    }
+                    return bd.filter((d: any) => d.is_non_working_day || d.status?.includes('Non Working Day') || d.status?.includes('Weekly Off'));
+                }
+                if (slip?.holidays_details?.length) {
+                    return slip.holidays_details;
+                }
+                return bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
+            }
+            case 'unpaid_leave': return bd.filter((d: any) => (d.status?.includes('Unpaid Leave') || d.status?.includes('Absent')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave'));
+            case 'paid_leave': return bd.filter((d: any) => d.status?.includes('Paid Leave') && !d.status?.includes('Compensatory Off'));
+            case 'comp_off': return bd.filter((d: any) => d.status?.includes('Compensatory Off'));
+            case 'lop': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave'));
             default: return bd;
         }
     };
@@ -353,6 +367,25 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
             case 'comp_off': return "Compensatory Off";
             case 'lop': return "LOP Days";
             default: return "Attendance Breakdown";
+        }
+    };
+
+    const holidayListCount = slip?.holiday_count !== undefined ? slip.holiday_count : (slip?.holidays_details?.length ?? (slip?.days_breakdown || []).filter((d: any) => d.is_holiday || d.status?.includes('Holiday')).length);
+    const notWorkingListCount = slip?.non_working_count !== undefined ? slip.non_working_count : (slip?.non_working_days_details?.length ?? (slip?.days_breakdown || []).filter((d: any) => d.is_non_working_day || d.status?.includes('Non Working Day') || d.status?.includes('Weekly Off')).length);
+
+    const getPopoverCount = () => {
+        if (!slip) return filteredBreakdown.length;
+        switch (popoverState.type) {
+            case 'present': return slip.actual_present_days !== undefined && slip.actual_present_days !== null ? slip.actual_present_days : filteredBreakdown.length;
+            case 'physical': return slip.physical_attendance_days !== undefined && slip.physical_attendance_days !== null ? slip.physical_attendance_days : filteredBreakdown.length;
+            case 'absent': return slip.lop_days !== undefined && slip.lop_days !== null ? slip.lop_days : filteredBreakdown.length;
+            case 'half_day': return slip.half_day_count !== undefined && slip.half_day_count !== null ? slip.half_day_count : filteredBreakdown.length;
+            case 'holiday': return slip.holiday_count !== undefined && slip.holiday_count !== null ? slip.holiday_count : filteredBreakdown.length;
+            case 'unpaid_leave': return slip.no_of_leave !== undefined && slip.no_of_leave !== null ? slip.no_of_leave : filteredBreakdown.length;
+            case 'paid_leave': return slip.no_of_paid_leave !== undefined && slip.no_of_paid_leave !== null ? slip.no_of_paid_leave : filteredBreakdown.length;
+            case 'comp_off': return slip.no_of_comp_off !== undefined && slip.no_of_comp_off !== null ? slip.no_of_comp_off : filteredBreakdown.length;
+            case 'lop': return slip.lop_days !== undefined && slip.lop_days !== null ? slip.lop_days : filteredBreakdown.length;
+            default: return filteredBreakdown.length;
         }
     };
 
@@ -444,21 +477,66 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                 }}
                 disableScrollLock
             >
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    {getPopoverTitle()}
-                    <Box component="span" sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.85em' }}>
-                        {filteredBreakdown.length}
+                {popoverState.type === 'holiday' ? (
+                    <Box sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+                        <Tabs
+                            value={holidayTab}
+                            onChange={(_, val) => setHolidayTab(val)}
+                            variant="fullWidth"
+                            sx={{
+                                minHeight: 36,
+                                '& .MuiTab-root': {
+                                    minHeight: 36,
+                                    py: 0.5,
+                                    px: 1,
+                                    fontSize: '0.85rem',
+                                    fontWeight: 700,
+                                    textTransform: 'none',
+                                },
+                            }}
+                        >
+                            <Tab
+                                value="holiday"
+                                label={
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                        <span>Holiday</span>
+                                        <Box component="span" sx={{ px: 0.75, py: 0.1, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700 }}>
+                                            {holidayListCount}
+                                        </Box>
+                                    </Box>
+                                }
+                            />
+                            <Tab
+                                value="not_working_days"
+                                label={
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                        <span>Not Working Days</span>
+                                        <Box component="span" sx={{ px: 0.75, py: 0.1, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700 }}>
+                                            {notWorkingListCount}
+                                        </Box>
+                                    </Box>
+                                }
+                            />
+                        </Tabs>
                     </Box>
-                </Typography>
+                ) : (
+                    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        {getPopoverTitle()}
+                        <Box component="span" sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.85em' }}>
+                            {getPopoverCount()}
+                        </Box>
+                    </Typography>
+                )}
                 <Scrollbar>
                     <Stack spacing={1.5}>
                         {filteredBreakdown.length > 0 ? filteredBreakdown.map((day: any, idx: number) => {
                             let colorStr = 'text.secondary';
-                            if (day.status.includes('Work') && day.status.includes('Absent')) colorStr = 'warning.main';
-                            else if (day.status.includes('Absent')) colorStr = 'error.main';
-                            else if (day.status.includes('Work')) colorStr = 'success.main';
-                            else if (day.status.includes('Holiday')) colorStr = 'info.main';
-                            else if (day.status.includes('Leave')) colorStr = 'warning.main';
+                            if (day.status?.includes('Non Working Day') || day.status?.includes('Weekly Off')) colorStr = 'text.secondary';
+                            else if (day.status?.includes('Work') && day.status?.includes('Absent')) colorStr = 'warning.main';
+                            else if (day.status?.includes('Absent')) colorStr = 'error.main';
+                            else if (day.status?.includes('Work')) colorStr = 'success.main';
+                            else if (day.status?.includes('Holiday')) colorStr = 'info.main';
+                            else if (day.status?.includes('Leave')) colorStr = 'warning.main';
 
                             return (
                                 <Box
@@ -478,14 +556,16 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                                     }}
                                 >
                                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                        {dayjs(day.date).format('DD-MM-YYYY - dddd')}
+                                        {`${dayjs(day.date).format('DD-MM-YYYY')} - ${day.holiday_desc || day.description || dayjs(day.date).format('dddd')}`}
                                     </Typography>
                                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                                         <Typography variant="caption" sx={{ color: colorStr, fontWeight: 700, px: 1, py: 0.25, borderRadius: 0.5, bgcolor: (theme) => alpha(theme.palette[colorStr.replace('.main', '') as 'success' | 'info' | 'warning' | 'error']?.main || theme.palette.text.secondary, 0.12) }}>
                                             {(() => {
-                                                if ((popoverState.type === 'absent' || popoverState.type === 'lop') && day.status.includes('Work') && day.status.includes('Absent')) return 'Half Day Absent';
-                                                if (['present', 'physical', 'half_day'].includes(popoverState.type) && day.status.includes('Work') && day.status.includes('Absent')) return 'Present Half Day';
-                                                return day.status.replaceAll('(1.0)', 'Full Day').replaceAll('(0.5)', 'Half Day').replace('Work', 'Present');
+                                                if (day.status?.includes('Non Working Day') || day.status?.includes('Weekly Off'))
+                                                    return 'Non Working Day';
+                                                if ((popoverState.type === 'absent' || popoverState.type === 'lop') && day.status?.includes('Work') && day.status?.includes('Absent')) return 'Half Day Absent';
+                                                if (['present', 'physical', 'half_day'].includes(popoverState.type) && day.status?.includes('Work') && day.status?.includes('Absent')) return 'Present Half Day';
+                                                return day.status?.replaceAll('(1.0)', 'Full Day').replaceAll('(0.5)', 'Half Day').replace(/\bWork\b/g, 'Present');
                                             })()}
                                         </Typography>
                                         {day.hours ? (

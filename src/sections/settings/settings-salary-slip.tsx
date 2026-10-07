@@ -16,7 +16,11 @@ import {
   LuCirclePlus, 
   LuTrash2, 
   LuWallet, 
-  LuHeartPulse
+  LuHeartPulse,
+  LuChevronDown,
+  LuHardHat,
+  LuMountain,
+  LuBriefcase
 } from 'react-icons/lu';
 
 import Box from '@mui/material/Box';
@@ -28,29 +32,28 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
-import Switch from '@mui/material/Switch';
 import Select from '@mui/material/Select';
 import Divider from '@mui/material/Divider';
-import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
 import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
 import MenuItem from '@mui/material/MenuItem';
 import { InputAdornment } from '@mui/material';
+import Accordion from '@mui/material/Accordion';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TextField from '@mui/material/TextField';
-import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 import TableContainer from '@mui/material/TableContainer';
-import FormControlLabel from '@mui/material/FormControlLabel';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import AccordionSummary from '@mui/material/AccordionSummary';
 
 import { fetchSalaryComponents } from 'src/api/hr-management';
-import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 
 import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
 
@@ -99,6 +102,29 @@ const SETTINGS_TABS = [
   },
 ];
 
+type CategoryKey = 'workers' | 'north_indian' | 'general';
+
+const CATEGORIES: { key: CategoryKey; title: string; subtitle: string; icon: React.ReactNode }[] = [
+  {
+    key: 'workers',
+    title: 'Workers Settings',
+    subtitle: 'Rules & statutory policies for Factory / Worker staff',
+    icon: <LuHardHat size={20} style={{ color: '#d97706' }} />,
+  },
+  {
+    key: 'north_indian',
+    title: 'North Indian Settings',
+    subtitle: 'Rules & hourly overtime rates for North Indian staff',
+    icon: <LuMountain size={20} style={{ color: '#0288d1' }} />,
+  },
+  {
+    key: 'general',
+    title: 'Staff / General Settings',
+    subtitle: 'Default company-wide salary calculation policies',
+    icon: <LuBriefcase size={20} style={{ color: '#6366f1' }} />,
+  },
+];
+
 // ----------------------------------------------------------------------
 
 type Props = {
@@ -125,34 +151,42 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
     ? earningComponents.map((c) => c.component_name)
     : ['Basic Pay', 'DA', 'Other Allowance'];
 
-  const getSelectedPfComponents = (): string[] => {
-    if (!data.pf_wage_basis) return earningOptions;
-    if (Array.isArray(data.pf_wage_basis)) return data.pf_wage_basis;
-    if (typeof data.pf_wage_basis === 'string') {
-      try {
-        const parsed = JSON.parse(data.pf_wage_basis);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        if (data.pf_wage_basis === 'Earned Basic + DA') {
-          return earningOptions.filter((name: string) => /basic|da|dearness/i.test(name));
-        }
-        if (data.pf_wage_basis === 'Earned Gross (Basic + DA + Others)') {
-          return earningOptions;
-        }
-        if (data.pf_wage_basis.includes(',')) {
-          return data.pf_wage_basis.split(',').map((s: string) => s.trim()).filter(Boolean);
-        }
-        return [data.pf_wage_basis];
+  // Helper to read category-specific value or fallback
+  const getFieldVal = (cat: CategoryKey, baseField: string, fallbackDefault: any = '') => {
+    if (cat === 'workers') {
+      const wField = `workers_${baseField}`;
+      if (data[wField] !== undefined && data[wField] !== null && data[wField] !== '') {
+        return data[wField];
+      }
+    } else if (cat === 'north_indian') {
+      const niField = `north_indian_${baseField}`;
+      if (data[niField] !== undefined && data[niField] !== null && data[niField] !== '') {
+        return data[niField];
       }
     }
-    return earningOptions;
+    return data[baseField] !== undefined && data[baseField] !== null ? data[baseField] : fallbackDefault;
   };
 
-  const getParsedSlabs = (): PTSlabItem[] => {
-    if (!data.pt_slabs) return DEFAULT_PT_SLABS;
-    if (Array.isArray(data.pt_slabs)) return data.pt_slabs;
+  // Helper to update category-specific field
+  const setFieldVal = (cat: CategoryKey, baseField: string, value: any) => {
+    if (cat === 'workers') {
+      onChange(`workers_${baseField}`, value);
+    } else if (cat === 'north_indian') {
+      onChange(`north_indian_${baseField}`, value);
+    } else {
+      onChange(baseField, value);
+    }
+  };
+
+  const isCheckEnabled = (val: any) => val === 1 || val === true || val === '1';
+
+  // PT Slabs per Category
+  const getParsedSlabs = (cat: CategoryKey): PTSlabItem[] => {
+    const rawSlabs = getFieldVal(cat, 'pt_slabs');
+    if (!rawSlabs) return DEFAULT_PT_SLABS;
+    if (Array.isArray(rawSlabs)) return rawSlabs;
     try {
-      const parsed = typeof data.pt_slabs === 'string' ? JSON.parse(data.pt_slabs) : data.pt_slabs;
+      const parsed = typeof rawSlabs === 'string' ? JSON.parse(rawSlabs) : rawSlabs;
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     } catch {
       // ignore
@@ -160,10 +194,9 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
     return DEFAULT_PT_SLABS;
   };
 
-  const slabs = getParsedSlabs();
-
-  const handleUpdateSlab = (index: number, field: keyof PTSlabItem, val: any) => {
-    const updated = slabs.map((item, i) => {
+  const handleUpdateSlab = (cat: CategoryKey, index: number, field: keyof PTSlabItem, val: any) => {
+    const currentSlabs = getParsedSlabs(cat);
+    const updated = currentSlabs.map((item, i) => {
       if (i === index) {
         let parsedVal: any = val;
         if (field === 'to_amount') {
@@ -178,24 +211,113 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       }
       return item;
     });
-    onChange('pt_slabs', JSON.stringify(updated));
+    setFieldVal(cat, 'pt_slabs', JSON.stringify(updated));
   };
 
-  const handleAddSlab = () => {
-    const last = slabs[slabs.length - 1];
+  const handleAddSlab = (cat: CategoryKey) => {
+    const currentSlabs = getParsedSlabs(cat);
+    const last = currentSlabs[currentSlabs.length - 1];
     const nextFrom = last && last.to_amount != null ? Number(last.to_amount) + 1 : 0;
-    const updated = [...slabs, { from_amount: nextFrom, to_amount: null, tax_amount: 0 }];
-    onChange('pt_slabs', JSON.stringify(updated));
+    const updated = [...currentSlabs, { from_amount: nextFrom, to_amount: null, tax_amount: 0 }];
+    setFieldVal(cat, 'pt_slabs', JSON.stringify(updated));
   };
 
-  const handleRemoveSlab = (index: number) => {
-    const updated = slabs.filter((_, i) => i !== index);
-    onChange('pt_slabs', JSON.stringify(updated));
+  const handleRemoveSlab = (cat: CategoryKey, index: number) => {
+    const currentSlabs = getParsedSlabs(cat);
+    const updated = currentSlabs.filter((_, i) => i !== index);
+    setFieldVal(cat, 'pt_slabs', JSON.stringify(updated));
   };
 
-  const handleResetSlabs = () => {
-    onChange('pt_slabs', JSON.stringify(DEFAULT_PT_SLABS));
+  const handleResetSlabs = (cat: CategoryKey) => {
+    setFieldVal(cat, 'pt_slabs', JSON.stringify(DEFAULT_PT_SLABS));
   };
+
+  // PF Components per Category
+  const getSelectedPfComponents = (cat: CategoryKey): string[] => {
+    const rawVal = getFieldVal(cat, 'pf_wage_basis');
+    if (!rawVal) return earningOptions;
+    if (Array.isArray(rawVal)) return rawVal;
+    if (typeof rawVal === 'string') {
+      try {
+        const parsed = JSON.parse(rawVal);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        if (rawVal === 'Earned Basic + DA') {
+          return earningOptions.filter((name: string) => /basic|da|dearness/i.test(name));
+        }
+        if (rawVal === 'Earned Gross (Basic + DA + Others)') {
+          return earningOptions;
+        }
+        if (rawVal.includes(',')) {
+          return rawVal.split(',').map((s: string) => s.trim()).filter(Boolean);
+        }
+        return [rawVal];
+      }
+    }
+    return earningOptions;
+  };
+
+  // Common Accordion Wrapper
+  const renderCategoryAccordion = (
+    cat: typeof CATEGORIES[0],
+    defaultExpanded: boolean,
+    children: React.ReactNode
+  ) => (
+    <Accordion
+      key={cat.key}
+      defaultExpanded={defaultExpanded}
+      disableGutters
+      sx={{
+        border: (theme) => `1px solid ${theme.palette.divider}`,
+        borderRadius: '12px !important',
+        mb: 2.5,
+        '&:before': { display: 'none' },
+        boxShadow: 'none',
+        overflow: 'hidden',
+        transition: 'all 0.2s ease',
+        '&.Mui-expanded': {
+          borderColor: (theme) => alpha(theme.palette.primary.main, 0.35),
+          boxShadow: (theme) => `0 4px 16px ${alpha(theme.palette.common.black, 0.04)}`,
+        },
+      }}
+    >
+      <AccordionSummary
+        expandIcon={<LuChevronDown size={20} />}
+        sx={{
+          px: 3,
+          py: 1.25,
+          bgcolor: (theme) => alpha(theme.palette.grey[500], 0.03),
+          borderBottom: '1px solid transparent',
+          '&.Mui-expanded': {
+            borderBottomColor: 'divider',
+            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03),
+          },
+          '& .MuiAccordionSummary-content': {
+            my: 0.5,
+            alignItems: 'center',
+          },
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ width: '100%', pr: 1 }}>
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            {cat.icon}
+          </Box>
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+              {cat.title}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+              {cat.subtitle}
+            </Typography>
+          </Box>
+        </Stack>
+      </AccordionSummary>
+
+      <AccordionDetails sx={{ p: { xs: 2.5, md: 3.5 }, bgcolor: 'background.paper' }}>
+        {children}
+      </AccordionDetails>
+    </Accordion>
+  );
 
   return (
     <Stack spacing={3}>
@@ -250,7 +372,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
         </Tabs>
       </Box>
 
-      {/* Tab Panel 1: Salary Calculation Rules */}
+      {/* Tab Panel 1: Salary Calculation Rules (Company-Wide) */}
       {currentTab === 'salary_rules' && (
         <Card sx={{ p: 4, borderRadius: 3 }}>
           <Stack spacing={4}>
@@ -283,7 +405,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                 <Box sx={{ color: 'primary.main', display: 'flex', alignItems: 'center' }}>
                   <LuCalculator size={22} />
                 </Box>
-                <Typography variant="h6">Salary Calculation Rules</Typography>
+                <Typography variant="h6">Salary Calculation Rules (Company-Wide)</Typography>
               </Stack>
               <Typography variant="caption" sx={{ color: 'text.secondary', mb: 3, display: 'block' }}>
                 Configure working days basis, calculation data sources, leave allocation rules, and holiday handling.
@@ -425,263 +547,267 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
         </Card>
       )}
 
-      {/* Tab Panel 2: Professional Tax (PT) Rules */}
+      {/* Tab Panel 2: Professional Tax (PT) Rules (With Collapsible per Category) */}
       {currentTab === 'pt_rules' && (
-        <Card sx={{ p: 4, borderRadius: 3 }}>
-          <Stack spacing={3.5}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
-              <Box>
-                <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 0.5 }}>
-                  <Box sx={{ color: 'primary.main', display: 'flex', alignItems: 'center' }}>
-                    <LuReceipt size={22} />
-                  </Box>
-                  <Typography variant="h6">Professional Tax (PT) Rules</Typography>
-                </Stack>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Configure the Professional Tax slab calculation cycle, deduction frequency, and statutory slabs.
-                </Typography>
-              </Box>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 700,
-                    color: (data.enable_pt !== 0 && data.enable_pt !== false && data.enable_pt !== '0') ? '#059669' : 'text.secondary',
-                  }}
-                >
-                  {(data.enable_pt !== 0 && data.enable_pt !== false && data.enable_pt !== '0') ? 'Enabled' : 'Disabled'}
-                </Typography>
-                <CustomSwitch
-                  checked={data.enable_pt !== 0 && data.enable_pt !== false && data.enable_pt !== '0'}
-                  onChange={(e) => onChange('enable_pt', e.target.checked ? 1 : 0)}
-                />
-              </Stack>
-            </Stack>
+        <Box>
+          {CATEGORIES.map((cat, idx) => {
+            const slabs = getParsedSlabs(cat.key);
+            const ptEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_pt', 1));
+            const ptFreq = getFieldVal(cat.key, 'pt_deduction_frequency', 'Half-Yearly Deduction');
+            const ptMonths = getFieldVal(cat.key, 'pt_half_yearly_months', 'April, September');
 
-            <Divider />
-
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: (data.pt_deduction_frequency === 'Half-Yearly Deduction') ? 6 : 12 }}>
-                <FormControl fullWidth>
-                  <InputLabel id="pt-deduction-frequency-label">PT Deduction Frequency</InputLabel>
-                  <Select
-                    labelId="pt-deduction-frequency-label"
-                    id="pt_deduction_frequency"
-                    value={data.pt_deduction_frequency || 'Half-Yearly Deduction'}
-                    label="PT Deduction Frequency"
-                    onChange={(e) => onChange('pt_deduction_frequency', e.target.value)}
-                    disabled={data.enable_pt === 0 || data.enable_pt === false || data.enable_pt === '0'}
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <LuHistory size={18} style={{ opacity: 0.6, marginLeft: 8 }} />
-                      </InputAdornment>
-                    }
-                  >
-                    <MenuItem value="Half-Yearly Deduction">Option A: Half-Yearly Deduction (Standard Cycles)</MenuItem>
-                    <MenuItem value="Every Month Deduction">Option B: Every Month Deduction</MenuItem>
-                  </Select>
-                  <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <LuInfo size={15} style={{ color: '#0288d1', flexShrink: 0 }} />
-                    {data.pt_deduction_frequency === 'Every Month Deduction'
-                      ? 'PT is deducted in every monthly salary slip based on monthly Gross.'
-                      : 'Full PT slab amount is only deducted during designated half-yearly months.'}
-                  </Typography>
-                </FormControl>
-              </Grid>
-
-              {data.pt_deduction_frequency !== 'Every Month Deduction' && (
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <FormControl fullWidth>
-                    <InputLabel id="pt-half-yearly-months-label">PT Half-Yearly Cycle Months</InputLabel>
-                    <Select
-                      labelId="pt-half-yearly-months-label"
-                      id="pt_half_yearly_months"
-                      value={data.pt_half_yearly_months || 'April, September'}
-                      label="PT Half-Yearly Cycle Months"
-                      onChange={(e) => onChange('pt_half_yearly_months', e.target.value)}
-                      disabled={data.enable_pt === 0 || data.enable_pt === false || data.enable_pt === '0'}
-                      startAdornment={
-                        <InputAdornment position="start">
-                          <LuCalendarDays size={18} style={{ opacity: 0.6, marginLeft: 8 }} />
-                        </InputAdornment>
-                      }
-                    >
-                      <MenuItem value="April, September">April & September</MenuItem>
-                      <MenuItem value="March, September">March & September</MenuItem>
-                      <MenuItem value="April, October">April & October</MenuItem>
-                    </Select>
-                    <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <LuInfo size={15} style={{ color: '#0288d1', flexShrink: 0 }} />
-                      Months in which the PT deduction will automatically apply.
+            return renderCategoryAccordion(
+              cat,
+              idx === 0, // Workers expanded by default
+              <Stack spacing={3}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                      Professional Tax (PT) Rules ({cat.title})
                     </Typography>
-                  </FormControl>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Configure Professional Tax slab deduction rules and cycles for {cat.title}.
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 700,
+                        color: ptEnabled ? '#059669' : 'text.secondary',
+                      }}
+                    >
+                      {ptEnabled ? 'Enabled' : 'Disabled'}
+                    </Typography>
+                    <CustomSwitch
+                      checked={ptEnabled}
+                      onChange={(e) => setFieldVal(cat.key, 'enable_pt', e.target.checked ? 1 : 0)}
+                    />
+                  </Stack>
+                </Stack>
+
+                <Divider />
+
+                <Grid container spacing={3}>
+                  <Grid size={{ xs: 12, md: ptFreq === 'Half-Yearly Deduction' ? 6 : 12 }}>
+                    <FormControl fullWidth>
+                      <InputLabel id={`pt-freq-label-${cat.key}`}>PT Deduction Frequency</InputLabel>
+                      <Select
+                        labelId={`pt-freq-label-${cat.key}`}
+                        id={`pt_deduction_frequency_${cat.key}`}
+                        value={ptFreq}
+                        label="PT Deduction Frequency"
+                        onChange={(e) => setFieldVal(cat.key, 'pt_deduction_frequency', e.target.value)}
+                        disabled={!ptEnabled}
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <LuHistory size={18} style={{ opacity: 0.6, marginLeft: 8 }} />
+                          </InputAdornment>
+                        }
+                      >
+                        <MenuItem value="Half-Yearly Deduction">Option A: Half-Yearly Deduction (Standard Cycles)</MenuItem>
+                        <MenuItem value="Every Month Deduction">Option B: Every Month Deduction</MenuItem>
+                      </Select>
+                      <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <LuInfo size={15} style={{ color: '#0288d1', flexShrink: 0 }} />
+                        {ptFreq === 'Every Month Deduction'
+                          ? 'PT is deducted in every monthly salary slip based on monthly Gross.'
+                          : 'Full PT slab amount is only deducted during designated half-yearly months.'}
+                      </Typography>
+                    </FormControl>
+                  </Grid>
+
+                  {ptFreq !== 'Every Month Deduction' && (
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <FormControl fullWidth>
+                        <InputLabel id={`pt-months-label-${cat.key}`}>PT Half-Yearly Cycle Months</InputLabel>
+                        <Select
+                          labelId={`pt-months-label-${cat.key}`}
+                          id={`pt_half_yearly_months_${cat.key}`}
+                          value={ptMonths}
+                          label="PT Half-Yearly Cycle Months"
+                          onChange={(e) => setFieldVal(cat.key, 'pt_half_yearly_months', e.target.value)}
+                          disabled={!ptEnabled}
+                          startAdornment={
+                            <InputAdornment position="start">
+                              <LuCalendarDays size={18} style={{ opacity: 0.6, marginLeft: 8 }} />
+                            </InputAdornment>
+                          }
+                        >
+                          <MenuItem value="April, September">April & September</MenuItem>
+                          <MenuItem value="March, September">March & September</MenuItem>
+                          <MenuItem value="April, October">April & October</MenuItem>
+                        </Select>
+                        <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <LuInfo size={15} style={{ color: '#0288d1', flexShrink: 0 }} />
+                          Months in which the PT deduction will automatically apply.
+                        </Typography>
+                      </FormControl>
+                    </Grid>
+                  )}
                 </Grid>
-              )}
-            </Grid>
 
-            {/* Dynamic PT Slab Configurator */}
-            <Box sx={{ mt: 1 }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                    Professional Tax (PT) Slab Tiers
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    Define the Gross salary ranges and their corresponding tax amounts. Leave Max Gross empty for the top slab (above).
-                  </Typography>
-                </Box>
+                {/* Dynamic PT Slab Configurator */}
+                <Box sx={{ mt: 1 }}>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                        Professional Tax (PT) Slab Tiers ({cat.title})
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        Define the Gross salary ranges and their corresponding tax amounts.
+                      </Typography>
+                    </Box>
 
-                <Stack direction="row" spacing={1.5}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<LuRotateCcw size={15} />}
-                    onClick={handleResetSlabs}
-                    disabled={data.enable_pt === 0 || data.enable_pt === false || data.enable_pt === '0'}
-                    sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600 }}
-                  >
-                    Reset Defaults
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<LuCirclePlus size={15} />}
-                    onClick={handleAddSlab}
-                    disabled={data.enable_pt === 0 || data.enable_pt === false || data.enable_pt === '0'}
+                    <Stack direction="row" spacing={1.5}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="inherit"
+                        startIcon={<LuRotateCcw size={15} />}
+                        onClick={() => handleResetSlabs(cat.key)}
+                        disabled={!ptEnabled}
+                        sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600 }}
+                      >
+                        Reset Defaults
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        startIcon={<LuCirclePlus size={15} />}
+                        onClick={() => handleAddSlab(cat.key)}
+                        disabled={!ptEnabled}
+                        sx={{
+                          borderRadius: 1,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          bgcolor: 'primary.main',
+                          '&:hover': { bgcolor: 'primary.dark' },
+                        }}
+                      >
+                        Add Slab Tier
+                      </Button>
+                    </Stack>
+                  </Stack>
+
+                  <TableContainer
                     sx={{
-                      borderRadius: 1,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      bgcolor: 'primary.main',
-                      '&:hover': { bgcolor: 'primary.dark' },
+                      border: (theme) => `1px solid ${theme.palette.divider}`,
+                      borderRadius: 1.5,
+                      overflow: 'hidden',
+                      opacity: !ptEnabled ? 0.6 : 1,
                     }}
                   >
-                    Add Slab Tier
-                  </Button>
-                </Stack>
+                    <Table size="small">
+                      <TableHead sx={{ bgcolor: (theme) => alpha(theme.palette.grey[500], 0.08) }}>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700, width: 60 }}>#</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Min Gross Salary (₹)</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Max Gross Salary (₹)</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Tax Deducted (₹)</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700, width: 80 }}>Action</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {slabs.map((slab, index) => (
+                          <TableRow key={index} hover>
+                            <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                              {index + 1}
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                size="small"
+                                type="number"
+                                value={slab.from_amount}
+                                onChange={(e) => handleUpdateSlab(cat.key, index, 'from_amount', e.target.value)}
+                                disabled={!ptEnabled}
+                                slotProps={{
+                                  input: {
+                                    startAdornment: (
+                                      <InputAdornment position="start">
+                                        <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                                      </InputAdornment>
+                                    ),
+                                  },
+                                  htmlInput: { min: 0 },
+                                }}
+                                sx={{ width: 160 }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                size="small"
+                                type="number"
+                                placeholder="Above (No Limit)"
+                                value={slab.to_amount ?? ''}
+                                onChange={(e) => handleUpdateSlab(cat.key, index, 'to_amount', e.target.value)}
+                                disabled={!ptEnabled}
+                                slotProps={{
+                                  input: {
+                                    startAdornment: slab.to_amount != null ? (
+                                      <InputAdornment position="start">
+                                        <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                                      </InputAdornment>
+                                    ) : undefined,
+                                  },
+                                  htmlInput: { min: 0 },
+                                }}
+                                sx={{ width: 180 }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                size="small"
+                                type="number"
+                                value={slab.tax_amount}
+                                onChange={(e) => handleUpdateSlab(cat.key, index, 'tax_amount', e.target.value)}
+                                disabled={!ptEnabled}
+                                slotProps={{
+                                  input: {
+                                    startAdornment: (
+                                      <InputAdornment position="start">
+                                        <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                                      </InputAdornment>
+                                    ),
+                                  },
+                                  htmlInput: { min: 0 },
+                                }}
+                                sx={{ width: 140 }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleRemoveSlab(cat.key, index)}
+                                disabled={slabs.length <= 1 || !ptEnabled}
+                              >
+                                <LuTrash2 size={16} />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
               </Stack>
-
-              <TableContainer
-                sx={{
-                  border: (theme) => `1px solid ${theme.palette.divider}`,
-                  borderRadius: 1.5,
-                  overflow: 'hidden',
-                  opacity: (data.enable_pt === 0 || data.enable_pt === false || data.enable_pt === '0') ? 0.6 : 1,
-                }}
-              >
-                <Table size="small">
-                  <TableHead sx={{ bgcolor: (theme) => alpha(theme.palette.grey[500], 0.08) }}>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700, width: 60 }}>#</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Min Gross Salary (₹)</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Max Gross Salary (₹)</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Tax Deducted (₹)</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, width: 80 }}>Action</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {slabs.map((slab, index) => (
-                      <TableRow key={index} hover>
-                        <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                          {index + 1}
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={slab.from_amount}
-                            onChange={(e) => handleUpdateSlab(index, 'from_amount', e.target.value)}
-                            disabled={data.enable_pt === 0 || data.enable_pt === false || data.enable_pt === '0'}
-                            slotProps={{
-                              input: {
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
-                                  </InputAdornment>
-                                ),
-                              },
-                              htmlInput: { min: 0 },
-                            }}
-                            sx={{ width: 160 }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            size="small"
-                            type="number"
-                            placeholder="Above (No Limit)"
-                            value={slab.to_amount ?? ''}
-                            onChange={(e) => handleUpdateSlab(index, 'to_amount', e.target.value)}
-                            disabled={data.enable_pt === 0 || data.enable_pt === false || data.enable_pt === '0'}
-                            slotProps={{
-                              input: {
-                                startAdornment: slab.to_amount != null ? (
-                                  <InputAdornment position="start">
-                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
-                                  </InputAdornment>
-                                ) : undefined,
-                              },
-                              htmlInput: { min: 0 },
-                            }}
-                            sx={{ width: 180 }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={slab.tax_amount}
-                            onChange={(e) => handleUpdateSlab(index, 'tax_amount', e.target.value)}
-                            disabled={data.enable_pt === 0 || data.enable_pt === false || data.enable_pt === '0'}
-                            slotProps={{
-                              input: {
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
-                                  </InputAdornment>
-                                ),
-                              },
-                              htmlInput: { min: 0 },
-                            }}
-                            sx={{ width: 140 }}
-                          />
-                        </TableCell>
-                        <TableCell align="right">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleRemoveSlab(index)}
-                            disabled={slabs.length <= 1 || (data.enable_pt === 0 || data.enable_pt === false || data.enable_pt === '0')}
-                          >
-                            <LuTrash2 size={16} />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Box>
-          </Stack>
-        </Card>
+            );
+          })}
+        </Box>
       )}
 
-      {/* Tab Panel 3: Employee Statutory Deductions (PF & ESI) */}
+      {/* Tab Panel 3: Employee Statutory Deductions (PF & ESI) (With Collapsible per Category) */}
       {currentTab === 'employee_statutory' && (
-        <Card sx={{ p: 4, borderRadius: 3 }}>
-          <Stack spacing={4}>
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
-                <Box sx={{ color: 'primary.main', display: 'flex', alignItems: 'center' }}>
-                  <LuShieldCheck size={22} />
-                </Box>
-                <Typography variant="h6">Employee Statutory Deductions (PF & ESI) Rules</Typography>
-              </Stack>
-              <Typography variant="caption" sx={{ color: 'text.secondary', mb: 3, display: 'block' }}>
-                Configure automatic Employee Provident Fund (PF) and Employee State Insurance (ESI) deduction formulas, rates, and statutory ceilings.
-              </Typography>
+        <Box>
+          {CATEGORIES.map((cat, idx) => {
+            const autoPfEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_auto_pf', 1));
+            const autoEsiEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_auto_esi', 1));
+            const selectedPfComps = getSelectedPfComponents(cat.key);
 
+            return renderCategoryAccordion(
+              cat,
+              idx === 0,
               <Grid container spacing={3}>
                 {/* PF Config Card */}
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -709,14 +835,14 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                           variant="body2"
                           sx={{
                             fontWeight: 700,
-                            color: (data.enable_auto_pf !== 0 && data.enable_auto_pf !== false && data.enable_auto_pf !== '0') ? '#059669' : 'text.secondary',
+                            color: autoPfEnabled ? '#059669' : 'text.secondary',
                           }}
                         >
-                          {(data.enable_auto_pf !== 0 && data.enable_auto_pf !== false && data.enable_auto_pf !== '0') ? 'Enabled' : 'Disabled'}
+                          {autoPfEnabled ? 'Enabled' : 'Disabled'}
                         </Typography>
                         <CustomSwitch
-                          checked={data.enable_auto_pf !== 0 && data.enable_auto_pf !== false && data.enable_auto_pf !== '0'}
-                          onChange={(e) => onChange('enable_auto_pf', e.target.checked ? 1 : 0)}
+                          checked={autoPfEnabled}
+                          onChange={(e) => setFieldVal(cat.key, 'enable_auto_pf', e.target.checked ? 1 : 0)}
                         />
                       </Stack>
                     </Stack>
@@ -728,11 +854,11 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             fullWidth
                             type="number"
                             label="Employee PF Rate (%)"
-                            value={data.employee_pf_rate ?? '12'}
-                            onChange={(e) => onChange('employee_pf_rate', e.target.value)}
+                            value={getFieldVal(cat.key, 'employee_pf_rate', '12')}
+                            onChange={(e) => setFieldVal(cat.key, 'employee_pf_rate', e.target.value)}
                             placeholder="12"
                             helperText="Standard EPF rate (12%)."
-                            disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
+                            disabled={!autoPfEnabled}
                             slotProps={{
                               input: {
                                 endAdornment: <InputAdornment position="end">%</InputAdornment>,
@@ -746,11 +872,11 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             fullWidth
                             type="number"
                             label="PF Wage Ceiling"
-                            value={data.pf_wage_ceiling ?? '15000'}
-                            onChange={(e) => onChange('pf_wage_ceiling', e.target.value)}
+                            value={getFieldVal(cat.key, 'pf_wage_ceiling', '15000')}
+                            onChange={(e) => setFieldVal(cat.key, 'pf_wage_ceiling', e.target.value)}
                             placeholder="15000"
                             helperText="Wage threshold (e.g. ₹15,000)."
-                            disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
+                            disabled={!autoPfEnabled}
                             slotProps={{
                               input: {
                                 startAdornment: (
@@ -767,12 +893,12 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                           <TextField
                             fullWidth
                             type="number"
-                            label="Max Employee PF Deduction"
-                            value={data.employee_pf_max_amount ?? '1800'}
-                            onChange={(e) => onChange('employee_pf_max_amount', e.target.value)}
+                            label="Max PF Deduction"
+                            value={getFieldVal(cat.key, 'employee_pf_max_amount', '1800')}
+                            onChange={(e) => setFieldVal(cat.key, 'employee_pf_max_amount', e.target.value)}
                             placeholder="1800"
                             helperText="Cap applied when wage ≥ ceiling (₹1,800)."
-                            disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
+                            disabled={!autoPfEnabled}
                             slotProps={{
                               input: {
                                 startAdornment: (
@@ -796,8 +922,8 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             <Button
                               size="small"
                               variant="text"
-                              disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
-                              onClick={() => onChange('pf_wage_basis', JSON.stringify(earningOptions))}
+                              disabled={!autoPfEnabled}
+                              onClick={() => setFieldVal(cat.key, 'pf_wage_basis', JSON.stringify(earningOptions))}
                               sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none' }}
                             >
                               Select All
@@ -806,8 +932,8 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                               size="small"
                               variant="text"
                               color="inherit"
-                              disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
-                              onClick={() => onChange('pf_wage_basis', JSON.stringify([]))}
+                              disabled={!autoPfEnabled}
+                              onClick={() => setFieldVal(cat.key, 'pf_wage_basis', JSON.stringify([]))}
                               sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: 'text.secondary' }}
                             >
                               Clear
@@ -818,11 +944,11 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                         <Autocomplete
                           multiple
                           disableCloseOnSelect
-                          disabled={data.enable_auto_pf === 0 || data.enable_auto_pf === false || data.enable_auto_pf === '0'}
+                          disabled={!autoPfEnabled}
                           options={earningOptions}
-                          value={getSelectedPfComponents()}
+                          value={selectedPfComps}
                           onChange={(_event, newValue) => {
-                            onChange('pf_wage_basis', JSON.stringify(newValue));
+                            setFieldVal(cat.key, 'pf_wage_basis', JSON.stringify(newValue));
                           }}
                           renderOption={(props, option, { selected }) => (
                             <li {...props} key={option}>
@@ -855,8 +981,8 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                           renderInput={(params) => (
                             <TextField
                               {...params}
-                              placeholder={getSelectedPfComponents().length === 0 ? "Select components for PF calculation" : ""}
-                              helperText={`Wage basis includes sum of ${getSelectedPfComponents().length} selected earning component(s).`}
+                              placeholder={selectedPfComps.length === 0 ? "Select components for PF calculation" : ""}
+                              helperText={`Wage basis includes sum of ${selectedPfComps.length} selected earning component(s).`}
                             />
                           )}
                         />
@@ -891,14 +1017,14 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                           variant="body2"
                           sx={{
                             fontWeight: 700,
-                            color: (data.enable_auto_esi !== 0 && data.enable_auto_esi !== false && data.enable_auto_esi !== '0') ? '#059669' : 'text.secondary',
+                            color: autoEsiEnabled ? '#059669' : 'text.secondary',
                           }}
                         >
-                          {(data.enable_auto_esi !== 0 && data.enable_auto_esi !== false && data.enable_auto_esi !== '0') ? 'Enabled' : 'Disabled'}
+                          {autoEsiEnabled ? 'Enabled' : 'Disabled'}
                         </Typography>
                         <CustomSwitch
-                          checked={data.enable_auto_esi !== 0 && data.enable_auto_esi !== false && data.enable_auto_esi !== '0'}
-                          onChange={(e) => onChange('enable_auto_esi', e.target.checked ? 1 : 0)}
+                          checked={autoEsiEnabled}
+                          onChange={(e) => setFieldVal(cat.key, 'enable_auto_esi', e.target.checked ? 1 : 0)}
                         />
                       </Stack>
                     </Stack>
@@ -910,11 +1036,11 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             fullWidth
                             type="number"
                             label="Employee ESI Rate (%)"
-                            value={data.employee_esi_rate ?? '0.75'}
-                            onChange={(e) => onChange('employee_esi_rate', e.target.value)}
+                            value={getFieldVal(cat.key, 'employee_esi_rate', '0.75')}
+                            onChange={(e) => setFieldVal(cat.key, 'employee_esi_rate', e.target.value)}
                             placeholder="0.75"
                             helperText="Standard employee contribution (0.75%)."
-                            disabled={data.enable_auto_esi === 0 || data.enable_auto_esi === false || data.enable_auto_esi === '0'}
+                            disabled={!autoEsiEnabled}
                             slotProps={{
                               input: {
                                 endAdornment: <InputAdornment position="end">%</InputAdornment>,
@@ -928,11 +1054,11 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             fullWidth
                             type="number"
                             label="ESI Wage Ceiling"
-                            value={data.esi_wage_ceiling ?? '21000'}
-                            onChange={(e) => onChange('esi_wage_ceiling', e.target.value)}
+                            value={getFieldVal(cat.key, 'esi_wage_ceiling', '21000')}
+                            onChange={(e) => setFieldVal(cat.key, 'esi_wage_ceiling', e.target.value)}
                             placeholder="21000"
                             helperText="Statutory threshold (Gross <= ₹21,000)."
-                            disabled={data.enable_auto_esi === 0 || data.enable_auto_esi === false || data.enable_auto_esi === '0'}
+                            disabled={!autoEsiEnabled}
                             slotProps={{
                               input: {
                                 startAdornment: (
@@ -947,16 +1073,17 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                         </Grid>
                       </Grid>
 
-                      <FormControl fullWidth disabled={data.enable_auto_esi === 0 || data.enable_auto_esi === false || data.enable_auto_esi === '0'}>
-                        <InputLabel id="esi-wage-basis-label">ESI Wage Basis</InputLabel>
+                      <FormControl fullWidth disabled={!autoEsiEnabled}>
+                        <InputLabel id={`esi-rounding-label-${cat.key}`}>ESI Rounding Method</InputLabel>
                         <Select
-                          labelId="esi-wage-basis-label"
-                          id="esi_wage_basis"
-                          value={data.esi_wage_basis || 'Earned Gross Salary'}
-                          label="ESI Wage Basis"
-                          onChange={(e) => onChange('esi_wage_basis', e.target.value)}
+                          labelId={`esi-rounding-label-${cat.key}`}
+                          id={`esi_rounding_method_${cat.key}`}
+                          value={getFieldVal(cat.key, 'esi_rounding_method', 'Round Up to Next Rupee (ROUNDUP / CEIL)')}
+                          label="ESI Rounding Method"
+                          onChange={(e) => setFieldVal(cat.key, 'esi_rounding_method', e.target.value)}
                         >
-                          <MenuItem value="Earned Gross Salary">Earned Gross Salary (Standard Statutory)</MenuItem>
+                          <MenuItem value="Round Up to Next Rupee (ROUNDUP / CEIL)">Round Up to Next Rupee (ROUNDUP / CEIL)</MenuItem>
+                          <MenuItem value="Standard Math Round (ROUND)">Standard Math Round (ROUND)</MenuItem>
                         </Select>
                         <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <LuInfo size={15} style={{ color: '#0288d1', flexShrink: 0 }} />
@@ -967,400 +1094,62 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   </Box>
                 </Grid>
               </Grid>
-            </Box>
-          </Stack>
-        </Card>
+            );
+          })}
+        </Box>
       )}
 
-      {/* Tab Panel 4: Overtime, Allowance & Attendance Bonus */}
+      {/* Tab Panel 4: Overtime, Allowance & Attendance Bonus (With Collapsible per Category) */}
       {currentTab === 'ot_bonus_rules' && (
-        <Card sx={{ p: 4, borderRadius: 3 }}>
-          <Stack spacing={4}>
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
-                <Box sx={{ color: '#22c55e', display: 'flex', alignItems: 'center' }}>
-                  <LuGift size={22} />
-                </Box>
-                <Typography variant="h6">Overtime (OT), Allowance & Attendance Bonus Rules</Typography>
-              </Stack>
-              <Typography variant="caption" sx={{ color: 'text.secondary', mb: 3, display: 'block' }}>
-                Configure role-based Overtime calculation formulas, tea allowances, and attendance bonus policies.
-              </Typography>
+        <Box>
+          {CATEGORIES.map((cat, idx) => (
+            renderCategoryAccordion(
+              cat,
+              idx === 0,
+              <Stack spacing={3}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                  Overtime (OT) & Bonus Rules ({cat.title})
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: -2 }}>
+                  Configure Overtime formulas, hourly rates, and attendance bonus policies for {cat.title}.
+                </Typography>
 
-              <Grid container spacing={3}>
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Workers OT Multiplier"
-                    value={data.workers_ot_rate_multiplier ?? '2'}
-                    onChange={(e) => onChange('workers_ot_rate_multiplier', e.target.value)}
-                    placeholder="2"
-                    helperText="Double Rate: (Gross / 26 / 8) × OT Hours × Multiplier"
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <LuCalculator size={18} style={{ opacity: 0.6, marginLeft: 8 }} />
-                          </InputAdornment>
-                        ),
-                        endAdornment: <InputAdornment position="end">x</InputAdornment>,
-                      },
-                      htmlInput: { min: 1, max: 5, step: 0.5 },
-                    }}
-                  />
-                </Grid>
-
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="North Indian OT Rate"
-                    value={data.north_indian_ot_rate ?? '100'}
-                    onChange={(e) => onChange('north_indian_ot_rate', e.target.value)}
-                    placeholder="100"
-                    helperText="Fixed hourly rate for North Indian Staff."
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                          </InputAdornment>
-                        ),
-                        endAdornment: <InputAdornment position="end">/hr</InputAdornment>,
-                      },
-                      htmlInput: { min: 0, step: 10 },
-                    }}
-                  />
-                </Grid>
-
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Workers Attendance Bonus"
-                    value={data.workers_attendance_bonus ?? '1500'}
-                    onChange={(e) => onChange('workers_attendance_bonus', e.target.value)}
-                    placeholder="1500"
-                    helperText="Bonus awarded for Full Present (0 LOP days)."
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                          </InputAdornment>
-                        ),
-                      },
-                      htmlInput: { min: 0, step: 100 },
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Box>
-          </Stack>
-        </Card>
-      )}
-
-      {/* Tab Panel 5: Employer Statutory Contributions & CTC Rules */}
-      {currentTab === 'employer_statutory' && (
-        <Card sx={{ p: 4, borderRadius: 3 }}>
-          <Stack spacing={4}>
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
-                <Box sx={{ color: '#0288d1', display: 'flex', alignItems: 'center' }}>
-                  <LuBuilding2 size={22} />
-                </Box>
-                <Typography variant="h6">Employer Statutory Contributions & CTC Rules</Typography>
-              </Stack>
-              <Typography variant="caption" sx={{ color: 'text.secondary', mb: 3, display: 'block' }}>
-                Configure employer statutory contribution percentages, administrative charges, and annual CTC provision policies.
-              </Typography>
-
-              <Grid container spacing={2.5}>
-                {/* Employer PF Rate */}
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Employer PF Rate (%)"
-                    value={data.employer_pf_rate ?? '12'}
-                    onChange={(e) => onChange('employer_pf_rate', e.target.value)}
-                    placeholder="12"
-                    helperText="Statutory EPF rate: 12%."
-                    slotProps={{
-                      input: {
-                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                      },
-                      htmlInput: { min: 0, max: 100, step: 0.1 },
-                    }}
-                  />
-                </Grid>
-
-                {/* Employer PF Wage Ceiling */}
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Employer PF Wage Ceiling"
-                    value={data.employer_pf_wage_ceiling ?? data.pf_wage_ceiling ?? '15000'}
-                    onChange={(e) => onChange('employer_pf_wage_ceiling', e.target.value)}
-                    placeholder="15000"
-                    helperText="Wage basis threshold (e.g. ₹15,000)."
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
-                          </InputAdornment>
-                        ),
-                      },
-                      htmlInput: { min: 0, step: 1000 },
-                    }}
-                  />
-                </Grid>
-
-                {/* Max Employer PF Contribution */}
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Max Employer PF Contribution"
-                    value={data.employer_pf_max_amount ?? '1800'}
-                    onChange={(e) => onChange('employer_pf_max_amount', e.target.value)}
-                    placeholder="1800"
-                    helperText="Contribution cap applied when wage ≥ ceiling (₹1,800)."
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
-                          </InputAdornment>
-                        ),
-                      },
-                      htmlInput: { min: 0, step: 100 },
-                    }}
-                  />
-                </Grid>
-
-                {/* PF Admin Charges */}
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="PF Admin Charges (%)"
-                    value={data.pf_admin_rate ?? '0.5'}
-                    onChange={(e) => onChange('pf_admin_rate', e.target.value)}
-                    placeholder="0.5"
-                    helperText="EPFO Admin charges rate."
-                    slotProps={{
-                      input: {
-                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                      },
-                      htmlInput: { min: 0, max: 10, step: 0.01 },
-                    }}
-                  />
-                </Grid>
-
-                {/* EDLI Charges */}
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="EDLI Charges (%)"
-                    value={data.edli_rate ?? '0.5'}
-                    onChange={(e) => onChange('edli_rate', e.target.value)}
-                    placeholder="0.5"
-                    helperText="Deposit Linked Insurance."
-                    slotProps={{
-                      input: {
-                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                      },
-                      htmlInput: { min: 0, max: 10, step: 0.01 },
-                    }}
-                  />
-                </Grid>
-
-                {/* Employer ESI Rate */}
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Employer ESI Rate (%)"
-                    value={data.employer_esi_rate ?? '3.25'}
-                    onChange={(e) => onChange('employer_esi_rate', e.target.value)}
-                    placeholder="3.25"
-                    helperText="ESI Contribution (Gross ≤ ₹21,000)."
-                    slotProps={{
-                      input: {
-                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                      },
-                      htmlInput: { min: 0, max: 100, step: 0.05 },
-                    }}
-                  />
-                </Grid>
-              </Grid>
-
-              <Grid container spacing={3} sx={{ mt: 1 }}>
-                {/* Bonus Provision Card */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Box
-                    sx={{
-                      p: 2.5,
-                      borderRadius: 2,
-                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
-                      border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
-                    }}
-                  >
-                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          Bonus Provision (Payment of Bonus Act)
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          Calculate monthly bonus provision towards annual bonus payment.
-                        </Typography>
-                      </Box>
-                      <Stack direction="row" alignItems="center" spacing={1.5}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 700,
-                            color: (data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false && data.enable_bonus_provision !== '0') ? '#059669' : 'text.secondary',
-                          }}
-                        >
-                          {(data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false && data.enable_bonus_provision !== '0') ? 'Enabled' : 'Disabled'}
-                        </Typography>
-                        <CustomSwitch
-                          checked={data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false && data.enable_bonus_provision !== '0'}
-                          onChange={(e) => onChange('enable_bonus_provision', e.target.checked ? 1 : 0)}
-                        />
-                      </Stack>
-                    </Stack>
-
-                    {(data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false && data.enable_bonus_provision !== '0') && (
+                <Grid container spacing={3}>
+                  {(cat.key === 'workers' || cat.key === 'general') && (
+                    <Grid size={{ xs: 12, sm: 6, md: cat.key === 'workers' ? 6 : 4 }}>
                       <TextField
                         fullWidth
-                        size="medium"
                         type="number"
-                        label="Bonus Provision Rate (%)"
-                        value={data.bonus_provision_rate ?? '8.33'}
-                        onChange={(e) => onChange('bonus_provision_rate', e.target.value)}
-                        placeholder="8.33"
-                        helperText="Default standard statutory rate: 8.33% (1 month basic pay/year)."
+                        label="Workers OT Multiplier"
+                        value={data.workers_ot_rate_multiplier ?? '2'}
+                        onChange={(e) => onChange('workers_ot_rate_multiplier', e.target.value)}
+                        placeholder="2"
+                        helperText="Double Rate: (Gross / 26 / 8) × OT Hours × Multiplier"
                         slotProps={{
                           input: {
-                            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <LuCalculator size={18} style={{ opacity: 0.6, marginLeft: 8 }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: <InputAdornment position="end">x</InputAdornment>,
                           },
-                          htmlInput: { min: 0, max: 100, step: 0.01 },
+                          htmlInput: { min: 1, max: 5, step: 0.5 },
                         }}
                       />
-                    )}
-                  </Box>
-                </Grid>
+                    </Grid>
+                  )}
 
-                {/* Earned Leave (EL) Provision Card */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Box
-                    sx={{
-                      p: 2.5,
-                      borderRadius: 2,
-                      bgcolor: (theme) => alpha(theme.palette.success.main, 0.04),
-                      border: (theme) => `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
-                    }}
-                  >
-                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          Earned Leave (EL) Provision
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          Calculate monthly provision for annual earned leave accruals.
-                        </Typography>
-                      </Box>
-                      <Stack direction="row" alignItems="center" spacing={1.5}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 700,
-                            color: (data.enable_el_provision !== 0 && data.enable_el_provision !== false && data.enable_el_provision !== '0') ? '#059669' : 'text.secondary',
-                          }}
-                        >
-                          {(data.enable_el_provision !== 0 && data.enable_el_provision !== false && data.enable_el_provision !== '0') ? 'Enabled' : 'Disabled'}
-                        </Typography>
-                        <CustomSwitch
-                          checked={data.enable_el_provision !== 0 && data.enable_el_provision !== false && data.enable_el_provision !== '0'}
-                          onChange={(e) => onChange('enable_el_provision', e.target.checked ? 1 : 0)}
-                        />
-                      </Stack>
-                    </Stack>
-
-                    {(data.enable_el_provision !== 0 && data.enable_el_provision !== false && data.enable_el_provision !== '0') && (
+                  {(cat.key === 'north_indian' || cat.key === 'general') && (
+                    <Grid size={{ xs: 12, sm: 6, md: cat.key === 'north_indian' ? 12 : 4 }}>
                       <TextField
                         fullWidth
-                        size="medium"
                         type="number"
-                        label="EL Provision Days / Year"
-                        value={data.el_provision_days_per_year ?? '15.6'}
-                        onChange={(e) => onChange('el_provision_days_per_year', e.target.value)}
-                        placeholder="15.6"
-                        helperText="Formula: (Basic / 26) × (EL Days / 12 months). Default: 15.6 days."
-                        slotProps={{
-                          input: {
-                            endAdornment: <InputAdornment position="end">days/yr</InputAdornment>,
-                          },
-                          htmlInput: { min: 0, max: 365, step: 0.1 },
-                        }}
-                      />
-                    )}
-                  </Box>
-                </Grid>
-
-                {/* Workers Tea Expenses (Employer) Card */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Box
-                    sx={{
-                      p: 2.5,
-                      borderRadius: 2,
-                      bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
-                      border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
-                    }}
-                  >
-                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          Workers Tea Expenses (Employer)
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          Company tea expense incurred per day worked for worker employees.
-                        </Typography>
-                      </Box>
-                      <Stack direction="row" alignItems="center" spacing={1.5}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 700,
-                            color: (data.enable_workers_tea_allowance !== 0 && data.enable_workers_tea_allowance !== false && data.enable_workers_tea_allowance !== '0') ? '#059669' : 'text.secondary',
-                          }}
-                        >
-                          {(data.enable_workers_tea_allowance !== 0 && data.enable_workers_tea_allowance !== false && data.enable_workers_tea_allowance !== '0') ? 'Enabled' : 'Disabled'}
-                        </Typography>
-                        <CustomSwitch
-                          checked={data.enable_workers_tea_allowance !== 0 && data.enable_workers_tea_allowance !== false && data.enable_workers_tea_allowance !== '0'}
-                          onChange={(e) => onChange('enable_workers_tea_allowance', e.target.checked ? 1 : 0)}
-                        />
-                      </Stack>
-                    </Stack>
-
-                    {(data.enable_workers_tea_allowance !== 0 && data.enable_workers_tea_allowance !== false && data.enable_workers_tea_allowance !== '0') && (
-                      <TextField
-                        fullWidth
-                        size="medium"
-                        type="number"
-                        label="Workers Tea Allowance Rate"
-                        value={data.workers_tea_allowance_per_day ?? '5'}
-                        onChange={(e) => onChange('workers_tea_allowance_per_day', e.target.value)}
-                        placeholder="5"
-                        helperText="Calculated on Employer CTC only (Days Worked × ₹/day)."
+                        label="North Indian OT Fixed Rate"
+                        value={data.north_indian_ot_rate ?? '100'}
+                        onChange={(e) => onChange('north_indian_ot_rate', e.target.value)}
+                        placeholder="100"
+                        helperText="Fixed hourly rate for North Indian Staff (OT Hours × Rate)."
                         slotProps={{
                           input: {
                             startAdornment: (
@@ -1368,18 +1157,370 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                                 <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
                               </InputAdornment>
                             ),
-                            endAdornment: <InputAdornment position="end">/day</InputAdornment>,
+                            endAdornment: <InputAdornment position="end">/hr</InputAdornment>,
                           },
-                          htmlInput: { min: 0, step: 1 },
+                          htmlInput: { min: 0, step: 10 },
                         }}
                       />
-                    )}
-                  </Box>
+                    </Grid>
+                  )}
+
+                  {(cat.key === 'workers' || cat.key === 'general') && (
+                    <Grid size={{ xs: 12, sm: 6, md: cat.key === 'workers' ? 6 : 4 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Workers Attendance Bonus"
+                        value={data.workers_attendance_bonus ?? '1500'}
+                        onChange={(e) => onChange('workers_attendance_bonus', e.target.value)}
+                        placeholder="1500"
+                        helperText="Bonus awarded for Full Present (0 absent days)."
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                              </InputAdornment>
+                            ),
+                          },
+                          htmlInput: { min: 0, step: 100 },
+                        }}
+                      />
+                    </Grid>
+                  )}
                 </Grid>
-              </Grid>
-            </Box>
-          </Stack>
-        </Card>
+              </Stack>
+            )
+          ))}
+        </Box>
+      )}
+
+      {/* Tab Panel 5: Employer Statutory Contributions & CTC Rules (With Collapsible per Category) */}
+      {currentTab === 'employer_statutory' && (
+        <Box>
+          {CATEGORIES.map((cat, idx) => {
+            const bonusEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_bonus_provision', 1));
+            const elEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_el_provision', 1));
+            const teaEnabled = isCheckEnabled(data.enable_workers_tea_allowance ?? 1);
+
+            return renderCategoryAccordion(
+              cat,
+              idx === 0,
+              <Stack spacing={3}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                  Employer Statutory Contributions & CTC Rules ({cat.title})
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: -2 }}>
+                  Configure employer contributions, PF/ESI rates, and CTC provisions for {cat.title}.
+                </Typography>
+
+                <Grid container spacing={2.5}>
+                  {/* Employer PF Rate */}
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Employer PF Rate (%)"
+                      value={getFieldVal(cat.key, 'employer_pf_rate', '12')}
+                      onChange={(e) => setFieldVal(cat.key, 'employer_pf_rate', e.target.value)}
+                      placeholder="12"
+                      helperText="Statutory EPF rate: 12%."
+                      slotProps={{
+                        input: {
+                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                        },
+                        htmlInput: { min: 0, max: 100, step: 0.1 },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* Employer PF Wage Ceiling */}
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Employer PF Wage Ceiling"
+                      value={getFieldVal(cat.key, 'employer_pf_wage_ceiling', getFieldVal(cat.key, 'pf_wage_ceiling', '15000'))}
+                      onChange={(e) => setFieldVal(cat.key, 'employer_pf_wage_ceiling', e.target.value)}
+                      placeholder="15000"
+                      helperText="Wage basis threshold (e.g. ₹15,000)."
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                            </InputAdornment>
+                          ),
+                        },
+                        htmlInput: { min: 0, step: 1000 },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* Max Employer PF Contribution */}
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Max Employer PF Contribution"
+                      value={getFieldVal(cat.key, 'employer_pf_max_amount', '1800')}
+                      onChange={(e) => setFieldVal(cat.key, 'employer_pf_max_amount', e.target.value)}
+                      placeholder="1800"
+                      helperText="Contribution cap applied when wage ≥ ceiling (₹1,800)."
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                            </InputAdornment>
+                          ),
+                        },
+                        htmlInput: { min: 0, step: 100 },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* PF Admin Charges */}
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="PF Admin Charges (%)"
+                      value={getFieldVal(cat.key, 'pf_admin_rate', '0.5')}
+                      onChange={(e) => setFieldVal(cat.key, 'pf_admin_rate', e.target.value)}
+                      placeholder="0.5"
+                      helperText="EPFO Admin charges rate."
+                      slotProps={{
+                        input: {
+                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                        },
+                        htmlInput: { min: 0, max: 10, step: 0.01 },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* EDLI Charges */}
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="EDLI Charges (%)"
+                      value={getFieldVal(cat.key, 'edli_rate', '0.5')}
+                      onChange={(e) => setFieldVal(cat.key, 'edli_rate', e.target.value)}
+                      placeholder="0.5"
+                      helperText="Deposit Linked Insurance."
+                      slotProps={{
+                        input: {
+                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                        },
+                        htmlInput: { min: 0, max: 10, step: 0.01 },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* Employer ESI Rate */}
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Employer ESI Rate (%)"
+                      value={getFieldVal(cat.key, 'employer_esi_rate', '3.25')}
+                      onChange={(e) => setFieldVal(cat.key, 'employer_esi_rate', e.target.value)}
+                      placeholder="3.25"
+                      helperText="ESI Contribution (Gross ≤ ₹21,000)."
+                      slotProps={{
+                        input: {
+                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                        },
+                        htmlInput: { min: 0, max: 100, step: 0.05 },
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+
+                <Grid container spacing={3} sx={{ mt: 1 }}>
+                  {/* Bonus Provision Card */}
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <Box
+                      sx={{
+                        p: 2.5,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                        border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+                      }}
+                    >
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            Bonus Provision (Payment of Bonus Act)
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            Calculate monthly bonus provision towards annual bonus payment.
+                          </Typography>
+                        </Box>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 700,
+                              color: bonusEnabled ? '#059669' : 'text.secondary',
+                            }}
+                          >
+                            {bonusEnabled ? 'Enabled' : 'Disabled'}
+                          </Typography>
+                          <CustomSwitch
+                            checked={bonusEnabled}
+                            onChange={(e) => setFieldVal(cat.key, 'enable_bonus_provision', e.target.checked ? 1 : 0)}
+                          />
+                        </Stack>
+                      </Stack>
+
+                      {bonusEnabled && (
+                        <TextField
+                          fullWidth
+                          size="medium"
+                          type="number"
+                          label="Bonus Provision Rate (%)"
+                          value={getFieldVal(cat.key, 'bonus_provision_rate', '8.33')}
+                          onChange={(e) => setFieldVal(cat.key, 'bonus_provision_rate', e.target.value)}
+                          placeholder="8.33"
+                          helperText="Default standard statutory rate: 8.33% (1 month basic pay/year)."
+                          slotProps={{
+                            input: {
+                              endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                            },
+                            htmlInput: { min: 0, max: 100, step: 0.01 },
+                          }}
+                        />
+                      )}
+                    </Box>
+                  </Grid>
+
+                  {/* Earned Leave (EL) Provision Card */}
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <Box
+                      sx={{
+                        p: 2.5,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.success.main, 0.04),
+                        border: (theme) => `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
+                      }}
+                    >
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            Earned Leave (EL) Provision
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            Calculate monthly provision for annual earned leave accruals.
+                          </Typography>
+                        </Box>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 700,
+                              color: elEnabled ? '#059669' : 'text.secondary',
+                            }}
+                          >
+                            {elEnabled ? 'Enabled' : 'Disabled'}
+                          </Typography>
+                          <CustomSwitch
+                            checked={elEnabled}
+                            onChange={(e) => setFieldVal(cat.key, 'enable_el_provision', e.target.checked ? 1 : 0)}
+                          />
+                        </Stack>
+                      </Stack>
+
+                      {elEnabled && (
+                        <TextField
+                          fullWidth
+                          size="medium"
+                          type="number"
+                          label="EL Provision Days / Year"
+                          value={getFieldVal(cat.key, 'el_provision_days_per_year', '15.6')}
+                          onChange={(e) => setFieldVal(cat.key, 'el_provision_days_per_year', e.target.value)}
+                          placeholder="15.6"
+                          helperText="Formula: (Basic / 26) × (EL Days / 12 months). Default: 15.6 days."
+                          slotProps={{
+                            input: {
+                              endAdornment: <InputAdornment position="end">days/yr</InputAdornment>,
+                            },
+                            htmlInput: { min: 0, max: 365, step: 0.1 },
+                          }}
+                        />
+                      )}
+                    </Box>
+                  </Grid>
+
+                  {/* Workers Tea Expenses (Employer) Card - Only shown for Workers / General */}
+                  {(cat.key === 'workers' || cat.key === 'general') && (
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Box
+                        sx={{
+                          p: 2.5,
+                          borderRadius: 2,
+                          bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
+                          border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
+                        }}
+                      >
+                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              Workers Tea Expenses (Employer)
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Company tea expense incurred per day worked for worker employees.
+                            </Typography>
+                          </Box>
+                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 700,
+                                color: teaEnabled ? '#059669' : 'text.secondary',
+                              }}
+                            >
+                              {teaEnabled ? 'Enabled' : 'Disabled'}
+                            </Typography>
+                            <CustomSwitch
+                              checked={teaEnabled}
+                              onChange={(e) => onChange('enable_workers_tea_allowance', e.target.checked ? 1 : 0)}
+                            />
+                          </Stack>
+                        </Stack>
+
+                        {teaEnabled && (
+                          <TextField
+                            fullWidth
+                            size="medium"
+                            type="number"
+                            label="Workers Tea Allowance Rate"
+                            value={data.workers_tea_allowance_per_day ?? '5'}
+                            onChange={(e) => onChange('workers_tea_allowance_per_day', e.target.value)}
+                            placeholder="5"
+                            helperText="Calculated on Employer CTC only (Days Worked × ₹/day)."
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                  </InputAdornment>
+                                ),
+                                endAdornment: <InputAdornment position="end">/day</InputAdornment>,
+                              },
+                              htmlInput: { min: 0, step: 1 },
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </Grid>
+                  )}
+                </Grid>
+              </Stack>
+            );
+          })}
+        </Box>
       )}
     </Stack>
   );

@@ -31,33 +31,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useHolidayLists } from 'src/hooks/useHolidayLists';
 
-const Android12Switch = styled(Switch)(({ theme }) => ({
-    padding: 8,
-    '& .MuiSwitch-track': {
-        borderRadius: 22 / 2,
-        '&::before, &::after': {
-            content: '""',
-            position: 'absolute',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: 16,
-            height: 16,
-        },
-        '&::before': {
-            backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 24 24"><path fill="${encodeURIComponent(
-                '#fff',
-            )}" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>')`,
-            left: 12,
-        }
-    },
-    '& .MuiSwitch-thumb': {
-        boxShadow: 'none',
-        width: 16,
-        height: 16,
-        margin: 2,
-    },
-}));
-
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHolidayList, populateHolidays, createHolidayList, updateHolidayList, deleteHolidayList, getHolidayListPermissions } from 'src/api/holiday-lists';
 
@@ -69,6 +42,7 @@ import { ConfirmDialog } from 'src/components/confirm-dialog';
 import { TableNoData } from 'src/sections/lead/table-no-data';
 import { TableEmptyRows } from 'src/sections/lead/table-empty-rows';
 import { HolidayListTableRow } from 'src/sections/holidays/holidays-table-row';
+import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
 import { LeadTableHead as HolidayTableHead } from 'src/sections/lead/lead-table-head';
 import { HolidayDetailsDialog } from 'src/sections/report/holidays/holidays-details-dialog';
 import { LeadTableToolbar as HolidayTableToolbar } from 'src/sections/lead/lead-table-toolbar';
@@ -105,6 +79,7 @@ interface Holiday {
     idx?: number;
     holiday_date: string;
     description: string;
+    is_holiday?: number;
     is_working_day: number;
 }
 
@@ -333,6 +308,7 @@ export function HolidaysView() {
             {
                 holiday_date: dayjs().format('YYYY-MM-DD'),
                 description: '',
+                is_holiday: 0,
                 is_working_day: 0,
             }
         ]);
@@ -626,7 +602,10 @@ export function HolidaysView() {
                                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                                     Holidays
                                     <Typography component="span" variant="body2" sx={{ ml: 2, color: 'primary.main', fontWeight: 600 }}>
-                                        Total: {holidays.filter(h => h.is_working_day === 0).length} holiday(s)
+                                        Total: {holidays.filter(h => h.is_holiday === 1 || (h.is_working_day === 0 && h.is_holiday !== 0)).length} holiday(s)
+                                    </Typography>
+                                    <Typography component="span" variant="body2" sx={{ ml: 1.5, color: 'text.secondary', fontWeight: 600 }}>
+                                        • Working Days: {workingDays || holidays.filter(h => h.is_working_day === 1).length}
                                     </Typography>
                                 </Typography>
                             </Box>
@@ -637,14 +616,15 @@ export function HolidaysView() {
                                         <TableRow sx={{ bgcolor: 'grey.100' }}>
                                             <TableCell sx={{ fontWeight: 700, py: 1.5 }}>Date</TableCell>
                                             <TableCell sx={{ fontWeight: 700, py: 1.5 }}>Description</TableCell>
-                                            <TableCell sx={{ fontWeight: 700, py: 1.5, textAlign: 'center' }}>Working Day</TableCell>
-                                            <TableCell sx={{ fontWeight: 700, py: 1.5, width: 80 }} />
+                                            <TableCell sx={{ fontWeight: 700, py: 1.5, textAlign: 'center', width: 130 }}>Working Day</TableCell>
+                                            <TableCell sx={{ fontWeight: 700, py: 1.5, textAlign: 'center', width: 120 }}>Holiday</TableCell>
+                                            <TableCell sx={{ fontWeight: 700, py: 1.5, width: 20 }} />
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
                                         {holidays.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={4} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                                                <TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.secondary' }}>
                                                     No holidays added yet...
                                                 </TableCell>
                                             </TableRow>
@@ -686,15 +666,34 @@ export function HolidaysView() {
                                                             placeholder="Holiday description"
                                                             InputProps={{
                                                                 disableUnderline: true,
+                                                             }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell sx={{ py: 1.5, textAlign: 'center' }}>
+                                                        <CustomSwitch
+                                                            checked={holiday.is_working_day === 1}
+                                                            onChange={(e) => {
+                                                                const checked = e.target.checked ? 1 : 0;
+                                                                handleHolidayChange(index, 'is_working_day', checked);
+                                                                if (checked) {
+                                                                    handleHolidayChange(index, 'is_holiday', 0);
+                                                                }
                                                             }}
                                                         />
                                                     </TableCell>
                                                     <TableCell sx={{ py: 1.5, textAlign: 'center' }}>
-                                                        <Android12Switch
-                                                            checked={holiday.is_working_day === 1}
-                                                            onChange={(e) => handleHolidayChange(index, 'is_working_day', e.target.checked ? 1 : 0)}
+                                                        <CustomSwitch
+                                                            checked={holiday.is_holiday === 1}
+                                                            onChange={(e) => {
+                                                                const checked = e.target.checked ? 1 : 0;
+                                                                handleHolidayChange(index, 'is_holiday', checked);
+                                                                if (checked) {
+                                                                    handleHolidayChange(index, 'is_working_day', 0);
+                                                                }
+                                                            }}
                                                         />
                                                     </TableCell>
+                                                    <TableCell sx={{ py: 1.5, width: 20 }} />
                                                 </TableRow>
                                             ))
                                         )}

@@ -4,7 +4,9 @@ import { useMemo, useState, useEffect } from 'react';
 import { IoMdArrowBack, IoMdCheckmarkCircle } from 'react-icons/io';
 
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
+import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
@@ -105,6 +107,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
         el: null,
         type: null,
     });
+    const [holidayTab, setHolidayTab] = useState<'holiday' | 'not_working_days'>('holiday');
 
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
@@ -544,10 +547,18 @@ export function SalarySlipEditView({ id: propId }: Props) {
                         !d.status.includes('Compensatory Off') &&
                         !d.status.includes('Paid Leave')
                 );
-            case 'half_day':
-                return bd.filter((d: any) => d.status.includes('(0.5)'));
-            case 'holiday':
-                return bd.filter((d: any) => d.status.includes('Holiday'));
+            case 'holiday': {
+                if (holidayTab === 'not_working_days') {
+                    if (formData?.non_working_days_details?.length) {
+                        return formData.non_working_days_details;
+                    }
+                    return bd.filter((d: any) => d.is_non_working_day || d.status?.includes('Non Working Day') || d.status?.includes('Weekly Off'));
+                }
+                if (formData?.holidays_details?.length) {
+                    return formData.holidays_details;
+                }
+                return bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
+            }
             case 'unpaid_leave':
                 return bd.filter(
                     (d: any) =>
@@ -572,6 +583,9 @@ export function SalarySlipEditView({ id: propId }: Props) {
     };
 
     const filteredBreakdown = getFilteredBreakdown();
+
+    const holidayListCount = formData?.holiday_count !== undefined ? formData.holiday_count : (formData?.holidays_details?.length ?? (formData?.days_breakdown || []).filter((d: any) => d.is_holiday || d.status?.includes('Holiday')).length);
+    const notWorkingListCount = formData?.non_working_count !== undefined ? formData.non_working_count : (formData?.non_working_days_details?.length ?? (formData?.days_breakdown || []).filter((d: any) => d.is_non_working_day || d.status?.includes('Non Working Day') || d.status?.includes('Weekly Off')).length);
 
     const getPopoverCount = () => {
         if (!formData) return filteredBreakdown.length;
@@ -784,7 +798,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
                         action={renderInfoAction('half_day')}
                     />
                     <SleekEditRow
-                        label="Holidays Found"
+                        label="Holiday"
                         value={formData.holiday_count}
                         onChange={(val) => handleInputChange('holiday_count', val)}
                         action={renderInfoAction('holiday')}
@@ -1407,18 +1421,63 @@ export function SalarySlipEditView({ id: propId }: Props) {
                 }}
                 disableScrollLock
             >
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    {getPopoverTitle()}
-                    <Box component="span" sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.85em' }}>
-                        {getPopoverCount()}
+                {popoverState.type === 'holiday' ? (
+                    <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                        <Tabs
+                            value={holidayTab}
+                            onChange={(e, val) => setHolidayTab(val)}
+                            variant="fullWidth"
+                            sx={{
+                                minHeight: 36,
+                                '& .MuiTab-root': {
+                                    minHeight: 36,
+                                    py: 0.5,
+                                    px: 1,
+                                    fontSize: '0.85rem',
+                                    fontWeight: 700,
+                                    textTransform: 'none',
+                                },
+                            }}
+                        >
+                            <Tab
+                                value="holiday"
+                                label={
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                        <span>Holiday</span>
+                                        <Box component="span" sx={{ px: 0.75, py: 0.1, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700 }}>
+                                            {holidayListCount}
+                                        </Box>
+                                    </Box>
+                                }
+                            />
+                            <Tab
+                                value="not_working_days"
+                                label={
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                        <span>Not Working Days</span>
+                                        <Box component="span" sx={{ px: 0.75, py: 0.1, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.75rem', fontWeight: 700 }}>
+                                            {notWorkingListCount}
+                                        </Box>
+                                    </Box>
+                                }
+                            />
+                        </Tabs>
                     </Box>
-                </Typography>
+                ) : (
+                    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        {getPopoverTitle()}
+                        <Box component="span" sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 0.75, bgcolor: 'action.selected', color: 'text.secondary', fontSize: '0.85em' }}>
+                            {getPopoverCount()}
+                        </Box>
+                    </Typography>
+                )}
                 <Scrollbar>
                     <Stack spacing={1.5}>
                         {filteredBreakdown.length > 0 ? (
                             filteredBreakdown.map((day: any, idx: number) => {
                                 let colorStr = 'text.secondary';
-                                if (day.status.includes('Work') && day.status.includes('Absent')) colorStr = 'warning.main';
+                                if (day.status?.includes('Non Working Day') || day.status?.includes('Weekly Off')) colorStr = 'text.secondary';
+                                else if (day.status.includes('Work') && day.status.includes('Absent')) colorStr = 'warning.main';
                                 else if (day.status.includes('Absent')) colorStr = 'error.main';
                                 else if (day.status.includes('Work')) colorStr = 'success.main';
                                 else if (day.status.includes('Holiday')) colorStr = 'info.main';
@@ -1442,7 +1501,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
                                         }}
                                     >
                                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                            {day.isDirectCredit ? 'Direct Leave Allocation' : dayjs(day.date).format('DD-MM-YYYY - dddd')}
+                                            {day.isDirectCredit ? 'Direct Leave Allocation' : `${dayjs(day.date).format('DD-MM-YYYY')} - ${day.holiday_desc || day.description || dayjs(day.date).format('dddd')}`}
                                         </Typography>
                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                                             <Typography
@@ -1463,6 +1522,8 @@ export function SalarySlipEditView({ id: propId }: Props) {
                                                 }}
                                             >
                                                 {(() => {
+                                                    if (day.status?.includes('Non Working Day') || day.status?.includes('Weekly Off'))
+                                                        return 'Non Working Day';
                                                     if (
                                                         (popoverState.type === 'absent' || popoverState.type === 'lop') &&
                                                         day.status.includes('Work') &&
@@ -1478,7 +1539,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
                                                     return day.status
                                                         .replaceAll('(1.0)', 'Full Day')
                                                         .replaceAll('(0.5)', 'Half Day')
-                                                        .replace('Work', 'Present');
+                                                        .replace(/\bWork\b/g, 'Present');
                                                 })()}
                                             </Typography>
                                             {day.hours ? (
