@@ -260,7 +260,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
 
     function recalculateTotals(data: any) {
         const getNum = (v: any) => parseFloat(v) || 0;
-        const round = (val: number) => Math.round(val * 100) / 100;
+        const round = (val: number) => Math.round(val);
 
         const workingDays = getNum(data.total_working_days) || 1;
         const lopDays = getNum(data.lop_days);
