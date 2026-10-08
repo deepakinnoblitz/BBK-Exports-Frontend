@@ -374,10 +374,16 @@ export function LineReportView() {
     setSelected([]);
   };
 
+  // In List View: only lines with changes from default (roster overrides, rotations) are displayed
+  const listViewData = useMemo(
+    () => reportData.filter((r) => r.source !== 'DEFAULT' && r.assignment_type !== 'Default'),
+    [reportData]
+  );
+
   // Selection
   const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) {
-      setSelected(reportData.map((n) => n.name));
+      setSelected(listViewData.map((n) => n.name));
       return;
     }
     setSelected([]);
@@ -488,7 +494,7 @@ export function LineReportView() {
           fgColor: { argb: 'FF059669' },
         };
 
-        reportData.forEach((row) => {
+        listViewData.forEach((row) => {
           worksheet.addRow({
             line_date: row.line_date ? dayjs(row.line_date).format('DD-MM-YYYY') : '',
             employee: row.employee,
@@ -597,7 +603,7 @@ export function LineReportView() {
           ],
         ];
 
-        const body = reportData.map((row) => [
+        const body = listViewData.map((row) => [
           row.line_date ? dayjs(row.line_date).format('DD-MM-YYYY') : '',
           row.employee_name || '',
           row.employee || '',
@@ -674,17 +680,17 @@ export function LineReportView() {
     }
   };
 
-  // Stat summary items
+  // Stat summary items based on changed line assignments
   const summaryCounts = useMemo(() => {
-    const total = reportData.length;
-    const active = reportData.filter((r) => r.status === 'Active').length;
-    const off = reportData.filter((r) => r.status === 'Weekly Off').length;
-    const holiday = reportData.filter((r) => r.status === 'Holiday').length;
-    const rotations = reportData.filter((r) => r.source === 'ROTATION').length;
-    const overrides = reportData.filter((r) => r.source === 'ROSTER').length;
+    const total = listViewData.length;
+    const active = listViewData.filter((r) => r.status === 'Active').length;
+    const off = listViewData.filter((r) => r.status === 'Weekly Off').length;
+    const holiday = listViewData.filter((r) => r.status === 'Holiday').length;
+    const rotations = listViewData.filter((r) => r.source === 'ROTATION').length;
+    const overrides = listViewData.filter((r) => r.source === 'ROSTER').length;
 
     return { total, active, off, holiday, rotations, overrides };
-  }, [reportData]);
+  }, [listViewData]);
 
   return (
     <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
@@ -1149,8 +1155,8 @@ export function LineReportView() {
                         <TableRow sx={{ bgcolor: '#f4f6f8' }}>
                           <TableCell padding="checkbox">
                             <Checkbox
-                              indeterminate={selected.length > 0 && selected.length < reportData.length}
-                              checked={reportData.length > 0 && selected.length === reportData.length}
+                              indeterminate={selected.length > 0 && selected.length < listViewData.length}
+                              checked={listViewData.length > 0 && selected.length === listViewData.length}
                               onChange={handleSelectAllClick}
                             />
                           </TableCell>
@@ -1175,16 +1181,16 @@ export function LineReportView() {
                               <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                             </TableCell>
                           </TableRow>
-                        ) : reportData.length === 0 ? (
+                        ) : listViewData.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
                               <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-                                No line records found for the selected criteria.
+                                No line assignment changes found for the selected criteria.
                               </Typography>
                             </TableCell>
                           </TableRow>
                         ) : (
-                          reportData
+                          listViewData
                             .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                             .map((row) => {
                               const isSelected = selected.includes(row.name);
@@ -1294,7 +1300,7 @@ export function LineReportView() {
                 <TablePagination
                   rowsPerPageOptions={[10, 25, 50, 100]}
                   component="div"
-                  count={reportData.length}
+                  count={listViewData.length}
                   rowsPerPage={rowsPerPage}
                   page={page}
                   onPageChange={(_, newPage) => setPage(newPage)}
