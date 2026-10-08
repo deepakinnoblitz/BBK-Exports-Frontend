@@ -1238,16 +1238,9 @@ export function ShiftReportView() {
                                   key={row.name}
                                   hover
                                   selected={isSelected}
-                                  sx={{
-                                    cursor: 'pointer',
-                                    '&:hover': { bgcolor: alpha('#059669', 0.04) },
-                                  }}
-                                  onClick={() => {
-                                    setSelectedShiftData(row);
-                                    setOpenDetails(true);
-                                  }}
+                                  sx={{ '&:hover': { bgcolor: 'action.hover' } }}
                                 >
-                                  <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                                  <TableCell padding="checkbox">
                                     <Checkbox checked={isSelected} onClick={() => handleClick(row.name)} />
                                   </TableCell>
 
@@ -1325,7 +1318,7 @@ export function ShiftReportView() {
                                     </Label>
                                   </TableCell>
 
-                                  <TableCell align="right" sx={{ pr: 2 }} onClick={(e) => e.stopPropagation()}>
+                                  <TableCell align="right" sx={{ pr: 2 }}>
                                     <IconButton
                                       onClick={() => {
                                         setSelectedShiftData(row);
