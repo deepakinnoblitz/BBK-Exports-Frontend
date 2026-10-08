@@ -1433,8 +1433,8 @@ export function AttendanceReportView() {
                                                                         <TableCell>{row.out_time || '---'}</TableCell>
                                                                         <TableCell>{row.working_hours_display || '---'}</TableCell>
                                                                         <TableCell align="right">
-                                                                            <IconButton onClick={() => handleViewDetails(row.name)}>
-                                                                                <Iconify icon={"solar:eye-bold" as any} width={20} sx={{ color: '#059669' }} />
+                                                                            <IconButton onClick={() => handleViewDetails(row.name)} sx={{ color: 'info.main' }}>
+                                                                                <Iconify icon={"solar:eye-bold" as any} />
                                                                             </IconButton>
                                                                         </TableCell>
                                                                     </TableRow>

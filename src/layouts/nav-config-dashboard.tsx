@@ -205,6 +205,7 @@ export const hrNavData = [
     icon: <CgNotes size={20} />,
     children: [
       { title: 'Attendance Report', path: '/reports/attendance' },
+      { title: 'Shift Report', path: '/reports/shift' },
       // { title: 'Daily Log Report', path: '/reports/daily-log' },
       // { title: 'Task Report', path: '/reports/task-manager' },
       // { title: 'Timesheet Report', path: '/timesheet-reports' },
@@ -348,6 +349,7 @@ export const employeeNavData = [
     icon: <CgNotes size={20} />,
     children: [
       { title: 'My Attendance Report', path: '/reports/attendance' },
+      { title: 'My Shift Report', path: '/reports/shift' },
       // { title: 'My Daily Log Report', path: '/reports/daily-log' },
       // { title: 'My Timesheet Report', path: '/timesheet-reports' },
     ],
