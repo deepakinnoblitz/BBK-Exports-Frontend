@@ -1085,12 +1085,21 @@ export function AttendanceReportView() {
                                 format="DD-MM-YYYY"
                                 value={fromDate}
                                 onChange={(newValue) => setFromDate(newValue)}
+                                sx={{
+                                    bgcolor: 'background.paper',
+                                    borderRadius: 1.5,
+                                    '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                    '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                }}
                                 slotProps={{
                                     textField: {
                                         size: 'small',
                                         fullWidth: true,
                                         sx: {
+                                            bgcolor: 'background.paper',
+                                            borderRadius: 1.5,
                                             '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                            '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
                                         },
                                     },
                                 }}
@@ -1100,12 +1109,21 @@ export function AttendanceReportView() {
                                 format="DD-MM-YYYY"
                                 value={toDate}
                                 onChange={(newValue) => setToDate(newValue)}
+                                sx={{
+                                    bgcolor: 'background.paper',
+                                    borderRadius: 1.5,
+                                    '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                    '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                }}
                                 slotProps={{
                                     textField: {
                                         size: 'small',
                                         fullWidth: true,
                                         sx: {
+                                            bgcolor: 'background.paper',
+                                            borderRadius: 1.5,
                                             '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                            '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
                                         },
                                     },
                                 }}
