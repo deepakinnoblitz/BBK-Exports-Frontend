@@ -237,8 +237,8 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
         const bd = slip?.days_breakdown || [];
         switch (popoverState.type) {
             case 'present': {
-                const days = bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Compensatory Off'));
-                const isDirect = isDirectAllocation || (Number(slip?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status.includes('Paid Leave')));
+                const days = bd.filter((d: any) => (d.status?.includes('Work') && !d.status?.includes('Non Working Day')) || d.status?.includes('Paid Leave') || d.status?.includes('Compensatory Off'));
+                const isDirect = isDirectAllocation || (Number(slip?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status?.includes('Paid Leave')));
                 if (isDirect && Number(slip?.no_of_paid_leave || 0) > 0) {
                     return [
                         ...days,
@@ -252,9 +252,9 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 }
                 return days;
             }
-            case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
-            case 'absent': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
-            case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
+            case 'physical': return bd.filter((d: any) => d.status?.includes('Work') && !d.status?.includes('Non Working Day'));
+            case 'absent': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
+            case 'half_day': return bd.filter((d: any) => d.status?.includes('(0.5)'));
             case 'holiday': {
                 if (holidayTab === 'not_working_days') {
                     if (slip?.non_working_days_details?.length) {
@@ -267,10 +267,10 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 }
                 return bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
             }
-            case 'unpaid_leave': return bd.filter((d: any) => (d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent'))) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
-            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave') && !d.status.includes('Compensatory Off'));
-            case 'comp_off': return bd.filter((d: any) => d.status.includes('Compensatory Off'));
-            case 'lop': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
+            case 'unpaid_leave': return bd.filter((d: any) => (d.status?.includes('Unpaid Leave') || (!isDirectAllocation && d.status?.includes('Absent'))) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
+            case 'paid_leave': return bd.filter((d: any) => d.status?.includes('Paid Leave') && !d.status?.includes('Compensatory Off'));
+            case 'comp_off': return bd.filter((d: any) => d.status?.includes('Compensatory Off'));
+            case 'lop': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
             default: return bd;
         }
     };
@@ -824,17 +824,10 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             amount={slip.employer_esi || 0}
                             hrSettings={hrSettings}
                         />
-                        {Number(slip.tea_expenses || 0) > 0 && (
-                            <AmountRow
-                                label="Tea Expenses (Employer)"
-                                amount={slip.tea_expenses || 0}
-                                hrSettings={hrSettings}
-                            />
-                        )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
                         <AmountRow
                             label="Total Employer Contribution"
-                            amount={slip.total_employer_contribution || 0}
+                            amount={((Number(slip.employer_pf) || 0) + (Number(slip.pf_admin_charges) || 0) + (Number(slip.edli_charges) || 0) + (Number(slip.employer_esi) || 0))}
                             isTotal
                             color="info.main"
                             hrSettings={hrSettings}
@@ -860,14 +853,14 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             Statutory Provisions & CTC
                         </Typography>
                         <Stack spacing={1}>
-                            {(slip.enable_bonus_provision !== 0 && slip.enable_bonus_provision !== false) && (
+                            {Number(slip.bonus_provision || 0) > 0 && (
                                 <AmountRow
                                     label={`Bonus Provision (${slip.bonus_provision_rate ?? hrSettings?.bonus_provision_rate ?? 8.33}%)`}
                                     amount={slip.bonus_provision || 0}
                                     hrSettings={hrSettings}
                                 />
                             )}
-                            {(slip.enable_el_provision !== 0 && slip.enable_el_provision !== false) && (
+                            {Number(slip.el_provision || 0) > 0 && (
                                 <AmountRow
                                     label={`Earned Leave (EL) Provision (${slip.el_provision_days_per_year ?? hrSettings?.el_provision_days_per_year ?? 15.6}d/yr)`}
                                     amount={slip.el_provision || 0}
@@ -879,6 +872,31 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 amount={slip.gross_pay || 0}
                                 hrSettings={hrSettings}
                             />
+                            <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
+                            <AmountRow
+                                label="Earned CTC (Gross + Statutory)"
+                                amount={slip.earned_ctc || ((Number(slip.gross_pay) || 0) + (Number(slip.employer_pf) || 0) + (Number(slip.pf_admin_charges) || 0) + (Number(slip.edli_charges) || 0) + (Number(slip.employer_esi) || 0))}
+                                hrSettings={hrSettings}
+                                color="primary.dark"
+                            />
+                            {Number(slip.tea_expenses || 0) > 0 && (
+                                <AmountRow
+                                    label="Tea Expenses"
+                                    amount={slip.tea_expenses || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            )}
+                            {Number(slip.lunch_expenses || 0) > 0 && (
+                                <AmountRow
+                                    label={
+                                        (slip.canteen_meals_count !== undefined && slip.canteen_meals_count !== null) || (slip.lunch_count !== undefined && slip.lunch_count !== null)
+                                            ? `Lunch Expenses (${slip.canteen_meals_count ?? slip.lunch_count} Meals @ ₹${slip.lunch_rate ?? 50})`
+                                            : "Lunch Expenses (Canteen)"
+                                    }
+                                    amount={slip.lunch_expenses || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            )}
                         </Stack>
                     </Box>
 
@@ -897,14 +915,14 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                     Total Monthly CTC
                                 </Typography>
                                 <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: 11 }}>
-                                    (Gross + Contrib + Provisions)
+                                    (Earned CTC + Tea + Lunch + Provisions)
                                 </Typography>
                             </Box>
                             <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
                                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.85em' }}>
                                     {hrSettings.currency_symbol}
                                 </Box>
-                                {fNumber(slip.total_monthly_ctc || ((Number(slip.gross_pay) || 0) + (Number(slip.total_employer_contribution) || 0) + (Number(slip.bonus_provision) || 0) + (Number(slip.el_provision) || 0)), { locale: hrSettings.default_locale })}
+                                {fNumber(slip.total_monthly_ctc || slip.total_ctc || ((Number(slip.earned_ctc) || (Number(slip.gross_pay) || 0) + (Number(slip.total_employer_contribution) || 0)) + (Number(slip.tea_expenses) || 0) + (Number(slip.lunch_expenses) || 0) + (Number(slip.bonus_provision) || 0) + (Number(slip.el_provision) || 0)), { locale: hrSettings.default_locale })}
                             </Typography>
                         </Box>
                     </Box>

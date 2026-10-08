@@ -331,9 +331,9 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
     const getFilteredBreakdown = () => {
         const bd = slip?.days_breakdown || [];
         switch (popoverState.type) {
-            case 'present': return bd.filter((d: any) => d.status?.includes('Work') || d.status?.includes('Paid Leave') || d.status?.includes('Compensatory Off'));
-            case 'physical': return bd.filter((d: any) => d.status?.includes('Work'));
-            case 'absent': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave'));
+            case 'present': return bd.filter((d: any) => (d.status?.includes('Work') && !d.status?.includes('Non Working Day')) || d.status?.includes('Paid Leave') || d.status?.includes('Compensatory Off'));
+            case 'physical': return bd.filter((d: any) => d.status?.includes('Work') && !d.status?.includes('Non Working Day'));
+            case 'absent': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
             case 'half_day': return bd.filter((d: any) => d.status?.includes('(0.5)'));
             case 'holiday': {
                 if (holidayTab === 'not_working_days') {
@@ -347,10 +347,10 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                 }
                 return bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
             }
-            case 'unpaid_leave': return bd.filter((d: any) => (d.status?.includes('Unpaid Leave') || d.status?.includes('Absent')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave'));
+            case 'unpaid_leave': return bd.filter((d: any) => (d.status?.includes('Unpaid Leave') || d.status?.includes('Absent')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
             case 'paid_leave': return bd.filter((d: any) => d.status?.includes('Paid Leave') && !d.status?.includes('Compensatory Off'));
             case 'comp_off': return bd.filter((d: any) => d.status?.includes('Compensatory Off'));
-            case 'lop': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave'));
+            case 'lop': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
             default: return bd;
         }
     };
