@@ -8,7 +8,7 @@ export function useCanteen(
   page: number = 1,
   limit: number = 10,
   search: string = '',
-  orderBy: string = 'canteen_date',
+  orderBy: string = 'modified',
   order: 'asc' | 'desc' = 'desc',
   customFilters: any[] = []
 ) {
