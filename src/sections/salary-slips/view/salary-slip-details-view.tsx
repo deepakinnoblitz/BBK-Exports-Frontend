@@ -860,17 +860,29 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             Statutory Provisions & CTC
                         </Typography>
                         <Stack spacing={1}>
-                            {(slip.enable_bonus_provision !== 0 && slip.enable_bonus_provision !== false) && (
+                            {(slip.enable_bonus_provision !== 0 && slip.enable_bonus_provision !== false) ? (
                                 <AmountRow
                                     label={`Bonus Provision (${slip.bonus_provision_rate ?? hrSettings?.bonus_provision_rate ?? 8.33}%)`}
                                     amount={slip.bonus_provision || 0}
                                     hrSettings={hrSettings}
                                 />
+                            ) : (slip.has_bonus_in_earnings || (slip.employee_type || '').toLowerCase().includes('staff')) && (
+                                <AmountRow
+                                    label="Bonus Provision (In Gross)"
+                                    amount={0}
+                                    hrSettings={hrSettings}
+                                />
                             )}
-                            {(slip.enable_el_provision !== 0 && slip.enable_el_provision !== false) && (
+                            {(slip.enable_el_provision !== 0 && slip.enable_el_provision !== false) ? (
                                 <AmountRow
                                     label={`Earned Leave (EL) Provision (${slip.el_provision_days_per_year ?? hrSettings?.el_provision_days_per_year ?? 15.6}d/yr)`}
                                     amount={slip.el_provision || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            ) : (slip.has_el_in_earnings || (slip.employee_type || '').toLowerCase().includes('staff')) && (
+                                <AmountRow
+                                    label="EL Provision (In Gross)"
+                                    amount={0}
                                     hrSettings={hrSettings}
                                 />
                             )}

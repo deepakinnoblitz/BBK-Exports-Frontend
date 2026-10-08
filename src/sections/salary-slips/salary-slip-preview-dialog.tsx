@@ -560,17 +560,29 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                             Statutory Provisions & CTC
                         </Typography>
                         <Stack spacing={1}>
-                            {(data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false) && (
+                            {(data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false) ? (
                                 <AmountRow
                                     label={`Bonus Provision (${data.bonus_provision_rate ?? hrSettings?.bonus_provision_rate ?? 8.33}%)`}
                                     amount={data.bonus_provision || 0}
                                     hrSettings={hrSettings}
                                 />
+                            ) : (data.has_bonus_in_earnings || (data.employee_type || '').toLowerCase().includes('staff')) && (
+                                <AmountRow
+                                    label="Bonus Provision (In Gross)"
+                                    amount={0}
+                                    hrSettings={hrSettings}
+                                />
                             )}
-                            {(data.enable_el_provision !== 0 && data.enable_el_provision !== false) && (
+                            {(data.enable_el_provision !== 0 && data.enable_el_provision !== false) ? (
                                 <AmountRow
                                     label={`Earned Leave (EL) Provision (${data.el_provision_days_per_year ?? hrSettings?.el_provision_days_per_year ?? 15.6}d/yr)`}
                                     amount={data.el_provision || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            ) : (data.has_el_in_earnings || (data.employee_type || '').toLowerCase().includes('staff')) && (
+                                <AmountRow
+                                    label="EL Provision (In Gross)"
+                                    amount={0}
                                     hrSettings={hrSettings}
                                 />
                             )}

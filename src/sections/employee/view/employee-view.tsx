@@ -561,30 +561,71 @@ export function EmployeeView() {
         ctcValue: number,
         currentEarnings: any[]
     ): number => {
+        const cName = (comp.component_name || '').toLowerCase().trim();
         const percent = parseFloat(comp.percentage) || 0;
-        if (percent <= 0) {
-            return parseFloat(comp.static_amount) || 0;
-        }
-
         const basis = comp.percentage_basis || 'Full (Total Gross / CTC)';
+
+        let baseSum = ctcValue;
         if (basis === 'Selected Component(s)') {
             let selectedList: string[] = [];
             if (Array.isArray(comp.selected_components)) {
-                selectedList = comp.selected_components;
+                selectedList = comp.selected_components.map((s: any) => String(s).toLowerCase().trim());
             } else if (typeof comp.selected_components === 'string' && comp.selected_components.trim()) {
                 try {
-                    selectedList = JSON.parse(comp.selected_components);
+                    const parsed = JSON.parse(comp.selected_components);
+                    if (Array.isArray(parsed)) {
+                        selectedList = parsed.map((s: any) => String(s).toLowerCase().trim());
+                    }
                 } catch {
-                    selectedList = comp.selected_components.split(',').map((s: string) => s.trim()).filter(Boolean);
+                    selectedList = comp.selected_components.split(',').map((s: string) => s.toLowerCase().trim()).filter(Boolean);
                 }
             }
 
             if (selectedList.length > 0) {
-                const baseSum = currentEarnings
-                    .filter((e: any) => selectedList.includes(e.component_name))
+                baseSum = currentEarnings
+                    .filter((e: any) => {
+                        const name = (e.component_name || '').toLowerCase().trim();
+                        return selectedList.includes(name) || selectedList.some((s: string) => name.includes(s) || s.includes(name));
+                    })
                     .reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
-                return Math.round(((baseSum * percent) / 100) * 100) / 100;
             }
+        }
+
+        // Special handling for Earned Leave / EL
+        if (cName === 'earned leave' || cName === 'el') {
+            const basicDaSum = currentEarnings
+                .filter((e: any) => {
+                    const name = (e.component_name || '').toLowerCase().trim();
+                    return name.includes('basic') || name.includes('da') || name.includes('dearness');
+                })
+                .reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
+            const baseForEl = (basis === 'Selected Component(s)' && baseSum > 0) ? baseSum : (basicDaSum > 0 ? basicDaSum : ctcValue);
+            const elDays = percent > 0 ? percent : 14.0;
+            if (percent > 0 && basis === 'Full (Total Gross / CTC)') {
+                return Math.round(((baseForEl * percent) / 100) * 100) / 100;
+            }
+            return Math.round(((baseForEl / 26.0) * (elDays / 12.0)));
+        }
+
+        // Special handling for Bonus
+        if (cName === 'bonus' || cName === 'bonus provision') {
+            const basicDaSum = currentEarnings
+                .filter((e: any) => {
+                    const name = (e.component_name || '').toLowerCase().trim();
+                    return name.includes('basic') || name.includes('da') || name.includes('dearness');
+                })
+                .reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
+            const baseForBonus = (basis === 'Selected Component(s)' && baseSum > 0) ? baseSum : (basicDaSum > 0 ? basicDaSum : ctcValue);
+            const bonusRate = percent > 0 ? percent : 8.33;
+            return Math.round((baseForBonus * bonusRate) / 100.0);
+        }
+
+        if (percent <= 0) {
+            return parseFloat(comp.static_amount) || 0;
+        }
+
+        if (basis === 'Selected Component(s)') {
+            return Math.round(((baseSum * percent) / 100) * 100) / 100;
         }
 
         // Default to Full CTC / Gross
@@ -601,14 +642,18 @@ export function EmployeeView() {
             const earningComps = components.filter((c: any) => c.type === 'Earning');
             const deductionComps = components.filter((c: any) => c.type === 'Deduction');
 
-            const earnings: any[] = earningComps.map((comp: any) => ({
-                component_name: comp.component_name,
-                amount: calculateSalaryComponentAmount(comp, ctcValue, []),
-                type: comp.type,
-                percentage: comp.percentage,
-                percentage_basis: comp.percentage_basis,
-                selected_components: comp.selected_components,
-            }));
+            const earnings: any[] = [];
+            for (const comp of earningComps) {
+                const amount = calculateSalaryComponentAmount(comp, ctcValue, earnings);
+                earnings.push({
+                    component_name: comp.component_name,
+                    amount,
+                    type: comp.type,
+                    percentage: comp.percentage,
+                    percentage_basis: comp.percentage_basis,
+                    selected_components: comp.selected_components,
+                });
+            }
 
             const deductions: any[] = deductionComps.map((comp: any) => ({
                 component_name: comp.component_name,
@@ -723,14 +768,18 @@ export function EmployeeView() {
                 return;
             }
 
-            const earnings: any[] = defaultEarnings.map((comp: any) => ({
-                component_name: comp.component_name,
-                amount: calculateSalaryComponentAmount(comp, ctcValue, []),
-                type: comp.type,
-                percentage: comp.percentage,
-                percentage_basis: comp.percentage_basis,
-                selected_components: comp.selected_components,
-            }));
+            const earnings: any[] = [];
+            for (const comp of defaultEarnings) {
+                const amount = calculateSalaryComponentAmount(comp, ctcValue, earnings);
+                earnings.push({
+                    component_name: comp.component_name,
+                    amount,
+                    type: comp.type,
+                    percentage: comp.percentage,
+                    percentage_basis: comp.percentage_basis,
+                    selected_components: comp.selected_components,
+                });
+            }
 
             const deductions: any[] = defaultDeductions.map((comp: any) => ({
                 component_name: comp.component_name,
