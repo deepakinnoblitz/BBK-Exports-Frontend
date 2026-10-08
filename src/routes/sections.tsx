@@ -150,6 +150,8 @@ export const InvoiceCollectionReportPage = lazy(() => import('src/pages/reports/
 export const PurchaseCollectionReportPage = lazy(() => import('src/pages/reports/purchase-settlement-report'));
 export const TimesheetReportPage = lazy(() => import('src/pages/reports/timesheet'));
 export const AttendanceReportPage = lazy(() => import('src/pages/reports/attendance'));
+export const ShiftReportPage = lazy(() => import('src/pages/reports/shift'));
+export const LineReportPage = lazy(() => import('src/pages/reports/line'));
 export const LeaveAllocationReportPage = lazy(() => import('src/pages/reports/leave-allocation'));
 export const DailyLogReportPage = lazy(() => import('src/pages/reports/daily-log'));
 export const TaskReportPage = lazy(() => import('src/pages/reports/task-manager'));
@@ -610,6 +612,8 @@ export const routesSection: RouteObject[] = [
           { path: 'purchase-settlement', element: <RolePermissionGuard actionKey="report_purchase_settlement"><PurchaseCollectionReportPage /></RolePermissionGuard> },
           { path: 'timesheet', element: <RolePermissionGuard actionKey="report_timesheet"><TimesheetReportPage /></RolePermissionGuard> },
           { path: 'attendance', element: <RolePermissionGuard actionKey="report_attendance"><AttendanceReportPage /></RolePermissionGuard> },
+          { path: 'shift', element: <RolePermissionGuard actionKey="shift_roster"><ShiftReportPage /></RolePermissionGuard> },
+          { path: 'line', element: <RolePermissionGuard actionKey="line_roster"><LineReportPage /></RolePermissionGuard> },
           { path: 'leave-allocation', element: <RolePermissionGuard actionKey="report_leave_allocation"><LeaveAllocationReportPage /></RolePermissionGuard> },
           { path: 'daily-log', element: <RolePermissionGuard actionKey="report_daily_log"><DailyLogReportPage /></RolePermissionGuard> },
           { path: 'task-manager', element: <RolePermissionGuard actionKey="report_task"><TaskReportPage /></RolePermissionGuard> },

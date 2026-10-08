@@ -1085,12 +1085,21 @@ export function AttendanceReportView() {
                                 format="DD-MM-YYYY"
                                 value={fromDate}
                                 onChange={(newValue) => setFromDate(newValue)}
+                                sx={{
+                                    bgcolor: 'background.paper',
+                                    borderRadius: 1.5,
+                                    '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                    '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                }}
                                 slotProps={{
                                     textField: {
                                         size: 'small',
                                         fullWidth: true,
                                         sx: {
+                                            bgcolor: 'background.paper',
+                                            borderRadius: 1.5,
                                             '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                            '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
                                         },
                                     },
                                 }}
@@ -1100,12 +1109,21 @@ export function AttendanceReportView() {
                                 format="DD-MM-YYYY"
                                 value={toDate}
                                 onChange={(newValue) => setToDate(newValue)}
+                                sx={{
+                                    bgcolor: 'background.paper',
+                                    borderRadius: 1.5,
+                                    '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                    '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                }}
                                 slotProps={{
                                     textField: {
                                         size: 'small',
                                         fullWidth: true,
                                         sx: {
+                                            bgcolor: 'background.paper',
+                                            borderRadius: 1.5,
                                             '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                            '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
                                         },
                                     },
                                 }}
@@ -1415,8 +1433,8 @@ export function AttendanceReportView() {
                                                                         <TableCell>{row.out_time || '---'}</TableCell>
                                                                         <TableCell>{row.working_hours_display || '---'}</TableCell>
                                                                         <TableCell align="right">
-                                                                            <IconButton onClick={() => handleViewDetails(row.name)}>
-                                                                                <Iconify icon={"solar:eye-bold" as any} width={20} sx={{ color: '#059669' }} />
+                                                                            <IconButton onClick={() => handleViewDetails(row.name)} sx={{ color: 'info.main' }}>
+                                                                                <Iconify icon={"solar:eye-bold" as any} />
                                                                             </IconButton>
                                                                         </TableCell>
                                                                     </TableRow>
