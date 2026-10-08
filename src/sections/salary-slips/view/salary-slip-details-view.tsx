@@ -891,6 +891,27 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 amount={slip.gross_pay || 0}
                                 hrSettings={hrSettings}
                             />
+                            <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
+                            <AmountRow
+                                label="Earned CTC (Gross + Statutory)"
+                                amount={slip.earned_ctc || ((Number(slip.gross_pay) || 0) + (Number(slip.employer_pf) || 0) + (Number(slip.pf_admin_charges) || 0) + (Number(slip.edli_charges) || 0) + (Number(slip.employer_esi) || 0))}
+                                hrSettings={hrSettings}
+                                color="primary.dark"
+                            />
+                            {Number(slip.tea_expenses || 0) > 0 && (
+                                <AmountRow
+                                    label="Tea Expenses"
+                                    amount={slip.tea_expenses || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            )}
+                            {Number(slip.lunch_expenses || 0) > 0 && (
+                                <AmountRow
+                                    label="Lunch Expenses"
+                                    amount={slip.lunch_expenses || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            )}
                         </Stack>
                     </Box>
 
@@ -909,14 +930,14 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                     Total Monthly CTC
                                 </Typography>
                                 <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: 11 }}>
-                                    (Gross + Contrib + Provisions)
+                                    (Earned CTC + Tea + Lunch + Provisions)
                                 </Typography>
                             </Box>
                             <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
                                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.85em' }}>
                                     {hrSettings.currency_symbol}
                                 </Box>
-                                {fNumber(slip.total_monthly_ctc || ((Number(slip.gross_pay) || 0) + (Number(slip.total_employer_contribution) || 0) + (Number(slip.bonus_provision) || 0) + (Number(slip.el_provision) || 0)), { locale: hrSettings.default_locale })}
+                                {fNumber(slip.total_monthly_ctc || slip.total_ctc || ((Number(slip.earned_ctc) || (Number(slip.gross_pay) || 0) + (Number(slip.total_employer_contribution) || 0)) + (Number(slip.tea_expenses) || 0) + (Number(slip.lunch_expenses) || 0) + (Number(slip.bonus_provision) || 0) + (Number(slip.el_provision) || 0)), { locale: hrSettings.default_locale })}
                             </Typography>
                         </Box>
                     </Box>
