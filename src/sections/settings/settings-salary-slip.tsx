@@ -1530,57 +1530,131 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                         borderRadius: 2,
                         bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
                         border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
                       }}
                     >
-                      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                        <Box>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                            Tea Expenses (Employer CTC)
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            Company tea expense incurred per day worked for {cat.title}.
-                          </Typography>
-                        </Box>
-                        <Stack direction="row" alignItems="center" spacing={1.5}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: 700,
-                              color: isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) ? '#059669' : 'text.secondary',
-                            }}
-                          >
-                            {isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) ? 'Enabled' : 'Disabled'}
-                          </Typography>
-                          <CustomSwitch
-                            checked={isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1))}
-                            onChange={(e) => setFieldVal(cat.key, 'enable_tea_allowance', e.target.checked ? 1 : 0)}
-                          />
+                      <Box>
+                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              Tea Expenses (Employer CTC)
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Company tea expense incurred per day worked for {cat.title}.
+                            </Typography>
+                          </Box>
+                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 700,
+                                color: isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) ? '#059669' : 'text.secondary',
+                              }}
+                            >
+                              {isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) ? 'Enabled' : 'Disabled'}
+                            </Typography>
+                            <CustomSwitch
+                              checked={isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1))}
+                              onChange={(e) => setFieldVal(cat.key, 'enable_tea_allowance', e.target.checked ? 1 : 0)}
+                            />
+                          </Stack>
                         </Stack>
-                      </Stack>
 
-                      {isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) && (
-                        <TextField
-                          fullWidth
-                          size="medium"
-                          type="number"
-                          label="Tea Expense Rate (₹/day)"
-                          value={getFieldVal(cat.key, 'tea_allowance_per_day', cat.key.includes('staff') ? '14' : '5')}
-                          onChange={(e) => setFieldVal(cat.key, 'tea_allowance_per_day', e.target.value)}
-                          placeholder={cat.key.includes('staff') ? '14' : '5'}
-                          helperText={`Calculated on Employer CTC (Present Days × ₹/day). Default: ₹${cat.key.includes('staff') ? '14' : '5'}/day.`}
-                          slotProps={{
-                            input: {
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                                </InputAdornment>
-                              ),
-                              endAdornment: <InputAdornment position="end">/day</InputAdornment>,
-                            },
-                            htmlInput: { min: 0, step: 1 },
-                          }}
-                        />
-                      )}
+                        {isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) && (
+                          <TextField
+                            fullWidth
+                            size="medium"
+                            type="number"
+                            label="Tea Expense Rate (₹/day)"
+                            value={getFieldVal(cat.key, 'tea_allowance_per_day', cat.key.includes('staff') ? '14' : '5')}
+                            onChange={(e) => setFieldVal(cat.key, 'tea_allowance_per_day', e.target.value)}
+                            placeholder={cat.key.includes('staff') ? '14' : '5'}
+                            helperText={`Calculated on Employer CTC (Present Days × ₹/day). Default: ₹${cat.key.includes('staff') ? '14' : '5'}/day.`}
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                  </InputAdornment>
+                                ),
+                                endAdornment: <InputAdornment position="end">/day</InputAdornment>,
+                              },
+                              htmlInput: { min: 0, step: 1 },
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  {/* Lunch Expenses (Employer CTC) Card */}
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <Box
+                      sx={{
+                        p: 2.5,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
+                        border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <Box>
+                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              Lunch Expenses (Employer CTC)
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Company lunch expense incurred per canteen meal for {cat.title}.
+                            </Typography>
+                          </Box>
+                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 700,
+                                color: isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) ? '#059669' : 'text.secondary',
+                              }}
+                            >
+                              {isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) ? 'Enabled' : 'Disabled'}
+                            </Typography>
+                            <CustomSwitch
+                              checked={isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1))}
+                              onChange={(e) => setFieldVal(cat.key, 'enable_lunch_allowance', e.target.checked ? 1 : 0)}
+                            />
+                          </Stack>
+                        </Stack>
+
+                        {isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) && (
+                          <TextField
+                            fullWidth
+                            size="medium"
+                            type="number"
+                            label="Lunch Expense Rate (₹/meal)"
+                            value={getFieldVal(cat.key, 'lunch_allowance_per_meal', '50')}
+                            onChange={(e) => setFieldVal(cat.key, 'lunch_allowance_per_meal', e.target.value)}
+                            placeholder="50"
+                            helperText="Calculated from Canteen entries (All Canteen Entries × ₹/meal). Default: ₹50/meal."
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                  </InputAdornment>
+                                ),
+                                endAdornment: <InputAdornment position="end">/meal</InputAdornment>,
+                              },
+                              htmlInput: { min: 0, step: 1 },
+                            }}
+                          />
+                        )}
+                      </Box>
                     </Box>
                   </Grid>
                 </Grid>

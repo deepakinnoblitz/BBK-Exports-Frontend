@@ -524,17 +524,10 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                             amount={data.employer_esi || 0}
                             hrSettings={hrSettings}
                         />
-                        {Number(data.tea_expenses || 0) > 0 && (
-                            <AmountRow
-                                label="Tea Expenses (Employer)"
-                                amount={data.tea_expenses || 0}
-                                hrSettings={hrSettings}
-                            />
-                        )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
                         <AmountRow
                             label="Total Employer Contribution"
-                            amount={data.total_employer_contribution || 0}
+                            amount={((Number(data.employer_pf) || 0) + (Number(data.pf_admin_charges) || 0) + (Number(data.edli_charges) || 0) + (Number(data.employer_esi) || 0))}
                             isTotal
                             color="info.main"
                             hrSettings={hrSettings}
@@ -560,29 +553,17 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                             Statutory Provisions & CTC
                         </Typography>
                         <Stack spacing={1}>
-                            {(data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false) ? (
+                            {Number(data.bonus_provision || 0) > 0 && (
                                 <AmountRow
                                     label={`Bonus Provision (${data.bonus_provision_rate ?? hrSettings?.bonus_provision_rate ?? 8.33}%)`}
                                     amount={data.bonus_provision || 0}
                                     hrSettings={hrSettings}
                                 />
-                            ) : (data.has_bonus_in_earnings || (data.employee_type || '').toLowerCase().includes('staff')) && (
-                                <AmountRow
-                                    label="Bonus Provision (In Gross)"
-                                    amount={0}
-                                    hrSettings={hrSettings}
-                                />
                             )}
-                            {(data.enable_el_provision !== 0 && data.enable_el_provision !== false) ? (
+                            {Number(data.el_provision || 0) > 0 && (
                                 <AmountRow
                                     label={`Earned Leave (EL) Provision (${data.el_provision_days_per_year ?? hrSettings?.el_provision_days_per_year ?? 15.6}d/yr)`}
                                     amount={data.el_provision || 0}
-                                    hrSettings={hrSettings}
-                                />
-                            ) : (data.has_el_in_earnings || (data.employee_type || '').toLowerCase().includes('staff')) && (
-                                <AmountRow
-                                    label="EL Provision (In Gross)"
-                                    amount={0}
                                     hrSettings={hrSettings}
                                 />
                             )}
@@ -607,7 +588,11 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                             )}
                             {Number(data.lunch_expenses || 0) > 0 && (
                                 <AmountRow
-                                    label="Lunch Expenses"
+                                    label={
+                                        (data.canteen_meals_count !== undefined && data.canteen_meals_count !== null) || (data.lunch_count !== undefined && data.lunch_count !== null)
+                                            ? `Lunch Expenses (${data.canteen_meals_count ?? data.lunch_count} Meals @ ₹${data.lunch_rate ?? 50})`
+                                            : "Lunch Expenses (Canteen)"
+                                    }
                                     amount={data.lunch_expenses || 0}
                                     hrSettings={hrSettings}
                                 />
@@ -652,8 +637,8 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
         const bd = data?.days_breakdown || [];
         switch (popoverState.type) {
             case 'present': {
-                const days = bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Compensatory Off'));
-                const isDirect = isDirectAllocation || (Number(data?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status.includes('Paid Leave')));
+                const days = bd.filter((d: any) => (d.status?.includes('Work') && !d.status?.includes('Non Working Day')) || d.status?.includes('Paid Leave') || d.status?.includes('Compensatory Off'));
+                const isDirect = isDirectAllocation || (Number(data?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status?.includes('Paid Leave')));
                 if (isDirect && Number(data?.no_of_paid_leave || 0) > 0) {
                     return [
                         ...days,
@@ -667,9 +652,9 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                 }
                 return days;
             }
-            case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
-            case 'absent': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
-            case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
+            case 'physical': return bd.filter((d: any) => d.status?.includes('Work') && !d.status?.includes('Non Working Day'));
+            case 'absent': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
+            case 'half_day': return bd.filter((d: any) => d.status?.includes('(0.5)'));
             case 'holiday': {
                 if (holidayTab === 'not_working_days') {
                     if (data?.non_working_days_details?.length) {
@@ -682,10 +667,10 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                 }
                 return bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
             }
-            case 'unpaid_leave': return bd.filter((d: any) => (d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent'))) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
-            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave') && !d.status.includes('Compensatory Off'));
-            case 'comp_off': return bd.filter((d: any) => d.status.includes('Compensatory Off'));
-            case 'lop': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
+            case 'unpaid_leave': return bd.filter((d: any) => (d.status?.includes('Unpaid Leave') || (!isDirectAllocation && d.status?.includes('Absent'))) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
+            case 'paid_leave': return bd.filter((d: any) => d.status?.includes('Paid Leave') && !d.status?.includes('Compensatory Off'));
+            case 'comp_off': return bd.filter((d: any) => d.status?.includes('Compensatory Off'));
+            case 'lop': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
             default: return bd;
         }
     };

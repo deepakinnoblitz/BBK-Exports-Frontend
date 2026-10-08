@@ -128,8 +128,8 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         const bd = formData?.days_breakdown || [];
         switch (popoverState.type) {
             case 'present': {
-                const days = bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Compensatory Off'));
-                const isDirect = isDirectAllocation || (Number(formData?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status.includes('Paid Leave')));
+                const days = bd.filter((d: any) => (d.status?.includes('Work') && !d.status?.includes('Non Working Day')) || d.status?.includes('Paid Leave') || d.status?.includes('Compensatory Off'));
+                const isDirect = isDirectAllocation || (Number(formData?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status?.includes('Paid Leave')));
                 if (isDirect && Number(formData?.no_of_paid_leave || 0) > 0) {
                     return [
                         ...days,
@@ -143,9 +143,9 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 }
                 return days;
             }
-            case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
-            case 'absent': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
-            case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
+            case 'physical': return bd.filter((d: any) => d.status?.includes('Work') && !d.status?.includes('Non Working Day'));
+            case 'absent': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
+            case 'half_day': return bd.filter((d: any) => d.status?.includes('(0.5)'));
             case 'holiday': {
                 if (holidayTab === 'not_working_days') {
                     if (formData?.non_working_days_details?.length) {
@@ -156,12 +156,12 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 if (formData?.holidays_details?.length) {
                     return formData.holidays_details;
                 }
-                return bd.filter((d: any) => d.is_holiday || d.status.includes('Holiday'));
+                return bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
             }
-            case 'unpaid_leave': return bd.filter((d: any) => (d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent'))) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
-            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave') && !d.status.includes('Compensatory Off'));
-            case 'comp_off': return bd.filter((d: any) => d.status.includes('Compensatory Off'));
-            case 'lop': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
+            case 'unpaid_leave': return bd.filter((d: any) => (d.status?.includes('Unpaid Leave') || (!isDirectAllocation && d.status?.includes('Absent'))) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
+            case 'paid_leave': return bd.filter((d: any) => d.status?.includes('Paid Leave') && !d.status?.includes('Compensatory Off'));
+            case 'comp_off': return bd.filter((d: any) => d.status?.includes('Compensatory Off'));
+            case 'lop': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
             default: return bd;
         }
     };
