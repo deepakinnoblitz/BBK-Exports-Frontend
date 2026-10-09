@@ -629,8 +629,10 @@ export function LeaveAllocationReportView() {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 2,
-                        bgcolor: 'background.neutral',
-                        border: (t) => `1px solid ${t.palette.divider}`,
+                        borderRadius: 2,
+                        bgcolor: (t) => alpha('#10b981', 0.04),
+                        border: (t) => `1px solid ${alpha('#10b981', 0.18)}`,
+                        boxShadow: 'none',
                     }}
                 >
                     <Stack direction="row" gap={1.5} alignItems="center" flexWrap="wrap">
@@ -641,7 +643,7 @@ export function LeaveAllocationReportView() {
                                 format="MM/YYYY"
                                 value={fromDate}
                                 onChange={(newValue) => setFromDate(newValue ? newValue.startOf('month') : null)}
-                                slotProps={{ textField: { size: 'small', sx: { flexGrow: 1, maxWidth: 180 } } }}
+                                slotProps={{ textField: { size: 'small', sx: { flexGrow: 1, maxWidth: 180, bgcolor: 'background.paper', borderRadius: 1.5 } } }}
                             />
                             <DatePicker
                                 label="To"
@@ -649,11 +651,11 @@ export function LeaveAllocationReportView() {
                                 format="MM/YYYY"
                                 value={toDate}
                                 onChange={(newValue) => setToDate(newValue ? newValue.endOf('month') : null)}
-                                slotProps={{ textField: { size: 'small', sx: { flexGrow: 1, maxWidth: 180 } } }}
+                                slotProps={{ textField: { size: 'small', sx: { flexGrow: 1, maxWidth: 180, bgcolor: 'background.paper', borderRadius: 1.5 } } }}
                             />
                         </LocalizationProvider>
 
-                        <FormControl size="small" sx={{ flexGrow: 1, minWidth: 160 }}>
+                        <FormControl size="small" sx={{ flexGrow: 1, minWidth: 160, '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}>
                             <Select
                                 value={leaveType}
                                 onChange={(e) => setLeaveType(e.target.value)}
@@ -668,7 +670,7 @@ export function LeaveAllocationReportView() {
                             </Select>
                         </FormControl>
 
-                        <FormControl size="small" sx={{ flexGrow: 1, minWidth: 180 }}>
+                        <FormControl size="small" sx={{ flexGrow: 1, minWidth: 180, '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}>
                             <Select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
@@ -684,7 +686,7 @@ export function LeaveAllocationReportView() {
                             multiple
                             disableCloseOnSelect
                             size="small"
-                            sx={{ flexGrow: 1, minWidth: 350 }}
+                            sx={{ flexGrow: 1, minWidth: 350, '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}
                             options={employeeOptions}
                             filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => `${option.employee_name} (${option.name})`}
