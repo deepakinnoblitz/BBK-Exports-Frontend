@@ -150,6 +150,7 @@ export const InvoiceCollectionReportPage = lazy(() => import('src/pages/reports/
 export const PurchaseCollectionReportPage = lazy(() => import('src/pages/reports/purchase-settlement-report'));
 export const TimesheetReportPage = lazy(() => import('src/pages/reports/timesheet'));
 export const AttendanceReportPage = lazy(() => import('src/pages/reports/attendance'));
+export const CanteenReportPage = lazy(() => import('src/pages/reports/canteen'));
 export const ShiftReportPage = lazy(() => import('src/pages/reports/shift'));
 export const LineReportPage = lazy(() => import('src/pages/reports/line'));
 export const LeaveAllocationReportPage = lazy(() => import('src/pages/reports/leave-allocation'));
@@ -612,6 +613,7 @@ export const routesSection: RouteObject[] = [
           { path: 'purchase-settlement', element: <RolePermissionGuard actionKey="report_purchase_settlement"><PurchaseCollectionReportPage /></RolePermissionGuard> },
           { path: 'timesheet', element: <RolePermissionGuard actionKey="report_timesheet"><TimesheetReportPage /></RolePermissionGuard> },
           { path: 'attendance', element: <RolePermissionGuard actionKey="report_attendance"><AttendanceReportPage /></RolePermissionGuard> },
+          { path: 'canteen', element: <RolePermissionGuard actionKey="report_canteen"><CanteenReportPage /></RolePermissionGuard> },
           { path: 'shift', element: <RolePermissionGuard actionKey="shift_roster"><ShiftReportPage /></RolePermissionGuard> },
           { path: 'line', element: <RolePermissionGuard actionKey="line_roster"><LineReportPage /></RolePermissionGuard> },
           { path: 'leave-allocation', element: <RolePermissionGuard actionKey="report_leave_allocation"><LeaveAllocationReportPage /></RolePermissionGuard> },
