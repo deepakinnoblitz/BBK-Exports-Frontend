@@ -7,21 +7,31 @@ import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
+import TableRow from '@mui/material/TableRow';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
+import TableContainer from '@mui/material/TableContainer';
+import TablePagination from '@mui/material/TablePagination';
 
 import { fDate } from 'src/utils/format-time';
 import { fNumber } from 'src/utils/format-number';
 
 import { getHRDoc, getHRSettings } from 'src/api/hr-management';
+import { fetchEmployeeSkillHistory, fetchEmployeeSalaryHistory } from 'src/api/masters';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
+
+import { SalaryHistoryDetailsDialog } from '../../employee/salary-history-details-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -37,12 +47,21 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
     const [loading, setLoading] = useState(false);
     const [bankDetails, setBankDetails] = useState<any>(null);
 
+    const [skillHistory, setSkillHistory] = useState<any[]>([]);
+    const [salaryHistory, setSalaryHistory] = useState<any[]>([]);
+    const [, setLoadingHistory] = useState(false);
+    const [selectedSalaryHistory, setSelectedSalaryHistory] = useState<any>(null);
+
+    const [skillPage, setSkillPage] = useState(0);
+    const [skillRowsPerPage, setSkillRowsPerPage] = useState(5);
+    const [salaryPage, setSalaryPage] = useState(0);
+    const [salaryRowsPerPage, setSalaryRowsPerPage] = useState(5);
+
     const [hrSettings, setHRSettings] = useState<{ default_currency: string; currency_symbol: string; default_locale: string }>({
         default_currency: 'INR',
         currency_symbol: '₹',
         default_locale: 'en-IN'
     });
-
 
     useEffect(() => {
         getHRSettings().then(setHRSettings).catch(console.error);
@@ -65,6 +84,12 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                 })
                 .catch((err) => console.error('Failed to fetch details:', err))
                 .finally(() => setLoading(false));
+
+            setLoadingHistory(true);
+            Promise.all([
+                fetchEmployeeSkillHistory(employeeId).then(setSkillHistory),
+                fetchEmployeeSalaryHistory(employeeId).then(setSalaryHistory)
+            ]).catch(console.error).finally(() => setLoadingHistory(false));
         }
 
     }, [open, employeeId]);
@@ -85,6 +110,10 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                 onExited: () => {
                     setEmployee(null);
                     setBankDetails(null);
+                    setSkillHistory([]);
+                    setSalaryHistory([]);
+                    setSkillPage(0);
+                    setSalaryPage(0);
                     setCurrentTab(0);
                 }
             }}
@@ -156,22 +185,34 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                                 <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>{employee.employee_name}</Typography>
                                 {(() => {
-                                     const des = (employee.designation || '').trim();
-                                     const dep = (employee.department || '').trim();
-                                     const validDes = des && des !== '-';
-                                     const validDep = dep && dep !== '-';
-                                     
-                                     if (!validDes && !validDep) return null;
-                                     
-                                     const text = validDes && validDep ? `${des} at ${dep}` : (validDes ? des : dep);
-                                     return <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{text}</Typography>;
+                                    const des = (employee.designation || '').trim();
+                                    const dep = (employee.department || '').trim();
+                                    const validDes = des && des !== '-';
+                                    const validDep = dep && dep !== '-';
+
+                                    if (!validDes && !validDep) return null;
+
+                                    const text = validDes && validDep ? `${des} at ${dep}` : (validDes ? des : dep);
+                                    return <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{text}</Typography>;
                                 })()}
                                 <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.disabled', fontWeight: 700 }}>
                                     ID: {employee.name}
                                 </Typography>
                             </Box>
 
-                            <Box sx={{ alignSelf: 'center' }}>
+                            <Box sx={{ alignSelf: 'center', display: 'flex', gap: 1, alignItems: 'center' }}>
+                                {employee.skill && (
+                                    <Label
+                                        variant="soft"
+                                        color={
+                                            employee.skill.toLowerCase().includes('highly') ? 'success' :
+                                                employee.skill.toLowerCase().includes('skilled') && !employee.skill.toLowerCase().includes('semi') && !employee.skill.toLowerCase().includes('un') ? 'info' :
+                                                    employee.skill.toLowerCase().includes('semi') ? 'warning' : 'default'
+                                        }
+                                    >
+                                        {employee.skill}
+                                    </Label>
+                                )}
                                 {renderStatus(employee.status)}
                             </Box>
                         </Box>
@@ -198,6 +239,7 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                             {/* <Tab label="Performance" icon={<Iconify icon={"solar:chart-bold" as any} width={20} />} iconPosition="start" /> */}
                             <Tab label="Salary Info" icon={<TbMoneybagPlus size={20} />} iconPosition="start" />
                             <Tab label="Documents" icon={<GrDocumentLocked size={20} />} iconPosition="start" />
+                            <Tab label="History & Logs" icon={<Iconify icon={"solar:history-bold" as any} width={20} />} iconPosition="start" />
                         </Tabs>
 
                         <Box sx={{ px: { xs: 2, md: 3 }, pb: 3, pt: 1 }}>
@@ -225,6 +267,7 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                                             <DetailItem label="Department" value={employee.department} icon="solar:buildings-bold" />
                                             <DetailItem label="Designation" value={employee.designation} icon="solar:medal-star-bold" />
                                             <DetailItem label="Employee Type" value={employee.employee_type} icon="solar:user-id-bold" />
+                                            <DetailItem label="Skill" value={employee.skill} icon="solar:star-fall-bold" />
                                             <DetailItem label="Joining Date" value={employee.date_of_joining ? fDate(employee.date_of_joining, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
                                             {(employee.status === 'Inactive' || employee.date_of_leaving) && (
                                                 <DetailItem label="Date of Leaving (DOL)" value={employee.date_of_leaving ? fDate(employee.date_of_leaving, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
@@ -254,6 +297,11 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                                             <DetailItem label="Country" value={employee.country} icon="solar:earth-bold" />
                                             <DetailItem label="State" value={employee.state} icon="solar:map-point-bold" />
                                             <DetailItem label="City" value={employee.city} icon="solar:map-point-bold" />
+                                            {employee.full_address && (
+                                                <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2', md: 'span 3' } }}>
+                                                    <DetailItem label="Full Address" value={employee.full_address} icon="solar:map-point-wave-bold" />
+                                                </Box>
+                                            )}
                                         </Box>
                                     </Box>
                                 </Box>
@@ -442,6 +490,195 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                                     </Box>
                                 </Box>
                             )}
+
+                            {currentTab === 3 && (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    {/* Skill Progression History */}
+                                    <Box>
+                                        <SectionHeader title="Skill Progression History" icon="solar:star-fall-bold" />
+                                        {skillHistory.length > 0 ? (
+                                            <TableContainer sx={{ borderRadius: 2, border: (theme) => `1px solid ${theme.palette.divider}`, overflow: 'hidden', boxShadow: (theme) => `0 1px 3px ${alpha(theme.palette.common.black, 0.04)}` }}>
+                                                <Table size="small">
+                                                    <TableHead sx={{ bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) }}>
+                                                        <TableRow>
+                                                            <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', letterSpacing: 0.3, textTransform: 'uppercase', color: 'text.secondary', py: 1.5 }}>Date & Time</TableCell>
+                                                            <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', letterSpacing: 0.3, textTransform: 'uppercase', color: 'text.secondary', py: 1.5 }}>Skill Transition</TableCell>
+                                                            <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', letterSpacing: 0.3, textTransform: 'uppercase', color: 'text.secondary', py: 1.5 }}>Changed By</TableCell>
+                                                            <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', letterSpacing: 0.3, textTransform: 'uppercase', color: 'text.secondary', py: 1.5 }}>Reason / Remarks</TableCell>
+                                                        </TableRow>
+                                                    </TableHead>
+                                                    <TableBody>
+                                                        {skillHistory.slice(skillPage * skillRowsPerPage, skillPage * skillRowsPerPage + skillRowsPerPage).map((h: any) => (
+                                                            <TableRow key={h.name} hover sx={{ '& td': { py: 1.5 } }}>
+                                                                <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                                                                    {h.changed_at ? fDate(h.changed_at, 'DD-MM-YYYY hh:mm A') : '-'}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                        <Label variant="soft" color="default" sx={{ fontWeight: 600 }}>
+                                                                            {h.from_skill || 'Not Assigned'}
+                                                                        </Label>
+                                                                        <Iconify icon={"solar:arrow-right-outline" as any} width={16} sx={{ color: 'text.disabled' }} />
+                                                                        <Label variant="soft" color={
+                                                                            (h.to_skill || '').toLowerCase().includes('highly') ? 'success' :
+                                                                                (h.to_skill || '').toLowerCase().includes('skilled') && !(h.to_skill || '').toLowerCase().includes('semi') && !(h.to_skill || '').toLowerCase().includes('un') ? 'info' :
+                                                                                    (h.to_skill || '').toLowerCase().includes('semi') ? 'warning' : 'default'
+                                                                        } sx={{ fontWeight: 700 }}>
+                                                                            {h.to_skill}
+                                                                        </Label>
+                                                                    </Box>
+                                                                </TableCell>
+                                                                <TableCell sx={{ color: 'text.primary', fontWeight: 600, fontSize: '0.875rem' }}>
+                                                                    {h.changed_by_name || h.changed_by || '-'}
+                                                                </TableCell>
+                                                                <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+                                                                    {h.reason || '-'}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                                <TablePagination
+                                                    component="div"
+                                                    count={skillHistory.length}
+                                                    page={skillPage}
+                                                    onPageChange={(_, newPage) => setSkillPage(newPage)}
+                                                    rowsPerPage={skillRowsPerPage}
+                                                    onRowsPerPageChange={(e) => {
+                                                        setSkillRowsPerPage(parseInt(e.target.value, 10));
+                                                        setSkillPage(0);
+                                                    }}
+                                                    rowsPerPageOptions={[5, 10, 25]}
+                                                    sx={{ borderTop: (theme) => `1px solid ${theme.palette.divider}` }}
+                                                />
+                                            </TableContainer>
+                                        ) : (
+                                            <Box sx={{ py: 4, textAlign: 'center', bgcolor: 'action.hover', borderRadius: 1.5, border: (theme) => `1px dashed ${theme.palette.divider}` }}>
+                                                <Iconify icon={"solar:star-fall-bold" as any} width={36} sx={{ color: 'text.disabled', mb: 1, opacity: 0.6 }} />
+                                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>No skill change history recorded yet</Typography>
+                                            </Box>
+                                        )}
+                                    </Box>
+
+                                    <Divider sx={{ borderStyle: 'dashed' }} />
+
+                                    {/* Salary Revision History */}
+                                    <Box>
+                                        <SectionHeader title="Salary Revision History" icon="solar:wallet-money-bold" />
+                                        {salaryHistory.length > 0 ? (
+                                            <TableContainer sx={{ borderRadius: 2, border: (theme) => `1px solid ${theme.palette.divider}`, overflow: 'hidden', boxShadow: (theme) => `0 1px 3px ${alpha(theme.palette.common.black, 0.04)}` }}>
+                                                <Table size="small">
+                                                    <TableHead sx={{ bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) }}>
+                                                        <TableRow>
+                                                            <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', letterSpacing: 0.3, textTransform: 'uppercase', color: 'text.secondary', py: 1.5 }}>Effective Date</TableCell>
+                                                            <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', letterSpacing: 0.3, textTransform: 'uppercase', color: 'text.secondary', py: 1.5 }}>CTC Revision</TableCell>
+                                                            <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', letterSpacing: 0.3, textTransform: 'uppercase', color: 'text.secondary', py: 1.5 }}>Net Salary Revision</TableCell>
+                                                            <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', letterSpacing: 0.3, textTransform: 'uppercase', color: 'text.secondary', py: 1.5 }}>Changed By</TableCell>
+                                                            <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', letterSpacing: 0.3, textTransform: 'uppercase', color: 'text.secondary', py: 1.5 }}>Reason / Remarks</TableCell>
+                                                            <TableCell align="right" sx={{ py: 1.5 }} />
+                                                        </TableRow>
+                                                    </TableHead>
+                                                    <TableBody>
+                                                        {salaryHistory.slice(salaryPage * salaryRowsPerPage, salaryPage * salaryRowsPerPage + salaryRowsPerPage).map((s: any) => {
+                                                            const ctcDiff = (s.new_ctc || 0) - (s.previous_ctc || 0);
+                                                            const netDiff = (s.new_net_salary || 0) - (s.previous_net_salary || 0);
+                                                            const isCtcChanged = ctcDiff !== 0;
+                                                            const isNetChanged = netDiff !== 0;
+
+                                                            return (
+                                                                <TableRow key={s.name} hover sx={{ '& td': { py: 1.5, borderBottom: (theme) => `1px solid ${theme.palette.divider}` } }}>
+                                                                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                                                                        {s.changed_at ? fDate(s.changed_at, 'DD-MM-YYYY hh:mm A') : '-'}
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        {!isCtcChanged ? (
+                                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                                                                                    {hrSettings.currency_symbol}{fNumber(s.new_ctc || 0, { locale: hrSettings.default_locale })}
+                                                                                </Typography>
+                                                                                <Label variant="soft" color="default" sx={{ height: 20, fontSize: '0.7rem' }}>
+                                                                                    Unchanged
+                                                                                </Label>
+                                                                            </Box>
+                                                                        ) : (
+                                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'nowrap' }}>
+                                                                                <Typography variant="body2" sx={{ color: 'text.disabled', textDecoration: 'line-through' }}>
+                                                                                    {hrSettings.currency_symbol}{fNumber(s.previous_ctc || 0, { locale: hrSettings.default_locale })}
+                                                                                </Typography>
+                                                                                <Iconify icon={"solar:arrow-right-outline" as any} width={14} sx={{ color: 'text.disabled' }} />
+                                                                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: ctcDiff > 0 ? 'success.main' : 'error.main' }}>
+                                                                                    {hrSettings.currency_symbol}{fNumber(s.new_ctc || 0, { locale: hrSettings.default_locale })}
+                                                                                </Typography>
+                                                                                <Label variant="soft" color={ctcDiff > 0 ? 'success' : 'error'} sx={{ height: 20, fontSize: '0.7rem' }}>
+                                                                                    {ctcDiff > 0 ? `+${hrSettings.currency_symbol}${fNumber(ctcDiff)}` : `-${hrSettings.currency_symbol}${fNumber(Math.abs(ctcDiff))}`}
+                                                                                </Label>
+                                                                            </Box>
+                                                                        )}
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        {!isNetChanged ? (
+                                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                                                                                    {hrSettings.currency_symbol}{fNumber(s.new_net_salary || 0, { locale: hrSettings.default_locale })}
+                                                                                </Typography>
+                                                                                <Label variant="soft" color="default" sx={{ height: 20, fontSize: '0.7rem' }}>
+                                                                                    Unchanged
+                                                                                </Label>
+                                                                            </Box>
+                                                                        ) : (
+                                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'nowrap' }}>
+                                                                                <Typography variant="body2" sx={{ color: 'text.disabled', textDecoration: 'line-through' }}>
+                                                                                    {hrSettings.currency_symbol}{fNumber(s.previous_net_salary || 0, { locale: hrSettings.default_locale })}
+                                                                                </Typography>
+                                                                                <Iconify icon={"solar:arrow-right-outline" as any} width={14} sx={{ color: 'text.disabled' }} />
+                                                                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: netDiff > 0 ? 'success.main' : 'error.main' }}>
+                                                                                    {hrSettings.currency_symbol}{fNumber(s.new_net_salary || 0, { locale: hrSettings.default_locale })}
+                                                                                </Typography>
+                                                                                <Label variant="soft" color={netDiff > 0 ? 'success' : 'error'} sx={{ height: 20, fontSize: '0.7rem' }}>
+                                                                                    {netDiff > 0 ? `+${hrSettings.currency_symbol}${fNumber(netDiff)}` : `-${hrSettings.currency_symbol}${fNumber(Math.abs(netDiff))}`}
+                                                                                </Label>
+                                                                            </Box>
+                                                                        )}
+                                                                    </TableCell>
+                                                                    <TableCell sx={{ color: 'text.primary', fontWeight: 600, fontSize: '0.875rem' }}>
+                                                                        {s.changed_by_name || s.changed_by || '-'}
+                                                                    </TableCell>
+                                                                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+                                                                        {s.reason || '-'}
+                                                                    </TableCell>
+                                                                    <TableCell align="right">
+                                                                        <IconButton size="small" onClick={() => setSelectedSalaryHistory(s)} sx={{ color: 'info.main' }}>
+                                                                            <Iconify icon="solar:eye-bold" />
+                                                                        </IconButton>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            );
+                                                        })}
+                                                    </TableBody>
+                                                </Table>
+                                                <TablePagination
+                                                    component="div"
+                                                    count={salaryHistory.length}
+                                                    page={salaryPage}
+                                                    onPageChange={(_, newPage) => setSalaryPage(newPage)}
+                                                    rowsPerPage={salaryRowsPerPage}
+                                                    onRowsPerPageChange={(e) => {
+                                                        setSalaryRowsPerPage(parseInt(e.target.value, 10));
+                                                        setSalaryPage(0);
+                                                    }}
+                                                    rowsPerPageOptions={[5, 10, 25]}
+                                                    sx={{ borderTop: (theme) => `1px solid ${theme.palette.divider}` }}
+                                                />
+                                            </TableContainer>
+                                        ) : (
+                                            <Box sx={{ py: 4, textAlign: 'center', bgcolor: 'action.hover', borderRadius: 1.5, border: (theme) => `1px dashed ${theme.palette.divider}` }}>
+                                                <Iconify icon={"solar:wallet-money-bold" as any} width={36} sx={{ color: 'text.disabled', mb: 1, opacity: 0.6 }} />
+                                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>No salary revision history recorded yet</Typography>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                </Box>
+                            )}
                         </Box>
                     </Box>
 
@@ -452,6 +689,14 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
                     </Box>
                 )}
             </DialogContent>
+
+            <SalaryHistoryDetailsDialog
+                open={Boolean(selectedSalaryHistory)}
+                onClose={() => setSelectedSalaryHistory(null)}
+                historyItem={selectedSalaryHistory}
+                currencySymbol={hrSettings.currency_symbol}
+                locale={hrSettings.default_locale}
+            />
         </Dialog >
     );
 }

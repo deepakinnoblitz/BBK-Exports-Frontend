@@ -63,6 +63,7 @@ import { useAuth } from 'src/auth/auth-context';
 import { TableNoData } from '../../lead/table-no-data';
 import { EmployeeTableRow } from '../employee-table-row';
 import { ShiftCreateDialog } from '../shift-create-dialog';
+import { SkillCreateDialog } from '../skill-create-dialog';
 import { TableEmptyRows } from '../../lead/table-empty-rows';
 import { BusRouteCreateDialog } from '../bus-route-create-dialog';
 import { LineOrderCreateDialog } from '../line-order-create-dialog';
@@ -295,6 +296,10 @@ export function EmployeeView() {
     // Employee Type Create Dialog State
     const [openEmployeeTypeCreate, setOpenEmployeeTypeCreate] = useState(false);
     const [employeeTypeSearch, setEmployeeTypeSearch] = useState('');
+
+    // Skill Create Dialog State
+    const [openSkillCreate, setOpenSkillCreate] = useState(false);
+    const [skillSearch, setSkillSearch] = useState('');
 
     // Bank Account Create Dialog State
     const [openBankAccountCreate, setOpenBankAccountCreate] = useState(false);
@@ -532,6 +537,13 @@ export function EmployeeView() {
             getDoctypeList('Employee Type', ['name', 'employee_type', 'category_type'])
                 .then((options) => {
                     setFieldOptions(prev => ({ ...prev, 'employee_type': options }));
+                })
+                .catch(console.error);
+
+            // Explicitly fetch options for skill
+            getDoctypeList('Skill', ['name', 'skill_name'])
+                .then((options) => {
+                    setFieldOptions(prev => ({ ...prev, 'skill': options }));
                 })
                 .catch(console.error);
         }).catch(console.error);
@@ -2319,6 +2331,99 @@ export function EmployeeView() {
             );
         }
 
+        if (fieldname === 'skill') {
+            return (
+                <Autocomplete
+                    fullWidth
+                    options={options}
+                    value={formData[fieldname] || ''}
+                    onChange={(event, newValue: any) => {
+                        if (newValue?.isNew || newValue === 'Create Skill' || newValue?.name === 'Create Skill' || newValue?.skill_name === 'Create Skill') {
+                            setOpenSkillCreate(true);
+                            setSkillSearch(newValue?.inputValue || '');
+                        } else {
+                            const value = typeof newValue === 'object' ? (newValue.skill_name || newValue.name) : newValue;
+                            handleInputChange(fieldname, value || '');
+                        }
+                    }}
+                    filterOptions={(currentOptions, params) => {
+                        const filtered = filter(currentOptions, params);
+                        const { inputValue } = params;
+                        const hasCreateOption = filtered.some((option: any) =>
+                            (typeof option === 'string' ? option : (option.skill_name || option.name)) === 'Create Skill' || option.isNew
+                        );
+                        if (!hasCreateOption) {
+                            filtered.push({
+                                inputValue: inputValue || '',
+                                name: 'Create Skill',
+                                skill_name: 'Create Skill',
+                                isNew: true,
+                            });
+                        }
+                        return filtered;
+                    }}
+                    renderOption={(props, option: any) => (
+                        <Box component="li" {...props} sx={{
+                            typography: 'body2',
+                            ...(option.isNew && {
+                                color: 'primary.main',
+                                fontWeight: 600,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                mt: 0.5,
+                                py: 3, minHeight: '56px',
+                                '&:hover': {
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                }
+                            })
+                        }}>
+                            {option.isNew ? (
+                                <Stack direction="row" alignItems="center" spacing={1.5}>
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                        Create Skill {option.inputValue ? `"${option.inputValue}"` : ''}
+                                    </Typography>
+                                </Stack>
+                            ) : (
+                                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {typeof option === 'string' ? option : (option.skill_name || option.name)}
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Box>
+                    )}
+                    getOptionLabel={(option) => (typeof option === 'string' ? option : (option.skill_name || option.name || ''))}
+                    isOptionEqualToValue={(option, value) => {
+                        const optVal = typeof option === 'string' ? option : (option.skill_name || option.name);
+                        const val = typeof value === 'string' ? value : (value?.skill_name || value?.name);
+                        return optVal === val;
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label={label}
+                            placeholder={`Select ${label}`}
+                            required={required}
+                            error={!!formErrors[fieldname]}
+                            helperText={formErrors[fieldname]}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiFormLabel-asterisk': {
+                                    color: 'red',
+                                },
+                                ...extraProps.sx
+                            }}
+                        />
+                    )}
+                    freeSolo
+                    selectOnFocus
+                    clearOnBlur
+                    handleHomeEndKeys
+                />
+            );
+        }
+
         if (type === 'select' || type === 'link') {
             const selectPlaceholder = extraProps.placeholder || `Select ${label}`;
             return (
@@ -2797,6 +2902,7 @@ export function EmployeeView() {
                                     { id: 'employee_name', label: 'Name', minWidth: 160 },
                                     { id: 'employee_id', label: 'Employee ID', minWidth: 120 },
                                     { id: 'employee_type', label: 'Employee Type', minWidth: 130 },
+                                    { id: 'skill', label: 'Skill', minWidth: 120 },
                                     { id: 'department', label: 'Department', minWidth: 120 },
                                     { id: 'designation', label: 'Designation', minWidth: 120 },
                                     { id: 'status', label: 'Status', minWidth: 100 },
@@ -2807,7 +2913,7 @@ export function EmployeeView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
@@ -2823,6 +2929,7 @@ export function EmployeeView() {
                                                     employeeId: row.employee_id,
                                                     name: row.employee_name,
                                                     employeeType: row.employee_type,
+                                                    skill: row.skill,
                                                     department: row.department,
                                                     designation: row.designation,
                                                     status: row.status,
@@ -2954,6 +3061,7 @@ export function EmployeeView() {
                                             {renderField('country', 'Country', 'autocomplete', fieldOptions['country'] || [])}
                                             {renderField('state', 'State', 'autocomplete', stateOptions)}
                                             {renderField('city', 'City', 'autocomplete', cityOptions)}
+                                            {renderField('full_address', 'Full Address', 'text', [], { multiline: true, rows: 2, sx: { gridColumn: { sm: 'span 2' } } })}
                                             {renderField('profile_picture', 'Profile Picture', 'file')}
                                         </Box>
                                     </>
@@ -2965,6 +3073,7 @@ export function EmployeeView() {
                                             {renderField('department', 'Department', 'link', fieldOptions['department'] || [])}
                                             {renderField('designation', 'Designation', 'link', fieldOptions['designation'] || [])}
                                             {renderField('employee_type', 'Employee Type', 'link', fieldOptions['employee_type'] || [])}
+                                            {renderField('skill', 'Skill', 'link', fieldOptions['skill'] || [])}
                                             {renderField('production_type', 'Production Type', 'select', ['Production', 'Non Production'])}
                                             {renderField('line_order', 'Line Order', 'link', fieldOptions['line_order'] || [])}
                                             {renderField('shift', 'Shift', 'link', fieldOptions['shift'] || [])}
@@ -3387,12 +3496,40 @@ export function EmployeeView() {
                 }}
             />
 
+            <SkillCreateDialog
+                open={openSkillCreate}
+                onClose={() => setOpenSkillCreate(false)}
+                currentSkillName={skillSearch}
+                onCreate={async (newSkill) => {
+                    setFieldOptions(prev => {
+                        const existing = prev['skill'] || [];
+                        const exists = existing.some((opt: any) => (typeof opt === 'string' ? opt : (opt.skill_name || opt.name)) === newSkill);
+                        if (exists) return prev;
+                        return {
+                            ...prev,
+                            skill: [...existing, { name: newSkill, skill_name: newSkill }]
+                        };
+                    });
+                    handleInputChange('skill', newSkill);
+                    try {
+                        const freshOptions = await getDoctypeList('Skill', ['name', 'skill_name']);
+                        setFieldOptions(prev => ({
+                            ...prev,
+                            skill: freshOptions
+                        }));
+                    } catch (err) {
+                        console.error('Failed to re-fetch skill options:', err);
+                    }
+                    setSnackbar({ open: true, message: 'Skill created successfully', severity: 'success' });
+                }}
+            />
+
             <BankAccountDialog
                 open={openBankAccountCreate}
                 onClose={() => setOpenBankAccountCreate(false)}
                 onSuccess={async (newAccount?: any) => {
-                    const accountName = typeof newAccount === 'object' && newAccount?.name 
-                        ? newAccount.name 
+                    const accountName = typeof newAccount === 'object' && newAccount?.name
+                        ? newAccount.name
                         : (typeof newAccount === 'string' ? newAccount : '');
 
                     try {
