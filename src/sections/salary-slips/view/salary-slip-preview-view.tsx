@@ -545,7 +545,7 @@ export function SalarySlipPreviewView() {
 
     const renderSalaryBreakdown = (
         <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
                 {/* Earnings */}
                 <Box
                     sx={{
@@ -743,7 +743,7 @@ export function SalarySlipPreviewView() {
     const renderEmployerContributions = (
         <Box sx={{ mb: 4, mt: 3 }}>
             <SectionHeader title="Employer Contributions & Cost to Company (CTC)" icon="solar:buildings-bold" color="info.main" />
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.2fr 0.8fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
                 {/* Statutory Contributions */}
                 <Box
                     sx={{
@@ -840,12 +840,31 @@ export function SalarySlipPreviewView() {
                                 hrSettings={hrSettings}
                             />
                             <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
-                            <AmountRow
-                                label="Earned CTC (Gross + Statutory)"
-                                amount={data.earned_ctc || ((Number(data.gross_pay) || 0) + (Number(data.employer_pf) || 0) + (Number(data.pf_admin_charges) || 0) + (Number(data.edli_charges) || 0) + (Number(data.employer_esi) || 0))}
-                                hrSettings={hrSettings}
-                                color="primary.dark"
-                            />
+                            <Box
+                                sx={{
+                                    p: 2,
+                                    borderRadius: 1.5,
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                    border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Box>
+                                        <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                            Earned CTC
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: 11 }}>
+                                            (Gross + Statutory)
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
+                                        <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.85em' }}>
+                                            {hrSettings.currency_symbol}
+                                        </Box>
+                                        {fNumber(data.earned_ctc || ((Number(data.gross_pay) || 0) + (Number(data.employer_pf) || 0) + (Number(data.pf_admin_charges) || 0) + (Number(data.edli_charges) || 0) + (Number(data.employer_esi) || 0)), { locale: hrSettings.default_locale })}
+                                    </Typography>
+                                </Box>
+                            </Box>
                             {Number(data.tea_expenses || 0) > 0 && (
                                 <AmountRow
                                     label="Tea Expenses"

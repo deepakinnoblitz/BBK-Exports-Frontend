@@ -1134,7 +1134,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             value={getFieldVal(cat.key, 'esi_wage_ceiling', '21000')}
                             onChange={(e) => setFieldVal(cat.key, 'esi_wage_ceiling', e.target.value)}
                             placeholder="21000"
-                            helperText="Statutory threshold (Gross less than or equal to ₹21,000)."
+                            helperText={`Statutory threshold (Gross less than or equal to ₹${Number(getFieldVal(cat.key, 'esi_wage_ceiling', '21000') || 21000).toLocaleString('en-IN')}).`}
                             disabled={!autoEsiEnabled}
                             slotProps={{
                               input: {
@@ -1339,26 +1339,28 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                     />
                   </Grid>
 
-                  {/* PF Admin & EDLI Wage Basis */}
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <FormControl fullWidth>
-                      <InputLabel id={`admin-edli-basis-label-${cat.key}`}>PF Admin & EDLI Basis</InputLabel>
-                      <Select
-                        labelId={`admin-edli-basis-label-${cat.key}`}
-                        id={`pf_admin_edli_basis_${cat.key}`}
-                        value={getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)')}
-                        label="PF Admin & EDLI Basis"
-                        onChange={(e) => setFieldVal(cat.key, 'pf_admin_edli_basis', e.target.value)}
-                      >
-                        <MenuItem value="Statutory PF Wage (Capped at Ceiling)">Statutory PF Wage (Capped at Ceiling)</MenuItem>
-                        <MenuItem value="Percentage of Gross Salary">Percentage of Gross Salary</MenuItem>
-                        <MenuItem value="Actual PF Wage (Uncapped)">Actual PF Wage (Uncapped)</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
+                  {/* PF Admin & EDLI Wage Basis (Not needed for CTC Staff) */}
+                  {cat.key !== 'staff_ctc' && (
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <FormControl fullWidth>
+                        <InputLabel id={`admin-edli-basis-label-${cat.key}`}>PF Admin & EDLI Basis</InputLabel>
+                        <Select
+                          labelId={`admin-edli-basis-label-${cat.key}`}
+                          id={`pf_admin_edli_basis_${cat.key}`}
+                          value={getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)')}
+                          label="PF Admin & EDLI Basis"
+                          onChange={(e) => setFieldVal(cat.key, 'pf_admin_edli_basis', e.target.value)}
+                        >
+                          <MenuItem value="Statutory PF Wage (Capped at Ceiling)">Statutory PF Wage (Capped at Ceiling)</MenuItem>
+                          <MenuItem value="Percentage of Gross Salary">Percentage of Gross Salary</MenuItem>
+                          <MenuItem value="Actual PF Wage (Uncapped)">Actual PF Wage (Uncapped)</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  )}
 
                   {/* PF Admin & EDLI Gross Basis % */}
-                  {getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)') === 'Percentage of Gross Salary' && (
+                  {cat.key !== 'staff_ctc' && getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)') === 'Percentage of Gross Salary' && (
                     <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                       <TextField
                         fullWidth
@@ -1387,7 +1389,11 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       value={getFieldVal(cat.key, 'pf_admin_rate', '0.5')}
                       onChange={(e) => setFieldVal(cat.key, 'pf_admin_rate', e.target.value)}
                       placeholder="0.5"
-                      helperText="EPFO Admin charges rate."
+                      helperText={
+                        cat.key === 'staff_ctc'
+                          ? `EPFO Admin Charges (Capped at ₹${(Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000) * (Number(getFieldVal(cat.key, 'pf_admin_rate', '0.5') || 0.5) / 100)).toFixed(0)} = ₹${Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000).toLocaleString('en-IN')} × ${getFieldVal(cat.key, 'pf_admin_rate', '0.5')}%)`
+                          : "EPFO Admin charges rate."
+                      }
                       slotProps={{
                         input: {
                           endAdornment: <InputAdornment position="end">%</InputAdornment>,
@@ -1406,7 +1412,11 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       value={getFieldVal(cat.key, 'edli_rate', '0.5')}
                       onChange={(e) => setFieldVal(cat.key, 'edli_rate', e.target.value)}
                       placeholder="0.5"
-                      helperText="Deposit Linked Insurance."
+                      helperText={
+                        cat.key === 'staff_ctc'
+                          ? `Deposit Linked Insurance (Capped at ₹${(Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000) * (Number(getFieldVal(cat.key, 'edli_rate', '0.5') || 0.5) / 100)).toFixed(0)} = ₹${Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000).toLocaleString('en-IN')} × ${getFieldVal(cat.key, 'edli_rate', '0.5')}%)`
+                          : "Deposit Linked Insurance."
+                      }
                       slotProps={{
                         input: {
                           endAdornment: <InputAdornment position="end">%</InputAdornment>,
@@ -1425,12 +1435,35 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       value={getFieldVal(cat.key, 'employer_esi_rate', '3.25')}
                       onChange={(e) => setFieldVal(cat.key, 'employer_esi_rate', e.target.value)}
                       placeholder="3.25"
-                      helperText="ESI Contribution (Gross less than or equal to ₹21,000)."
+                      helperText={`ESI Contribution (Gross less than or equal to ₹${Number(getFieldVal(cat.key, 'esi_wage_ceiling', '21000') || 21000).toLocaleString('en-IN')}).`}
                       slotProps={{
                         input: {
                           endAdornment: <InputAdornment position="end">%</InputAdornment>,
                         },
                         htmlInput: { min: 0, max: 100, step: 0.05 },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* ESI Wage Ceiling */}
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="ESI Wage Ceiling"
+                      value={getFieldVal(cat.key, 'esi_wage_ceiling', '21000')}
+                      onChange={(e) => setFieldVal(cat.key, 'esi_wage_ceiling', e.target.value)}
+                      placeholder="21000"
+                      helperText={`Statutory threshold (Gross <= ₹${Number(getFieldVal(cat.key, 'esi_wage_ceiling', '21000') || 21000).toLocaleString('en-IN')}).`}
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                            </InputAdornment>
+                          ),
+                        },
+                        htmlInput: { min: 0, step: 1000 },
                       }}
                     />
                   </Grid>

@@ -718,7 +718,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
     // ── Salary Breakdown (Exact Dialog UI) ────────────────────────────────────
     const renderSalaryBreakdown = (
         <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
                 {/* Earnings */}
                 <Box
                     sx={{
@@ -734,14 +734,14 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         {(slip.earnings || [])
                             .filter((item: any) => Number(item.amount || 0) > 0)
                             .map((item: any, idx: number) => (
-                            <AmountRow
-                                key={idx}
-                                label={item.component_name || item.salary_component}
-                                standardAmount={item.standard_amount !== undefined ? item.standard_amount : (item.component_name === 'Overtime Pay (OT)' || item.component_name === 'Attendance Bonus' ? 0 : item.amount)}
-                                amount={item.amount}
-                                hrSettings={hrSettings}
-                            />
-                        ))}
+                                <AmountRow
+                                    key={idx}
+                                    label={item.component_name || item.salary_component}
+                                    standardAmount={item.standard_amount !== undefined ? item.standard_amount : (item.component_name === 'Overtime Pay (OT)' || item.component_name === 'Attendance Bonus' ? 0 : item.amount)}
+                                    amount={item.amount}
+                                    hrSettings={hrSettings}
+                                />
+                            ))}
                         {(!slip.earnings || !(slip.earnings || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No earnings recorded
@@ -774,14 +774,14 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         {(slip.deductions || [])
                             .filter((item: any) => Number(item.amount || 0) > 0)
                             .map((item: any, idx: number) => (
-                            <AmountRow
-                                key={idx}
-                                label={item.component_name || item.salary_component}
-                                standardAmount={item.standard_amount !== undefined ? item.standard_amount : item.amount}
-                                amount={item.amount}
-                                hrSettings={hrSettings}
-                            />
-                        ))}
+                                <AmountRow
+                                    key={idx}
+                                    label={item.component_name || item.salary_component}
+                                    standardAmount={item.standard_amount !== undefined ? item.standard_amount : item.amount}
+                                    amount={item.amount}
+                                    hrSettings={hrSettings}
+                                />
+                            ))}
                         {(!slip.deductions || !(slip.deductions || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No deductions recorded
@@ -840,7 +840,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
     const renderEmployerContributions = (
         <Box sx={{ mb: 4, mt: 3 }}>
             <SectionHeader title="Employer Contributions & Cost to Company (CTC)" icon="solar:buildings-bold" color="info.main" />
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.2fr 0.8fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
                 {/* Statutory Contributions */}
                 <Box
                     sx={{
@@ -937,12 +937,32 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 hrSettings={hrSettings}
                             />
                             <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
-                            <AmountRow
-                                label="Earned CTC (Gross + Statutory)"
-                                amount={slip.earned_ctc || ((Number(slip.gross_pay) || 0) + (Number(slip.employer_pf) || 0) + (Number(slip.pf_admin_charges) || 0) + (Number(slip.edli_charges) || 0) + (Number(slip.employer_esi) || 0))}
-                                hrSettings={hrSettings}
-                                color="primary.dark"
-                            />
+                            <Box
+                                sx={{
+                                    p: 2,
+                                    borderRadius: 1.5,
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                    border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Box>
+                                        <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                            Earned CTC
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: 11 }}>
+                                            (Gross + Statutory)
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
+                                        <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.85em' }}>
+                                            {hrSettings.currency_symbol}
+                                        </Box>
+                                        {fNumber(slip.earned_ctc || ((Number(slip.gross_pay) || 0) + (Number(slip.employer_pf) || 0) + (Number(slip.pf_admin_charges) || 0) + (Number(slip.edli_charges) || 0) + (Number(slip.employer_esi) || 0)), { locale: hrSettings.default_locale })}
+                                    </Typography>
+                                </Box>
+                            </Box>
+
                             {Number(slip.tea_expenses || 0) > 0 && (
                                 <AmountRow
                                     label="Tea Expenses"
@@ -963,7 +983,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             )}
                         </Stack>
                     </Box>
-
+                    <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
                     <Box
                         sx={{
                             mt: 2,
