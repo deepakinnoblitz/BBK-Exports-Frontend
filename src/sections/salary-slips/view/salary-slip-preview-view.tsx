@@ -200,16 +200,16 @@ export function SalarySlipPreviewView() {
                 <InfoRow label="Employee ID" value={data.employee_id || data.employee} />
                 <InfoRow label="Father / Husband Name" value={data.father_husband_name || '-'} />
 
-                <SubHeader title="Contact Details" />
-                <InfoRow label="Official Email" value={data.email || '-'} />
-                <InfoRow label="Personal Email" value={data.personal_email || '-'} />
-                <InfoRow label="Employee Phone Number" value={data.phone_number || '-'} />
-
                 <SubHeader title="Job Details" />
                 <InfoRow label="Employee Type" value={data.employee_type || '-'} />
                 <InfoRow label="Department" value={data.department || '-'} />
                 <InfoRow label="Designation" value={data.designation || '-'} />
                 <InfoRow label="Date of Joining" value={formatDate(data.date_of_joining)} />
+
+                <SubHeader title="Statutory Details" />
+                <InfoRow label="PF Number" value={data.pf_no || data.pf_number || '-'} />
+                <InfoRow label="UAN Number" value={data.uan_number || '-'} />
+                <InfoRow label="ESI No" value={data.esi_no || '-'} />
 
                 <SubHeader title="Bank Details" />
                 <InfoRow label="Account Name" value={data.bank_account_name || '-'} />
@@ -292,7 +292,6 @@ export function SalarySlipPreviewView() {
                                 <InfoRow label="No of Half Day" value={data.half_day_count || 0} action={renderInfoAction('half_day')} />
                                 <InfoRow label="No of Unpaid Leave" value={data.unpaid_leave_days !== undefined && data.unpaid_leave_days !== null ? data.unpaid_leave_days : (data.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
                                 <InfoRow label="No of Paid Leave" value={data.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                                <InfoRow label="Compensatory Off" value={data.no_of_comp_off || 0} action={renderInfoAction('comp_off')} />
                                 <InfoRow label="LOP Days" value={data.lop_days || 0} action={renderInfoAction('lop')} />
                             </Box>
                         </>

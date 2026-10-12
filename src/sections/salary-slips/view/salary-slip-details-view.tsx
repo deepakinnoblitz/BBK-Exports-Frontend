@@ -368,16 +368,16 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 <InfoRow label="Employee ID" value={slip.employee_id || slip.employee} />
                 <InfoRow label="Father / Husband Name" value={slip.father_husband_name || '-'} />
 
-                <SubHeader title="Contact Details" />
-                <InfoRow label="Official Email" value={slip.email || '-'} />
-                <InfoRow label="Personal Email" value={slip.personal_email || '-'} />
-                <InfoRow label="Employee Phone Number" value={slip.phone_number || '-'} />
-
                 <SubHeader title="Job Details" />
                 <InfoRow label="Employee Type" value={slip.employee_type || '-'} />
                 <InfoRow label="Department" value={slip.department || '-'} />
                 <InfoRow label="Designation" value={slip.designation || '-'} />
                 <InfoRow label="Date of Joining" value={formatDate(slip.date_of_joining)} />
+
+                <SubHeader title="Statutory Details" />
+                <InfoRow label="PF Number" value={slip.pf_no || slip.pf_number || '-'} />
+                <InfoRow label="UAN Number" value={slip.uan_number || '-'} />
+                <InfoRow label="ESI No" value={slip.esi_no || '-'} />
 
                 <SubHeader title="Bank Details" />
                 <InfoRow label="Account Name" value={slip.bank_account_name || '-'} />
@@ -464,7 +464,6 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 <InfoRow label="No of Half Day" value={slip.half_day_count || 0} action={renderInfoAction('half_day')} />
                                 <InfoRow label="No of Unpaid Leave" value={slip.unpaid_leave_days !== undefined && slip.unpaid_leave_days !== null ? slip.unpaid_leave_days : (slip.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
                                 <InfoRow label="No of Paid Leave" value={slip.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                                <InfoRow label="Compensatory Off" value={slip.no_of_comp_off || 0} action={renderInfoAction('comp_off')} />
                                 <InfoRow label="LOP Days" value={slip.lop_days || 0} action={renderInfoAction('lop')} />
                             </Box>
                         </>
