@@ -398,7 +398,9 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                     <SectionHeader title="Earnings" icon="solar:wad-of-money-bold" color="success.main" />
                     <TableColumnHeader standardLabel="Standard" actualLabel="Earned" />
                     <Stack spacing={1}>
-                        {(data.earnings || []).map((item: any, idx: number) => (
+                        {(data.earnings || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
                             <AmountRow
                                 key={idx}
                                 label={item.component_name || item.salary_component}
@@ -407,7 +409,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                 hrSettings={hrSettings}
                             />
                         ))}
-                        {(!data.earnings || data.earnings.length === 0) && (
+                        {(!data.earnings || !(data.earnings || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>No earnings</Typography>
                         )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
@@ -427,7 +429,9 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                     <SectionHeader title="Deductions" icon="solar:hand-money-bold" color="error.main" />
                     <TableColumnHeader standardLabel="Standard" actualLabel="Actual" />
                     <Stack spacing={1}>
-                        {(data.deductions || []).map((item: any, idx: number) => (
+                        {(data.deductions || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
                             <AmountRow
                                 key={idx}
                                 label={item.component_name || item.salary_component}
@@ -436,7 +440,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                 hrSettings={hrSettings}
                             />
                         ))}
-                        {(!data.deductions || data.deductions.length === 0) && (
+                        {(!data.deductions || !(data.deductions || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>No deductions</Typography>
                         )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
@@ -502,26 +506,39 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                         Employer Statutory Contributions
                     </Typography>
                     <Stack spacing={1}>
-                        <AmountRow
-                            label={`Employer PF Contribution (${data.employer_pf_rate ?? hrSettings?.employer_pf_rate ?? 12}%)`}
-                            amount={data.employer_pf || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`PF Admin Charges (${data.pf_admin_rate ?? hrSettings?.pf_admin_rate ?? 0.5}%)`}
-                            amount={data.pf_admin_charges || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`EDLI Charges (${data.edli_rate ?? hrSettings?.edli_rate ?? 0.5}%)`}
-                            amount={data.edli_charges || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`Employer ESI Contribution (${data.employer_esi_rate ?? hrSettings?.employer_esi_rate ?? 3.25}%)`}
-                            amount={data.employer_esi || 0}
-                            hrSettings={hrSettings}
-                        />
+                        {Number(data.employer_pf || 0) > 0 && (
+                            <AmountRow
+                                label={`Employer PF Contribution (${data.employer_pf_rate ?? hrSettings?.employer_pf_rate ?? 12}%)`}
+                                amount={data.employer_pf || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {Number(data.pf_admin_charges || 0) > 0 && (
+                            <AmountRow
+                                label={`PF Admin Charges (${data.pf_admin_rate ?? hrSettings?.pf_admin_rate ?? 0.5}%)`}
+                                amount={data.pf_admin_charges || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {Number(data.edli_charges || 0) > 0 && (
+                            <AmountRow
+                                label={`EDLI Charges (${data.edli_rate ?? hrSettings?.edli_rate ?? 0.5}%)`}
+                                amount={data.edli_charges || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {Number(data.employer_esi || 0) > 0 && (
+                            <AmountRow
+                                label={`Employer ESI Contribution (${data.employer_esi_rate ?? hrSettings?.employer_esi_rate ?? 3.25}%)`}
+                                amount={data.employer_esi || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {(!Number(data.employer_pf || 0) && !Number(data.pf_admin_charges || 0) && !Number(data.edli_charges || 0) && !Number(data.employer_esi || 0)) && (
+                            <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
+                                No employer contributions
+                            </Typography>
+                        )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
                         <AmountRow
                             label="Total Employer Contribution"

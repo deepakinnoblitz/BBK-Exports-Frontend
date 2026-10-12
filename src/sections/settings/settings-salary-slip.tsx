@@ -176,6 +176,8 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       if (baseField === 'enable_bonus_provision') return 0;
       if (baseField === 'enable_el_provision') return 0;
       if (baseField === 'pf_wage_basis') return JSON.stringify(['Basic Pay', 'DA']);
+      if (baseField === 'pf_admin_edli_basis') return 'Statutory PF Wage (Capped at Ceiling)';
+      if (baseField === 'pf_admin_edli_gross_percent') return 100;
     } else if (cat === 'staff_non_ctc') {
       const field = `staff_non_ctc_${baseField}`;
       if (data[field] !== undefined && data[field] !== null && data[field] !== '') {
@@ -184,16 +186,22 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       if (baseField === 'apply_pf_ceiling') return 1;
       if (baseField === 'pf_wage_ceiling') return 15000;
       if (baseField === 'employee_pf_max_amount') return 1800;
+      if (baseField === 'pf_admin_edli_basis') return 'Percentage of Gross Salary';
+      if (baseField === 'pf_admin_edli_gross_percent') return 90;
     } else if (cat === 'workers') {
       const wField = `workers_${baseField}`;
       if (data[wField] !== undefined && data[wField] !== null && data[wField] !== '') {
         return data[wField];
       }
+      if (baseField === 'pf_admin_edli_basis') return 'Statutory PF Wage (Capped at Ceiling)';
+      if (baseField === 'pf_admin_edli_gross_percent') return 100;
     } else if (cat === 'north_indian') {
       const niField = `north_indian_${baseField}`;
       if (data[niField] !== undefined && data[niField] !== null && data[niField] !== '') {
         return data[niField];
       }
+      if (baseField === 'pf_admin_edli_basis') return 'Statutory PF Wage (Capped at Ceiling)';
+      if (baseField === 'pf_admin_edli_gross_percent') return 100;
     }
     return data[baseField] !== undefined && data[baseField] !== null ? data[baseField] : fallbackDefault;
   };
@@ -964,7 +972,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                                 value={getFieldVal(cat.key, 'employee_pf_max_amount', '1800')}
                                 onChange={(e) => setFieldVal(cat.key, 'employee_pf_max_amount', e.target.value)}
                                 placeholder="1800"
-                                helperText="Cap applied when wage ≥ ceiling (₹1,800)."
+                                helperText="Cap applied when wage is above or equal to ceiling (₹1,800)."
                                 disabled={!autoPfEnabled}
                                 slotProps={{
                                   input: {
@@ -1126,7 +1134,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             value={getFieldVal(cat.key, 'esi_wage_ceiling', '21000')}
                             onChange={(e) => setFieldVal(cat.key, 'esi_wage_ceiling', e.target.value)}
                             placeholder="21000"
-                            helperText="Statutory threshold (Gross <= ₹21,000)."
+                            helperText="Statutory threshold (Gross less than or equal to ₹21,000)."
                             disabled={!autoEsiEnabled}
                             slotProps={{
                               input: {
@@ -1141,24 +1149,6 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                           />
                         </Grid>
                       </Grid>
-
-                      <FormControl fullWidth disabled={!autoEsiEnabled}>
-                        <InputLabel id={`esi-rounding-label-${cat.key}`}>ESI Rounding Method</InputLabel>
-                        <Select
-                          labelId={`esi-rounding-label-${cat.key}`}
-                          id={`esi_rounding_method_${cat.key}`}
-                          value={getFieldVal(cat.key, 'esi_rounding_method', 'Round Up to Next Rupee (ROUNDUP / CEIL)')}
-                          label="ESI Rounding Method"
-                          onChange={(e) => setFieldVal(cat.key, 'esi_rounding_method', e.target.value)}
-                        >
-                          <MenuItem value="Round Up to Next Rupee (ROUNDUP / CEIL)">Round Up to Next Rupee (ROUNDUP / CEIL)</MenuItem>
-                          <MenuItem value="Standard Math Round (ROUND)">Standard Math Round (ROUND)</MenuItem>
-                        </Select>
-                        <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <LuInfo size={15} style={{ color: '#0288d1', flexShrink: 0 }} />
-                          ESI 0.75% is applied on full Earned Gross if standard wage is ≤ ₹21,000.
-                        </Typography>
-                      </FormControl>
                     </Stack>
                   </Box>
                 </Grid>
@@ -1335,7 +1325,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       value={getFieldVal(cat.key, 'employer_pf_max_amount', '1800')}
                       onChange={(e) => setFieldVal(cat.key, 'employer_pf_max_amount', e.target.value)}
                       placeholder="1800"
-                      helperText="Contribution cap applied when wage ≥ ceiling (₹1,800)."
+                      helperText="Contribution cap applied when wage is above or equal to ceiling (₹1,800)."
                       slotProps={{
                         input: {
                           startAdornment: (
@@ -1348,6 +1338,45 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       }}
                     />
                   </Grid>
+
+                  {/* PF Admin & EDLI Wage Basis */}
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <FormControl fullWidth>
+                      <InputLabel id={`admin-edli-basis-label-${cat.key}`}>PF Admin & EDLI Basis</InputLabel>
+                      <Select
+                        labelId={`admin-edli-basis-label-${cat.key}`}
+                        id={`pf_admin_edli_basis_${cat.key}`}
+                        value={getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)')}
+                        label="PF Admin & EDLI Basis"
+                        onChange={(e) => setFieldVal(cat.key, 'pf_admin_edli_basis', e.target.value)}
+                      >
+                        <MenuItem value="Statutory PF Wage (Capped at Ceiling)">Statutory PF Wage (Capped at Ceiling)</MenuItem>
+                        <MenuItem value="Percentage of Gross Salary">Percentage of Gross Salary</MenuItem>
+                        <MenuItem value="Actual PF Wage (Uncapped)">Actual PF Wage (Uncapped)</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  {/* PF Admin & EDLI Gross Basis % */}
+                  {getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)') === 'Percentage of Gross Salary' && (
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Admin & EDLI Gross Basis (%)"
+                        value={getFieldVal(cat.key, 'pf_admin_edli_gross_percent', cat.key === 'staff_non_ctc' ? '90' : '100')}
+                        onChange={(e) => setFieldVal(cat.key, 'pf_admin_edli_gross_percent', e.target.value)}
+                        placeholder="90"
+                        helperText="Calculated on: (Gross × % ) × Rate."
+                        slotProps={{
+                          input: {
+                            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                          },
+                          htmlInput: { min: 0, max: 100, step: 1 },
+                        }}
+                      />
+                    </Grid>
+                  )}
 
                   {/* PF Admin Charges */}
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -1396,7 +1425,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       value={getFieldVal(cat.key, 'employer_esi_rate', '3.25')}
                       onChange={(e) => setFieldVal(cat.key, 'employer_esi_rate', e.target.value)}
                       placeholder="3.25"
-                      helperText="ESI Contribution (Gross ≤ ₹21,000)."
+                      helperText="ESI Contribution (Gross less than or equal to ₹21,000)."
                       slotProps={{
                         input: {
                           endAdornment: <InputAdornment position="end">%</InputAdornment>,

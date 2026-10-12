@@ -228,7 +228,9 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                 >
                     <SectionHeader title="Earnings" icon="solar:wad-of-money-bold" color="success.main" />
                     <Stack spacing={1.5}>
-                        {(slip.earnings || []).map((item: any, idx: number) => (
+                        {(slip.earnings || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
                             <AmountRow
                                 key={idx}
                                 label={item.component_name || item.salary_component}
@@ -236,7 +238,7 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                                 hrSettings={hrSettings}
                             />
                         ))}
-                        {(!slip.earnings || slip.earnings.length === 0) && (
+                        {(!slip.earnings || !(slip.earnings || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
                                 No earnings recorded
                             </Typography>
@@ -263,7 +265,9 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                 >
                     <SectionHeader title="Deductions" icon="solar:hand-money-bold" color="error.main" />
                     <Stack spacing={1.5}>
-                        {(slip.deductions || []).map((item: any, idx: number) => (
+                        {(slip.deductions || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
                             <AmountRow
                                 key={idx}
                                 label={item.component_name || item.salary_component}
@@ -274,7 +278,7 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                         {slip.lop > 0 && (
                             <AmountRow label="LOP" amount={slip.lop} hrSettings={hrSettings} />
                         )}
-                        {(!slip.deductions || slip.deductions.length === 0) && !slip.lop && (
+                        {(!slip.deductions || !(slip.deductions || []).some((item: any) => Number(item.amount || 0) > 0)) && !slip.lop && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
                                 No deductions recorded
                             </Typography>
