@@ -99,6 +99,54 @@ export function SalarySlipPreviewView() {
         return `${m}mins`;
     };
 
+    const getEmployerEsiRate = () => {
+        if (data?.employer_esi_rate !== undefined && data?.employer_esi_rate !== null && Number(data.employer_esi_rate) > 0) {
+            return Number(data.employer_esi_rate);
+        }
+        const gross = Number(data?.grand_gross_pay || data?.gross_pay || data?.earned_gross_salary || 0);
+        const esiAmt = Number(data?.employer_esi || 0);
+        if (gross > 0 && esiAmt > 0) {
+            const computed = (esiAmt / gross) * 100;
+            if (Math.abs(computed - 3.25) < 0.1) return 3.25;
+            return Number(computed.toFixed(2));
+        }
+        const esiDeduction = (data?.deductions || []).find((d: any) =>
+            (d.component_name || d.salary_component || '').toLowerCase().includes('esi')
+        );
+        if (esiDeduction && Number(esiDeduction.percentage) > 0) {
+            if (Number(esiDeduction.percentage) === 0.75) return 3.25;
+            return Number((Number(esiDeduction.percentage) * (3.25 / 0.75)).toFixed(2));
+        }
+        return hrSettings?.employer_esi_rate ?? 3.25;
+    };
+
+    const getEmployerPfRate = () => {
+        if (data?.employer_pf_rate !== undefined && data?.employer_pf_rate !== null && Number(data.employer_pf_rate) > 0) {
+            return Number(data.employer_pf_rate);
+        }
+        const pfDeduction = (data?.deductions || []).find((d: any) =>
+            (d.component_name || d.salary_component || '').toLowerCase().includes('pf')
+        );
+        if (pfDeduction && Number(pfDeduction.percentage) > 0) {
+            return Number(pfDeduction.percentage);
+        }
+        return hrSettings?.employer_pf_rate ?? 12;
+    };
+
+    const getPfAdminRate = () => {
+        if (data?.pf_admin_rate !== undefined && data?.pf_admin_rate !== null && Number(data.pf_admin_rate) > 0) {
+            return Number(data.pf_admin_rate);
+        }
+        return hrSettings?.pf_admin_rate ?? 0.5;
+    };
+
+    const getEdliRate = () => {
+        if (data?.edli_rate !== undefined && data?.edli_rate !== null && Number(data.edli_rate) > 0) {
+            return Number(data.edli_rate);
+        }
+        return hrSettings?.edli_rate ?? 0.5;
+    };
+
     const handleConfirmCreate = async () => {
         if (!employee) return;
         try {
@@ -712,28 +760,28 @@ export function SalarySlipPreviewView() {
                     <Stack spacing={1}>
                         {Number(data.employer_pf || 0) > 0 && (
                             <AmountRow
-                                label={`Employer PF Contribution (${data.employer_pf_rate ?? hrSettings?.employer_pf_rate ?? 12}%)`}
+                                label={`Employer PF Contribution (${getEmployerPfRate()}%)`}
                                 amount={data.employer_pf || 0}
                                 hrSettings={hrSettings}
                             />
                         )}
                         {Number(data.pf_admin_charges || 0) > 0 && (
                             <AmountRow
-                                label={`PF Admin Charges (${data.pf_admin_rate ?? hrSettings?.pf_admin_rate ?? 0.5}%)`}
+                                label={`PF Admin Charges (${getPfAdminRate()}%)`}
                                 amount={data.pf_admin_charges || 0}
                                 hrSettings={hrSettings}
                             />
                         )}
                         {Number(data.edli_charges || 0) > 0 && (
                             <AmountRow
-                                label={`EDLI Charges (${data.edli_rate ?? hrSettings?.edli_rate ?? 0.5}%)`}
+                                label={`EDLI Charges (${getEdliRate()}%)`}
                                 amount={data.edli_charges || 0}
                                 hrSettings={hrSettings}
                             />
                         )}
                         {Number(data.employer_esi || 0) > 0 && (
                             <AmountRow
-                                label={`Employer ESI Contribution (${data.employer_esi_rate ?? hrSettings?.employer_esi_rate ?? 3.25}%)`}
+                                label={`Employer ESI Contribution (${getEmployerEsiRate()}%)`}
                                 amount={data.employer_esi || 0}
                                 hrSettings={hrSettings}
                             />

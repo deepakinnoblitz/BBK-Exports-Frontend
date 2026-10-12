@@ -233,6 +233,54 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
 
     const isDirectAllocation = (slip?.leave_calc_source || hrSettings?.salary_leave_calculation_source) === 'Via Direct Allocation';
 
+    const getEmployerEsiRate = () => {
+        if (slip?.employer_esi_rate !== undefined && slip?.employer_esi_rate !== null && Number(slip.employer_esi_rate) > 0) {
+            return Number(slip.employer_esi_rate);
+        }
+        const gross = Number(slip?.grand_gross_pay || slip?.gross_pay || slip?.earned_gross_salary || 0);
+        const esiAmt = Number(slip?.employer_esi || 0);
+        if (gross > 0 && esiAmt > 0) {
+            const computed = (esiAmt / gross) * 100;
+            if (Math.abs(computed - 3.25) < 0.1) return 3.25;
+            return Number(computed.toFixed(2));
+        }
+        const esiDeduction = (slip?.deductions || []).find((d: any) =>
+            (d.component_name || d.salary_component || '').toLowerCase().includes('esi')
+        );
+        if (esiDeduction && Number(esiDeduction.percentage) > 0) {
+            if (Number(esiDeduction.percentage) === 0.75) return 3.25;
+            return Number((Number(esiDeduction.percentage) * (3.25 / 0.75)).toFixed(2));
+        }
+        return hrSettings?.employer_esi_rate ?? 3.25;
+    };
+
+    const getEmployerPfRate = () => {
+        if (slip?.employer_pf_rate !== undefined && slip?.employer_pf_rate !== null && Number(slip.employer_pf_rate) > 0) {
+            return Number(slip.employer_pf_rate);
+        }
+        const pfDeduction = (slip?.deductions || []).find((d: any) =>
+            (d.component_name || d.salary_component || '').toLowerCase().includes('pf')
+        );
+        if (pfDeduction && Number(pfDeduction.percentage) > 0) {
+            return Number(pfDeduction.percentage);
+        }
+        return hrSettings?.employer_pf_rate ?? 12;
+    };
+
+    const getPfAdminRate = () => {
+        if (slip?.pf_admin_rate !== undefined && slip?.pf_admin_rate !== null && Number(slip.pf_admin_rate) > 0) {
+            return Number(slip.pf_admin_rate);
+        }
+        return hrSettings?.pf_admin_rate ?? 0.5;
+    };
+
+    const getEdliRate = () => {
+        if (slip?.edli_rate !== undefined && slip?.edli_rate !== null && Number(slip.edli_rate) > 0) {
+            return Number(slip.edli_rate);
+        }
+        return hrSettings?.edli_rate ?? 0.5;
+    };
+
     const getFilteredBreakdown = () => {
         const bd = slip?.days_breakdown || [];
         switch (popoverState.type) {
@@ -809,28 +857,28 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                     <Stack spacing={1}>
                         {Number(slip.employer_pf || 0) > 0 && (
                             <AmountRow
-                                label={`Employer PF Contribution (${slip.employer_pf_rate ?? hrSettings?.employer_pf_rate ?? 12}%)`}
+                                label={`Employer PF Contribution (${getEmployerPfRate()}%)`}
                                 amount={slip.employer_pf || 0}
                                 hrSettings={hrSettings}
                             />
                         )}
                         {Number(slip.pf_admin_charges || 0) > 0 && (
                             <AmountRow
-                                label={`PF Admin Charges (${slip.pf_admin_rate ?? hrSettings?.pf_admin_rate ?? 0.5}%)`}
+                                label={`PF Admin Charges (${getPfAdminRate()}%)`}
                                 amount={slip.pf_admin_charges || 0}
                                 hrSettings={hrSettings}
                             />
                         )}
                         {Number(slip.edli_charges || 0) > 0 && (
                             <AmountRow
-                                label={`EDLI Charges (${slip.edli_rate ?? hrSettings?.edli_rate ?? 0.5}%)`}
+                                label={`EDLI Charges (${getEdliRate()}%)`}
                                 amount={slip.edli_charges || 0}
                                 hrSettings={hrSettings}
                             />
                         )}
                         {Number(slip.employer_esi || 0) > 0 && (
                             <AmountRow
-                                label={`Employer ESI Contribution (${slip.employer_esi_rate ?? hrSettings?.employer_esi_rate ?? 3.25}%)`}
+                                label={`Employer ESI Contribution (${getEmployerEsiRate()}%)`}
                                 amount={slip.employer_esi || 0}
                                 hrSettings={hrSettings}
                             />
