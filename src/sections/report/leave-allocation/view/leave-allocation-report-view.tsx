@@ -1461,91 +1461,99 @@ export function LeaveAllocationReportView() {
 interface SummaryCardProps {
     item: {
         label: string;
-        value: number;
-        indicator: 'blue' | 'green' | 'red' | 'orange';
+        value: any;
+        indicator?: string;
+        suffix?: string;
+        icon?: string;
     };
 }
 
 function SummaryCard({ item }: SummaryCardProps) {
-    const { label, value, indicator } = item;
+    const theme = useTheme();
 
-    const getColor = () => {
-        switch (indicator) {
-            case 'blue':
-                return {
-                    bg: 'rgba(14, 165, 233, 0.08)',
-                    border: 'rgba(14, 165, 233, 0.16)',
-                    color: '#0284c7',
-                    icon: 'solar:file-text-bold-duotone',
-                };
-            case 'green':
-                return {
-                    bg: 'rgba(34, 197, 94, 0.08)',
-                    border: 'rgba(34, 197, 94, 0.16)',
-                    color: '#16a34a',
-                    icon: 'solar:check-circle-bold-duotone',
-                };
-            case 'red':
-                return {
-                    bg: 'rgba(239, 68, 68, 0.08)',
-                    border: 'rgba(239, 68, 68, 0.16)',
-                    color: '#dc2626',
-                    icon: 'solar:close-circle-bold-duotone',
-                };
-            case 'orange':
-                return {
-                    bg: 'rgba(249, 115, 22, 0.08)',
-                    border: 'rgba(249, 115, 22, 0.16)',
-                    color: '#ea580c',
-                    icon: 'solar:clock-circle-bold-duotone',
-                };
-            default:
-                return {
-                    bg: 'rgba(148, 163, 184, 0.08)',
-                    border: 'rgba(148, 163, 184, 0.16)',
-                    color: '#475569',
-                    icon: 'solar:info-circle-bold-duotone',
-                };
+    const getIndicatorColor = (indicator?: string) => {
+        switch (indicator?.toLowerCase()) {
+            case 'blue': return theme.palette.info.main;
+            case 'green': return theme.palette.success.main;
+            case 'orange': return theme.palette.warning.main;
+            case 'red': return theme.palette.error.main;
+            default: return theme.palette.primary.main;
         }
     };
 
-    const config = getColor();
+    const getIcon = (label: string) => {
+        if (item.icon) return item.icon;
+        const t = label.toLowerCase();
+        if (t.includes('employee')) return 'solar:users-group-rounded-bold-duotone';
+        if (t.includes('allocated')) return 'solar:calendar-date-bold-duotone';
+        if (t.includes('used')) return 'solar:clock-circle-bold-duotone';
+        if (t.includes('balance')) return 'solar:check-circle-bold-duotone';
+        if (t.includes('present')) return 'solar:check-circle-bold-duotone';
+        if (t.includes('absent')) return 'solar:calendar-date-bold-duotone';
+        if (t.includes('half day')) return 'solar:clock-circle-bold-duotone';
+        if (t.includes('missing')) return 'solar:danger-circle-bold-duotone';
+        if (t.includes('holiday')) return 'solar:cup-star-bold-duotone';
+        if (t.includes('entries') || t.includes('total')) return 'solar:list-bold-duotone';
+        return 'solar:chart-2-bold-duotone';
+    };
+
+    const color = getIndicatorColor(item.indicator);
 
     return (
         <Card
             sx={{
                 p: 1.5,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                bgcolor: config.bg,
-                border: `1px solid ${config.border}`,
                 boxShadow: 'none',
+                position: 'relative',
+                overflow: 'hidden',
+                bgcolor: alpha(color, 0.04),
+                border: `1px solid ${alpha(color, 0.1)}`,
+                transition: theme.transitions.create(['transform', 'box-shadow']),
+                '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: `0 12px 24px -4px ${alpha(color, 0.12)}`,
+                },
             }}
         >
+            <Stack direction="row" alignItems="center" spacing={1}>
+                <Box
+                    sx={{
+                        width: 30,
+                        height: 30,
+                        flexShrink: 0,
+                        display: 'flex',
+                        borderRadius: 1.5,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color,
+                        bgcolor: alpha(color, 0.1),
+                    }}
+                >
+                    <Iconify icon={getIcon(item.label) as any} width={18} />
+                </Box>
+
+                <Box sx={{ flexGrow: 1, pl: 1 }}>
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 700, mb: 0.2 }}>
+                        {item.label}
+                    </Typography>
+                    <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 800 }}>
+                        {item.value?.toLocaleString() ?? 0}{item.suffix ? ` ${item.suffix}` : ''}
+                    </Typography>
+                </Box>
+            </Stack>
+
             <Box
                 sx={{
-                    width: 44,
-                    height: 44,
+                    top: -16,
+                    right: -16,
+                    width: 80,
+                    height: 80,
+                    opacity: 0.08,
+                    position: 'absolute',
                     borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: alpha(config.color, 0.1),
-                    color: config.color,
+                    bgcolor: color,
                 }}
-            >
-                <Iconify icon={config.icon as any} width={24} />
-            </Box>
-
-            <Stack spacing={0.5}>
-                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                    {label}
-                </Typography>
-                <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 800 }}>
-                    {value}
-                </Typography>
-            </Stack>
+            />
         </Card>
     );
 }

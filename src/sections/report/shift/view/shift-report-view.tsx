@@ -97,8 +97,8 @@ export function ShiftReportView() {
   const [isHR, setIsHR] = useState(false);
 
   // Filters
-  const [fromDate, setFromDate] = useState<dayjs.Dayjs | null>(dayjs());
-  const [toDate, setToDate] = useState<dayjs.Dayjs | null>(dayjs());
+  const [fromDate, setFromDate] = useState<dayjs.Dayjs | null>(null);
+  const [toDate, setToDate] = useState<dayjs.Dayjs | null>(null);
   const [employee, setEmployee] = useState<string[]>([]);
   const [shiftFilter, setShiftFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date_asc');
@@ -120,6 +120,8 @@ export function ShiftReportView() {
 
   // Selection
   const [selected, setSelected] = useState<string[]>([]);
+
+  const isFilterApplied = !!fromDate && !!toDate;
 
   // Details Dialog
   const [openDetails, setOpenDetails] = useState(false);
@@ -306,6 +308,13 @@ export function ShiftReportView() {
   }, [fromDate, toDate, employee, shiftFilter, sortBy, enqueueSnackbar]);
 
   useEffect(() => {
+    if (fromDate && toDate && toDate.isBefore(fromDate, 'day')) {
+      enqueueSnackbar('To Date must be after From Date', { variant: 'error' });
+      setToDate(null);
+    }
+  }, [fromDate, toDate, enqueueSnackbar]);
+
+  useEffect(() => {
     fetchReport();
   }, [fetchReport]);
 
@@ -361,8 +370,8 @@ export function ShiftReportView() {
   };
 
   const handleReset = () => {
-    setFromDate(dayjs());
-    setToDate(dayjs());
+    setFromDate(null);
+    setToDate(null);
     if (isHR) {
       setEmployee([]);
     }
@@ -1227,9 +1236,21 @@ export function ShiftReportView() {
                         ) : listViewData.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={11} align="center" sx={{ py: 8 }}>
-                              <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-                                No shift assignment changes found for the selected criteria.
-                              </Typography>
+                              {!isFilterApplied ? (
+                                <Stack spacing={1} alignItems="center">
+                                  <Iconify icon={"solar:calendar-date-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                  <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                    Please select a date filter to view shift assignments
+                                  </Typography>
+                                </Stack>
+                              ) : (
+                                <Stack spacing={1} alignItems="center">
+                                  <Iconify icon={"solar:filter-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                  <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                    No shift assignment changes found for the selected criteria.
+                                  </Typography>
+                                </Stack>
+                              )}
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -1433,10 +1454,22 @@ export function ShiftReportView() {
                     <TableBody>
                       {paginatedEmployees.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={dates.length + 1} align="center" sx={{ py: 6 }}>
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              No shift records found for Muster Roll.
-                            </Typography>
+                          <TableCell colSpan={dates.length + 1} align="center" sx={{ py: 8 }}>
+                            {!isFilterApplied ? (
+                              <Stack spacing={1} alignItems="center">
+                                <Iconify icon={"solar:calendar-date-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                  Please select a date filter to view shift assignments
+                                </Typography>
+                              </Stack>
+                            ) : (
+                              <Stack spacing={1} alignItems="center">
+                                <Iconify icon={"solar:filter-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                  No shift records found for Muster Roll.
+                                </Typography>
+                              </Stack>
+                            )}
                           </TableCell>
                         </TableRow>
                       ) : (

@@ -97,8 +97,8 @@ export function CanteenReportView() {
   const [isHR, setIsHR] = useState(false);
 
   // Filters
-  const [fromDate, setFromDate] = useState<dayjs.Dayjs | null>(dayjs().startOf('month'));
-  const [toDate, setToDate] = useState<dayjs.Dayjs | null>(dayjs().endOf('month'));
+  const [fromDate, setFromDate] = useState<dayjs.Dayjs | null>(null);
+  const [toDate, setToDate] = useState<dayjs.Dayjs | null>(null);
   const [employee, setEmployee] = useState<string[]>([]);
   const [mealType, setMealType] = useState('all');
   const [status, setStatus] = useState('all');
@@ -123,6 +123,8 @@ export function CanteenReportView() {
 
   // Selection
   const [selected, setSelected] = useState<string[]>([]);
+
+  const isFilterApplied = !!fromDate && !!toDate;
 
   // Details Dialog
   const [openDetails, setOpenDetails] = useState(false);
@@ -425,6 +427,13 @@ export function CanteenReportView() {
   }, [fromDate, toDate, employee, mealType, status, sortBy, enqueueSnackbar]);
 
   useEffect(() => {
+    if (fromDate && toDate && toDate.isBefore(fromDate, 'day')) {
+      enqueueSnackbar('To Date must be after From Date', { variant: 'error' });
+      setToDate(null);
+    }
+  }, [fromDate, toDate, enqueueSnackbar]);
+
+  useEffect(() => {
     fetchReport();
   }, [fetchReport]);
 
@@ -432,60 +441,45 @@ export function CanteenReportView() {
     getDoctypeList('Employee', ['name', 'employee_name']).then(setEmployeeOptions);
   }, []);
 
-  // Quick Range Presets
-  const handlePreset = (preset: 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'lastMonth') => {
-    const now = dayjs();
-    switch (preset) {
-      case 'today':
-        setFromDate(now);
-        setToDate(now);
-        break;
-      case 'yesterday':
-        setFromDate(now.subtract(1, 'day'));
-        setToDate(now.subtract(1, 'day'));
-        break;
-      case 'last7':
-        setFromDate(now.subtract(6, 'day'));
-        setToDate(now);
-        break;
-      case 'thisMonth':
-        setFromDate(now.startOf('month'));
-        setToDate(now.endOf('month'));
-        break;
-      case 'lastMonth':
-        setFromDate(now.subtract(1, 'month').startOf('month'));
-        setToDate(now.subtract(1, 'month').endOf('month'));
-        break;
-      default:
-        break;
+  // Quick Range Presets (Matching Attendance Report)
+  const handlePreset = useCallback((preset: 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'lastMonth') => {
+    const today = dayjs();
+    if (preset === 'today') {
+      setFromDate(today);
+      setToDate(today);
+    } else if (preset === 'yesterday') {
+      setFromDate(today.subtract(1, 'day'));
+      setToDate(today.subtract(1, 'day'));
+    } else if (preset === 'last7') {
+      setFromDate(today.subtract(6, 'day'));
+      setToDate(today);
+    } else if (preset === 'thisMonth') {
+      setFromDate(today.startOf('month'));
+      setToDate(today.endOf('month'));
+    } else if (preset === 'lastMonth') {
+      const lastM = today.subtract(1, 'month');
+      setFromDate(lastM.startOf('month'));
+      setToDate(lastM.endOf('month'));
     }
-  };
+  }, []);
 
-  const isPresetActive = (preset: string) => {
+  const isPresetActive = useCallback((preset: string) => {
+    const today = dayjs();
     if (!fromDate || !toDate) return false;
-    const now = dayjs();
-    switch (preset) {
-      case 'today':
-        return fromDate.isSame(now, 'day') && toDate.isSame(now, 'day');
-      case 'yesterday':
-        return fromDate.isSame(now.subtract(1, 'day'), 'day') && toDate.isSame(now.subtract(1, 'day'), 'day');
-      case 'last7':
-        return fromDate.isSame(now.subtract(6, 'day'), 'day') && toDate.isSame(now, 'day');
-      case 'thisMonth':
-        return fromDate.isSame(now.startOf('month'), 'day') && toDate.isSame(now.endOf('month'), 'day');
-      case 'lastMonth':
-        return (
-          fromDate.isSame(now.subtract(1, 'month').startOf('month'), 'day') &&
-          toDate.isSame(now.subtract(1, 'month').endOf('month'), 'day')
-        );
-      default:
-        return false;
+    if (preset === 'today') return fromDate.isSame(today, 'day') && toDate.isSame(today, 'day');
+    if (preset === 'yesterday') return fromDate.isSame(today.subtract(1, 'day'), 'day') && toDate.isSame(today.subtract(1, 'day'), 'day');
+    if (preset === 'last7') return fromDate.isSame(today.subtract(6, 'day'), 'day') && toDate.isSame(today, 'day');
+    if (preset === 'thisMonth') return fromDate.isSame(today.startOf('month'), 'day') && toDate.isSame(today.endOf('month'), 'day');
+    if (preset === 'lastMonth') {
+      const lastM = today.subtract(1, 'month');
+      return fromDate.isSame(lastM.startOf('month'), 'day') && toDate.isSame(lastM.endOf('month'), 'day');
     }
-  };
+    return false;
+  }, [fromDate, toDate]);
 
   const handleReset = () => {
-    setFromDate(dayjs().startOf('month'));
-    setToDate(dayjs().endOf('month'));
+    setFromDate(null);
+    setToDate(null);
     if (isHR) {
       setEmployee([]);
     } else if (user?.employee) {
@@ -940,7 +934,7 @@ export function CanteenReportView() {
               Daily employee canteen meal records, meal types, meal counts, and muster roll matrix
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1.25}>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexShrink: 0 }}>
             <Button
               variant="outlined"
               startIcon={<Iconify icon="solar:refresh-bold" />}
@@ -1131,7 +1125,7 @@ export function CanteenReportView() {
               gridTemplateColumns: {
                 xs: 'repeat(1, 1fr)',
                 sm: 'repeat(2, 1fr)',
-                md: '170px 170px 150px 150px 160px 1fr',
+                md: '170px 170px 150px 150px 180px 1fr',
               },
               alignItems: 'center',
             }}
@@ -1142,11 +1136,22 @@ export function CanteenReportView() {
                 format="DD-MM-YYYY"
                 value={fromDate}
                 onChange={(newValue) => setFromDate(newValue)}
+                sx={{
+                  bgcolor: 'background.paper',
+                  borderRadius: 1.5,
+                  '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                  '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                }}
                 slotProps={{
                   textField: {
                     size: 'small',
                     fullWidth: true,
-                    sx: { bgcolor: 'background.paper', borderRadius: 1.5 },
+                    sx: {
+                      bgcolor: 'background.paper',
+                      borderRadius: 1.5,
+                      '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                      '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                    },
                   },
                 }}
               />
@@ -1155,11 +1160,22 @@ export function CanteenReportView() {
                 format="DD-MM-YYYY"
                 value={toDate}
                 onChange={(newValue) => setToDate(newValue)}
+                sx={{
+                  bgcolor: 'background.paper',
+                  borderRadius: 1.5,
+                  '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                  '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                }}
                 slotProps={{
                   textField: {
                     size: 'small',
                     fullWidth: true,
-                    sx: { bgcolor: 'background.paper', borderRadius: 1.5 },
+                    sx: {
+                      bgcolor: 'background.paper',
+                      borderRadius: 1.5,
+                      '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                      '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                    },
                   },
                 }}
               />
@@ -1263,15 +1279,14 @@ export function CanteenReportView() {
                     </Typography>
                   </Box>
                   {isSelected && (
-                    <Iconify icon="solar:check-circle-bold" width={20} sx={{ color: 'primary.main', ml: 1 }} />
+                    <Iconify icon={"solar:check-circle-bold" as any} width={20} sx={{ color: 'primary.main', ml: 1 }} />
                   )}
                 </li>
               )}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Employee"
-                  placeholder={employee.length === 0 ? 'Filter employee(s)' : undefined}
+                  placeholder={employee.length === 0 ? 'Search / Filter Employees' : undefined}
                 />
               )}
             />
@@ -1282,7 +1297,7 @@ export function CanteenReportView() {
         <Box
           sx={{
             display: 'grid',
-            gap: 2.5,
+            gap: 3,
             gridTemplateColumns: {
               xs: 'repeat(1, 1fr)',
               sm: 'repeat(2, 1fr)',
@@ -1293,9 +1308,9 @@ export function CanteenReportView() {
           <SummaryCard item={{ label: 'Total Meals', value: totalMealsCount, indicator: 'blue' }} />
           <SummaryCard item={{ label: 'Availed Meals', value: availedMealsCount, indicator: 'green' }} />
           <SummaryCard item={{ label: 'Cancelled Meals', value: cancelledMealsCount, indicator: 'red' }} />
-          <SummaryCard item={{ label: 'Lunch Meals', value: lunchMealsCount, indicator: 'emerald' }} />
-          <SummaryCard item={{ label: 'Other Meals', value: otherMealsCount, indicator: 'purple' }} />
-          <SummaryCard item={{ label: 'Total Employees', value: uniqueEmployees.length, indicator: 'cyan' }} />
+          <SummaryCard item={{ label: 'Lunch Meals', value: lunchMealsCount, indicator: 'green' }} />
+          <SummaryCard item={{ label: 'Other Meals', value: otherMealsCount, indicator: 'orange' }} />
+          <SummaryCard item={{ label: 'Total Employees', value: uniqueEmployees.length, indicator: 'blue' }} />
         </Box>
 
         {/* View Switcher Pill */}
@@ -1466,12 +1481,21 @@ export function CanteenReportView() {
                             {reportData.length === 0 && (
                               <TableRow>
                                 <TableCell colSpan={11} align="center" sx={{ py: 10 }}>
-                                  <Stack spacing={1} alignItems="center">
-                                    <Iconify icon="solar:filter-bold-duotone" width={48} sx={{ color: 'text.disabled' }} />
-                                    <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
-                                      No canteen records found
-                                    </Typography>
-                                  </Stack>
+                                  {!isFilterApplied ? (
+                                    <Stack spacing={1} alignItems="center">
+                                      <Iconify icon={"solar:calendar-date-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                      <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                        Please select a date filter to view canteen records
+                                      </Typography>
+                                    </Stack>
+                                  ) : (
+                                    <Stack spacing={1} alignItems="center">
+                                      <Iconify icon={"solar:filter-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                      <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                        No canteen records found
+                                      </Typography>
+                                    </Stack>
+                                  )}
                                 </TableCell>
                               </TableRow>
                             )}
@@ -1845,12 +1869,21 @@ export function CanteenReportView() {
                                     maxWidth: '100%',
                                   }}
                                 >
-                                  <Stack spacing={1} alignItems="center">
-                                    <Iconify icon="solar:filter-bold-duotone" width={48} sx={{ color: 'text.disabled' }} />
-                                    <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
-                                      No canteen records found
-                                    </Typography>
-                                  </Stack>
+                                  {!isFilterApplied ? (
+                                    <Stack spacing={1} alignItems="center">
+                                      <Iconify icon={"solar:calendar-date-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                      <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                        Please select a date filter to view canteen records
+                                      </Typography>
+                                    </Stack>
+                                  ) : (
+                                    <Stack spacing={1} alignItems="center">
+                                      <Iconify icon="solar:filter-bold-duotone" width={48} sx={{ color: 'text.disabled' }} />
+                                      <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                        No canteen records found
+                                      </Typography>
+                                    </Stack>
+                                  )}
                                 </Box>
                               </TableCell>
                             </TableRow>
@@ -2017,60 +2050,96 @@ export function CanteenReportView() {
 
 // ----------------------------------------------------------------------
 
-function SummaryCard({
-  item,
-}: {
-  item: { label: string; value: number; indicator: 'blue' | 'green' | 'red' | 'orange' | 'emerald' | 'purple' | 'cyan' };
-}) {
-  const getIndicatorColor = () => {
-    switch (item.indicator) {
+function SummaryCard({ item }: { item: any }) {
+  const theme = useTheme();
+
+  const getIndicatorColor = (indicator: string) => {
+    switch (indicator?.toLowerCase()) {
+      case 'blue':
+      case 'cyan':
+        return theme.palette.info.main;
       case 'green':
       case 'emerald':
-        return '#10b981';
-      case 'red':
-        return '#ef4444';
+        return theme.palette.success.main;
       case 'orange':
-        return '#f59e0b';
+        return theme.palette.warning.main;
+      case 'red':
+        return theme.palette.error.main;
       case 'purple':
         return '#8b5cf6';
-      case 'cyan':
-        return '#06b6d4';
-      case 'blue':
       default:
-        return '#0ea5e9';
+        return theme.palette.primary.main;
     }
   };
+
+  const getIcon = (label: string) => {
+    const t = label.toLowerCase();
+    if (t.includes('availed')) return 'solar:check-circle-bold-duotone';
+    if (t.includes('cancelled')) return 'solar:close-circle-bold-duotone';
+    if (t.includes('lunch')) return 'solar:cup-bold-duotone';
+    if (t.includes('other')) return 'solar:hamburger-bold-duotone';
+    if (t.includes('employee')) return 'solar:users-group-rounded-bold-duotone';
+    if (t.includes('total') || t.includes('meal')) return 'solar:list-bold-duotone';
+    return 'solar:chart-2-bold-duotone';
+  };
+
+  const color = getIndicatorColor(item.indicator);
 
   return (
     <Card
       sx={{
-        p: 2.5,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderRadius: 2,
-        boxShadow: (t) => t.customShadows?.card || '0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12)',
+        p: 1.5,
+        boxShadow: 'none',
         position: 'relative',
         overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: 4,
-          bgcolor: getIndicatorColor(),
+        bgcolor: alpha(color, 0.04),
+        border: `1px solid ${alpha(color, 0.1)}`,
+        transition: theme.transitions.create(['transform', 'box-shadow']),
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: `0 12px 24px -4px ${alpha(color, 0.12)}`,
         },
       }}
     >
-      <Box>
-        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem' }}>
-          {item.label}
-        </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, color: 'text.primary' }}>
-          {item.value}
-        </Typography>
-      </Box>
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <Box
+          sx={{
+            width: 30,
+            height: 30,
+            flexShrink: 0,
+            display: 'flex',
+            borderRadius: 1.5,
+            alignItems: 'center',
+            justifyContent: 'center',
+            color,
+            bgcolor: alpha(color, 0.1),
+          }}
+        >
+          <Iconify icon={getIcon(item.label) as any} width={18} />
+        </Box>
+
+        <Box sx={{ flexGrow: 1, pl: 1 }}>
+          <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 700, mb: 0.2 }}>
+            {item.label}
+          </Typography>
+          <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 800 }}>
+            {item.value?.toLocaleString()}{item.suffix ? ` ${item.suffix}` : ''}
+          </Typography>
+        </Box>
+      </Stack>
+
+      <Box
+        sx={{
+          top: -16,
+          right: -16,
+          width: 80,
+          height: 80,
+          opacity: 0.08,
+          position: 'absolute',
+          borderRadius: '50%',
+          bgcolor: color,
+        }}
+      />
     </Card>
   );
 }

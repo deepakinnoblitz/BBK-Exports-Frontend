@@ -315,6 +315,17 @@ export function CanteenImportDialog({ open, onClose, onSuccess, defaultMonth, de
     }
   };
 
+  const getExcelColumnLetter = (colIdx: number): string => {
+    let letter = '';
+    let temp = colIdx;
+    while (temp > 0) {
+      const rem = (temp - 1) % 26;
+      letter = String.fromCharCode(65 + rem) + letter;
+      temp = Math.floor((temp - 1) / 26);
+    }
+    return letter;
+  };
+
   const handleDownloadTemplate = async () => {
     try {
       setLoading(true);
@@ -394,12 +405,18 @@ export function CanteenImportDialog({ open, onClose, onSuccess, defaultMonth, de
       row1Cell.alignment = { horizontal: 'center', vertical: 'middle' };
       sheet.getRow(1).height = 20;
 
-      // Row 2: Title
-      sheet.mergeCells(2, 1, 2, totalCols);
-      const row2Cell = sheet.getCell('A2');
-      row2Cell.value = `LUNCH EXPENSES FOR THE MONTH OF ${monthAbbr}-${yearShort}`;
-      row2Cell.font = { name: 'Calibri', size: 11, bold: true };
-      row2Cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      // Row 2: Top-left Month (Cols A-C) & Center Title (Cols D to Total)
+      sheet.mergeCells(2, 1, 2, 3);
+      const row2MonthCell = sheet.getCell('A2');
+      row2MonthCell.value = `MONTH: ${monthAbbr}-${yearShort}`;
+      row2MonthCell.font = { name: 'Calibri', size: 11, bold: true };
+      row2MonthCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      sheet.mergeCells(2, 4, 2, totalCols);
+      const row2TitleCell = sheet.getCell('D2');
+      row2TitleCell.value = `LUNCH EXPENSES FOR THE MONTH OF ${monthAbbr}-${yearShort}`;
+      row2TitleCell.font = { name: 'Calibri', size: 11, bold: true };
+      row2TitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
       sheet.getRow(2).height = 20;
 
       for (let c = 1; c <= totalCols; c++) {
@@ -478,9 +495,14 @@ export function CanteenImportDialog({ open, onClose, onSuccess, defaultMonth, de
           }
         }
 
-        // Col Total
+        // Col Total (Calculated via SUM formula)
+        const startCol = 'D';
+        const endCol = getExcelColumnLetter(3 + daysInMonth);
         const cellTotal = row.getCell(totalCols);
-        cellTotal.value = 0;
+        cellTotal.value = {
+          formula: `SUM(${startCol}${rowNum}:${endCol}${rowNum})`,
+          result: 0,
+        };
         cellTotal.font = { name: 'Calibri', size: 10 };
         cellTotal.alignment = { horizontal: 'center', vertical: 'middle' };
         cellTotal.border = thinBorder;

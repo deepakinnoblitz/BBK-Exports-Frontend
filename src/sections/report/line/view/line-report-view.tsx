@@ -100,8 +100,8 @@ export function LineReportView() {
   const [isHR, setIsHR] = useState(false);
 
   // Filters
-  const [fromDate, setFromDate] = useState<dayjs.Dayjs | null>(dayjs());
-  const [toDate, setToDate] = useState<dayjs.Dayjs | null>(dayjs());
+  const [fromDate, setFromDate] = useState<dayjs.Dayjs | null>(null);
+  const [toDate, setToDate] = useState<dayjs.Dayjs | null>(null);
   const [employee, setEmployee] = useState<string[]>([]);
   const [lineFilter, setLineFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date_asc');
@@ -123,6 +123,8 @@ export function LineReportView() {
 
   // Selection
   const [selected, setSelected] = useState<string[]>([]);
+
+  const isFilterApplied = !!fromDate && !!toDate;
 
   // Details Dialog
   const [openDetails, setOpenDetails] = useState(false);
@@ -309,6 +311,13 @@ export function LineReportView() {
   }, [fromDate, toDate, employee, lineFilter, sortBy, enqueueSnackbar]);
 
   useEffect(() => {
+    if (fromDate && toDate && toDate.isBefore(fromDate, 'day')) {
+      enqueueSnackbar('To Date must be after From Date', { variant: 'error' });
+      setToDate(null);
+    }
+  }, [fromDate, toDate, enqueueSnackbar]);
+
+  useEffect(() => {
     fetchReport();
   }, [fetchReport]);
 
@@ -364,8 +373,8 @@ export function LineReportView() {
   };
 
   const handleReset = () => {
-    setFromDate(dayjs());
-    setToDate(dayjs());
+    setFromDate(null);
+    setToDate(null);
     if (isHR) {
       setEmployee([]);
     }
@@ -1184,9 +1193,21 @@ export function LineReportView() {
                         ) : listViewData.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
-                              <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-                                No line assignment changes found for the selected criteria.
-                              </Typography>
+                              {!isFilterApplied ? (
+                                <Stack spacing={1} alignItems="center">
+                                  <Iconify icon={"solar:calendar-date-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                  <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                    Please select a date filter to view line assignments
+                                  </Typography>
+                                </Stack>
+                              ) : (
+                                <Stack spacing={1} alignItems="center">
+                                  <Iconify icon={"solar:filter-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                  <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                    No line assignment changes found for the selected criteria.
+                                  </Typography>
+                                </Stack>
+                              )}
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -1406,9 +1427,21 @@ export function LineReportView() {
                       ) : paginatedEmployees.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={dates.length + 1} align="center" sx={{ py: 8 }}>
-                            <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-                              No employee records found.
-                            </Typography>
+                            {!isFilterApplied ? (
+                              <Stack spacing={1} alignItems="center">
+                                <Iconify icon={"solar:calendar-date-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                  Please select a date filter to view line assignments
+                                </Typography>
+                              </Stack>
+                            ) : (
+                              <Stack spacing={1} alignItems="center">
+                                <Iconify icon={"solar:filter-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                  No employee records found.
+                                </Typography>
+                              </Stack>
+                            )}
                           </TableCell>
                         </TableRow>
                       ) : (

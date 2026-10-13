@@ -48,11 +48,15 @@ async function fetchFrappeList(params: {
 
     if (params.filterValues) {
         Object.entries(params.filterValues).forEach(([key, value]) => {
-            if (value) {
+            if (value !== undefined && value !== null && value !== '') {
                 if (key === 'pay_period_start') {
                     filters.push(['Salary Slip', 'pay_period_start', '>=', value]);
                 } else if (key === 'pay_period_end') {
                     filters.push(['Salary Slip', 'pay_period_end', '<=', value]);
+                } else if (Array.isArray(value)) {
+                    if (value.length > 0) {
+                        filters.push(['Salary Slip', key, 'in', value]);
+                    }
                 } else {
                     filters.push(['Salary Slip', key, '=', value]);
                 }
@@ -94,12 +98,23 @@ export const fetchSalarySlips = (params: any) => fetchFrappeList(params);
 export async function fetchSalarySlipsWithDetails(params: {
     start_date?: string;
     end_date?: string;
-    employee?: string;
+    employee?: string | string[];
 }) {
+    let employeeParam: string | undefined;
+    if (params.employee) {
+        if (Array.isArray(params.employee)) {
+            if (params.employee.length > 0) {
+                employeeParam = JSON.stringify(params.employee);
+            }
+        } else if (params.employee !== 'all') {
+            employeeParam = params.employee;
+        }
+    }
+
     const query = new URLSearchParams({
         ...(params.start_date && { start_date: params.start_date }),
         ...(params.end_date && { end_date: params.end_date }),
-        ...(params.employee && { employee: params.employee }),
+        ...(employeeParam && { employee: employeeParam }),
     });
 
     const res = await frappeRequest(`/api/method/company.company.api.get_salary_slips_with_child_tables?${query.toString()}&_t=${Date.now()}`);
