@@ -408,6 +408,34 @@ export async function getBankAccount(name: string) {
     return (await res.json()).message;
 }
 
+export async function getBankDetailsByIfsc(ifsc: string): Promise<{
+    success: boolean;
+    data?: {
+        bank_name: string;
+        branch: string;
+        city: string;
+        state: string;
+        address: string;
+        micr: string;
+        ifsc: string;
+    };
+    message?: string;
+}> {
+    const res = await frappeRequest(`/api/method/company.company.api.get_bank_details_by_ifsc?ifsc_code=${encodeURIComponent(ifsc)}`);
+    if (!res.ok) throw new Error("Failed to lookup IFSC details");
+    return (await res.json()).message;
+}
+
+export async function getDistinctBanks(): Promise<{
+    banks: string[];
+    active_banks: string[];
+}> {
+    const res = await frappeRequest(`/api/method/company.company.api.get_distinct_banks`);
+    if (!res.ok) throw new Error("Failed to fetch bank list");
+    return (await res.json()).message;
+}
+
+
 // Claim Type APIs
 export const fetchClaimTypes = (params: any) => {
     const { search, ...restParams } = params;
