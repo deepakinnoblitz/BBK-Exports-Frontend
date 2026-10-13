@@ -9,12 +9,14 @@ import autoTable from 'jspdf-autotable';
 import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Select from '@mui/material/Select';
+import Divider from '@mui/material/Divider';
 import Checkbox from '@mui/material/Checkbox';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
@@ -79,6 +81,41 @@ export function EmployeeOverallReportView() {
   const [filterDesignation, setFilterDesignation] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterEmployee, setFilterEmployee] = useState<string[]>([]);
+
+  const handlePreset = useCallback((preset: 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'lastMonth') => {
+    const today = dayjs();
+    if (preset === 'today') {
+      setJoiningDateFrom(today);
+      setJoiningDateTo(today);
+    } else if (preset === 'yesterday') {
+      setJoiningDateFrom(today.subtract(1, 'day'));
+      setJoiningDateTo(today.subtract(1, 'day'));
+    } else if (preset === 'last7') {
+      setJoiningDateFrom(today.subtract(6, 'day'));
+      setJoiningDateTo(today);
+    } else if (preset === 'thisMonth') {
+      setJoiningDateFrom(today.startOf('month'));
+      setJoiningDateTo(today.endOf('month'));
+    } else if (preset === 'lastMonth') {
+      const lastM = today.subtract(1, 'month');
+      setJoiningDateFrom(lastM.startOf('month'));
+      setJoiningDateTo(lastM.endOf('month'));
+    }
+  }, []);
+
+  const isPresetActive = useCallback((preset: string) => {
+    const today = dayjs();
+    if (!joiningDateFrom || !joiningDateTo) return false;
+    if (preset === 'today') return joiningDateFrom.isSame(today, 'day') && joiningDateTo.isSame(today, 'day');
+    if (preset === 'yesterday') return joiningDateFrom.isSame(today.subtract(1, 'day'), 'day') && joiningDateTo.isSame(today.subtract(1, 'day'), 'day');
+    if (preset === 'last7') return joiningDateFrom.isSame(today.subtract(6, 'day'), 'day') && joiningDateTo.isSame(today, 'day');
+    if (preset === 'thisMonth') return joiningDateFrom.isSame(today.startOf('month'), 'day') && joiningDateTo.isSame(today.endOf('month'), 'day');
+    if (preset === 'lastMonth') {
+      const lastM = today.subtract(1, 'month');
+      return joiningDateFrom.isSame(lastM.startOf('month'), 'day') && joiningDateTo.isSame(lastM.endOf('month'), 'day');
+    }
+    return false;
+  }, [joiningDateFrom, joiningDateTo]);
 
   const { data: departments } = useDepartments(1, 100);
   const { data: designations } = useDesignations(1, 100);
@@ -1391,69 +1428,258 @@ export function EmployeeOverallReportView() {
 
   return (
     <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
-      <Stack spacing={3}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography variant="h4">Employee Overall Report</Typography>
-          <Stack direction="row" spacing={1}>
+      <Stack spacing={2.5}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" spacing={2}>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
+              Employee Overall Report
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
+              Master directory of employees, department allocations, designations, and employment statuses
+            </Typography>
+          </Box>
+          <Stack direction="row" spacing={1.25}>
             <Button
               variant="outlined"
-              startIcon={<Iconify icon="solar:refresh-bold" />}
+              startIcon={<Iconify icon={"solar:refresh-bold" as any} />}
               onClick={refetch}
               disabled={loading}
+              sx={{
+                borderRadius: 1.5,
+                fontWeight: 700,
+                borderColor: alpha(theme.palette.grey[500], 0.24),
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  bgcolor: alpha(theme.palette.primary.main, 0.04),
+                },
+              }}
             >
               Refresh
             </Button>
             <Button
               variant="outlined"
               color="error"
-              startIcon={<Iconify icon="solar:restart-bold" />}
+              startIcon={<Iconify icon={"solar:restart-bold" as any} />}
               onClick={handleReset}
+              disabled={loading}
+              sx={{
+                borderRadius: 1.5,
+                fontWeight: 700,
+                borderColor: alpha(theme.palette.error.main, 0.24),
+                '&:hover': {
+                  borderColor: 'error.main',
+                  bgcolor: alpha(theme.palette.error.main, 0.04),
+                },
+              }}
             >
               Reset
             </Button>
           </Stack>
         </Stack>
 
+        {/* Filter & Action Card */}
         <Card
           sx={{
             p: 2.5,
             display: 'flex',
             flexDirection: 'column',
             gap: 2,
-            bgcolor: 'background.neutral',
-            border: (t) => `1px solid ${t.palette.divider}`,
+            borderRadius: 2,
+            bgcolor: (t) => alpha('#10b981', 0.04),
+            border: (t) => `1px solid ${alpha('#10b981', 0.18)}`,
+            boxShadow: 'none',
           }}
         >
-          <Stack direction="row" gap={1.5} alignItems="center" flexWrap="wrap">
+          {/* Top Action Bar: Quick Presets & Export Buttons */}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            alignItems={{ xs: 'flex-start', sm: 'center' }}
+            justifyContent="space-between"
+            gap={1.5}
+            flexWrap="wrap"
+          >
+            {/* Quick Presets */}
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ gap: 0.75 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  fontWeight: 700,
+                  mr: 0.5,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  fontSize: '0.7rem',
+                }}
+              >
+                <Iconify icon={"solar:calendar-linear" as any} width={15} />
+                Quick Range:
+              </Typography>
+              {[
+                { key: 'today', label: 'Today' },
+                { key: 'yesterday', label: 'Yesterday' },
+                { key: 'last7', label: 'Last 7 Days' },
+                { key: 'thisMonth', label: 'This Month' },
+                { key: 'lastMonth', label: 'Last Month' },
+              ].map((p) => {
+                const active = isPresetActive(p.key);
+                return (
+                  <Chip
+                    key={p.key}
+                    label={p.label}
+                    size="small"
+                    clickable
+                    onClick={() => handlePreset(p.key as any)}
+                    sx={{
+                      fontWeight: active ? 700 : 500,
+                      fontSize: '0.75rem',
+                      height: 26,
+                      bgcolor: active ? 'primary.main' : 'background.paper',
+                      color: active ? '#fff' : 'text.primary',
+                      border: (t) => `1px solid ${active ? t.palette.primary.main : t.palette.divider}`,
+                      boxShadow: active ? (t) => `0 2px 8px ${alpha(t.palette.primary.main, 0.28)}` : 'none',
+                      '&:hover': {
+                        bgcolor: active ? 'primary.dark' : 'action.hover',
+                      },
+                    }}
+                  />
+                );
+              })}
+            </Stack>
+
+            {/* Export Buttons */}
+            {canExport && (
+              <Stack direction="row" spacing={1.25} alignItems="center" sx={{ ml: { xs: 0, sm: 'auto' } }}>
+                <Button
+                  variant="contained"
+                  startIcon={exporting ? <CircularProgress size={16} color="inherit" /> : <Iconify icon={"solar:export-bold" as any} width={18} />}
+                  onClick={handleExport}
+                  disabled={data.length === 0 || exporting}
+                  sx={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.825rem',
+                    height: 36,
+                    px: 2.25,
+                    borderRadius: 1.5,
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.28)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                      boxShadow: '0 6px 16px rgba(16, 185, 129, 0.38)',
+                      transform: 'translateY(-1px)',
+                    },
+                    '&.Mui-disabled': {
+                      background: 'none !important',
+                      bgcolor: (t) => `${alpha(t.palette.grey[500], 0.08)} !important`,
+                      color: (t) => `${alpha(t.palette.text.disabled, 0.8)} !important`,
+                      border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.16)}`,
+                      boxShadow: 'none !important',
+                    },
+                  }}
+                >
+                  {exporting ? 'Exporting...' : 'Export Excel'}
+                </Button>
+
+                <Button
+                  variant="contained"
+                  startIcon={exportingPdf ? <CircularProgress size={16} color="inherit" /> : <Iconify icon={"solar:file-download-bold" as any} width={18} />}
+                  onClick={handleExportPdf}
+                  disabled={data.length === 0 || exportingPdf}
+                  sx={{
+                    background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.825rem',
+                    height: 36,
+                    px: 2.25,
+                    borderRadius: 1.5,
+                    boxShadow: '0 4px 12px rgba(244, 63, 94, 0.28)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+                      boxShadow: '0 6px 16px rgba(244, 63, 94, 0.38)',
+                      transform: 'translateY(-1px)',
+                    },
+                    '&.Mui-disabled': {
+                      background: 'none !important',
+                      bgcolor: (t) => `${alpha(t.palette.grey[500], 0.08)} !important`,
+                      color: (t) => `${alpha(t.palette.text.disabled, 0.8)} !important`,
+                      border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.16)}`,
+                      boxShadow: 'none !important',
+                    },
+                  }}
+                >
+                  {exportingPdf ? 'Exporting...' : 'Export PDF'}
+                </Button>
+              </Stack>
+            )}
+          </Stack>
+
+          <Divider sx={{ borderStyle: 'dashed', borderColor: (t) => alpha('#10b981', 0.16) }} />
+
+          {/* Filter Inputs Grid */}
+          <Box
+            sx={{
+              pt: 1,
+              display: 'grid',
+              gap: 1.5,
+              gridTemplateColumns: {
+                xs: 'repeat(1, 1fr)',
+                sm: 'repeat(2, 1fr)',
+                md: '170px 170px 1fr 1fr 160px',
+              },
+              alignItems: 'center',
+            }}
+          >
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
+                label="From Date"
                 format="DD-MM-YYYY"
                 value={joiningDateFrom}
-                label="Joining Date From"
                 onChange={(newValue) => setJoiningDateFrom(newValue)}
+                sx={{
+                  bgcolor: 'background.paper',
+                  borderRadius: 1.5,
+                  '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                  '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                }}
                 slotProps={{
                   textField: {
                     size: 'small',
-                    InputLabelProps: { shrink: true },
+                    fullWidth: true,
                     sx: {
-                      flexGrow: 1,
-                      maxWidth: 200,
+                      bgcolor: 'background.paper',
+                      borderRadius: 1.5,
+                      '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                      '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
                     },
                   },
                 }}
               />
               <DatePicker
+                label="To Date"
                 format="DD-MM-YYYY"
                 value={joiningDateTo}
-                label="Joining Date To"
                 onChange={(newValue) => setJoiningDateTo(newValue)}
+                sx={{
+                  bgcolor: 'background.paper',
+                  borderRadius: 1.5,
+                  '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                  '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                }}
                 slotProps={{
                   textField: {
                     size: 'small',
-                    InputLabelProps: { shrink: true },
+                    fullWidth: true,
                     sx: {
-                      flexGrow: 1,
-                      maxWidth: 200,
+                      bgcolor: 'background.paper',
+                      borderRadius: 1.5,
+                      '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                      '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
                     },
                   },
                 }}
@@ -1462,15 +1688,24 @@ export function EmployeeOverallReportView() {
 
             <Autocomplete
               size="small"
-              sx={{ flexGrow: 1, minWidth: 180 }}
+              fullWidth
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'background.paper',
+                  borderRadius: 1.5,
+                },
+              }}
               options={[{ name: 'all', department_name: 'All Departments' }, ...departments]}
               getOptionLabel={(option) => {
                 if (typeof option === 'string') return option;
                 return option.department_name || option.name;
               }}
-              isOptionEqualToValue={(option, value) => option.name === value.name}
+              isOptionEqualToValue={(option, value) => {
+                if (!option || !value) return false;
+                return option.name === value.name;
+              }}
               value={filterDepartment === 'all'
-                ? { name: 'all', department_name: 'All Departments' }
+                ? null
                 : (departments.find((opt) => opt.name === filterDepartment) || null)
               }
               onChange={(event, newValue) => {
@@ -1479,42 +1714,57 @@ export function EmployeeOverallReportView() {
               renderInput={(params) => (
                 <TextField
                   {...params}
+                  size="small"
                   label="Department"
-                  placeholder="Select Department"
+                  placeholder={filterDepartment === 'all' ? undefined : "Select Department"}
                 />
               )}
             />
 
             <TextField
               size="small"
+              fullWidth
               label="Designation"
-              placeholder="Type Designation"
-              sx={{ flexGrow: 1, minWidth: 180 }}
+              placeholder={filterDesignation === 'all' ? undefined : "Type Designation"}
+              sx={{
+                bgcolor: 'background.paper',
+                borderRadius: 1.5,
+                '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+              }}
               value={filterDesignation === 'all' ? '' : filterDesignation}
               onChange={(e) => setFilterDesignation(e.target.value || 'all')}
             />
 
-            <FormControl size="small" sx={{ flexGrow: 1, minWidth: 140 }}>
-              <InputLabel>Status</InputLabel>
+            <FormControl size="small" fullWidth sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}>
               <Select
                 value={filterStatus}
-                label="Status"
                 onChange={(e) => setFilterStatus(e.target.value)}
+                displayEmpty
               >
-                <MenuItem value="all">All Status</MenuItem>
-                {STATUS_OPTIONS.map((status) => (
-                  <MenuItem key={status} value={status}>
-                    {status}
-                  </MenuItem>
-                ))}
+                <MenuItem value="all">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'text.disabled' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>All Status</Typography>
+                  </Stack>
+                </MenuItem>
+                <MenuItem value="Active">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#10b981' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#059669' }}>Active</Typography>
+                  </Stack>
+                </MenuItem>
+                <MenuItem value="Inactive">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#ef4444' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#dc2626' }}>Inactive</Typography>
+                  </Stack>
+                </MenuItem>
               </Select>
             </FormControl>
-          </Stack>
 
-          <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1.5}>
-            <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Sort</InputLabel>
-              <Select value={order} label="Sort" onChange={handleSortChange}>
+            <FormControl size="small" fullWidth sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}>
+              <Select value={order} onChange={handleSortChange}>
                 <MenuItem value="desc">Newest First</MenuItem>
                 <MenuItem value="asc">Oldest First</MenuItem>
               </Select>
@@ -1524,7 +1774,11 @@ export function EmployeeOverallReportView() {
               multiple
               disableCloseOnSelect
               size="small"
-              sx={{ flexGrow: 1, minWidth: 350 }}
+              fullWidth
+              sx={{
+                gridColumn: { xs: 'span 1', sm: 'span 2', md: 'span 4' },
+                '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+              }}
               options={employeeOptions}
               filterOptions={filterEmployeeOptions}
               getOptionLabel={(option) => `${option.employee_name} (${option.name})`}
@@ -1554,47 +1808,11 @@ export function EmployeeOverallReportView() {
                 <TextField
                   {...params}
                   label="Employee"
-                  placeholder="Select Employee(s)"
+                  placeholder={filterEmployee.length === 0 ? "Filter employee(s)" : undefined}
                 />
               )}
             />
-
-            {canExport && (
-              <Stack direction="row" spacing={1}>
-                <Button
-                  variant="contained"
-                  startIcon={exporting ? undefined : <Iconify icon="solar:export-bold" />}
-                  onClick={handleExport}
-                  disabled={exporting || data.length === 0}
-                  sx={{
-                    bgcolor: COMMON_COLORS.primaryButton.bg,
-                    color: COMMON_COLORS.primaryButton.color,
-                    '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
-                    height: 40,
-                    px: 3,
-                  }}
-                >
-                  {exporting ? 'Exporting Excel...' : 'Export Excel'}
-                </Button>
-
-                <Button
-                  variant="contained"
-                  startIcon={exportingPdf ? undefined : <Iconify icon={"solar:file-download-bold" as any} />}
-                  onClick={handleExportPdf}
-                  disabled={exportingPdf || data.length === 0}
-                  sx={{
-                    bgcolor: '#f43f5e',
-                    color: 'common.white',
-                    '&:hover': { bgcolor: '#e11d48' },
-                    height: 40,
-                    px: 3,
-                  }}
-                >
-                  {exportingPdf ? 'Exporting PDF...' : 'Export PDF'}
-                </Button>
-              </Stack>
-            )}
-          </Stack>
+          </Box>
         </Card>
 
         <Box
