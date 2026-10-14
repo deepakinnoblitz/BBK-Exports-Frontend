@@ -1,36 +1,40 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import type {
+    EligibleTransferEmployee} from 'src/api/attendance-transfer';
+
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
 import Table from '@mui/material/Table';
+import Paper from '@mui/material/Paper';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import TableRow from '@mui/material/TableRow';
+import Checkbox from '@mui/material/Checkbox';
+import Snackbar from '@mui/material/Snackbar';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
-import Checkbox from '@mui/material/Checkbox';
-import Chip from '@mui/material/Chip';
-import Alert from '@mui/material/Alert';
+import Typography from '@mui/material/Typography';
+import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
-import Snackbar from '@mui/material/Snackbar';
-import Divider from '@mui/material/Divider';
-import MenuItem from '@mui/material/MenuItem';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { Iconify } from 'src/components/iconify';
-import { useAuth } from 'src/auth/auth-context';
 import {
-    EligibleTransferEmployee,
     getEligibleTransferEmployees,
     executeBulkAttendanceTransfer
 } from 'src/api/attendance-transfer';
+
+import { Iconify } from 'src/components/iconify';
+
+import { useAuth } from 'src/auth/auth-context';
+
 import { AttendanceTransferConfirmDialog } from '../attendance-transfer-confirm-dialog';
 
 export function AttendanceTransferView() {

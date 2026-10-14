@@ -1,4 +1,3 @@
-import type { SalaryStructureComponent } from 'src/api/masters';
 
 import { useState, useEffect } from 'react';
 

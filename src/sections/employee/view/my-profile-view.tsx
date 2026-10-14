@@ -28,7 +28,6 @@ import {
 } from 'react-icons/fa';
 
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
@@ -53,8 +52,6 @@ import { Iconify } from 'src/components/iconify';
 
 import { useAuth } from 'src/auth/auth-context';
 
-import { ProfileBadges } from '../profile-badges';
-import { PersonalityManagement } from '../../overview/personality-management';
 
 // ----------------------------------------------------------------------
 

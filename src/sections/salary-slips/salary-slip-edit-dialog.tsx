@@ -27,8 +27,8 @@ import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
 
 import { fNumber } from 'src/utils/format-number';
 
+import { COMMON_COLORS } from 'src/theme';
 import { saveSalarySlip } from 'src/api/salary-slips';
-import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 import { getHRSettings, fetchSalaryComponents } from 'src/api/hr-management';
 
 import { Iconify } from 'src/components/iconify';

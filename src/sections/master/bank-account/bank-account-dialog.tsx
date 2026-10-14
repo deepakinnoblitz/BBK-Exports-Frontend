@@ -19,7 +19,7 @@ import DialogActions from '@mui/material/DialogActions';
 import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { getBankAccount, createBankAccount, updateBankAccount, getBankDetailsByIfsc, getDistinctBanks } from 'src/api/masters';
+import { getBankAccount, getDistinctBanks, createBankAccount, updateBankAccount, getBankDetailsByIfsc } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
 

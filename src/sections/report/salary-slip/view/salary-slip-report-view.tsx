@@ -39,7 +39,6 @@ import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { getDoctypeList } from 'src/api/leads';
 import { getHRSettings } from 'src/api/hr-management';
-import { COMMON_COLORS } from 'src/theme/common-colors';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchSalarySlips, getSalarySlipWithDetails, fetchSalarySlipsWithDetails } from 'src/api/salary-slips';
 
