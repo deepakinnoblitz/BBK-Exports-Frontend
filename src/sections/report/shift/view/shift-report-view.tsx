@@ -97,8 +97,8 @@ export function ShiftReportView() {
   const [isHR, setIsHR] = useState(false);
 
   // Filters
-  const [fromDate, setFromDate] = useState<dayjs.Dayjs | null>(dayjs());
-  const [toDate, setToDate] = useState<dayjs.Dayjs | null>(dayjs());
+  const [fromDate, setFromDate] = useState<dayjs.Dayjs | null>(null);
+  const [toDate, setToDate] = useState<dayjs.Dayjs | null>(null);
   const [employee, setEmployee] = useState<string[]>([]);
   const [shiftFilter, setShiftFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date_asc');
@@ -120,6 +120,8 @@ export function ShiftReportView() {
 
   // Selection
   const [selected, setSelected] = useState<string[]>([]);
+
+  const isFilterApplied = !!fromDate && !!toDate;
 
   // Details Dialog
   const [openDetails, setOpenDetails] = useState(false);
@@ -306,6 +308,13 @@ export function ShiftReportView() {
   }, [fromDate, toDate, employee, shiftFilter, sortBy, enqueueSnackbar]);
 
   useEffect(() => {
+    if (fromDate && toDate && toDate.isBefore(fromDate, 'day')) {
+      enqueueSnackbar('To Date must be after From Date', { variant: 'error' });
+      setToDate(null);
+    }
+  }, [fromDate, toDate, enqueueSnackbar]);
+
+  useEffect(() => {
     fetchReport();
   }, [fetchReport]);
 
@@ -361,8 +370,8 @@ export function ShiftReportView() {
   };
 
   const handleReset = () => {
-    setFromDate(dayjs());
-    setToDate(dayjs());
+    setFromDate(null);
+    setToDate(null);
     if (isHR) {
       setEmployee([]);
     }
@@ -371,10 +380,16 @@ export function ShiftReportView() {
     setSelected([]);
   };
 
+  // In List View: only shifts with changes from default (roster overrides, rotations) are displayed
+  const listViewData = useMemo(
+    () => reportData.filter((r) => r.source !== 'DEFAULT' && r.assignment_type !== 'Default'),
+    [reportData]
+  );
+
   // Selection
   const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) {
-      setSelected(reportData.map((n) => n.name));
+      setSelected(listViewData.map((n) => n.name));
       return;
     }
     setSelected([]);
@@ -475,8 +490,8 @@ export function ShiftReportView() {
       const workbook = new ExcelJS.Workbook();
       const exportList =
         selected.length > 0
-          ? reportData.filter((d) => selected.includes(d.name))
-          : reportData;
+          ? listViewData.filter((d) => selected.includes(d.name))
+          : listViewData;
 
       if (viewToExport === 'list') {
         const sheet = workbook.addWorksheet('Shift List Report');
@@ -625,8 +640,8 @@ export function ShiftReportView() {
 
       const exportList =
         selected.length > 0
-          ? reportData.filter((d) => selected.includes(d.name))
-          : reportData;
+          ? listViewData.filter((d) => selected.includes(d.name))
+          : listViewData;
 
       if (viewToExport === 'list') {
         const tableBody = exportList.map((row, idx) => [
@@ -716,17 +731,17 @@ export function ShiftReportView() {
     }
   };
 
-  // Stat summary items
+  // Stat summary items based on changed shift assignments
   const summaryCounts = useMemo(() => {
-    const total = reportData.length;
-    const active = reportData.filter((r) => r.status === 'Active').length;
-    const off = reportData.filter((r) => r.status === 'Weekly Off').length;
-    const holiday = reportData.filter((r) => r.status === 'Holiday').length;
-    const rotations = reportData.filter((r) => r.source === 'ROTATION').length;
-    const overrides = reportData.filter((r) => r.source === 'ROSTER').length;
+    const total = listViewData.length;
+    const active = listViewData.filter((r) => r.status === 'Active').length;
+    const off = listViewData.filter((r) => r.status === 'Weekly Off').length;
+    const holiday = listViewData.filter((r) => r.status === 'Holiday').length;
+    const rotations = listViewData.filter((r) => r.source === 'ROTATION').length;
+    const overrides = listViewData.filter((r) => r.source === 'ROSTER').length;
 
     return { total, active, off, holiday, rotations, overrides };
-  }, [reportData]);
+  }, [listViewData]);
 
   return (
     <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
@@ -1191,8 +1206,8 @@ export function ShiftReportView() {
                         <TableRow sx={{ bgcolor: '#f4f6f8' }}>
                           <TableCell padding="checkbox">
                             <Checkbox
-                              indeterminate={selected.length > 0 && selected.length < reportData.length}
-                              checked={reportData.length > 0 && selected.length === reportData.length}
+                              indeterminate={selected.length > 0 && selected.length < listViewData.length}
+                              checked={listViewData.length > 0 && selected.length === listViewData.length}
                               onChange={handleSelectAllClick}
                             />
                           </TableCell>
@@ -1218,16 +1233,28 @@ export function ShiftReportView() {
                               <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                             </TableCell>
                           </TableRow>
-                        ) : reportData.length === 0 ? (
+                        ) : listViewData.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={11} align="center" sx={{ py: 8 }}>
-                              <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-                                No shift records found for the selected criteria.
-                              </Typography>
+                              {!isFilterApplied ? (
+                                <Stack spacing={1} alignItems="center">
+                                  <Iconify icon={"solar:calendar-date-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                  <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                    Please select a date filter to view shift assignments
+                                  </Typography>
+                                </Stack>
+                              ) : (
+                                <Stack spacing={1} alignItems="center">
+                                  <Iconify icon={"solar:filter-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                  <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                    No shift assignment changes found for the selected criteria.
+                                  </Typography>
+                                </Stack>
+                              )}
                             </TableCell>
                           </TableRow>
                         ) : (
-                          reportData
+                          listViewData
                             .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                             .map((row) => {
                               const isSelected = selected.includes(row.name);
@@ -1340,7 +1367,7 @@ export function ShiftReportView() {
 
                 <TablePagination
                   component="div"
-                  count={reportData.length}
+                  count={listViewData.length}
                   page={page}
                   onPageChange={(_, newPage) => setPage(newPage)}
                   rowsPerPage={rowsPerPage}
@@ -1427,10 +1454,22 @@ export function ShiftReportView() {
                     <TableBody>
                       {paginatedEmployees.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={dates.length + 1} align="center" sx={{ py: 6 }}>
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              No shift records found for Muster Roll.
-                            </Typography>
+                          <TableCell colSpan={dates.length + 1} align="center" sx={{ py: 8 }}>
+                            {!isFilterApplied ? (
+                              <Stack spacing={1} alignItems="center">
+                                <Iconify icon={"solar:calendar-date-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                  Please select a date filter to view shift assignments
+                                </Typography>
+                              </Stack>
+                            ) : (
+                              <Stack spacing={1} alignItems="center">
+                                <Iconify icon={"solar:filter-bold-duotone" as any} width={48} sx={{ color: 'text.disabled' }} />
+                                <Typography variant="body2" sx={{ color: 'text.disabled', fontWeight: 'bold' }}>
+                                  No shift records found for Muster Roll.
+                                </Typography>
+                              </Stack>
+                            )}
                           </TableCell>
                         </TableRow>
                       ) : (

@@ -108,3 +108,18 @@ export async function getEmployee(name: string) {
     if (!res.ok) throw new Error("Failed to fetch employee details");
     return (await res.json()).message;
 }
+
+export async function bulkImportEmployees(rows: any[], updateExisting: boolean = false) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/company.company.api.bulk_import_employees", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+            rows: JSON.stringify(rows),
+            update_existing: updateExisting ? 1 : 0
+        })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Bulk import failed"));
+    return json.message;
+}

@@ -7,6 +7,7 @@ import { useSnackbar } from 'notistack';
 import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
@@ -14,6 +15,7 @@ import Radio from '@mui/material/Radio';
 import Button from '@mui/material/Button';
 import Select from '@mui/material/Select';
 import Dialog from '@mui/material/Dialog';
+import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
@@ -89,6 +91,41 @@ export function LeaveAllocationReportView() {
     const [exportType, setExportType] = useState<'excel' | 'pdf'>('excel');
     const [currentView, setCurrentView] = useState<'list' | 'muster'>('list');
     const [selectedExportView, setSelectedExportView] = useState<'list' | 'muster'>('list');
+
+    const handlePreset = useCallback((preset: 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'lastMonth') => {
+        const today = dayjs();
+        if (preset === 'today') {
+            setFromDate(today);
+            setToDate(today);
+        } else if (preset === 'yesterday') {
+            setFromDate(today.subtract(1, 'day'));
+            setToDate(today.subtract(1, 'day'));
+        } else if (preset === 'last7') {
+            setFromDate(today.subtract(6, 'day'));
+            setToDate(today);
+        } else if (preset === 'thisMonth') {
+            setFromDate(today.startOf('month'));
+            setToDate(today.endOf('month'));
+        } else if (preset === 'lastMonth') {
+            const lastM = today.subtract(1, 'month');
+            setFromDate(lastM.startOf('month'));
+            setToDate(lastM.endOf('month'));
+        }
+    }, []);
+
+    const isPresetActive = useCallback((preset: string) => {
+        const today = dayjs();
+        if (!fromDate || !toDate) return false;
+        if (preset === 'today') return fromDate.isSame(today, 'day') && toDate.isSame(today, 'day');
+        if (preset === 'yesterday') return fromDate.isSame(today.subtract(1, 'day'), 'day') && toDate.isSame(today.subtract(1, 'day'), 'day');
+        if (preset === 'last7') return fromDate.isSame(today.subtract(6, 'day'), 'day') && toDate.isSame(today, 'day');
+        if (preset === 'thisMonth') return fromDate.isSame(today.startOf('month'), 'day') && toDate.isSame(today.endOf('month'), 'day');
+        if (preset === 'lastMonth') {
+            const lastM = today.subtract(1, 'month');
+            return fromDate.isSame(lastM.startOf('month'), 'day') && toDate.isSame(lastM.endOf('month'), 'day');
+        }
+        return false;
+    }, [fromDate, toDate]);
 
     // --- Muster Roll drag-scroll ---
     const musterScrollRef = useRef<HTMLDivElement>(null);
@@ -597,18 +634,32 @@ export function LeaveAllocationReportView() {
 
     return (
         <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
-            <Stack spacing={3} sx={{ pb: 5 }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between">
-                    <Stack spacing={0.5}>
-                        <Typography variant="h4">Leave Allocation Report</Typography>
-                    </Stack>
+            <Stack spacing={2.5} sx={{ pb: 5 }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" spacing={2}>
+                    <Box>
+                        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
+                            Leave Allocation Report
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
+                            Employee leave balances, allocated quotas, used days, and monthly muster roll matrix
+                        </Typography>
+                    </Box>
 
-                    <Stack direction="row" spacing={1}>
+                    <Stack direction="row" spacing={1.25}>
                         <Button
                             variant="outlined"
                             startIcon={<Iconify icon={"solar:refresh-bold" as any} />}
                             onClick={fetchReport}
                             disabled={loading}
+                            sx={{
+                                borderRadius: 1.5,
+                                fontWeight: 700,
+                                borderColor: alpha(theme.palette.grey[500], 0.24),
+                                '&:hover': {
+                                    borderColor: 'primary.main',
+                                    bgcolor: alpha(theme.palette.primary.main, 0.04),
+                                },
+                            }}
                         >
                             Refresh
                         </Button>
@@ -617,49 +668,240 @@ export function LeaveAllocationReportView() {
                             color="error"
                             startIcon={<Iconify icon={"solar:restart-bold" as any} />}
                             onClick={handleReset}
+                            disabled={loading}
+                            sx={{
+                                borderRadius: 1.5,
+                                fontWeight: 700,
+                                borderColor: alpha(theme.palette.error.main, 0.24),
+                                '&:hover': {
+                                    borderColor: 'error.main',
+                                    bgcolor: alpha(theme.palette.error.main, 0.04),
+                                },
+                            }}
                         >
                             Reset
                         </Button>
                     </Stack>
                 </Stack>
 
+                {/* Filter & Action Card */}
                 <Card
                     sx={{
                         p: 2.5,
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 2,
-                        bgcolor: 'background.neutral',
-                        border: (t) => `1px solid ${t.palette.divider}`,
+                        borderRadius: 2,
+                        bgcolor: (t) => alpha('#10b981', 0.04),
+                        border: (t) => `1px solid ${alpha('#10b981', 0.18)}`,
+                        boxShadow: 'none',
                     }}
                 >
-                    <Stack direction="row" gap={1.5} alignItems="center" flexWrap="wrap">
+                    {/* Top Action Bar: Quick Presets & Export Buttons */}
+                    <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        justifyContent="space-between"
+                        gap={1.5}
+                        flexWrap="wrap"
+                    >
+                        {/* Quick Presets */}
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ gap: 0.75 }}>
+                            <Typography
+                                variant="caption"
+                                sx={{
+                                    color: 'text.secondary',
+                                    fontWeight: 700,
+                                    mr: 0.5,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: 0.5,
+                                    fontSize: '0.7rem',
+                                }}
+                            >
+                                <Iconify icon={"solar:calendar-linear" as any} width={15} />
+                                Quick Range:
+                            </Typography>
+                            {[
+                                { key: 'today', label: 'Today' },
+                                { key: 'yesterday', label: 'Yesterday' },
+                                { key: 'last7', label: 'Last 7 Days' },
+                                { key: 'thisMonth', label: 'This Month' },
+                                { key: 'lastMonth', label: 'Last Month' },
+                            ].map((p) => {
+                                const active = isPresetActive(p.key);
+                                return (
+                                    <Chip
+                                        key={p.key}
+                                        label={p.label}
+                                        size="small"
+                                        clickable
+                                        onClick={() => handlePreset(p.key as any)}
+                                        sx={{
+                                            fontWeight: active ? 700 : 500,
+                                            fontSize: '0.75rem',
+                                            height: 26,
+                                            bgcolor: active ? 'primary.main' : 'background.paper',
+                                            color: active ? '#fff' : 'text.primary',
+                                            border: (t) => `1px solid ${active ? t.palette.primary.main : t.palette.divider}`,
+                                            boxShadow: active ? (t) => `0 2px 8px ${alpha(t.palette.primary.main, 0.28)}` : 'none',
+                                            '&:hover': {
+                                                bgcolor: active ? 'primary.dark' : 'action.hover',
+                                            },
+                                        }}
+                                    />
+                                );
+                            })}
+                        </Stack>
+
+                        {/* Export Buttons */}
+                        {canExport && (
+                            <Stack direction="row" spacing={1.25} alignItems="center" sx={{ ml: { xs: 0, sm: 'auto' } }}>
+                                <Button
+                                    variant="contained"
+                                    startIcon={exportingExcel ? <CircularProgress size={16} color="inherit" /> : <Iconify icon={"solar:export-bold" as any} width={18} />}
+                                    onClick={() => handleOpenExportDialog('excel')}
+                                    disabled={reportData.length === 0 || exportingExcel}
+                                    sx={{
+                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                        color: '#fff',
+                                        fontWeight: 700,
+                                        fontSize: '0.825rem',
+                                        height: 36,
+                                        px: 2.25,
+                                        borderRadius: 1.5,
+                                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.28)',
+                                        transition: 'all 0.2s ease',
+                                        '&:hover': {
+                                            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                                            boxShadow: '0 6px 16px rgba(16, 185, 129, 0.38)',
+                                            transform: 'translateY(-1px)',
+                                        },
+                                        '&.Mui-disabled': {
+                                            background: 'none !important',
+                                            bgcolor: (t) => `${alpha(t.palette.grey[500], 0.08)} !important`,
+                                            color: (t) => `${alpha(t.palette.text.disabled, 0.8)} !important`,
+                                            border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.16)}`,
+                                            boxShadow: 'none !important',
+                                        },
+                                    }}
+                                >
+                                    {exportingExcel ? 'Exporting...' : 'Export Excel'}
+                                </Button>
+
+                                <Button
+                                    variant="contained"
+                                    startIcon={exportingPdf ? <CircularProgress size={16} color="inherit" /> : <Iconify icon={"solar:file-download-bold" as any} width={18} />}
+                                    onClick={() => handleOpenExportDialog('pdf')}
+                                    disabled={reportData.length === 0 || exportingPdf}
+                                    sx={{
+                                        background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                                        color: '#fff',
+                                        fontWeight: 700,
+                                        fontSize: '0.825rem',
+                                        height: 36,
+                                        px: 2.25,
+                                        borderRadius: 1.5,
+                                        boxShadow: '0 4px 12px rgba(244, 63, 94, 0.28)',
+                                        transition: 'all 0.2s ease',
+                                        '&:hover': {
+                                            background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+                                            boxShadow: '0 6px 16px rgba(244, 63, 94, 0.38)',
+                                            transform: 'translateY(-1px)',
+                                        },
+                                        '&.Mui-disabled': {
+                                            background: 'none !important',
+                                            bgcolor: (t) => `${alpha(t.palette.grey[500], 0.08)} !important`,
+                                            color: (t) => `${alpha(t.palette.text.disabled, 0.8)} !important`,
+                                            border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.16)}`,
+                                            boxShadow: 'none !important',
+                                        },
+                                    }}
+                                >
+                                    {exportingPdf ? 'Exporting...' : 'Export PDF'}
+                                </Button>
+                            </Stack>
+                        )}
+                    </Stack>
+
+                    <Divider sx={{ borderStyle: 'dashed', borderColor: (t) => alpha('#10b981', 0.16) }} />
+
+                    {/* Filter Inputs Grid */}
+                    <Box
+                        sx={{
+                            pt: 1,
+                            display: 'grid',
+                            gap: 1.5,
+                            gridTemplateColumns: {
+                                xs: 'repeat(1, 1fr)',
+                                sm: 'repeat(2, 1fr)',
+                                md: '170px 170px 160px 180px 1fr',
+                            },
+                            alignItems: 'center',
+                        }}
+                    >
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <DatePicker
-                                label="From"
-                                views={['month', 'year']}
-                                format="MM/YYYY"
+                                label="From Date"
+                                format="DD-MM-YYYY"
                                 value={fromDate}
-                                onChange={(newValue) => setFromDate(newValue ? newValue.startOf('month') : null)}
-                                slotProps={{ textField: { size: 'small', sx: { flexGrow: 1, maxWidth: 180 } } }}
+                                onChange={(newValue) => setFromDate(newValue)}
+                                sx={{
+                                    bgcolor: 'background.paper',
+                                    borderRadius: 1.5,
+                                    '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                    '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                }}
+                                slotProps={{
+                                    textField: {
+                                        size: 'small',
+                                        fullWidth: true,
+                                        sx: {
+                                            bgcolor: 'background.paper',
+                                            borderRadius: 1.5,
+                                            '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                            '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                        },
+                                    },
+                                }}
                             />
                             <DatePicker
-                                label="To"
-                                views={['month', 'year']}
-                                format="MM/YYYY"
+                                label="To Date"
+                                format="DD-MM-YYYY"
                                 value={toDate}
-                                onChange={(newValue) => setToDate(newValue ? newValue.endOf('month') : null)}
-                                slotProps={{ textField: { size: 'small', sx: { flexGrow: 1, maxWidth: 180 } } }}
+                                onChange={(newValue) => setToDate(newValue)}
+                                sx={{
+                                    bgcolor: 'background.paper',
+                                    borderRadius: 1.5,
+                                    '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                    '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                }}
+                                slotProps={{
+                                    textField: {
+                                        size: 'small',
+                                        fullWidth: true,
+                                        sx: {
+                                            bgcolor: 'background.paper',
+                                            borderRadius: 1.5,
+                                            '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                            '& .MuiInputBase-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                                        },
+                                    },
+                                }}
                             />
                         </LocalizationProvider>
 
-                        <FormControl size="small" sx={{ flexGrow: 1, minWidth: 160 }}>
+                        <FormControl size="small" fullWidth sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}>
                             <Select
                                 value={leaveType}
                                 onChange={(e) => setLeaveType(e.target.value)}
                                 displayEmpty
                             >
-                                <MenuItem value="all">All Leave Types</MenuItem>
+                                <MenuItem value="all">
+                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>All Leave Types</Typography>
+                                </MenuItem>
                                 {leaveTypeOptions.map((type) => (
                                     <MenuItem key={type.name} value={type.name}>
                                         {type.name}
@@ -668,7 +910,7 @@ export function LeaveAllocationReportView() {
                             </Select>
                         </FormControl>
 
-                        <FormControl size="small" sx={{ flexGrow: 1, minWidth: 180 }}>
+                        <FormControl size="small" fullWidth sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}>
                             <Select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
@@ -684,7 +926,8 @@ export function LeaveAllocationReportView() {
                             multiple
                             disableCloseOnSelect
                             size="small"
-                            sx={{ flexGrow: 1, minWidth: 350 }}
+                            fullWidth
+                            sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}
                             options={employeeOptions}
                             filterOptions={filterEmployeeOptions}
                             getOptionLabel={(option) => `${option.employee_name} (${option.name})`}
@@ -713,48 +956,11 @@ export function LeaveAllocationReportView() {
                                 <TextField
                                     {...params}
                                     label="Employee"
-                                    placeholder="Select Employee(s)"
+                                    placeholder={employee.length === 0 ? "Filter employee(s)" : undefined}
                                 />
                             )}
                         />
-
-                        <Box sx={{ flexGrow: 1 }} />
-                        {canExport && (
-                            <Stack direction="row" spacing={1} sx={{ ml: { md: 'auto' } }}>
-                                <Button
-                                    variant="contained"
-                                    startIcon={exportingExcel ? undefined : <Iconify icon={"solar:export-bold" as any} />}
-                                    onClick={() => handleOpenExportDialog('excel')}
-                                    disabled={reportData.length === 0 || exportingExcel}
-                                    sx={{
-                                        bgcolor: COMMON_COLORS.primaryButton.bg,
-                                        color: COMMON_COLORS.primaryButton.color,
-                                        '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
-                                        height: 40,
-                                        px: 3,
-                                    }}
-                                >
-                                    {exportingExcel ? 'Exporting Excel...' : 'Export Excel'}
-                                </Button>
-
-                                <Button
-                                    variant="contained"
-                                    startIcon={exportingPdf ? undefined : <Iconify icon={"solar:file-download-bold" as any} />}
-                                    onClick={() => handleOpenExportDialog('pdf')}
-                                    disabled={reportData.length === 0 || exportingPdf}
-                                    sx={{
-                                        bgcolor: '#f43f5e',
-                                        color: 'common.white',
-                                        '&:hover': { bgcolor: '#e11d48' },
-                                        height: 40,
-                                        px: 3,
-                                    }}
-                                >
-                                    {exportingPdf ? 'Exporting PDF...' : 'Export PDF'}
-                                </Button>
-                            </Stack>
-                        )}
-                    </Stack>
+                    </Box>
                 </Card>
 
                 <Box
@@ -1255,91 +1461,99 @@ export function LeaveAllocationReportView() {
 interface SummaryCardProps {
     item: {
         label: string;
-        value: number;
-        indicator: 'blue' | 'green' | 'red' | 'orange';
+        value: any;
+        indicator?: string;
+        suffix?: string;
+        icon?: string;
     };
 }
 
 function SummaryCard({ item }: SummaryCardProps) {
-    const { label, value, indicator } = item;
+    const theme = useTheme();
 
-    const getColor = () => {
-        switch (indicator) {
-            case 'blue':
-                return {
-                    bg: 'rgba(14, 165, 233, 0.08)',
-                    border: 'rgba(14, 165, 233, 0.16)',
-                    color: '#0284c7',
-                    icon: 'solar:file-text-bold-duotone',
-                };
-            case 'green':
-                return {
-                    bg: 'rgba(34, 197, 94, 0.08)',
-                    border: 'rgba(34, 197, 94, 0.16)',
-                    color: '#16a34a',
-                    icon: 'solar:check-circle-bold-duotone',
-                };
-            case 'red':
-                return {
-                    bg: 'rgba(239, 68, 68, 0.08)',
-                    border: 'rgba(239, 68, 68, 0.16)',
-                    color: '#dc2626',
-                    icon: 'solar:close-circle-bold-duotone',
-                };
-            case 'orange':
-                return {
-                    bg: 'rgba(249, 115, 22, 0.08)',
-                    border: 'rgba(249, 115, 22, 0.16)',
-                    color: '#ea580c',
-                    icon: 'solar:clock-circle-bold-duotone',
-                };
-            default:
-                return {
-                    bg: 'rgba(148, 163, 184, 0.08)',
-                    border: 'rgba(148, 163, 184, 0.16)',
-                    color: '#475569',
-                    icon: 'solar:info-circle-bold-duotone',
-                };
+    const getIndicatorColor = (indicator?: string) => {
+        switch (indicator?.toLowerCase()) {
+            case 'blue': return theme.palette.info.main;
+            case 'green': return theme.palette.success.main;
+            case 'orange': return theme.palette.warning.main;
+            case 'red': return theme.palette.error.main;
+            default: return theme.palette.primary.main;
         }
     };
 
-    const config = getColor();
+    const getIcon = (label: string) => {
+        if (item.icon) return item.icon;
+        const t = label.toLowerCase();
+        if (t.includes('employee')) return 'solar:users-group-rounded-bold-duotone';
+        if (t.includes('allocated')) return 'solar:calendar-date-bold-duotone';
+        if (t.includes('used')) return 'solar:clock-circle-bold-duotone';
+        if (t.includes('balance')) return 'solar:check-circle-bold-duotone';
+        if (t.includes('present')) return 'solar:check-circle-bold-duotone';
+        if (t.includes('absent')) return 'solar:calendar-date-bold-duotone';
+        if (t.includes('half day')) return 'solar:clock-circle-bold-duotone';
+        if (t.includes('missing')) return 'solar:danger-circle-bold-duotone';
+        if (t.includes('holiday')) return 'solar:cup-star-bold-duotone';
+        if (t.includes('entries') || t.includes('total')) return 'solar:list-bold-duotone';
+        return 'solar:chart-2-bold-duotone';
+    };
+
+    const color = getIndicatorColor(item.indicator);
 
     return (
         <Card
             sx={{
                 p: 1.5,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                bgcolor: config.bg,
-                border: `1px solid ${config.border}`,
                 boxShadow: 'none',
+                position: 'relative',
+                overflow: 'hidden',
+                bgcolor: alpha(color, 0.04),
+                border: `1px solid ${alpha(color, 0.1)}`,
+                transition: theme.transitions.create(['transform', 'box-shadow']),
+                '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: `0 12px 24px -4px ${alpha(color, 0.12)}`,
+                },
             }}
         >
+            <Stack direction="row" alignItems="center" spacing={1}>
+                <Box
+                    sx={{
+                        width: 30,
+                        height: 30,
+                        flexShrink: 0,
+                        display: 'flex',
+                        borderRadius: 1.5,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color,
+                        bgcolor: alpha(color, 0.1),
+                    }}
+                >
+                    <Iconify icon={getIcon(item.label) as any} width={18} />
+                </Box>
+
+                <Box sx={{ flexGrow: 1, pl: 1 }}>
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 700, mb: 0.2 }}>
+                        {item.label}
+                    </Typography>
+                    <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 800 }}>
+                        {item.value?.toLocaleString() ?? 0}{item.suffix ? ` ${item.suffix}` : ''}
+                    </Typography>
+                </Box>
+            </Stack>
+
             <Box
                 sx={{
-                    width: 44,
-                    height: 44,
+                    top: -16,
+                    right: -16,
+                    width: 80,
+                    height: 80,
+                    opacity: 0.08,
+                    position: 'absolute',
                     borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: alpha(config.color, 0.1),
-                    color: config.color,
+                    bgcolor: color,
                 }}
-            >
-                <Iconify icon={config.icon as any} width={24} />
-            </Box>
-
-            <Stack spacing={0.5}>
-                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                    {label}
-                </Typography>
-                <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 800 }}>
-                    {value}
-                </Typography>
-            </Stack>
+            />
         </Card>
     );
 }
