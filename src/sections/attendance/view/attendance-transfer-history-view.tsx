@@ -2,6 +2,7 @@ import type {
     AttendanceTransferBatch} from 'src/api/attendance-transfer';
 
 import dayjs from 'dayjs';
+import { useSnackbar } from 'notistack';
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useCallback } from 'react';
 
@@ -15,17 +16,19 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Tooltip from '@mui/material/Tooltip';
+import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
-import Snackbar from '@mui/material/Snackbar';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import InputAdornment from '@mui/material/InputAdornment';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -38,6 +41,8 @@ import {
 } from 'src/api/attendance-transfer';
 
 import { Iconify } from 'src/components/iconify';
+import { TableNoData } from 'src/components/table';
+import { EmptyContent } from 'src/components/empty-content';
 
 import { useAuth } from 'src/auth/auth-context';
 
@@ -46,6 +51,7 @@ import { AttendanceTransferDetailsDialog } from '../attendance-transfer-details-
 export function AttendanceTransferHistoryView() {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { enqueueSnackbar } = useSnackbar();
 
     // Super Admin Check
     const hasHR = user?.roles?.some((role: string) => ['HR', 'HR Manager'].includes(role));
@@ -73,13 +79,6 @@ export function AttendanceTransferHistoryView() {
     const [revertReason, setRevertReason] = useState('');
     const [revertLoading, setRevertLoading] = useState(false);
 
-    // Feedback
-    const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
-        open: false,
-        message: '',
-        severity: 'info'
-    });
-
     const fetchHistory = useCallback(async () => {
         setLoading(true);
         try {
@@ -92,11 +91,11 @@ export function AttendanceTransferHistoryView() {
             setBatches(res.data || []);
             setTotal(res.total || 0);
         } catch (err: any) {
-            setSnackbar({ open: true, message: err.message || 'Failed to load transfer history', severity: 'error' });
+            enqueueSnackbar(err.message || 'Failed to load transfer history', { variant: 'error' });
         } finally {
             setLoading(false);
         }
-    }, [page, rowsPerPage, search, statusFilter]);
+    }, [page, rowsPerPage, search, statusFilter, enqueueSnackbar]);
 
     useEffect(() => {
         if (isSuperAdmin) {
@@ -111,7 +110,7 @@ export function AttendanceTransferHistoryView() {
             setSelectedBatch(fullDetails);
             setDetailsOpen(true);
         } catch (err: any) {
-            setSnackbar({ open: true, message: err.message || 'Failed to load batch details', severity: 'error' });
+            enqueueSnackbar(err.message || 'Failed to load batch details', { variant: 'error' });
         }
     };
 
@@ -133,10 +132,10 @@ export function AttendanceTransferHistoryView() {
             });
 
             setRevertOpen(false);
-            setSnackbar({ open: true, message: res.message || 'Transfer reverted successfully', severity: 'success' });
+            enqueueSnackbar(res.message || 'Transfer reverted successfully', { variant: 'success' });
             fetchHistory();
         } catch (err: any) {
-            setSnackbar({ open: true, message: err.message || 'Failed to revert transfer', severity: 'error' });
+            enqueueSnackbar(err.message || 'Failed to revert transfer', { variant: 'error' });
         } finally {
             setRevertLoading(false);
         }
@@ -167,54 +166,52 @@ export function AttendanceTransferHistoryView() {
             <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" spacing={2} sx={{ mb: 3 }}>
                 <Box>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
-                        <Box
-                            sx={{
-                                width: 44,
-                                height: 44,
-                                borderRadius: 1.5,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                bgcolor: '#7928CA',
-                                color: 'common.white'
-                            }}
-                        >
-                            <Iconify icon={"solar:history-bold-duotone" as any} width={26} />
-                        </Box>
                         <Box>
                             <Typography variant="h4" fontWeight={700}>
                                 Attendance Transfer History
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Super Admin tracking, verification, and audit trail of Sunday & non-working day adjustments
                             </Typography>
                         </Box>
                     </Stack>
                 </Box>
 
-                <Stack direction="row" spacing={1.5}>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Button
+                        variant="outlined"
+                        color="inherit"
+                        onClick={() => navigate('/attendance')}
+                        startIcon={<Iconify icon={"solar:arrow-left-outline" as any} width={18} />}
+                        sx={{
+                            borderRadius: 1.5,
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            px: 1.75,
+                            py: 0.75,
+                            borderColor: 'text.primary',
+                            '&:hover': {
+                                bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04),
+                                borderColor: 'text.primary',
+                            },
+                        }}
+                    >
+                        Go Back
+                    </Button>
+
                     <Button
                         variant="contained"
                         startIcon={<Iconify icon={"solar:transfer-horizontal-bold-duotone" as any} />}
                         onClick={() => navigate('/attendance/transfer')}
                         sx={{
-                            bgcolor: '#7928CA',
+                            borderRadius: 1.5,
+                            bgcolor: '#36b37e',
                             color: 'common.white',
                             textTransform: 'none',
                             fontWeight: 600,
-                            '&:hover': { bgcolor: '#611f9f' }
+                            px: 1.75,
+                            py: 0.75,
+                            '&:hover': { bgcolor: '#2b9065' }
                         }}
                     >
                         New Transfer
-                    </Button>
-                    <Button
-                        variant="outlined"
-                        color="inherit"
-                        startIcon={<Iconify icon={"solar:arrow-left-bold" as any} />}
-                        onClick={() => navigate('/attendance')}
-                        sx={{ textTransform: 'none' }}
-                    >
-                        Back to Attendance
                     </Button>
                 </Stack>
             </Stack>
@@ -231,7 +228,14 @@ export function AttendanceTransferHistoryView() {
                             setPage(0);
                         }}
                         InputProps={{
-                            startAdornment: <Iconify icon={"solar:magnifer-bold" as any} sx={{ color: 'text.disabled', mr: 1 }} />
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Iconify
+                                        icon="eva:search-fill"
+                                        sx={{ width: 20, height: 20, color: 'text.disabled' }}
+                                    />
+                                </InputAdornment>
+                            ),
                         }}
                     />
 
@@ -263,131 +267,142 @@ export function AttendanceTransferHistoryView() {
 
             {/* History Table Card */}
             <Card sx={{ p: 2 }}>
-                {loading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                        <CircularProgress />
-                    </Box>
-                ) : batches.length === 0 ? (
-                    <Alert severity="info" sx={{ my: 2 }}>
-                        No attendance transfer history found. You can perform a new transfer using the <strong>New Transfer</strong> button above.
-                    </Alert>
-                ) : (
-                    <>
-                        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5 }}>
-                            <Table size="medium">
-                                <TableHead sx={{ bgcolor: (theme) => theme.palette.mode === 'light' ? '#f4f6f8' : 'background.neutral' }}>
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5 }}>
+                    <Table size="medium">
+                        <TableHead sx={{ bgcolor: (theme) => theme.palette.mode === 'light' ? '#f4f6f8' : 'background.neutral' }}>
+                            <TableRow>
+                                <TableCell>Transfer Batch</TableCell>
+                                <TableCell>Date Mapping</TableCell>
+                                <TableCell align="center">Employees</TableCell>
+                                <TableCell>Transferred By</TableCell>
+                                <TableCell>Remarks</TableCell>
+                                <TableCell align="center">Status</TableCell>
+                                <TableCell align="right">Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                                        <CircularProgress />
+                                    </TableCell>
+                                </TableRow>
+                            ) : batches.length === 0 ? (
+                                search || statusFilter ? (
+                                    <TableNoData searchQuery={search || statusFilter} colSpan={7} />
+                                ) : (
                                     <TableRow>
-                                        <TableCell>Transfer Batch</TableCell>
-                                        <TableCell>Date Mapping</TableCell>
-                                        <TableCell align="center">Employees</TableCell>
-                                        <TableCell>Transferred By</TableCell>
-                                        <TableCell>Remarks</TableCell>
-                                        <TableCell align="center">Status</TableCell>
-                                        <TableCell align="right">Actions</TableCell>
+                                        <TableCell colSpan={7} sx={{ p: 0 }}>
+                                            <EmptyContent
+                                                title="No attendance transfers found"
+                                                description="You haven't performed any attendance transfers yet. Click 'New Transfer' to get started."
+                                                icon="solar:transfer-horizontal-bold-duotone"
+                                                sx={{ py: 8 }}
+                                            />
+                                        </TableCell>
                                     </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {batches.map((batch) => {
-                                        const isReverted = batch.status === 'Reverted';
-                                        return (
-                                            <TableRow key={batch.name} hover>
-                                                <TableCell>
-                                                    <Typography variant="subtitle2" fontWeight={700}>
-                                                        {batch.name}
+                                )
+                            ) : (
+                                batches.map((batch) => {
+                                    const isReverted = batch.status === 'Reverted';
+                                    return (
+                                        <TableRow key={batch.name} hover>
+                                            <TableCell>
+                                                <Typography variant="subtitle2" fontWeight={700}>
+                                                    {batch.name}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {dayjs(batch.transfer_datetime).format('DD MMM YYYY, hh:mm A')}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                    <Typography variant="body2" fontWeight={600}>
+                                                        {dayjs(batch.source_date).format('DD MMM')}
                                                     </Typography>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        {dayjs(batch.transfer_datetime).format('DD MMM YYYY, hh:mm A')}
+                                                    <Iconify icon={"solar:arrow-right-bold" as any} width={16} sx={{ color: 'text.secondary' }} />
+                                                    <Typography variant="body2" fontWeight={600} color="primary.main">
+                                                        {dayjs(batch.target_date).format('DD MMM YYYY')}
                                                     </Typography>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Stack direction="row" alignItems="center" spacing={1}>
-                                                        <Typography variant="body2" fontWeight={600}>
-                                                            {dayjs(batch.source_date).format('DD MMM')}
-                                                        </Typography>
-                                                        <Iconify icon={"solar:arrow-right-bold" as any} width={16} sx={{ color: 'text.secondary' }} />
-                                                        <Typography variant="body2" fontWeight={600} color="primary.main">
-                                                            {dayjs(batch.target_date).format('DD MMM YYYY')}
-                                                        </Typography>
-                                                    </Stack>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        {dayjs(batch.source_date).format('dddd')} ➔ {dayjs(batch.target_date).format('dddd')}
+                                                </Stack>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {dayjs(batch.source_date).format('dddd')} ➔ {dayjs(batch.target_date).format('dddd')}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell align="center">
+                                                <Chip
+                                                    label={`${batch.total_employees} Employees`}
+                                                    size="small"
+                                                    color="primary"
+                                                    variant="outlined"
+                                                    sx={{ fontWeight: 600 }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Typography variant="body2">{batch.transferred_by_name || batch.transferred_by}</Typography>
+                                                <Typography variant="caption" color="text.secondary">Super Admin</Typography>
+                                            </TableCell>
+                                            <TableCell sx={{ maxWidth: 220 }}>
+                                                <Tooltip title={batch.reason} arrow>
+                                                    <Typography variant="body2" noWrap>
+                                                        {batch.reason}
                                                     </Typography>
-                                                </TableCell>
-                                                <TableCell align="center">
-                                                    <Chip
-                                                        label={`${batch.total_employees} Employees`}
+                                                </Tooltip>
+                                            </TableCell>
+                                            <TableCell align="center">
+                                                <Chip
+                                                    label={isReverted ? 'Reverted' : 'Completed'}
+                                                    color={isReverted ? 'error' : 'success'}
+                                                    size="small"
+                                                    sx={{ fontWeight: 600 }}
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                                    <Button
                                                         size="small"
-                                                        color="primary"
                                                         variant="outlined"
-                                                        sx={{ fontWeight: 600 }}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Typography variant="body2">{batch.transferred_by_name || batch.transferred_by}</Typography>
-                                                    <Typography variant="caption" color="text.secondary">Super Admin</Typography>
-                                                </TableCell>
-                                                <TableCell sx={{ maxWidth: 220 }}>
-                                                    <Tooltip title={batch.reason} arrow>
-                                                        <Typography variant="body2" noWrap>
-                                                            {batch.reason}
-                                                        </Typography>
-                                                    </Tooltip>
-                                                </TableCell>
-                                                <TableCell align="center">
-                                                    <Chip
-                                                        label={isReverted ? 'Reverted' : 'Completed'}
-                                                        color={isReverted ? 'error' : 'success'}
-                                                        size="small"
-                                                        sx={{ fontWeight: 600 }}
-                                                    />
-                                                </TableCell>
-                                                <TableCell align="right">
-                                                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                                                        <Button
-                                                            size="small"
-                                                            variant="outlined"
-                                                            startIcon={<Iconify icon={"solar:eye-bold" as any} />}
-                                                            onClick={() => handleViewDetails(batch)}
-                                                        >
-                                                            Details
-                                                        </Button>
+                                                        startIcon={<Iconify icon={"solar:eye-bold" as any} />}
+                                                        onClick={() => handleViewDetails(batch)}
+                                                    >
+                                                        Details
+                                                    </Button>
 
-                                                        {!isReverted && (
-                                                            <Tooltip title="Rollback this transfer" arrow>
-                                                                <Button
-                                                                    size="small"
-                                                                    color="error"
-                                                                    variant="outlined"
-                                                                    startIcon={<Iconify icon={"solar:restart-bold" as any} />}
-                                                                    onClick={() => handleOpenRevert(batch)}
-                                                                >
-                                                                    Revert
-                                                                </Button>
-                                                            </Tooltip>
-                                                        )}
-                                                    </Stack>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
+                                                    {!isReverted && (
+                                                        <Tooltip title="Rollback this transfer" arrow>
+                                                            <Button
+                                                                size="small"
+                                                                color="error"
+                                                                variant="outlined"
+                                                                startIcon={<Iconify icon={"solar:restart-bold" as any} />}
+                                                                onClick={() => handleOpenRevert(batch)}
+                                                            >
+                                                                Revert
+                                                            </Button>
+                                                        </Tooltip>
+                                                    )}
+                                                </Stack>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
 
-                        <TablePagination
-                            component="div"
-                            count={total}
-                            page={page}
-                            onPageChange={(e, newPage) => setPage(newPage)}
-                            rowsPerPage={rowsPerPage}
-                            onRowsPerPageChange={(e) => {
-                                setRowsPerPage(parseInt(e.target.value, 10));
-                                setPage(0);
-                            }}
-                            rowsPerPageOptions={[5, 10, 25, 50]}
-                        />
-                    </>
-                )}
+                <TablePagination
+                    component="div"
+                    count={total}
+                    page={page}
+                    onPageChange={(e, newPage) => setPage(newPage)}
+                    rowsPerPage={rowsPerPage}
+                    onRowsPerPageChange={(e) => {
+                        setRowsPerPage(parseInt(e.target.value, 10));
+                        setPage(0);
+                    }}
+                    rowsPerPageOptions={[5, 10, 25, 50]}
+                />
             </Card>
 
             {/* Batch Details Dialog */}
@@ -399,9 +414,19 @@ export function AttendanceTransferHistoryView() {
 
             {/* Revert Confirmation Dialog */}
             <Dialog open={revertOpen} onClose={() => !revertLoading && setRevertOpen(false)} maxWidth="sm" fullWidth>
-                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Iconify icon={"solar:danger-triangle-bold" as any} width={26} sx={{ color: 'error.main' }} />
-                    <Typography variant="h6">Revert Attendance Transfer</Typography>
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Iconify icon={"solar:danger-triangle-bold" as any} width={26} sx={{ color: 'error.main' }} />
+                        <Typography variant="h6">Revert Attendance Transfer</Typography>
+                    </Box>
+                    <IconButton
+                        onClick={() => !revertLoading && setRevertOpen(false)}
+                        disabled={revertLoading}
+                        size="small"
+                        sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
+                    >
+                        <Iconify icon="mingcute:close-line" width={22} />
+                    </IconButton>
                 </DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ pt: 1 }}>
@@ -423,10 +448,7 @@ export function AttendanceTransferHistoryView() {
                         />
                     </Stack>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button variant="outlined" onClick={() => setRevertOpen(false)} disabled={revertLoading}>
-                        Cancel
-                    </Button>
+                <DialogActions sx={{ px: 3, pb: 2.5, justifyContent: 'flex-end' }}>
                     <Button
                         variant="contained"
                         color="error"
@@ -439,22 +461,6 @@ export function AttendanceTransferHistoryView() {
                 </DialogActions>
             </Dialog>
 
-            {/* Snackbar */}
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={6000}
-                onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert
-                    onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                    severity={snackbar.severity}
-                    variant="filled"
-                    sx={{ width: '100%' }}
-                >
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
         </DashboardContent>
     );
 }

@@ -157,7 +157,7 @@ export function AttendanceTableRow({
             </TableCell>
 
             <TableCell>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'flex-start' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6, alignItems: 'flex-start' }}>
                     <Label color={getStatusColor(row.status)}>{row.status}</Label>
                     {isSuperAdmin && !!row.is_transferred && (
                         <Tooltip
@@ -173,19 +173,27 @@ export function AttendanceTableRow({
                                 sx={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: 0.3,
+                                    gap: 0.4,
                                     fontSize: '0.675rem',
                                     fontWeight: 700,
-                                    px: 0.6,
-                                    py: 0.1,
+                                    lineHeight: 1,
+                                    minHeight: 20,
+                                    px: 0.85,
+                                    py: 0.35,
                                     borderRadius: 0.75,
-                                    bgcolor: 'primary.lighter',
-                                    color: '#7928CA',
-                                    border: '1px solid #7928CA33',
-                                    cursor: 'help'
+                                    bgcolor: (theme) => alpha('#36b37e', 0.12),
+                                    color: '#2b9065',
+                                    border: '1px solid rgba(54, 179, 126, 0.32)',
+                                    cursor: 'help',
+                                    whiteSpace: 'nowrap',
+                                    transition: (theme) => theme.transitions.create(['background-color', 'border-color']),
+                                    '&:hover': {
+                                        bgcolor: (theme) => alpha('#36b37e', 0.2),
+                                        borderColor: 'rgba(54, 179, 126, 0.5)',
+                                    }
                                 }}
                             >
-                                <Iconify icon={"solar:transfer-horizontal-bold-duotone" as any} width={12} />
+                                <Iconify icon={"solar:transfer-horizontal-bold-duotone" as any} width={13} />
                                 {row.transfer_type === 'Target (Adjusted Working)' && row.transferred_from_date
                                     ? `From ${dayjs(row.transferred_from_date).format('DD/MM')}`
                                     : row.transfer_type === 'Source (Non-Working)' && row.transferred_to_date

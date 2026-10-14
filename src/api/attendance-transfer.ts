@@ -63,7 +63,7 @@ export async function getEligibleTransferEmployees(params: {
     targetDate: string;
     department?: string;
     search?: string;
-}): Promise<{ is_sunday: boolean; is_holiday: boolean; employees: EligibleTransferEmployee[]; message?: string }> {
+}): Promise<{ employees: EligibleTransferEmployee[]; message?: string }> {
     const query = new URLSearchParams({
         source_date: params.sourceDate,
         target_date: params.targetDate,
@@ -122,8 +122,11 @@ export async function getAttendanceTransferHistory(params: {
     return json.message;
 }
 
-export async function getAttendanceTransferDetails(transferId: string): Promise<AttendanceTransferBatch> {
-    const query = new URLSearchParams({ transfer_id: transferId });
+export async function getAttendanceTransferDetails(transferId?: string | null, attendanceId?: string | null): Promise<AttendanceTransferBatch> {
+    const query = new URLSearchParams({
+        ...(transferId ? { transfer_id: transferId } : {}),
+        ...(attendanceId ? { attendance_id: attendanceId } : {})
+    });
     const res = await frappeRequest(`/api/method/company.company.attendance_transfer_api.get_attendance_transfer_details?${query.toString()}`);
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, 'Failed to fetch transfer details'));

@@ -819,9 +819,9 @@ export function AttendanceView() {
                                     borderRadius: 1.5,
                                     fontWeight: 600,
                                     textTransform: 'none',
-                                    bgcolor: '#7928CA',
+                                    bgcolor: '#36b37e',
                                     color: 'common.white',
-                                    '&:hover': { bgcolor: '#611f9f' }
+                                    '&:hover': { bgcolor: '#2b9065' }
                                 }}
                             >
                                 Transfer Attendance

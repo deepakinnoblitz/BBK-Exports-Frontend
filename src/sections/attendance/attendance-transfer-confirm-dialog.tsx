@@ -10,12 +10,16 @@ import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
+import { alpha } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
+
+import { COMMON_COLORS } from 'src/theme';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -60,27 +64,17 @@ export function AttendanceTransferConfirmDialog({
 
     return (
         <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-            <DialogTitle sx={{ pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box
-                    sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1.5,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        bgcolor: 'primary.lighter',
-                        color: 'primary.main'
-                    }}
+            <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Confirm Attendance Transfer
+                </Typography>
+                <IconButton
+                    onClick={handleClose}
+                    disabled={loading}
+                    size="small"
                 >
-                    <Iconify icon={"solar:transfer-horizontal-bold-duotone" as any} width={24} />
-                </Box>
-                <Box>
-                    <Typography variant="h6">Confirm Attendance Transfer</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        Adjust Sunday / Non-working day attendance to a working date
-                    </Typography>
-                </Box>
+                    <Iconify icon="mingcute:close-line" width={20} />
+                </IconButton>
             </DialogTitle>
 
             <Divider />
@@ -92,33 +86,33 @@ export function AttendanceTransferConfirmDialog({
                         sx={{
                             p: 2,
                             borderRadius: 1.5,
-                            bgcolor: (theme) => theme.palette.mode === 'light' ? '#f4f6f8' : 'background.neutral',
-                            border: (theme) => `1px solid ${theme.palette.divider}`
+                            bgcolor: (theme) => theme.palette.mode === 'light' ? 'rgba(209, 250, 229, 0.4)' : alpha(COMMON_COLORS.emerald.main, 0.12),
+                            border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.25)}`
                         }}
                     >
                         <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
                             <Box>
-                                <Typography variant="caption" color="text.secondary">
-                                    SOURCE DATE (NON-WORKING)
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                                    SOURCE DATE
                                 </Typography>
                                 <Typography variant="subtitle1" fontWeight={700}>
                                     {dayjs(sourceDate).format('ddd, DD MMM YYYY')}
                                 </Typography>
                             </Box>
 
-                            <Iconify icon={"solar:arrow-right-bold" as any} width={20} sx={{ color: 'text.secondary' }} />
+                            <Iconify icon={"solar:arrow-right-bold" as any} width={20} sx={{ color: COMMON_COLORS.emerald.main }} />
 
                             <Box sx={{ textAlign: 'right' }}>
-                                <Typography variant="caption" color="text.secondary">
-                                    TARGET DATE (WORKING)
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                                    TARGET DATE
                                 </Typography>
-                                <Typography variant="subtitle1" fontWeight={700} color="primary.main">
+                                <Typography variant="subtitle1" fontWeight={700} sx={{ color: COMMON_COLORS.emerald.main }}>
                                     {dayjs(targetDate).format('ddd, DD MMM YYYY')}
                                 </Typography>
                             </Box>
                         </Stack>
 
-                        <Divider sx={{ my: 1.5 }} />
+                        <Divider sx={{ my: 1.5, borderColor: alpha(COMMON_COLORS.emerald.main, 0.2) }} />
 
                         <Stack direction="row" alignItems="center" justifyContent="space-between">
                             <Typography variant="body2" color="text.secondary">
@@ -126,9 +120,12 @@ export function AttendanceTransferConfirmDialog({
                             </Typography>
                             <Chip
                                 label={`${selectedEmployees.length} Employees`}
-                                color="primary"
                                 size="small"
-                                sx={{ fontWeight: 600 }}
+                                sx={{
+                                    fontWeight: 600,
+                                    bgcolor: COMMON_COLORS.emerald.main,
+                                    color: '#ffffff'
+                                }}
                             />
                         </Stack>
                     </Box>
@@ -136,8 +133,7 @@ export function AttendanceTransferConfirmDialog({
                     {/* Policy Notice */}
                     <Alert severity="info" icon={<Iconify icon={"solar:info-circle-bold" as any} />}>
                         <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.5 }}>
-                            Target attendance will be marked as <strong>Present</strong> with worked hours credited from {dayjs(sourceDate).format('DD MMM')}.
-                            The source non-working date will be locked as <strong>Transferred</strong> to prevent duplicate pay or Comp-Off.
+                            The attendance record from <strong>{dayjs(sourceDate).format('DD MMM')}</strong> will be moved directly to <strong>{dayjs(targetDate).format('DD MMM')}</strong> as <strong>Present</strong> with all punches and hours intact. No duplicate record will remain on {dayjs(sourceDate).format('DD MMM')}.
                         </Typography>
                     </Alert>
 
@@ -164,16 +160,19 @@ export function AttendanceTransferConfirmDialog({
                 </Stack>
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, pb: 2.5 }}>
-                <Button variant="outlined" color="inherit" onClick={handleClose} disabled={loading}>
-                    Cancel
-                </Button>
+            <DialogActions sx={{ px: 3, pb: 2.5, justifyContent: 'flex-end' }}>
                 <Button
                     variant="contained"
-                    color="primary"
                     onClick={handleConfirm}
                     disabled={loading || selectedEmployees.length === 0}
                     startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <Iconify icon={"solar:check-circle-bold" as any} />}
+                    sx={{
+                        bgcolor: COMMON_COLORS.primaryButton.bg,
+                        color: COMMON_COLORS.primaryButton.color,
+                        '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+                        px: 3,
+                        py: 1
+                    }}
                 >
                     {loading ? 'Processing Transfer...' : `Confirm & Transfer (${selectedEmployees.length})`}
                 </Button>
