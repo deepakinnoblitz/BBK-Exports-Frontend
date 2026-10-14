@@ -141,7 +141,9 @@ export function useBankAccounts(
   pageSize: number = 10,
   search: string = '',
   orderBy: string = 'creation',
-  order: 'asc' | 'desc' = 'desc'
+  order: 'asc' | 'desc' = 'desc',
+  accountType: string = 'all',
+  bankName: string = 'all'
 ) {
   const [data, setData] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -152,12 +154,21 @@ export function useBankAccounts(
     setLoading(true);
     setError(null);
     try {
+      const filters: any[] = [];
+      if (accountType && accountType !== 'all') {
+        filters.push(['Bank Account', 'account_type', '=', accountType]);
+      }
+      if (bankName && bankName !== 'all') {
+        filters.push(['Bank Account', 'bank_name', '=', bankName]);
+      }
+
       const result = await fetchBankAccounts({
         page,
         page_size: pageSize,
         search,
         orderBy,
-        order
+        order,
+        filters: filters.length > 0 ? filters : undefined
       });
       setData(result.data || []);
       setTotal(result.total || 0);
@@ -167,7 +178,7 @@ export function useBankAccounts(
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, orderBy, order]);
+  }, [page, pageSize, search, orderBy, order, accountType, bankName]);
 
   useEffect(() => {
     refetch();
@@ -341,7 +352,9 @@ export function useSalaryStructureComponents(
   pageSize: number = 10,
   search: string = '',
   orderBy: string = 'creation',
-  order: 'asc' | 'desc' = 'desc'
+  order: 'asc' | 'desc' = 'desc',
+  type: string = 'all',
+  isDefault: string = 'all'
 ) {
   const [data, setData] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -352,12 +365,21 @@ export function useSalaryStructureComponents(
     setLoading(true);
     setError(null);
     try {
+      const filters: any[] = [];
+      if (type && type !== 'all') {
+        filters.push(['Salary Structure Component', 'type', '=', type]);
+      }
+      if (isDefault && isDefault !== 'all') {
+        filters.push(['Salary Structure Component', 'is_default', '=', isDefault === '1' ? 1 : 0]);
+      }
+
       const result = await fetchSalaryStructureComponents({
         page,
         page_size: pageSize,
         search,
         orderBy,
-        order
+        order,
+        filters: filters.length > 0 ? filters : undefined
       });
       setData(result.data || []);
       setTotal(result.total || 0);
@@ -367,7 +389,7 @@ export function useSalaryStructureComponents(
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, orderBy, order]);
+  }, [page, pageSize, search, orderBy, order, type, isDefault]);
 
   useEffect(() => {
     refetch();
