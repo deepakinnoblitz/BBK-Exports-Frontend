@@ -106,15 +106,14 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
     };
 
     // Calculate total columns
-    // Personal (16) + Employment (13) + Bank (5) + CTC (1) + Earnings (N) + Deductions (M) + Summary (3: Tot Earn, Tot Ded, Net)
+    // Personal (16) + Employment (13) + Bank (5) + CTC (1) + Earnings (N) + Deductions (M)
     const personalColCount = PERSONAL_FIELDS.length;
     const employmentColCount = EMPLOYMENT_FIELDS.length;
     const bankColCount = BANK_FIELDS.length;
     const earningsColCount = earnings.length;
     const deductionsColCount = deductions.length;
-    const summaryColCount = 3;
 
-    const totalCols = personalColCount + employmentColCount + bankColCount + 1 + earningsColCount + deductionsColCount + summaryColCount;
+    const totalCols = personalColCount + employmentColCount + bankColCount + 1 + earningsColCount + deductionsColCount;
 
     // Helper: Excel column letter
     const getColumnLetter = (colIdx: number): string => {
@@ -222,14 +221,6 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
         currentStartCol += deductionsColCount;
     }
 
-    // 7. Salary Summary
-    sheet.mergeCells(3, currentStartCol, 3, currentStartCol + summaryColCount - 1);
-    const sumCatCell = sheet.getCell(3, currentStartCol);
-    sumCatCell.value = 'SALARY SUMMARY (AUTO CALCULATED)';
-    sumCatCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF334155' } };
-    sumCatCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-    sumCatCell.alignment = { horizontal: 'center', vertical: 'middle' };
-
     sheet.getRow(3).height = 22;
 
     // Apply borders to row 1, 2, 3
@@ -264,11 +255,6 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
         columnDefs.push({ label: d, key: `deduction_${d}`, sample: '1200', width: 16, type: 'currency' });
     });
 
-    // Calculated summary columns
-    columnDefs.push({ label: 'Total Earnings', key: 'total_earnings', sample: '0', width: 16, type: 'calc' });
-    columnDefs.push({ label: 'Total Deductions', key: 'total_deductions', sample: '0', width: 16, type: 'calc' });
-    columnDefs.push({ label: 'Net Salary', key: 'net_salary', sample: '0', width: 16, type: 'calc' });
-
     columnDefs.forEach((col, idx) => {
         const colNum = idx + 1;
         const cell = row4.getCell(colNum);
@@ -296,36 +282,12 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
             const colNum = idx + 1;
             const cell = row5.getCell(colNum);
             cell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF64748B' } };
-            cell.alignment = { horizontal: col.type === 'currency' || col.type === 'calc' ? 'right' : 'left', vertical: 'middle' };
+            cell.alignment = { horizontal: col.type === 'currency' ? 'right' : 'left', vertical: 'middle' };
             cell.border = thinBorder;
 
             if (col.type === 'currency') {
                 cell.value = parseFloat(col.sample) || 0;
                 cell.numFmt = '#,##0.00';
-            } else if (col.type === 'calc') {
-                if (col.key === 'total_earnings') {
-                    if (earningsColCount > 0) {
-                        const start = getColumnLetter(personalColCount + employmentColCount + bankColCount + 2);
-                        const end = getColumnLetter(personalColCount + employmentColCount + bankColCount + 1 + earningsColCount);
-                        cell.value = { formula: `SUM(${start}5:${end}5)`, result: 0 };
-                    } else {
-                        cell.value = 0;
-                    }
-                } else if (col.key === 'total_deductions') {
-                    if (deductionsColCount > 0) {
-                        const start = getColumnLetter(personalColCount + employmentColCount + bankColCount + 2 + earningsColCount);
-                        const end = getColumnLetter(personalColCount + employmentColCount + bankColCount + 1 + earningsColCount + deductionsColCount);
-                        cell.value = { formula: `SUM(${start}5:${end}5)`, result: 0 };
-                    } else {
-                        cell.value = 0;
-                    }
-                } else if (col.key === 'net_salary') {
-                    const totEarnCol = getColumnLetter(totalCols - 2);
-                    const totDedCol = getColumnLetter(totalCols - 1);
-                    cell.value = { formula: `${totEarnCol}5-${totDedCol}5`, result: 0 };
-                }
-                cell.numFmt = '#,##0.00';
-                cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF059669' } };
             } else {
                 cell.value = col.sample;
             }

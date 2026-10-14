@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import { useSnackbar } from 'notistack';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Step from '@mui/material/Step';
@@ -10,6 +10,7 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
+import Divider from '@mui/material/Divider';
 import Stepper from '@mui/material/Stepper';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
@@ -29,7 +30,9 @@ import TableContainer from '@mui/material/TableContainer';
 import LinearProgress from '@mui/material/LinearProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
+import { COMMON_COLORS } from 'src/theme';
 import { bulkImportEmployees } from 'src/api/employees';
+import { fetchSalaryComponents } from 'src/api/hr-management';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -97,10 +100,19 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
     const [sheetRows, setSheetRows] = useState<any[][]>([]);
     const [columnMapping, setColumnMapping] = useState<Record<number, string>>({});
     const [hiddenIndices, setHiddenIndices] = useState<number[]>([]);
+    const [knownSalaryComponents, setKnownSalaryComponents] = useState<any[]>([]);
 
     // Processed data for preview
     const [previewRows, setPreviewRows] = useState<any[]>([]);
     const [updateExisting, setUpdateExisting] = useState(false);
+
+    // Edit modal state
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [editForm, setEditForm] = useState<any>(null);
+    const [newEarningName, setNewEarningName] = useState('');
+    const [newEarningAmount, setNewEarningAmount] = useState('');
+    const [newDeductionName, setNewDeductionName] = useState('');
+    const [newDeductionAmount, setNewDeductionAmount] = useState('');
 
     // Import execution state
     const [progress, setProgress] = useState(0);
@@ -113,6 +125,14 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
         errors: string[];
     } | null>(null);
 
+    useEffect(() => {
+        if (open) {
+            fetchSalaryComponents()
+                .then((data) => setKnownSalaryComponents(data || []))
+                .catch((err) => console.error('Failed to prefetch salary components:', err));
+        }
+    }, [open]);
+
     const resetState = () => {
         setActiveStep(0);
         setFile(null);
@@ -124,6 +144,8 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
         setHiddenIndices([]);
         setPreviewRows([]);
         setUpdateExisting(false);
+        setEditingIndex(null);
+        setEditForm(null);
         setProgress(0);
         setImportResult(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -196,12 +218,58 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 setSheetHeaders(rawHeaders);
                 setSheetRows(dataRows);
 
+                // Helper to detect category row above column headers
+                const categoryRowIdx = headerRowIdx - 1;
+                const categoryGrid = categoryRowIdx >= 0 ? rawGrid[categoryRowIdx] : [];
+
+                const getCategoryForColumn = (colIdx: number): string => {
+                    let cat = '';
+                    if (categoryRowIdx >= 0 && worksheet['!merges']) {
+                        const m = (worksheet['!merges'] as any[]).find(
+                            (rng) => rng.s.r <= categoryRowIdx && rng.e.r >= categoryRowIdx && rng.s.c <= colIdx && rng.e.c >= colIdx
+                        );
+                        if (m) {
+                            const val = rawGrid[m.s.r]?.[m.s.c];
+                            if (val) cat = String(val).toLowerCase();
+                        }
+                    }
+                    if (!cat && categoryGrid) {
+                        for (let c = colIdx; c >= 0; c--) {
+                            const val = String(categoryGrid[c] || '').toLowerCase().trim();
+                            if (val) {
+                                cat = val;
+                                break;
+                            }
+                        }
+                    }
+                    return cat;
+                };
+
                 // Initialize automatic column mapping
                 const initialMap: Record<number, string> = {};
                 rawHeaders.forEach((rawH, idx) => {
                     const cleanH = rawH.toLowerCase().replace(/[*_()]/g, ' ').replace(/\s+/g, ' ').trim();
+                    const parentCat = getCategoryForColumn(idx);
 
-                    // 1. Exact or prefix match with standard employee fields
+                    // 0. Skip Calculated summary columns if any
+                    if (cleanH.includes('total earnings') || cleanH.includes('total deductions') || cleanH.includes('net salary')) {
+                        initialMap[idx] = "Don't Import";
+                        return;
+                    }
+
+                    // 1. If column is grouped under SALARY EARNINGS header
+                    if (parentCat.includes('earnings') || parentCat.includes('salary earnings')) {
+                        initialMap[idx] = `earning:${rawH.replace(/[*_]/g, '').trim()}`;
+                        return;
+                    }
+
+                    // 2. If column is grouped under SALARY DEDUCTIONS header
+                    if (parentCat.includes('deductions') || parentCat.includes('salary deductions')) {
+                        initialMap[idx] = `deduction:${rawH.replace(/[*_]/g, '').trim()}`;
+                        return;
+                    }
+
+                    // 3. Exact or prefix match with standard employee fields
                     const matchedStd = STANDARD_TARGET_FIELDS.find((f) => {
                         const cleanLabel = f.label.toLowerCase().replace(/[*_()]/g, ' ').replace(/\s+/g, ' ').trim();
                         return cleanH === f.value || cleanH === cleanLabel || cleanH.startsWith(f.value) || cleanH.startsWith(cleanLabel);
@@ -212,7 +280,22 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                         return;
                     }
 
-                    // 2. Fuzzy checks
+                    // 4. Match against known salary components in the database
+                    const matchedComp = knownSalaryComponents.find((sc) => {
+                        const scName = (sc.component_name || sc.name || '').toLowerCase().trim();
+                        return scName === cleanH || scName === rawH.toLowerCase().trim();
+                    });
+
+                    if (matchedComp) {
+                        if (matchedComp.type === 'Deduction') {
+                            initialMap[idx] = `deduction:${matchedComp.component_name || rawH}`;
+                        } else {
+                            initialMap[idx] = `earning:${matchedComp.component_name || rawH}`;
+                        }
+                        return;
+                    }
+
+                    // 5. Fuzzy checks for standard employee fields
                     if (cleanH.includes('employee id') || cleanH === 'id' || cleanH === 'emp id' || cleanH === 'emp code') {
                         initialMap[idx] = 'employee_id';
                     } else if (cleanH.includes('employee name') || cleanH === 'name' || cleanH === 'emp name') {
@@ -230,18 +313,17 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                     } else if (cleanH === 'ctc' || cleanH.includes('ctc')) {
                         initialMap[idx] = 'ctc';
                     } else if (
-                        cleanH === 'pf' || cleanH === 'esi' || cleanH.includes('professional tax') ||
-                        cleanH.includes('loan recovery') || cleanH.includes('deduction')
+                        cleanH.includes('pf') || cleanH.includes('esi') || cleanH.includes('professional tax') ||
+                        cleanH.includes('loan') || cleanH.includes('recovery') || cleanH.includes('insurance') ||
+                        cleanH.includes('deduction')
                     ) {
                         initialMap[idx] = `deduction:${rawH.replace(/[*_]/g, '').trim()}`;
                     } else if (
                         cleanH.includes('basic') || cleanH === 'da' || cleanH === 'hra' ||
                         cleanH.includes('allowance') || cleanH.includes('bata') || cleanH.includes('overtime') ||
-                        cleanH.includes('bonus')
+                        cleanH.includes('bonus') || cleanH.includes('salary') || cleanH.includes('earning')
                     ) {
                         initialMap[idx] = `earning:${rawH.replace(/[*_]/g, '').trim()}`;
-                    } else if (cleanH.includes('total') || cleanH.includes('net salary')) {
-                        initialMap[idx] = "Don't Import";
                     } else {
                         initialMap[idx] = "Don't Import";
                     }
@@ -305,14 +387,18 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
 
                 if (targetField.startsWith('earning:')) {
                     const compName = targetField.replace('earning:', '');
-                    const amt = parseFloat(cellVal) || 0;
-                    if (amt > 0 || cellVal !== '') {
+                    const isValEntered = cellVal !== undefined && cellVal !== null && String(cellVal).trim() !== '';
+                    if (isValEntered) {
+                        const numVal = typeof cellVal === 'number' ? cellVal : parseFloat(String(cellVal).replace(/[^0-9.-]/g, ''));
+                        const amt = isNaN(numVal) ? 0 : numVal;
                         empRecord.earnings.push({ component_name: compName, amount: amt });
                     }
                 } else if (targetField.startsWith('deduction:')) {
                     const compName = targetField.replace('deduction:', '');
-                    const amt = parseFloat(cellVal) || 0;
-                    if (amt > 0 || cellVal !== '') {
+                    const isValEntered = cellVal !== undefined && cellVal !== null && String(cellVal).trim() !== '';
+                    if (isValEntered) {
+                        const numVal = typeof cellVal === 'number' ? cellVal : parseFloat(String(cellVal).replace(/[^0-9.-]/g, ''));
+                        const amt = isNaN(numVal) ? 0 : numVal;
                         empRecord.deductions.push({ component_name: compName, amount: amt });
                     }
                 } else {
@@ -342,6 +428,70 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
 
         setPreviewRows(processedRows);
         setActiveStep(2);
+    };
+
+    // ----------------------------------------------------
+    // Row Editing Handlers
+    // ----------------------------------------------------
+    const handleOpenEdit = (index: number) => {
+        setEditingIndex(index);
+        setEditForm(JSON.parse(JSON.stringify(previewRows[index])));
+    };
+
+    const handleSaveEdit = () => {
+        if (editingIndex === null || !editForm) return;
+
+        const updatedErrors: string[] = [];
+        if (!editForm.employee_id?.trim()) updatedErrors.push('Missing Employee ID');
+        if (!editForm.employee_name?.trim()) updatedErrors.push('Missing Employee Name');
+        if (!editForm.email?.trim()) updatedErrors.push('Missing Email');
+
+        const updated = {
+            ...editForm,
+            _errors: updatedErrors,
+        };
+
+        setPreviewRows((prev) => {
+            const next = [...prev];
+            next[editingIndex] = updated;
+            return next;
+        });
+
+        setEditingIndex(null);
+        setEditForm(null);
+        enqueueSnackbar('Employee record updated successfully', { variant: 'success' });
+    };
+
+    const handleAddEarningToEdit = (name: string, amtStr: string) => {
+        if (!name.trim()) return;
+        const amt = parseFloat(amtStr) || 0;
+        setEditForm((prev: any) => ({
+            ...prev,
+            earnings: [...(prev.earnings || []), { component_name: name.trim(), amount: amt }],
+        }));
+    };
+
+    const handleRemoveEarningFromEdit = (idx: number) => {
+        setEditForm((prev: any) => ({
+            ...prev,
+            earnings: (prev.earnings || []).filter((_: any, i: number) => i !== idx),
+        }));
+    };
+
+    const handleAddDeductionToEdit = (name: string, amtStr: string) => {
+        if (!name.trim()) return;
+        const amt = parseFloat(amtStr) || 0;
+        setEditForm((prev: any) => ({
+            ...prev,
+            deductions: [...(prev.deductions || []), { component_name: name.trim(), amount: amt }],
+        }));
+    };
+
+    const handleRemoveDeductionFromEdit = (idx: number) => {
+        setEditForm((prev: any) => ({
+            ...prev,
+            deductions: (prev.deductions || []).filter((_: any, i: number) => i !== idx),
+        }));
     };
 
     // ----------------------------------------------------
@@ -579,7 +729,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                             <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Designation</TableCell>
                             <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Earnings</TableCell>
                             <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Deductions</TableCell>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider', width: 50 }}>Action</TableCell>
+                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider', width: 90 }} align="center">Action</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -606,19 +756,48 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                     <TableCell>{row.department || '-'}</TableCell>
                                     <TableCell>{row.designation || '-'}</TableCell>
                                     <TableCell>
-                                        {row.earnings?.length > 0
-                                            ? `${row.earnings.length} items (₹${row.earnings.reduce((s: number, it: any) => s + (it.amount || 0), 0)})`
-                                            : '-'}
+                                        {row.earnings?.length > 0 ? (
+                                            <Box>
+                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                    {row.earnings.length} items (₹{row.earnings.reduce((s: number, it: any) => s + (it.amount || 0), 0)})
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', maxWidth: 220, whiteSpace: 'normal' }}>
+                                                    {row.earnings.map((e: any) => `${e.component_name}: ₹${e.amount}`).join(', ')}
+                                                </Typography>
+                                            </Box>
+                                        ) : '-'}
                                     </TableCell>
                                     <TableCell>
-                                        {row.deductions?.length > 0
-                                            ? `${row.deductions.length} items (₹${row.deductions.reduce((s: number, it: any) => s + (it.amount || 0), 0)})`
-                                            : '-'}
+                                        {row.deductions?.length > 0 ? (
+                                            <Box>
+                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                    {row.deductions.length} items (₹{row.deductions.reduce((s: number, it: any) => s + (it.amount || 0), 0)})
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', maxWidth: 220, whiteSpace: 'normal' }}>
+                                                    {row.deductions.map((d: any) => `${d.component_name}: ₹${d.amount}`).join(', ')}
+                                                </Typography>
+                                            </Box>
+                                        ) : '-'}
                                     </TableCell>
                                     <TableCell align="center">
-                                        <IconButton size="small" color="error" onClick={() => handleDeletePreviewRow(i)}>
-                                            <Iconify icon={"solar:trash-bin-trash-bold" as any} />
-                                        </IconButton>
+                                        <Stack direction="row" spacing={0.5} justifyContent="center">
+                                            <IconButton
+                                                size="small"
+                                                color="primary"
+                                                onClick={() => handleOpenEdit(i)}
+                                                title="Edit employee details"
+                                            >
+                                                <Iconify icon={"solar:pen-bold" as any} />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                color="error"
+                                                onClick={() => handleDeletePreviewRow(i)}
+                                                title="Delete record"
+                                            >
+                                                <Iconify icon={"solar:trash-bin-trash-bold" as any} />
+                                            </IconButton>
+                                        </Stack>
                                     </TableCell>
                                 </TableRow>
                             );
@@ -751,7 +930,16 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                     )}
 
                     {activeStep === 2 && (
-                        <Button variant="contained" onClick={handleStartImport} disabled={loading || previewRows.length === 0}>
+                        <Button
+                            variant="contained"
+                            onClick={handleStartImport}
+                            disabled={loading || previewRows.length === 0}
+                            sx={{
+                                bgcolor: COMMON_COLORS.emerald.main,
+                                color: 'common.white',
+                                '&:hover': { bgcolor: COMMON_COLORS.emerald.dark },
+                            }}
+                        >
                             Start Import
                         </Button>
                     )}
@@ -768,6 +956,365 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 open={openTemplateDialog}
                 onClose={() => setOpenTemplateDialog(false)}
             />
+
+            {/* Edit Employee Dialog */}
+            <Dialog open={editingIndex !== null} onClose={() => setEditingIndex(null)} fullWidth maxWidth="md">
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Iconify icon={"solar:pen-bold" as any} width={22} sx={{ color: 'primary.main' }} />
+                        <Typography variant="h6">
+                            Edit Employee Details {editForm?.employee_name ? `(${editForm.employee_name})` : ''}
+                        </Typography>
+                    </Box>
+                    <IconButton onClick={() => setEditingIndex(null)} size="small">
+                        <Iconify icon="mingcute:close-line" />
+                    </IconButton>
+                </DialogTitle>
+
+                <DialogContent dividers sx={{ pt: 2, pb: 3, maxHeight: '72vh' }}>
+                    {editForm && (
+                        <Stack spacing={3}>
+                            {/* 1. Mandatory & Personal Details */}
+                            <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'text.secondary' }}>
+                                    PERSONAL & CONTACT DETAILS
+                                </Typography>
+                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                                    <TextField
+                                        label="Employee ID *"
+                                        size="small"
+                                        value={editForm.employee_id || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, employee_id: e.target.value })}
+                                        error={!editForm.employee_id?.trim()}
+                                        helperText={!editForm.employee_id?.trim() ? 'Required' : ''}
+                                    />
+                                    <TextField
+                                        label="Employee Name *"
+                                        size="small"
+                                        value={editForm.employee_name || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, employee_name: e.target.value })}
+                                        error={!editForm.employee_name?.trim()}
+                                        helperText={!editForm.employee_name?.trim() ? 'Required' : ''}
+                                    />
+                                    <TextField
+                                        label="Email *"
+                                        size="small"
+                                        value={editForm.email || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                                        error={!editForm.email?.trim()}
+                                        helperText={!editForm.email?.trim() ? 'Required' : ''}
+                                    />
+                                    <TextField
+                                        label="Joining Date (YYYY-MM-DD)"
+                                        size="small"
+                                        value={editForm.date_of_joining || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, date_of_joining: e.target.value })}
+                                    />
+                                    <TextField
+                                        label="Personal Phone"
+                                        size="small"
+                                        value={editForm.phone || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                                    />
+                                    <TextField
+                                        label="Date of Birth"
+                                        size="small"
+                                        value={editForm.dob || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, dob: e.target.value })}
+                                    />
+                                    <TextField
+                                        label="Gender"
+                                        size="small"
+                                        value={editForm.sex || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, sex: e.target.value })}
+                                    />
+                                    <TextField
+                                        label="Blood Group"
+                                        size="small"
+                                        value={editForm.blood_group || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, blood_group: e.target.value })}
+                                    />
+                                </Box>
+                            </Box>
+
+                            <Divider />
+
+                            {/* 2. Employment & Organization */}
+                            <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'text.secondary' }}>
+                                    EMPLOYMENT DETAILS
+                                </Typography>
+                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                                    <TextField
+                                        label="Department"
+                                        size="small"
+                                        value={editForm.department || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                                    />
+                                    <TextField
+                                        label="Designation"
+                                        size="small"
+                                        value={editForm.designation || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, designation: e.target.value })}
+                                    />
+                                    <FormControl fullWidth size="small">
+                                        <Select
+                                            value={editForm.status || 'Active'}
+                                            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                                        >
+                                            <MenuItem value="Active">Active</MenuItem>
+                                            <MenuItem value="Inactive">Inactive</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                    <TextField
+                                        label="Employee Type"
+                                        size="small"
+                                        value={editForm.employee_type || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, employee_type: e.target.value })}
+                                    />
+                                    <TextField
+                                        label="Shift"
+                                        size="small"
+                                        value={editForm.shift || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, shift: e.target.value })}
+                                    />
+                                    <TextField
+                                        label="Monthly CTC"
+                                        size="small"
+                                        type="number"
+                                        value={editForm.ctc || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, ctc: e.target.value })}
+                                    />
+                                </Box>
+                            </Box>
+
+                            <Divider />
+
+                            {/* 3. Financial & Bank */}
+                            <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'text.secondary' }}>
+                                    FINANCIAL & BANK DETAILS
+                                </Typography>
+                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                                    <TextField
+                                        label="Bank Account"
+                                        size="small"
+                                        value={editForm.bank_account || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, bank_account: e.target.value })}
+                                    />
+                                    <TextField
+                                        label="PF Number"
+                                        size="small"
+                                        value={editForm.pf_number || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, pf_number: e.target.value })}
+                                    />
+                                    <TextField
+                                        label="ESI No"
+                                        size="small"
+                                        value={editForm.esi_no || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, esi_no: e.target.value })}
+                                    />
+                                    <TextField
+                                        label="PAN Number"
+                                        size="small"
+                                        value={editForm.pan_number || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, pan_number: e.target.value })}
+                                    />
+                                </Box>
+                            </Box>
+
+                            <Divider />
+
+                            {/* 4. Salary Earnings */}
+                            <Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'success.main' }}>
+                                        EARNINGS COMPONENTS ({editForm.earnings?.length || 0})
+                                    </Typography>
+                                </Box>
+
+                                <Stack spacing={1.5} sx={{ mb: 2 }}>
+                                    {(editForm.earnings || []).length === 0 ? (
+                                        <Typography variant="caption" color="text.secondary">
+                                            No earnings components added
+                                        </Typography>
+                                    ) : (
+                                        editForm.earnings.map((earn: any, eIdx: number) => (
+                                            <Box
+                                                key={eIdx}
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 1.5,
+                                                    p: 1,
+                                                    border: '1px solid',
+                                                    borderColor: 'divider',
+                                                    borderRadius: 1,
+                                                    bgcolor: 'background.paper',
+                                                }}
+                                            >
+                                                <Typography variant="subtitle2" sx={{ minWidth: 160, flexGrow: 1 }}>
+                                                    {earn.component_name}
+                                                </Typography>
+                                                <TextField
+                                                    label="Amount (₹)"
+                                                    size="small"
+                                                    type="number"
+                                                    value={earn.amount ?? ''}
+                                                    onChange={(e) => {
+                                                        const val = parseFloat(e.target.value) || 0;
+                                                        const updatedEarnings = [...editForm.earnings];
+                                                        updatedEarnings[eIdx] = { ...updatedEarnings[eIdx], amount: val };
+                                                        setEditForm({ ...editForm, earnings: updatedEarnings });
+                                                    }}
+                                                    sx={{ width: 140 }}
+                                                />
+                                                <IconButton size="small" color="error" onClick={() => handleRemoveEarningFromEdit(eIdx)}>
+                                                    <Iconify icon={"solar:trash-bin-trash-bold" as any} />
+                                                </IconButton>
+                                            </Box>
+                                        ))
+                                    )}
+                                </Stack>
+
+                                {/* Add new earning */}
+                                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                                    <TextField
+                                        placeholder="Component name (e.g. Basic Salary)"
+                                        size="small"
+                                        value={newEarningName}
+                                        onChange={(e) => setNewEarningName(e.target.value)}
+                                        sx={{ flexGrow: 1 }}
+                                    />
+                                    <TextField
+                                        placeholder="Amount"
+                                        size="small"
+                                        type="number"
+                                        value={newEarningAmount}
+                                        onChange={(e) => setNewEarningAmount(e.target.value)}
+                                        sx={{ width: 120 }}
+                                    />
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        onClick={() => {
+                                            handleAddEarningToEdit(newEarningName, newEarningAmount);
+                                            setNewEarningName('');
+                                            setNewEarningAmount('');
+                                        }}
+                                        disabled={!newEarningName.trim()}
+                                    >
+                                        Add
+                                    </Button>
+                                </Box>
+                            </Box>
+
+                            <Divider />
+
+                            {/* 5. Salary Deductions */}
+                            <Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'error.main' }}>
+                                        DEDUCTIONS COMPONENTS ({editForm.deductions?.length || 0})
+                                    </Typography>
+                                </Box>
+
+                                <Stack spacing={1.5} sx={{ mb: 2 }}>
+                                    {(editForm.deductions || []).length === 0 ? (
+                                        <Typography variant="caption" color="text.secondary">
+                                            No deductions components added
+                                        </Typography>
+                                    ) : (
+                                        editForm.deductions.map((ded: any, dIdx: number) => (
+                                            <Box
+                                                key={dIdx}
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 1.5,
+                                                    p: 1,
+                                                    border: '1px solid',
+                                                    borderColor: 'divider',
+                                                    borderRadius: 1,
+                                                    bgcolor: 'background.paper',
+                                                }}
+                                            >
+                                                <Typography variant="subtitle2" sx={{ minWidth: 160, flexGrow: 1 }}>
+                                                    {ded.component_name}
+                                                </Typography>
+                                                <TextField
+                                                    label="Amount (₹)"
+                                                    size="small"
+                                                    type="number"
+                                                    value={ded.amount ?? ''}
+                                                    onChange={(e) => {
+                                                        const val = parseFloat(e.target.value) || 0;
+                                                        const updatedDeductions = [...editForm.deductions];
+                                                        updatedDeductions[dIdx] = { ...updatedDeductions[dIdx], amount: val };
+                                                        setEditForm({ ...editForm, deductions: updatedDeductions });
+                                                    }}
+                                                    sx={{ width: 140 }}
+                                                />
+                                                <IconButton size="small" color="error" onClick={() => handleRemoveDeductionFromEdit(dIdx)}>
+                                                    <Iconify icon={"solar:trash-bin-trash-bold" as any} />
+                                                </IconButton>
+                                            </Box>
+                                        ))
+                                    )}
+                                </Stack>
+
+                                {/* Add new deduction */}
+                                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                                    <TextField
+                                        placeholder="Deduction name (e.g. PF)"
+                                        size="small"
+                                        value={newDeductionName}
+                                        onChange={(e) => setNewDeductionName(e.target.value)}
+                                        sx={{ flexGrow: 1 }}
+                                    />
+                                    <TextField
+                                        placeholder="Amount"
+                                        size="small"
+                                        type="number"
+                                        value={newDeductionAmount}
+                                        onChange={(e) => setNewDeductionAmount(e.target.value)}
+                                        sx={{ width: 120 }}
+                                    />
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        onClick={() => {
+                                            handleAddDeductionToEdit(newDeductionName, newDeductionAmount);
+                                            setNewDeductionName('');
+                                            setNewDeductionAmount('');
+                                        }}
+                                        disabled={!newDeductionName.trim()}
+                                    >
+                                        Add
+                                    </Button>
+                                </Box>
+                            </Box>
+                        </Stack>
+                    )}
+                </DialogContent>
+
+                <DialogActions sx={{ p: 2 }}>
+                    <Button variant="outlined" onClick={() => setEditingIndex(null)}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleSaveEdit}
+                        sx={{
+                            bgcolor: COMMON_COLORS.emerald.main,
+                            color: 'common.white',
+                            '&:hover': { bgcolor: COMMON_COLORS.emerald.dark },
+                        }}
+                    >
+                        Save Changes
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </>
     );
 }
