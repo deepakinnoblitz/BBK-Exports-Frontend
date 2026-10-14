@@ -47,10 +47,8 @@ async function fetchFrappeList(params: {
     }
 
     if (params.filterValues) {
-        Object.entries(params.filterValues).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== '') {
         for (const [key, value] of Object.entries(params.filterValues)) {
-            if (value) {
+            if (value !== undefined && value !== null && value !== '') {
                 if (key === 'pay_period_start') {
                     filters.push(['Salary Slip', 'pay_period_start', '>=', value]);
                 } else if (key === 'pay_period_end') {
@@ -58,6 +56,7 @@ async function fetchFrappeList(params: {
                 } else if (Array.isArray(value)) {
                     if (value.length > 0) {
                         filters.push(['Salary Slip', key, 'in', value]);
+                    }
                 } else if (key === 'bank_name') {
                     try {
                         const bankRes = await frappeRequest(
