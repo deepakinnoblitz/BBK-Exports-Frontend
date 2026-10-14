@@ -20,7 +20,8 @@ import {
   LuChevronDown,
   LuHardHat,
   LuMountain,
-  LuBriefcase
+  LuBriefcase,
+  LuCar
 } from 'react-icons/lu';
 
 import Box from '@mui/material/Box';
@@ -102,7 +103,7 @@ const SETTINGS_TABS = [
   },
 ];
 
-type CategoryKey = 'staff_ctc' | 'staff_non_ctc' | 'workers' | 'north_indian' | 'general';
+type CategoryKey = 'staff_ctc' | 'staff_non_ctc' | 'workers' | 'north_indian' | 'drivers' | 'general';
 
 const CATEGORIES: { key: CategoryKey; title: string; subtitle: string; icon: React.ReactNode }[] = [
   {
@@ -122,6 +123,12 @@ const CATEGORIES: { key: CategoryKey; title: string; subtitle: string; icon: Rea
     title: 'Workers Settings',
     subtitle: 'Rules & statutory policies for Factory / Worker staff (2x OT, ₹1,500 Attendance Bonus, Capped PF)',
     icon: <LuHardHat size={20} style={{ color: '#d97706' }} />,
+  },
+  {
+    key: 'drivers',
+    title: 'Drivers Settings',
+    subtitle: 'Rules for Drivers: Fixed 26-Day basis, 2x OT, Capped PF, ₹5/day Tea Allowance, Bonus & EL Provisions',
+    icon: <LuCar size={20} style={{ color: '#10b981' }} />,
   },
   {
     key: 'north_indian',
@@ -202,6 +209,19 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       }
       if (baseField === 'pf_admin_edli_basis') return 'Statutory PF Wage (Capped at Ceiling)';
       if (baseField === 'pf_admin_edli_gross_percent') return 100;
+    } else if (cat === 'drivers') {
+      const dField = `drivers_${baseField}`;
+      if (data[dField] !== undefined && data[dField] !== null && data[dField] !== '') {
+        return data[dField];
+      }
+      if (baseField === 'fixed_working_days') return 26;
+      if (baseField === 'salary_working_days_basis') return 'Fixed Working Days (e.g. 26)';
+      if (baseField === 'ot_rate_multiplier') return 2.0;
+      if (baseField === 'tea_allowance_per_day') return 5;
+      if (baseField === 'bonus_provision_rate') return 8.33;
+      if (baseField === 'el_provision_days_per_year') return 15;
+      if (baseField === 'pf_admin_edli_basis') return 'Statutory PF Wage (Capped at Ceiling)';
+      if (baseField === 'pf_admin_edli_gross_percent') return 100;
     }
     return data[baseField] !== undefined && data[baseField] !== null ? data[baseField] : fallbackDefault;
   };
@@ -216,6 +236,8 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       onChange(`workers_${baseField}`, value);
     } else if (cat === 'north_indian') {
       onChange(`north_indian_${baseField}`, value);
+    } else if (cat === 'drivers') {
+      onChange(`drivers_${baseField}`, value);
     } else {
       onChange(baseField, value);
     }
@@ -1174,14 +1196,14 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  {(cat.key === 'workers' || cat.key === 'general') && (
-                    <Grid size={{ xs: 12, sm: 6, md: cat.key === 'workers' ? 6 : 4 }}>
+                  {(cat.key === 'workers' || cat.key === 'drivers' || cat.key === 'general') && (
+                    <Grid size={{ xs: 12, sm: 6, md: (cat.key === 'workers' || cat.key === 'drivers') ? 6 : 4 }}>
                       <TextField
                         fullWidth
                         type="number"
-                        label="Workers OT Multiplier"
-                        value={data.workers_ot_rate_multiplier ?? '2'}
-                        onChange={(e) => onChange('workers_ot_rate_multiplier', e.target.value)}
+                        label={cat.key === 'drivers' ? 'Drivers OT Multiplier' : (cat.key === 'workers' ? 'Workers OT Multiplier' : 'Default OT Multiplier')}
+                        value={cat.key === 'drivers' ? (data.drivers_ot_rate_multiplier ?? '2') : (data.workers_ot_rate_multiplier ?? '2')}
+                        onChange={(e) => onChange(cat.key === 'drivers' ? 'drivers_ot_rate_multiplier' : 'workers_ot_rate_multiplier', e.target.value)}
                         placeholder="2"
                         helperText="Double Rate: (Gross / 26 / 8) × OT Hours × Multiplier"
                         slotProps={{
