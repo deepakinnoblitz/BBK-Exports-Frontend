@@ -162,6 +162,8 @@ export const ProspectsReportPage = lazy(() => import('src/pages/reports/prospect
 export const EmployeePage = lazy(() => import('src/pages/employee'));
 export const EmployeeDetailsPage = lazy(() => import('src/pages/employee/details'));
 export const AttendancePage = lazy(() => import('src/pages/attendance'));
+export const AttendanceTransferPage = lazy(() => import('src/pages/attendance/transfer'));
+export const AttendanceTransferHistoryPage = lazy(() => import('src/pages/attendance/transfer-history'));
 export const LeavesPage = lazy(() => import('src/pages/leaves'));
 export const LeaveAllocationsPage = lazy(() => import('src/pages/leave-allocations'));
 export const PayrollPage = lazy(() => import('src/pages/payroll'));
@@ -484,6 +486,8 @@ export const routesSection: RouteObject[] = [
         ]
       },
       { path: 'attendance', element: <RolePermissionGuard actionKey="attendance_list"><AttendancePage /></RolePermissionGuard> },
+      { path: 'attendance/transfer', element: <RolePermissionGuard actionKey="attendance_list"><AttendanceTransferPage /></RolePermissionGuard> },
+      { path: 'attendance/transfer-history', element: <RolePermissionGuard actionKey="attendance_list"><AttendanceTransferHistoryPage /></RolePermissionGuard> },
       { path: 'leaves', element: <RolePermissionGuard actionKey="leaves"><LeavesPage /></RolePermissionGuard> },
       { path: 'leave-allocations', element: <RolePermissionGuard actionKey="leaves"><LeaveAllocationsPage /></RolePermissionGuard> },
       { path: 'payroll', element: <PayrollPage /> },

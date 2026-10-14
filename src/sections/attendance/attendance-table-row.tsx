@@ -8,6 +8,8 @@ import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 
+import Tooltip from '@mui/material/Tooltip';
+
 import { fTimeDist } from 'src/utils/format-time';
 
 import { Label } from 'src/components/label';
@@ -31,6 +33,11 @@ type Props = {
         attendance_source?: string;
         manual?: number | boolean;
         modified: string;
+        is_transferred?: number | boolean;
+        transfer_type?: string;
+        transferred_from_date?: string;
+        transferred_to_date?: string;
+        attendance_transfer_ref?: string;
     };
     selected: boolean;
     onSelectRow: VoidFunction;
@@ -61,6 +68,11 @@ export function AttendanceTableRow({
     const hasCustomPerms = user?.permissions?.custom_permissions_assigned && user?.permissions?.actions?.attendance_list;
     const displayEdit = (canEdit !== undefined ? canEdit : true) && (hasCustomPerms ? !!user?.permissions?.actions?.attendance_list?.edit : true);
     const displayDelete = (canDelete !== undefined ? canDelete : true) && (hasCustomPerms ? !!user?.permissions?.actions?.attendance_list?.delete : true);
+
+    // Super Admin: User must have HR (or HR Manager) AND System Manager roles, or be Administrator
+    const hasHR = user?.roles?.some((role: string) => ['HR', 'HR Manager'].includes(role));
+    const hasSystemManager = user?.roles?.some((role: string) => ['System Manager', 'Administrator'].includes(role));
+    const isSuperAdmin = (hasHR && hasSystemManager) || user?.roles?.includes('Administrator');
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -146,7 +158,44 @@ export function AttendanceTableRow({
             </TableCell>
 
             <TableCell>
-                <Label color={getStatusColor(row.status)}>{row.status}</Label>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'flex-start' }}>
+                    <Label color={getStatusColor(row.status)}>{row.status}</Label>
+                    {isSuperAdmin && !!row.is_transferred && (
+                        <Tooltip
+                            title={
+                                row.attendance_transfer_ref
+                                    ? `Transfer Ref: ${row.attendance_transfer_ref}`
+                                    : 'Transferred Attendance'
+                            }
+                            arrow
+                        >
+                            <Box
+                                component="span"
+                                sx={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 0.3,
+                                    fontSize: '0.675rem',
+                                    fontWeight: 700,
+                                    px: 0.6,
+                                    py: 0.1,
+                                    borderRadius: 0.75,
+                                    bgcolor: 'primary.lighter',
+                                    color: '#7928CA',
+                                    border: '1px solid #7928CA33',
+                                    cursor: 'help'
+                                }}
+                            >
+                                <Iconify icon={"solar:transfer-horizontal-bold-duotone" as any} width={12} />
+                                {row.transfer_type === 'Target (Adjusted Working)' && row.transferred_from_date
+                                    ? `From ${dayjs(row.transferred_from_date).format('DD/MM')}`
+                                    : row.transfer_type === 'Source (Non-Working)' && row.transferred_to_date
+                                    ? `To ${dayjs(row.transferred_to_date).format('DD/MM')}`
+                                    : 'Transferred'}
+                            </Box>
+                        </Tooltip>
+                    )}
+                </Box>
             </TableCell>
 
             <TableCell>
