@@ -2,6 +2,8 @@ import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import Grid from '@mui/material/Grid';
 import { Avatar } from '@mui/material';
 import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
@@ -201,6 +203,27 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                             </Stack>
                         </Box>
 
+                        {attendance.manual ? (
+                            <Box
+                                sx={{
+                                    p: 1.75,
+                                    px: 2,
+                                    mx: 3,
+                                    bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
+                                    borderRadius: 1.5,
+                                    border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.24)}`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1.5,
+                                }}
+                            >
+                                <Iconify icon={"solar:shield-warning-bold" as any} width={22} sx={{ color: 'warning.main', flexShrink: 0 }} />
+                                <Typography variant="body2" sx={{ color: 'warning.darker', fontWeight: 600 }}>
+                                    Manual Entry: Entered by {attendance.created_by_name || (attendance.owner && attendance.owner !== 'Guest' ? attendance.owner : 'Authorized User')}. Protected from biometric sync overwrite.
+                                </Typography>
+                            </Box>
+                        ) : null}
+
                         <Stack spacing={2}>
                             <Box
                                 sx={{
@@ -241,6 +264,55 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                                     <BiometricPunchesTable punches={attendance.attendance_punches} />
                                 </Box>
                             )}
+
+                            {/* Audit Log Card */}
+                            <Box sx={{ px: 1 }}>
+                                <Card
+                                    variant="outlined"
+                                    sx={{
+                                        p: 3,
+                                        borderRadius: 2,
+                                        border: (theme) => `1px solid ${theme.palette.divider}`,
+                                        bgcolor: 'background.paper',
+                                    }}
+                                >
+                                    <Grid container spacing={3}>
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <DetailItem
+                                                label="Created / Entered By"
+                                                value={attendance.created_by_name || (attendance.owner && attendance.owner !== 'Guest' ? attendance.owner : 'Administrator')}
+                                                icon={<Iconify icon={"solar:user-bold" as any} width={20} />}
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <DetailItem
+                                                label="Created Date & Time"
+                                                value={attendance.creation ? dayjs(attendance.creation).format('DD-MM-YYYY hh:mm A') : '-'}
+                                                icon={<Iconify icon={"solar:calendar-date-bold" as any} width={20} />}
+                                            />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12 }}>
+                                            <Divider sx={{ borderStyle: 'dashed' }} />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <DetailItem
+                                                label="Last Modified By"
+                                                value={attendance.modified_by_name || attendance.modified_by || 'Administrator'}
+                                                icon={<Iconify icon={"solar:user-check-bold" as any} width={20} />}
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <DetailItem
+                                                label="Last Modified Date & Time"
+                                                value={attendance.modified ? dayjs(attendance.modified).format('DD-MM-YYYY hh:mm A') : '-'}
+                                                icon={<Iconify icon={"solar:calendar-date-bold" as any} width={20} />}
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </Card>
+                            </Box>
                         </Stack>
                     </Stack>
                 ) : (
@@ -279,5 +351,55 @@ function DetailRow({ label, value, icon }: { label: string; value?: string | nul
                 </Typography>
             </Box>
         </Stack>
+    );
+}
+
+function DetailItem({ label, value, icon }: { label: string; value?: string | null; icon: React.ReactNode }) {
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 44,
+                    height: 44,
+                    borderRadius: 1.5,
+                    bgcolor: (theme) => alpha(theme.palette.info.main, 0.08),
+                    color: 'info.main',
+                    flexShrink: 0,
+                }}
+            >
+                {icon}
+            </Box>
+            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                <Typography
+                    variant="caption"
+                    sx={{
+                        color: 'text.secondary',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        display: 'block',
+                        fontSize: 11,
+                        mb: 0.2,
+                    }}
+                >
+                    {label}
+                </Typography>
+                <Typography
+                    variant="subtitle1"
+                    sx={{
+                        fontWeight: 900,
+                        color: 'text.primary',
+                        fontSize: '15px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    {value || '-'}
+                </Typography>
+            </Box>
+        </Box>
     );
 }

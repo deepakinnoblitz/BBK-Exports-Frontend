@@ -408,6 +408,34 @@ export async function getBankAccount(name: string) {
     return (await res.json()).message;
 }
 
+export async function getBankDetailsByIfsc(ifsc: string): Promise<{
+    success: boolean;
+    data?: {
+        bank_name: string;
+        branch: string;
+        city: string;
+        state: string;
+        address: string;
+        micr: string;
+        ifsc: string;
+    };
+    message?: string;
+}> {
+    const res = await frappeRequest(`/api/method/company.company.api.get_bank_details_by_ifsc?ifsc_code=${encodeURIComponent(ifsc)}`);
+    if (!res.ok) throw new Error("Failed to lookup IFSC details");
+    return (await res.json()).message;
+}
+
+export async function getDistinctBanks(): Promise<{
+    banks: string[];
+    active_banks: string[];
+}> {
+    const res = await frappeRequest(`/api/method/company.company.api.get_distinct_banks`);
+    if (!res.ok) throw new Error("Failed to fetch bank list");
+    return (await res.json()).message;
+}
+
+
 // Claim Type APIs
 export const fetchClaimTypes = (params: any) => {
     const { search, ...restParams } = params;
@@ -2480,6 +2508,135 @@ export async function getEmployeeType(name: string) {
     if (!res.ok) throw new Error("Failed to fetch employee type details");
     return (await res.json()).message;
 }
+
+// ----------------------------------------------------------------------
+// Skill Master APIs
+// ----------------------------------------------------------------------
+
+export interface Skill {
+    name: string;
+    skill_name: string;
+    description?: string;
+    is_active?: number;
+    creation?: string;
+    modified?: string;
+}
+
+export interface EmployeeSkillHistory {
+    name: string;
+    employee: string;
+    employee_name?: string;
+    from_skill?: string;
+    to_skill: string;
+    changed_by?: string;
+    changed_by_name?: string;
+    changed_at?: string;
+    reason?: string;
+}
+
+export interface EmployeeSalaryHistory {
+    name: string;
+    employee: string;
+    employee_name?: string;
+    previous_ctc?: number;
+    new_ctc: number;
+    previous_net_salary?: number;
+    new_net_salary?: number;
+    changed_components?: string;
+    component_details?: string;
+    changed_by?: string;
+    changed_by_name?: string;
+    changed_at?: string;
+    reason?: string;
+}
+
+export const fetchSkills = (params: any) => fetchFrappeList("Skill", params);
+
+export async function createSkill(data: Partial<Skill>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.insert", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doc: { doctype: "Skill", ...data } })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to create skill"));
+    return json.message;
+}
+
+export async function updateSkill(name: string, data: Partial<Skill>) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.set_value", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Skill", name, fieldname: data })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update skill"));
+    return json.message;
+}
+
+export async function deleteSkill(name: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.delete", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ doctype: "Skill", name })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to delete skill"));
+    return true;
+}
+
+export async function renameSkill(oldName: string, newName: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.rename_doc", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+            doctype: "Skill",
+            old_name: oldName,
+            new_name: newName,
+            merge: false
+        })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to rename skill"));
+    return json.message;
+}
+
+export async function getSkill(name: string) {
+    const res = await frappeRequest(`/api/method/frappe.client.get?doctype=Skill&name=${encodeURIComponent(name)}`);
+    if (!res.ok) throw new Error("Failed to fetch skill details");
+    return (await res.json()).message;
+}
+
+export async function fetchEmployeeSkillHistory(employeeId: string) {
+    const res = await frappeRequest(
+        `/api/method/frappe.client.get_list?doctype=Employee Skill History&filters=${encodeURIComponent(
+            JSON.stringify([['employee', '=', employeeId]])
+        )}&fields=${encodeURIComponent(
+            JSON.stringify(['name', 'employee', 'employee_name', 'from_skill', 'to_skill', 'changed_by', 'changed_by_name', 'changed_at', 'reason'])
+        )}&order_by=changed_at desc&limit_page_length=100`
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.message || [];
+}
+
+export async function fetchEmployeeSalaryHistory(employeeId: string) {
+    const res = await frappeRequest(
+        `/api/method/frappe.client.get_list?doctype=Employee Salary History&filters=${encodeURIComponent(
+            JSON.stringify([['employee', '=', employeeId]])
+        )}&fields=${encodeURIComponent(
+            JSON.stringify(['name', 'employee', 'employee_name', 'previous_ctc', 'new_ctc', 'previous_net_salary', 'new_net_salary', 'changed_components', 'component_details', 'changed_by', 'changed_by_name', 'changed_at', 'reason'])
+        )}&order_by=changed_at desc&limit_page_length=100`
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.message || [];
+}
+
 
 
 

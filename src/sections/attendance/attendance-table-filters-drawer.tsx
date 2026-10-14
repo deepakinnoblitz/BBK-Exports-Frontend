@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -45,6 +46,25 @@ export function AttendanceTableFiltersDrawer({
     employeeOptions,
     isHR,
 }: Props) {
+    const [openStartDate, setOpenStartDate] = useState(false);
+    const [openEndDate, setOpenEndDate] = useState(false);
+
+    const handleStartDateSelect = (newValue: any) => {
+        onFilters({ startDate: newValue ? newValue.format('YYYY-MM-DD') : null });
+        if (newValue && dayjs(newValue).isValid()) {
+            setOpenStartDate(false);
+            setTimeout(() => {
+                setOpenEndDate(true);
+            }, 180);
+        }
+    };
+
+    const handleCloseDrawer = () => {
+        setOpenStartDate(false);
+        setOpenEndDate(false);
+        onClose();
+    };
+
     const quickPresets = [
         {
             id: 'this_month',
@@ -118,7 +138,7 @@ export function AttendanceTableFiltersDrawer({
             </IconButton>
 
             <IconButton
-                onClick={onClose}
+                onClick={handleCloseDrawer}
                 sx={{
                     color: 'text.secondary',
                     '&:hover': {
@@ -135,7 +155,7 @@ export function AttendanceTableFiltersDrawer({
         <Drawer
             anchor="right"
             open={open}
-            onClose={onClose}
+            onClose={handleCloseDrawer}
             slotProps={{
                 paper: {
                     sx: {
@@ -304,12 +324,17 @@ export function AttendanceTableFiltersDrawer({
                                 <DatePicker
                                     label="Start Date"
                                     format="DD-MM-YYYY"
+                                    open={openStartDate}
+                                    onOpen={() => setOpenStartDate(true)}
+                                    onClose={() => setOpenStartDate(false)}
                                     value={filters.startDate ? dayjs(filters.startDate) : null}
-                                    onChange={(newValue) => onFilters({ startDate: newValue ? newValue.format('YYYY-MM-DD') : null })}
+                                    onChange={handleStartDateSelect}
+                                    onAccept={handleStartDateSelect}
                                     slotProps={{
                                         textField: {
                                             fullWidth: true,
                                             size: 'small',
+                                            onClick: () => setOpenStartDate(true),
                                             sx: {
                                                 '& .MuiOutlinedInput-root': {
                                                     borderRadius: 1.5,
@@ -325,12 +350,17 @@ export function AttendanceTableFiltersDrawer({
                                 <DatePicker
                                     label="End Date"
                                     format="DD-MM-YYYY"
+                                    open={openEndDate}
+                                    onOpen={() => setOpenEndDate(true)}
+                                    onClose={() => setOpenEndDate(false)}
+                                    minDate={filters.startDate ? dayjs(filters.startDate) : undefined}
                                     value={filters.endDate ? dayjs(filters.endDate) : null}
                                     onChange={(newValue) => onFilters({ endDate: newValue ? newValue.format('YYYY-MM-DD') : null })}
                                     slotProps={{
                                         textField: {
                                             fullWidth: true,
                                             size: 'small',
+                                            onClick: () => setOpenEndDate(true),
                                             sx: {
                                                 '& .MuiOutlinedInput-root': {
                                                     borderRadius: 1.5,

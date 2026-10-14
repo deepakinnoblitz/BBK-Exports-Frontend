@@ -99,6 +99,54 @@ export function SalarySlipPreviewView() {
         return `${m}mins`;
     };
 
+    const getEmployerEsiRate = () => {
+        if (data?.employer_esi_rate !== undefined && data?.employer_esi_rate !== null && Number(data.employer_esi_rate) > 0) {
+            return Number(data.employer_esi_rate);
+        }
+        const gross = Number(data?.grand_gross_pay || data?.gross_pay || data?.earned_gross_salary || 0);
+        const esiAmt = Number(data?.employer_esi || 0);
+        if (gross > 0 && esiAmt > 0) {
+            const computed = (esiAmt / gross) * 100;
+            if (Math.abs(computed - 3.25) < 0.1) return 3.25;
+            return Number(computed.toFixed(2));
+        }
+        const esiDeduction = (data?.deductions || []).find((d: any) =>
+            (d.component_name || d.salary_component || '').toLowerCase().includes('esi')
+        );
+        if (esiDeduction && Number(esiDeduction.percentage) > 0) {
+            if (Number(esiDeduction.percentage) === 0.75) return 3.25;
+            return Number((Number(esiDeduction.percentage) * (3.25 / 0.75)).toFixed(2));
+        }
+        return hrSettings?.employer_esi_rate ?? 3.25;
+    };
+
+    const getEmployerPfRate = () => {
+        if (data?.employer_pf_rate !== undefined && data?.employer_pf_rate !== null && Number(data.employer_pf_rate) > 0) {
+            return Number(data.employer_pf_rate);
+        }
+        const pfDeduction = (data?.deductions || []).find((d: any) =>
+            (d.component_name || d.salary_component || '').toLowerCase().includes('pf')
+        );
+        if (pfDeduction && Number(pfDeduction.percentage) > 0) {
+            return Number(pfDeduction.percentage);
+        }
+        return hrSettings?.employer_pf_rate ?? 12;
+    };
+
+    const getPfAdminRate = () => {
+        if (data?.pf_admin_rate !== undefined && data?.pf_admin_rate !== null && Number(data.pf_admin_rate) > 0) {
+            return Number(data.pf_admin_rate);
+        }
+        return hrSettings?.pf_admin_rate ?? 0.5;
+    };
+
+    const getEdliRate = () => {
+        if (data?.edli_rate !== undefined && data?.edli_rate !== null && Number(data.edli_rate) > 0) {
+            return Number(data.edli_rate);
+        }
+        return hrSettings?.edli_rate ?? 0.5;
+    };
+
     const handleConfirmCreate = async () => {
         if (!employee) return;
         try {
@@ -200,16 +248,16 @@ export function SalarySlipPreviewView() {
                 <InfoRow label="Employee ID" value={data.employee_id || data.employee} />
                 <InfoRow label="Father / Husband Name" value={data.father_husband_name || '-'} />
 
-                <SubHeader title="Contact Details" />
-                <InfoRow label="Official Email" value={data.email || '-'} />
-                <InfoRow label="Personal Email" value={data.personal_email || '-'} />
-                <InfoRow label="Employee Phone Number" value={data.phone_number || '-'} />
-
                 <SubHeader title="Job Details" />
                 <InfoRow label="Employee Type" value={data.employee_type || '-'} />
                 <InfoRow label="Department" value={data.department || '-'} />
                 <InfoRow label="Designation" value={data.designation || '-'} />
                 <InfoRow label="Date of Joining" value={formatDate(data.date_of_joining)} />
+
+                <SubHeader title="Statutory Details" />
+                <InfoRow label="PF Number" value={data.pf_no || data.pf_number || '-'} />
+                <InfoRow label="UAN Number" value={data.uan_number || '-'} />
+                <InfoRow label="ESI No" value={data.esi_no || '-'} />
 
                 <SubHeader title="Bank Details" />
                 <InfoRow label="Account Name" value={data.bank_account_name || '-'} />
@@ -292,7 +340,6 @@ export function SalarySlipPreviewView() {
                                 <InfoRow label="No of Half Day" value={data.half_day_count || 0} action={renderInfoAction('half_day')} />
                                 <InfoRow label="No of Unpaid Leave" value={data.unpaid_leave_days !== undefined && data.unpaid_leave_days !== null ? data.unpaid_leave_days : (data.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
                                 <InfoRow label="No of Paid Leave" value={data.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                                <InfoRow label="Compensatory Off" value={data.no_of_comp_off || 0} action={renderInfoAction('comp_off')} />
                                 <InfoRow label="LOP Days" value={data.lop_days || 0} action={renderInfoAction('lop')} />
                             </Box>
                         </>
@@ -498,7 +545,7 @@ export function SalarySlipPreviewView() {
 
     const renderSalaryBreakdown = (
         <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
                 {/* Earnings */}
                 <Box
                     sx={{
@@ -511,7 +558,9 @@ export function SalarySlipPreviewView() {
                     <SectionHeader title="Earnings" icon="solar:wad-of-money-bold" color="success.main" />
                     <TableColumnHeader standardLabel="Standard" actualLabel="Earned" />
                     <Stack spacing={1}>
-                        {(data.earnings || []).map((item: any, idx: number) => (
+                        {(data.earnings || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
                             <AmountRow
                                 key={idx}
                                 label={item.component_name || item.salary_component}
@@ -520,7 +569,7 @@ export function SalarySlipPreviewView() {
                                 hrSettings={hrSettings}
                             />
                         ))}
-                        {(!data.earnings || data.earnings.length === 0) && (
+                        {(!data.earnings || !(data.earnings || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No earnings
                             </Typography>
@@ -549,7 +598,9 @@ export function SalarySlipPreviewView() {
                     <SectionHeader title="Deductions" icon="solar:hand-money-bold" color="error.main" />
                     <TableColumnHeader standardLabel="Standard" actualLabel="Actual" />
                     <Stack spacing={1}>
-                        {(data.deductions || []).map((item: any, idx: number) => (
+                        {(data.deductions || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
                             <AmountRow
                                 key={idx}
                                 label={item.component_name || item.salary_component}
@@ -558,7 +609,7 @@ export function SalarySlipPreviewView() {
                                 hrSettings={hrSettings}
                             />
                         ))}
-                        {(!data.deductions || data.deductions.length === 0) && (
+                        {(!data.deductions || !(data.deductions || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No deductions
                             </Typography>
@@ -692,7 +743,7 @@ export function SalarySlipPreviewView() {
     const renderEmployerContributions = (
         <Box sx={{ mb: 4, mt: 3 }}>
             <SectionHeader title="Employer Contributions & Cost to Company (CTC)" icon="solar:buildings-bold" color="info.main" />
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.2fr 0.8fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
                 {/* Statutory Contributions */}
                 <Box
                     sx={{
@@ -707,26 +758,39 @@ export function SalarySlipPreviewView() {
                         Employer Statutory Contributions
                     </Typography>
                     <Stack spacing={1}>
-                        <AmountRow
-                            label={`Employer PF Contribution (${data.employer_pf_rate ?? hrSettings?.employer_pf_rate ?? 12}%)`}
-                            amount={data.employer_pf || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`PF Admin Charges (${data.pf_admin_rate ?? hrSettings?.pf_admin_rate ?? 0.5}%)`}
-                            amount={data.pf_admin_charges || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`EDLI Charges (${data.edli_rate ?? hrSettings?.edli_rate ?? 0.5}%)`}
-                            amount={data.edli_charges || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`Employer ESI Contribution (${data.employer_esi_rate ?? hrSettings?.employer_esi_rate ?? 3.25}%)`}
-                            amount={data.employer_esi || 0}
-                            hrSettings={hrSettings}
-                        />
+                        {Number(data.employer_pf || 0) > 0 && (
+                            <AmountRow
+                                label={`Employer PF Contribution (${getEmployerPfRate()}%)`}
+                                amount={data.employer_pf || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {Number(data.pf_admin_charges || 0) > 0 && (
+                            <AmountRow
+                                label={`PF Admin Charges (${getPfAdminRate()}%)`}
+                                amount={data.pf_admin_charges || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {Number(data.edli_charges || 0) > 0 && (
+                            <AmountRow
+                                label={`EDLI Charges (${getEdliRate()}%)`}
+                                amount={data.edli_charges || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {Number(data.employer_esi || 0) > 0 && (
+                            <AmountRow
+                                label={`Employer ESI Contribution (${getEmployerEsiRate()}%)`}
+                                amount={data.employer_esi || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {(!Number(data.employer_pf || 0) && !Number(data.pf_admin_charges || 0) && !Number(data.edli_charges || 0) && !Number(data.employer_esi || 0)) && (
+                            <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
+                                No employer contributions
+                            </Typography>
+                        )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
                         <AmountRow
                             label="Total Employer Contribution"
@@ -776,12 +840,31 @@ export function SalarySlipPreviewView() {
                                 hrSettings={hrSettings}
                             />
                             <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
-                            <AmountRow
-                                label="Earned CTC (Gross + Statutory)"
-                                amount={data.earned_ctc || ((Number(data.gross_pay) || 0) + (Number(data.employer_pf) || 0) + (Number(data.pf_admin_charges) || 0) + (Number(data.edli_charges) || 0) + (Number(data.employer_esi) || 0))}
-                                hrSettings={hrSettings}
-                                color="primary.dark"
-                            />
+                            <Box
+                                sx={{
+                                    p: 2,
+                                    borderRadius: 1.5,
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                    border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Box>
+                                        <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                            Earned CTC
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: 11 }}>
+                                            (Gross + Statutory)
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
+                                        <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.85em' }}>
+                                            {hrSettings.currency_symbol}
+                                        </Box>
+                                        {fNumber(data.earned_ctc || ((Number(data.gross_pay) || 0) + (Number(data.employer_pf) || 0) + (Number(data.pf_admin_charges) || 0) + (Number(data.edli_charges) || 0) + (Number(data.employer_esi) || 0)), { locale: hrSettings.default_locale })}
+                                    </Typography>
+                                </Box>
+                            </Box>
                             {Number(data.tea_expenses || 0) > 0 && (
                                 <AmountRow
                                     label="Tea Expenses"

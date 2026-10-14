@@ -16,6 +16,14 @@ export interface Attendance {
     working_hours_display?: string;
     official_overtime?: string;
     unofficial_overtime?: string;
+    manual?: number | boolean;
+    attendance_source?: string;
+    owner?: string;
+    created_by_name?: string;
+    modified_by?: string;
+    modified_by_name?: string;
+    creation?: string;
+    modified?: string;
 }
 
 // Attendance APIs

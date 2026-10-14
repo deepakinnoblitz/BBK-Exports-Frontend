@@ -233,6 +233,54 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
 
     const isDirectAllocation = (slip?.leave_calc_source || hrSettings?.salary_leave_calculation_source) === 'Via Direct Allocation';
 
+    const getEmployerEsiRate = () => {
+        if (slip?.employer_esi_rate !== undefined && slip?.employer_esi_rate !== null && Number(slip.employer_esi_rate) > 0) {
+            return Number(slip.employer_esi_rate);
+        }
+        const gross = Number(slip?.grand_gross_pay || slip?.gross_pay || slip?.earned_gross_salary || 0);
+        const esiAmt = Number(slip?.employer_esi || 0);
+        if (gross > 0 && esiAmt > 0) {
+            const computed = (esiAmt / gross) * 100;
+            if (Math.abs(computed - 3.25) < 0.1) return 3.25;
+            return Number(computed.toFixed(2));
+        }
+        const esiDeduction = (slip?.deductions || []).find((d: any) =>
+            (d.component_name || d.salary_component || '').toLowerCase().includes('esi')
+        );
+        if (esiDeduction && Number(esiDeduction.percentage) > 0) {
+            if (Number(esiDeduction.percentage) === 0.75) return 3.25;
+            return Number((Number(esiDeduction.percentage) * (3.25 / 0.75)).toFixed(2));
+        }
+        return hrSettings?.employer_esi_rate ?? 3.25;
+    };
+
+    const getEmployerPfRate = () => {
+        if (slip?.employer_pf_rate !== undefined && slip?.employer_pf_rate !== null && Number(slip.employer_pf_rate) > 0) {
+            return Number(slip.employer_pf_rate);
+        }
+        const pfDeduction = (slip?.deductions || []).find((d: any) =>
+            (d.component_name || d.salary_component || '').toLowerCase().includes('pf')
+        );
+        if (pfDeduction && Number(pfDeduction.percentage) > 0) {
+            return Number(pfDeduction.percentage);
+        }
+        return hrSettings?.employer_pf_rate ?? 12;
+    };
+
+    const getPfAdminRate = () => {
+        if (slip?.pf_admin_rate !== undefined && slip?.pf_admin_rate !== null && Number(slip.pf_admin_rate) > 0) {
+            return Number(slip.pf_admin_rate);
+        }
+        return hrSettings?.pf_admin_rate ?? 0.5;
+    };
+
+    const getEdliRate = () => {
+        if (slip?.edli_rate !== undefined && slip?.edli_rate !== null && Number(slip.edli_rate) > 0) {
+            return Number(slip.edli_rate);
+        }
+        return hrSettings?.edli_rate ?? 0.5;
+    };
+
     const getFilteredBreakdown = () => {
         const bd = slip?.days_breakdown || [];
         switch (popoverState.type) {
@@ -368,16 +416,16 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 <InfoRow label="Employee ID" value={slip.employee_id || slip.employee} />
                 <InfoRow label="Father / Husband Name" value={slip.father_husband_name || '-'} />
 
-                <SubHeader title="Contact Details" />
-                <InfoRow label="Official Email" value={slip.email || '-'} />
-                <InfoRow label="Personal Email" value={slip.personal_email || '-'} />
-                <InfoRow label="Employee Phone Number" value={slip.phone_number || '-'} />
-
                 <SubHeader title="Job Details" />
                 <InfoRow label="Employee Type" value={slip.employee_type || '-'} />
                 <InfoRow label="Department" value={slip.department || '-'} />
                 <InfoRow label="Designation" value={slip.designation || '-'} />
                 <InfoRow label="Date of Joining" value={formatDate(slip.date_of_joining)} />
+
+                <SubHeader title="Statutory Details" />
+                <InfoRow label="PF Number" value={slip.pf_no || slip.pf_number || '-'} />
+                <InfoRow label="UAN Number" value={slip.uan_number || '-'} />
+                <InfoRow label="ESI No" value={slip.esi_no || '-'} />
 
                 <SubHeader title="Bank Details" />
                 <InfoRow label="Account Name" value={slip.bank_account_name || '-'} />
@@ -464,7 +512,6 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 <InfoRow label="No of Half Day" value={slip.half_day_count || 0} action={renderInfoAction('half_day')} />
                                 <InfoRow label="No of Unpaid Leave" value={slip.unpaid_leave_days !== undefined && slip.unpaid_leave_days !== null ? slip.unpaid_leave_days : (slip.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
                                 <InfoRow label="No of Paid Leave" value={slip.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                                <InfoRow label="Compensatory Off" value={slip.no_of_comp_off || 0} action={renderInfoAction('comp_off')} />
                                 <InfoRow label="LOP Days" value={slip.lop_days || 0} action={renderInfoAction('lop')} />
                             </Box>
                         </>
@@ -671,7 +718,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
     // ── Salary Breakdown (Exact Dialog UI) ────────────────────────────────────
     const renderSalaryBreakdown = (
         <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
                 {/* Earnings */}
                 <Box
                     sx={{
@@ -684,16 +731,18 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                     <SectionHeader title="Earnings" icon="solar:wad-of-money-bold" color="success.main" />
                     <TableColumnHeader standardLabel="Standard" actualLabel="Earned" />
                     <Stack spacing={1}>
-                        {(slip.earnings || []).map((item: any, idx: number) => (
-                            <AmountRow
-                                key={idx}
-                                label={item.component_name || item.salary_component}
-                                standardAmount={item.standard_amount !== undefined ? item.standard_amount : (item.component_name === 'Overtime Pay (OT)' || item.component_name === 'Attendance Bonus' ? 0 : item.amount)}
-                                amount={item.amount}
-                                hrSettings={hrSettings}
-                            />
-                        ))}
-                        {(!slip.earnings || slip.earnings.length === 0) && (
+                        {(slip.earnings || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
+                                <AmountRow
+                                    key={idx}
+                                    label={item.component_name || item.salary_component}
+                                    standardAmount={item.standard_amount !== undefined ? item.standard_amount : (item.component_name === 'Overtime Pay (OT)' || item.component_name === 'Attendance Bonus' ? 0 : item.amount)}
+                                    amount={item.amount}
+                                    hrSettings={hrSettings}
+                                />
+                            ))}
+                        {(!slip.earnings || !(slip.earnings || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No earnings recorded
                             </Typography>
@@ -722,16 +771,18 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                     <SectionHeader title="Deductions" icon="solar:hand-money-bold" color="error.main" />
                     <TableColumnHeader standardLabel="Standard" actualLabel="Actual" />
                     <Stack spacing={1}>
-                        {(slip.deductions || []).map((item: any, idx: number) => (
-                            <AmountRow
-                                key={idx}
-                                label={item.component_name || item.salary_component}
-                                standardAmount={item.standard_amount !== undefined ? item.standard_amount : item.amount}
-                                amount={item.amount}
-                                hrSettings={hrSettings}
-                            />
-                        ))}
-                        {(!slip.deductions || slip.deductions.length === 0) && (
+                        {(slip.deductions || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
+                                <AmountRow
+                                    key={idx}
+                                    label={item.component_name || item.salary_component}
+                                    standardAmount={item.standard_amount !== undefined ? item.standard_amount : item.amount}
+                                    amount={item.amount}
+                                    hrSettings={hrSettings}
+                                />
+                            ))}
+                        {(!slip.deductions || !(slip.deductions || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No deductions recorded
                             </Typography>
@@ -789,7 +840,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
     const renderEmployerContributions = (
         <Box sx={{ mb: 4, mt: 3 }}>
             <SectionHeader title="Employer Contributions & Cost to Company (CTC)" icon="solar:buildings-bold" color="info.main" />
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.2fr 0.8fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
                 {/* Statutory Contributions */}
                 <Box
                     sx={{
@@ -804,26 +855,39 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         Employer Statutory Contributions
                     </Typography>
                     <Stack spacing={1}>
-                        <AmountRow
-                            label={`Employer PF Contribution (${slip.employer_pf_rate ?? hrSettings?.employer_pf_rate ?? 12}%)`}
-                            amount={slip.employer_pf || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`PF Admin Charges (${slip.pf_admin_rate ?? hrSettings?.pf_admin_rate ?? 0.5}%)`}
-                            amount={slip.pf_admin_charges || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`EDLI Charges (${slip.edli_rate ?? hrSettings?.edli_rate ?? 0.5}%)`}
-                            amount={slip.edli_charges || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`Employer ESI Contribution (${slip.employer_esi_rate ?? hrSettings?.employer_esi_rate ?? 3.25}%)`}
-                            amount={slip.employer_esi || 0}
-                            hrSettings={hrSettings}
-                        />
+                        {Number(slip.employer_pf || 0) > 0 && (
+                            <AmountRow
+                                label={`Employer PF Contribution (${getEmployerPfRate()}%)`}
+                                amount={slip.employer_pf || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {Number(slip.pf_admin_charges || 0) > 0 && (
+                            <AmountRow
+                                label={`PF Admin Charges (${getPfAdminRate()}%)`}
+                                amount={slip.pf_admin_charges || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {Number(slip.edli_charges || 0) > 0 && (
+                            <AmountRow
+                                label={`EDLI Charges (${getEdliRate()}%)`}
+                                amount={slip.edli_charges || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {Number(slip.employer_esi || 0) > 0 && (
+                            <AmountRow
+                                label={`Employer ESI Contribution (${getEmployerEsiRate()}%)`}
+                                amount={slip.employer_esi || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {(!Number(slip.employer_pf || 0) && !Number(slip.pf_admin_charges || 0) && !Number(slip.edli_charges || 0) && !Number(slip.employer_esi || 0)) && (
+                            <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
+                                No employer contributions
+                            </Typography>
+                        )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
                         <AmountRow
                             label="Total Employer Contribution"
@@ -873,12 +937,32 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 hrSettings={hrSettings}
                             />
                             <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
-                            <AmountRow
-                                label="Earned CTC (Gross + Statutory)"
-                                amount={slip.earned_ctc || ((Number(slip.gross_pay) || 0) + (Number(slip.employer_pf) || 0) + (Number(slip.pf_admin_charges) || 0) + (Number(slip.edli_charges) || 0) + (Number(slip.employer_esi) || 0))}
-                                hrSettings={hrSettings}
-                                color="primary.dark"
-                            />
+                            <Box
+                                sx={{
+                                    p: 2,
+                                    borderRadius: 1.5,
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                    border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Box>
+                                        <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                            Earned CTC
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: 11 }}>
+                                            (Gross + Statutory)
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
+                                        <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.85em' }}>
+                                            {hrSettings.currency_symbol}
+                                        </Box>
+                                        {fNumber(slip.earned_ctc || ((Number(slip.gross_pay) || 0) + (Number(slip.employer_pf) || 0) + (Number(slip.pf_admin_charges) || 0) + (Number(slip.edli_charges) || 0) + (Number(slip.employer_esi) || 0)), { locale: hrSettings.default_locale })}
+                                    </Typography>
+                                </Box>
+                            </Box>
+
                             {Number(slip.tea_expenses || 0) > 0 && (
                                 <AmountRow
                                     label="Tea Expenses"
@@ -899,7 +983,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             )}
                         </Stack>
                     </Box>
-
+                    <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
                     <Box
                         sx={{
                             mt: 2,

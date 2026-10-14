@@ -28,6 +28,8 @@ export interface Employee {
     pan_number?: string;
     pf_number?: string;
     esi_no?: string;
+    skill?: string;
+    full_address?: string;
     bank_account?: string;
     bus_travel_route?: string;
     bus_route_point?: string;

@@ -118,16 +118,15 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                 <InfoRow label="Employee ID" value={slip.employee_id || slip.employee} />
                 <InfoRow label="Father / Husband Name" value={slip.father_husband_name || '-'} />
 
-                <SubHeader title="Contact Details" />
-                <InfoRow label="Official Email" value={slip.email || '-'} />
-                <InfoRow label="Personal Email" value={slip.personal_email || '-'} />
-                <InfoRow label="Employee Phone Number" value={slip.phone_number || '-'} />
-
-
                 <SubHeader title="Job Details" />
                 <InfoRow label="Department" value={slip.department || '-'} />
                 <InfoRow label="Designation" value={slip.designation || '-'} />
                 <InfoRow label="Date of Joining" value={formatDate(slip.date_of_joining)} />
+
+                <SubHeader title="Statutory Details" />
+                <InfoRow label="PF Number" value={slip.pf_no || slip.pf_number || '-'} />
+                <InfoRow label="UAN Number" value={slip.uan_number || '-'} />
+                <InfoRow label="ESI No" value={slip.esi_no || '-'} />
 
                 <SubHeader title="Bank Details" />
                 <InfoRow label="Account Name" value={slip.bank_account_name || '-'} />
@@ -205,7 +204,6 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                                 <InfoRow label="No of Half Day" value={slip.half_day_count || 0} action={renderInfoAction('half_day')} />
                                 <InfoRow label="No of Unpaid Leave" value={slip.no_of_leave || 0} action={renderInfoAction('unpaid_leave')} />
                                 <InfoRow label="No of Paid Leave" value={slip.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                                <InfoRow label="Compensatory Off" value={slip.no_of_comp_off || 0} action={renderInfoAction('comp_off')} />
                                 <InfoRow label="LOP Days" value={slip.lop_days || 0} action={renderInfoAction('lop')} />
                             </Box>
                         </>
@@ -218,7 +216,7 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
     // ── Salary Breakdown ──────────────────────────────────────────────────────
     const renderSalaryBreakdown = (
         <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
                 {/* Earnings */}
                 <Box
                     sx={{
@@ -230,7 +228,9 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                 >
                     <SectionHeader title="Earnings" icon="solar:wad-of-money-bold" color="success.main" />
                     <Stack spacing={1.5}>
-                        {(slip.earnings || []).map((item: any, idx: number) => (
+                        {(slip.earnings || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
                             <AmountRow
                                 key={idx}
                                 label={item.component_name || item.salary_component}
@@ -238,7 +238,7 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                                 hrSettings={hrSettings}
                             />
                         ))}
-                        {(!slip.earnings || slip.earnings.length === 0) && (
+                        {(!slip.earnings || !(slip.earnings || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
                                 No earnings recorded
                             </Typography>
@@ -265,7 +265,9 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                 >
                     <SectionHeader title="Deductions" icon="solar:hand-money-bold" color="error.main" />
                     <Stack spacing={1.5}>
-                        {(slip.deductions || []).map((item: any, idx: number) => (
+                        {(slip.deductions || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
                             <AmountRow
                                 key={idx}
                                 label={item.component_name || item.salary_component}
@@ -276,7 +278,7 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                         {slip.lop > 0 && (
                             <AmountRow label="LOP" amount={slip.lop} hrSettings={hrSettings} />
                         )}
-                        {(!slip.deductions || slip.deductions.length === 0) && !slip.lop && (
+                        {(!slip.deductions || !(slip.deductions || []).some((item: any) => Number(item.amount || 0) > 0)) && !slip.lop && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
                                 No deductions recorded
                             </Typography>

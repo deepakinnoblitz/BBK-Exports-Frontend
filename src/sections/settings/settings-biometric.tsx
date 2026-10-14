@@ -2,10 +2,11 @@ import type { BiometricStatus } from 'src/api/biometric';
 
 import dayjs from 'dayjs';
 import { useSnackbar } from 'notistack';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
 import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
@@ -15,8 +16,8 @@ import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import MenuItem from '@mui/material/MenuItem';
-import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TableBody from '@mui/material/TableBody';
 import TableHead from '@mui/material/TableHead';
 import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
@@ -25,6 +26,7 @@ import IconButton from '@mui/material/IconButton';
 import FormControl from '@mui/material/FormControl';
 import TableContainer from '@mui/material/TableContainer';
 import InputAdornment from '@mui/material/InputAdornment';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -50,10 +52,28 @@ type Props = {
   data: any;
   onChange: (fieldname: string, value: any) => void;
   onRefresh?: () => void;
+  errors?: Record<string, string>;
+  onClearError?: (fieldname: string) => void;
 };
 
-export function SettingsBiometric({ data, onChange, onRefresh }: Props) {
+export function SettingsBiometric({ data, onChange, onRefresh, errors, onClearError }: Props) {
   const { enqueueSnackbar } = useSnackbar();
+
+  const [internalErrors, setInternalErrors] = useState<Record<string, string>>({});
+  const activeErrors = { ...internalErrors, ...(errors || {}) };
+
+  const apiBaseUrlRef = useRef<HTMLInputElement>(null);
+  const apiKeyRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (activeErrors.api_base_url) {
+      apiBaseUrlRef.current?.focus();
+      apiBaseUrlRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (activeErrors.api_key) {
+      apiKeyRef.current?.focus();
+      apiKeyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [activeErrors.api_base_url, activeErrors.api_key]);
 
   const [showApiKey, setShowApiKey] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
@@ -63,6 +83,34 @@ export function SettingsBiometric({ data, onChange, onRefresh }: Props) {
 
   const [manualFromDate, setManualFromDate] = useState('');
   const [manualToDate, setManualToDate] = useState('');
+
+  const timesParts = (data?.daily_sync_times || '')
+    .split(',')
+    .map((t: string) => t.trim())
+    .filter(Boolean);
+
+  const parseTimeToDayjs = (timeStr?: string, defaultHour = 9, defaultMinute = 30) => {
+    if (!timeStr) return dayjs().hour(defaultHour).minute(defaultMinute);
+    const [h, m] = timeStr.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return dayjs().hour(defaultHour).minute(defaultMinute);
+    return dayjs().hour(h).minute(m);
+  };
+
+  const fromTimeStr = timesParts[0] || '09:30';
+  const toTimeStr = timesParts[1] || (timesParts.length > 1 ? timesParts[timesParts.length - 1] : '18:30');
+
+  const fromTimeDayjs = parseTimeToDayjs(fromTimeStr, 9, 30);
+  const toTimeDayjs = parseTimeToDayjs(toTimeStr, 18, 30);
+
+  const handleTimeChange = (type: 'from' | 'to', newDayjs: dayjs.Dayjs | null) => {
+    if (!newDayjs || !newDayjs.isValid()) return;
+    const newTimeStr = newDayjs.format('HH:mm');
+    if (type === 'from') {
+      onChange('daily_sync_times', `${newTimeStr}, ${toTimeStr}`);
+    } else {
+      onChange('daily_sync_times', `${fromTimeStr}, ${newTimeStr}`);
+    }
+  };
 
   const [biometricStatus, setBiometricStatus] = useState<BiometricStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
@@ -84,6 +132,15 @@ export function SettingsBiometric({ data, onChange, onRefresh }: Props) {
   }, [loadStatus]);
 
   const handleTestConnection = async () => {
+    if (!data?.api_base_url?.trim() || !data?.api_key?.trim()) {
+      const errs: Record<string, string> = {};
+      if (!data?.api_base_url?.trim()) errs.api_base_url = 'API Base URL is required';
+      if (!data?.api_key?.trim()) errs.api_key = 'API Key is required';
+      setInternalErrors(errs);
+      enqueueSnackbar('Please fill in required SmartOffice API credentials', { variant: 'error' });
+      return;
+    }
+
     try {
       setTestingConnection(true);
       const res = await testBiometricConnection();
@@ -228,20 +285,55 @@ export function SettingsBiometric({ data, onChange, onRefresh }: Props) {
 
             <Stack spacing={2.5}>
               <TextField
+                inputRef={apiBaseUrlRef}
+                required
                 fullWidth
                 label="API Base URL"
                 value={data?.api_base_url || ''}
-                onChange={(e) => onChange('api_base_url', e.target.value)}
+                onChange={(e) => {
+                  onChange('api_base_url', e.target.value);
+                  if (activeErrors.api_base_url) {
+                    setInternalErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.api_base_url;
+                      return next;
+                    });
+                    onClearError?.('api_base_url');
+                  }
+                }}
+                error={Boolean(activeErrors.api_base_url)}
+                helperText={activeErrors.api_base_url || 'The endpoint where SmartOffice WebAPI is hosted.'}
                 placeholder="http://192.168.1.100:89/api/v2/WebAPI"
-                helperText="The endpoint where SmartOffice WebAPI is hosted."
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  '& .MuiFormLabel-asterisk': { color: 'red' },
+                }}
               />
 
               <TextField
+                inputRef={apiKeyRef}
+                required
                 fullWidth
                 label="API Key"
                 type={showApiKey ? 'text' : 'password'}
                 value={data?.api_key || ''}
-                onChange={(e) => onChange('api_key', e.target.value)}
+                onChange={(e) => {
+                  onChange('api_key', e.target.value);
+                  if (activeErrors.api_key) {
+                    setInternalErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.api_key;
+                      return next;
+                    });
+                    onClearError?.('api_key');
+                  }
+                }}
+                error={Boolean(activeErrors.api_key)}
+                helperText={activeErrors.api_key || 'Your SmartOffice WebAPI authorization key.'}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  '& .MuiFormLabel-asterisk': { color: 'red' },
+                }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -251,7 +343,6 @@ export function SettingsBiometric({ data, onChange, onRefresh }: Props) {
                     </InputAdornment>
                   ),
                 }}
-                helperText="Your SmartOffice WebAPI authorization key."
               />
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pt: 0.5 }}>
@@ -259,7 +350,7 @@ export function SettingsBiometric({ data, onChange, onRefresh }: Props) {
                   variant="outlined"
                   color="primary"
                   onClick={handleTestConnection}
-                  disabled={testingConnection || !data?.api_base_url}
+                  disabled={testingConnection}
                   startIcon={
                     testingConnection ? (
                       <CircularProgress size={18} color="inherit" />
@@ -328,7 +419,7 @@ export function SettingsBiometric({ data, onChange, onRefresh }: Props) {
                       onChange={(e) => onChange('sync_mode', e.target.value)}
                     >
                       <MenuItem value="Manual Only">Manual Only (No background sync)</MenuItem>
-                      <MenuItem value="Interval in Minutes">Interval in Minutes (e.g. Every 15 or 30 mins)</MenuItem>
+                      <MenuItem value="Interval in Minutes">Interval in Minutes (e.g. Every 1, 15, or 30 mins)</MenuItem>
                       <MenuItem value="Specific Times Daily">Specific Times Daily (e.g. 09:30, 13:30, 18:30)</MenuItem>
                     </Select>
                   </FormControl>
@@ -338,30 +429,82 @@ export function SettingsBiometric({ data, onChange, onRefresh }: Props) {
                       fullWidth
                       label="Sync Interval (Minutes)"
                       type="number"
-                      value={data?.sync_interval_minutes || 15}
-                      onChange={(e) => onChange('sync_interval_minutes', parseInt(e.target.value, 10) || 15)}
-                      helperText="Frequency in minutes between automatic sync operations (Minimum 5 minutes recommended)."
+                      value={data?.sync_interval_minutes !== undefined && data?.sync_interval_minutes !== null ? data.sync_interval_minutes : 15}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        onChange('sync_interval_minutes', isNaN(val) ? '' : Math.max(1, val));
+                      }}
+                      slotProps={{
+                        htmlInput: { min: 1, max: 1440, step: 1 }
+                      }}
+                      helperText="Frequency in minutes between automatic sync operations (Set to 1 for high-frequency 1-minute pull)."
                     />
                   )}
 
                   {syncMode === 'Specific Times Daily' && (
-                    <TextField
-                      fullWidth
-                      label="Specific Daily Sync Times"
-                      value={data?.daily_sync_times || ''}
-                      onChange={(e) => onChange('daily_sync_times', e.target.value)}
-                      placeholder="09:30, 13:30, 18:30"
-                      helperText="Comma-separated 24-hour times (HH:MM) to trigger attendance sync daily."
-                    />
+                    <Box
+                      sx={{
+                        p: 2.5,
+                        borderRadius: 1.5,
+                        border: (theme) => `1px solid ${theme.palette.divider}`,
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
+                      }}
+                    >
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                        Specific Daily Sync Times
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2.5 }}>
+                        Select the From Time and To Time to trigger automated biometric synchronization daily.
+                      </Typography>
+
+                      <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5}>
+                          <TimePicker
+                            label="From Time"
+                            value={fromTimeDayjs}
+                            onChange={(newValue) => handleTimeChange('from', newValue)}
+                            slotProps={{
+                              textField: {
+                                fullWidth: true,
+                                helperText: 'Morning / Shift Start sync time (e.g. 09:30 AM)',
+                              },
+                            }}
+                          />
+                          <TimePicker
+                            label="To Time"
+                            value={toTimeDayjs}
+                            onChange={(newValue) => handleTimeChange('to', newValue)}
+                            slotProps={{
+                              textField: {
+                                fullWidth: true,
+                                helperText: 'Evening / Shift End sync time (e.g. 06:30 PM)',
+                              },
+                            }}
+                          />
+                        </Stack>
+                      </LocalizationProvider>
+
+                      <Alert severity="info" sx={{ mt: 2.5, borderRadius: 1.5 }}>
+                        Biometric sync will run automatically every day at{' '}
+                        <strong>{fromTimeDayjs.format('hh:mm A')}</strong> ({fromTimeStr}) and{' '}
+                        <strong>{toTimeDayjs.format('hh:mm A')}</strong> ({toTimeStr}).
+                      </Alert>
+                    </Box>
                   )}
 
                   <TextField
                     fullWidth
                     label="Overlap Window (Minutes)"
                     type="number"
-                    value={data?.overlap_minutes || 15}
-                    onChange={(e) => onChange('overlap_minutes', parseInt(e.target.value, 10) || 15)}
-                    helperText="Overlap window in minutes queried before the last sync to catch delayed device punches."
+                    value={data?.overlap_minutes !== undefined && data?.overlap_minutes !== null ? data.overlap_minutes : 15}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      onChange('overlap_minutes', isNaN(val) ? '' : Math.max(1, val));
+                    }}
+                    slotProps={{
+                      htmlInput: { min: 1, max: 1440, step: 1 }
+                    }}
+                    helperText="Overlap window in minutes queried before the last sync to catch delayed device punches (Recommended 5–15 mins)."
                   />
                 </>
               )}

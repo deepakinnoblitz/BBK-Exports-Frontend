@@ -61,7 +61,7 @@ export function AttendanceTableRow({
     const hasCustomPerms = user?.permissions?.custom_permissions_assigned && user?.permissions?.actions?.attendance_list;
     const displayEdit = (canEdit !== undefined ? canEdit : true) && (hasCustomPerms ? !!user?.permissions?.actions?.attendance_list?.edit : true);
     const displayDelete = (canDelete !== undefined ? canDelete : true) && (hasCustomPerms ? !!user?.permissions?.actions?.attendance_list?.delete : true);
-    
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'Present': return 'success';

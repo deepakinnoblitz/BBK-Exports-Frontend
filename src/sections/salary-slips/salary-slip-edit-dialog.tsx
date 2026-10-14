@@ -38,7 +38,9 @@ import { SalaryComponentFormDialog } from './salary-component-form-dialog';
 
 // ----------------------------------------------------------------------
 
-const filter = createFilterOptions<any>();
+const filter = createFilterOptions<any>({
+    stringify: (option) => option?.component_name || option?.name || (typeof option === 'string' ? option : ''),
+});
 
 type Props = {
     open: boolean;
@@ -613,16 +615,14 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                 <InfoRow label="Employee ID" value={formData.employee || '-'} />
                 <InfoRow label="Father / Husband Name" value={formData.father_husband_name || '-'} />
 
-                <SubHeader title="Contact Details" />
-                <InfoRow label="Official Email" value={formData.email || '-'} />
-                <InfoRow label="Personal Email" value={formData.personal_email || '-'} />
-                <InfoRow label="Employee Phone Number" value={formData.phone_number || '-'} />
-
-
                 <SubHeader title="Job Details" />
                 <InfoRow label="Department" value={formData.department || '-'} />
                 <InfoRow label="Designation" value={formData.designation || '-'} />
                 <InfoRow label="Date of Joining" value={formatDate(formData.date_of_joining)} />
+                <SubHeader title="Statutory Details" />
+                <InfoRow label="PF Number" value={formData.pf_no || formData.pf_number || '-'} />
+                <InfoRow label="UAN Number" value={formData.uan_number || '-'} />
+                <InfoRow label="ESI No" value={formData.esi_no || '-'} />
 
                 <SubHeader title="Bank Details" />
                 <InfoRow label="Account Name" value={formData.bank_account_name || '-'} />
@@ -708,12 +708,6 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                         action={renderInfoAction('paid_leave')}
                     />
                     <SleekEditRow
-                        label="Compensatory Off"
-                        value={formData.no_of_comp_off || 0}
-                        onChange={(val) => handleInputChange('no_of_comp_off', val)}
-                        action={renderInfoAction('comp_off')}
-                    />
-                    <SleekEditRow
                         label="LOP Days"
                         value={formData.lop_days}
                         onChange={(val) => handleInputChange('lop_days', val)}
@@ -750,20 +744,41 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                         >
                             EARNINGS
                         </Typography>
-                        <Button
-                            size="small"
-                            variant="text"
-                            startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
-                            onClick={() => handleAddSalaryRow('earnings')}
-                            sx={{
-                                color: COMMON_COLORS.emerald.main,
-                                fontWeight: 700,
-                                fontSize: '0.85rem',
-                                '&:hover': { bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08) }
-                            }}
-                        >
-                            Add Row
-                        </Button>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                            <Button
+                                size="small"
+                                variant="text"
+                                startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
+                                onClick={() => {
+                                    setComponentDialogType('Earning');
+                                    setComponentInitialName('');
+                                    setTargetRowIndex({ section: 'earnings', index: formData.earnings?.length || 0 });
+                                    setComponentDialogOpen(true);
+                                }}
+                                sx={{
+                                    color: COMMON_COLORS.emerald.main,
+                                    fontWeight: 700,
+                                    fontSize: '0.85rem',
+                                    '&:hover': { bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08) }
+                                }}
+                            >
+                                Create Component
+                            </Button>
+                            <Button
+                                size="small"
+                                variant="text"
+                                startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
+                                onClick={() => handleAddSalaryRow('earnings')}
+                                sx={{
+                                    color: COMMON_COLORS.emerald.main,
+                                    fontWeight: 700,
+                                    fontSize: '0.85rem',
+                                    '&:hover': { bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08) }
+                                }}
+                            >
+                                Add Row
+                            </Button>
+                        </Stack>
                     </Box>
 
                     <TableContainer
@@ -808,16 +823,28 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                                                 options={earningComponents}
                                                 getOptionLabel={(option) => {
                                                     if (typeof option === 'string') return option;
-                                                    if (option.isNew) return option.inputValue || '';
+                                                    if (option.isNew) return option.inputValue ? `+ Create Component "${option.inputValue}"` : '+ Create New Component';
                                                     return option.component_name || '';
                                                 }}
                                                 filterOptions={(options, filterParams) => {
                                                     const filtered = filter(options, filterParams);
-                                                    filtered.push({
-                                                        component_name: '',
-                                                        inputValue: filterParams.inputValue,
-                                                        isNew: true,
-                                                    });
+                                                    const { inputValue } = filterParams;
+                                                    const isExisting = options.some(
+                                                        (opt: any) => (opt.component_name || opt.name || '').toLowerCase().trim() === inputValue.toLowerCase().trim()
+                                                    );
+                                                    if (inputValue.trim() !== '' && !isExisting) {
+                                                        filtered.push({
+                                                            component_name: '',
+                                                            inputValue: inputValue.trim(),
+                                                            isNew: true,
+                                                        });
+                                                    } else {
+                                                        filtered.push({
+                                                            component_name: '',
+                                                            inputValue: '',
+                                                            isNew: true,
+                                                        });
+                                                    }
                                                     return filtered;
                                                 }}
                                                 value={row.component_name || row.salary_component || ''}
@@ -841,40 +868,44 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                                                         handleSalaryRowChange('earnings', index, 'component_name', newInputValue);
                                                     }
                                                 }}
-                                                renderOption={(props, option: any) => (
-                                                    <Box
-                                                        component="li"
-                                                        {...props}
-                                                        sx={{
-                                                            typography: 'body2',
-                                                            ...(option.isNew && {
-                                                                color: 'primary.main',
-                                                                fontWeight: 600,
-                                                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                                                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
-                                                                py: '8px !important',
-                                                                px: '16px !important',
-                                                                mt: 0.5,
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                '&:hover': {
-                                                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
-                                                                },
-                                                            }),
-                                                        }}
-                                                    >
-                                                        {option.isNew ? (
-                                                            <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
-                                                                <Iconify icon="solar:add-circle-bold" width={20} />
-                                                                <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                                                                    Create Component {option.inputValue ? `"${option.inputValue}"` : ''}
-                                                                </Typography>
-                                                            </Stack>
-                                                        ) : (
-                                                            option.component_name || (typeof option === 'string' ? option : '')
-                                                        )}
-                                                    </Box>
-                                                )}
+                                                renderOption={(props, option: any) => {
+                                                    const { key, ...otherProps } = props;
+                                                    return (
+                                                        <Box
+                                                            key={key || (option.isNew ? 'create-earning-opt' : option.component_name)}
+                                                            component="li"
+                                                            {...otherProps}
+                                                            sx={{
+                                                                typography: 'body2',
+                                                                ...(option.isNew && {
+                                                                    color: 'primary.main',
+                                                                    fontWeight: 600,
+                                                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                                                    borderTop: (theme) => `1px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
+                                                                    py: '8px !important',
+                                                                    px: '16px !important',
+                                                                    mt: 0.5,
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    '&:hover': {
+                                                                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                                                    },
+                                                                }),
+                                                            }}
+                                                        >
+                                                            {option.isNew ? (
+                                                                <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                                                                    <Iconify icon="solar:add-circle-bold" width={20} />
+                                                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                                                                        {option.inputValue ? `Create Component "${option.inputValue}"` : 'Create New Component'}
+                                                                    </Typography>
+                                                                </Stack>
+                                                            ) : (
+                                                                option.component_name || (typeof option === 'string' ? option : '')
+                                                            )}
+                                                        </Box>
+                                                    );
+                                                }}
                                                 renderInput={(inputParams) => (
                                                     <TextField
                                                         {...inputParams}
@@ -976,20 +1007,41 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                         >
                             DEDUCTIONS
                         </Typography>
-                        <Button
-                            size="small"
-                            variant="text"
-                            startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
-                            onClick={() => handleAddSalaryRow('deductions')}
-                            sx={{
-                                 color: '#e53935',
-                                 fontWeight: 700,
-                                 fontSize: '0.85rem',
-                                 '&:hover': { bgcolor: alpha('#e53935', 0.08) }
-                            }}
-                        >
-                            Add Row
-                        </Button>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                            <Button
+                                size="small"
+                                variant="text"
+                                startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
+                                onClick={() => {
+                                    setComponentDialogType('Deduction');
+                                    setComponentInitialName('');
+                                    setTargetRowIndex({ section: 'deductions', index: formData.deductions?.length || 0 });
+                                    setComponentDialogOpen(true);
+                                }}
+                                sx={{
+                                    color: '#e53935',
+                                    fontWeight: 700,
+                                    fontSize: '0.85rem',
+                                    '&:hover': { bgcolor: alpha('#e53935', 0.08) }
+                                }}
+                            >
+                                Create Component
+                            </Button>
+                            <Button
+                                size="small"
+                                variant="text"
+                                startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
+                                onClick={() => handleAddSalaryRow('deductions')}
+                                sx={{
+                                     color: '#e53935',
+                                     fontWeight: 700,
+                                     fontSize: '0.85rem',
+                                     '&:hover': { bgcolor: alpha('#e53935', 0.08) }
+                                }}
+                            >
+                                Add Row
+                            </Button>
+                        </Stack>
                     </Box>
 
                     <TableContainer
@@ -1034,16 +1086,28 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                                                 options={deductionComponents}
                                                 getOptionLabel={(option) => {
                                                     if (typeof option === 'string') return option;
-                                                    if (option.isNew) return option.inputValue || '';
+                                                    if (option.isNew) return option.inputValue ? `+ Create Component "${option.inputValue}"` : '+ Create New Component';
                                                     return option.component_name || '';
                                                 }}
                                                 filterOptions={(options, filterParams) => {
                                                     const filtered = filter(options, filterParams);
-                                                    filtered.push({
-                                                        component_name: '',
-                                                        inputValue: filterParams.inputValue,
-                                                        isNew: true,
-                                                    });
+                                                    const { inputValue } = filterParams;
+                                                    const isExisting = options.some(
+                                                        (opt: any) => (opt.component_name || opt.name || '').toLowerCase().trim() === inputValue.toLowerCase().trim()
+                                                    );
+                                                    if (inputValue.trim() !== '' && !isExisting) {
+                                                        filtered.push({
+                                                            component_name: '',
+                                                            inputValue: inputValue.trim(),
+                                                            isNew: true,
+                                                        });
+                                                    } else {
+                                                        filtered.push({
+                                                            component_name: '',
+                                                            inputValue: '',
+                                                            isNew: true,
+                                                        });
+                                                    }
                                                     return filtered;
                                                 }}
                                                 value={row.component_name || row.salary_component || ''}
@@ -1086,40 +1150,44 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                                                         handleSalaryRowChange('deductions', index, 'component_name', newInputValue);
                                                     }
                                                 }}
-                                                renderOption={(props, option: any) => (
-                                                    <Box
-                                                        component="li"
-                                                        {...props}
-                                                        sx={{
-                                                            typography: 'body2',
-                                                            ...(option.isNew && {
-                                                                color: 'primary.main',
-                                                                fontWeight: 600,
-                                                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                                                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
-                                                                py: '8px !important',
-                                                                px: '16px !important',
-                                                                mt: 0.5,
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                '&:hover': {
-                                                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
-                                                                },
-                                                            }),
-                                                        }}
-                                                    >
-                                                        {option.isNew ? (
-                                                            <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
-                                                                <Iconify icon="solar:add-circle-bold" width={20} />
-                                                                <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                                                                    Create Component {option.inputValue ? `"${option.inputValue}"` : ''}
-                                                                </Typography>
-                                                            </Stack>
-                                                        ) : (
-                                                            option.component_name || (typeof option === 'string' ? option : '')
-                                                        )}
-                                                    </Box>
-                                                )}
+                                                renderOption={(props, option: any) => {
+                                                    const { key, ...otherProps } = props;
+                                                    return (
+                                                        <Box
+                                                            key={key || (option.isNew ? 'create-deduction-opt' : option.component_name)}
+                                                            component="li"
+                                                            {...otherProps}
+                                                            sx={{
+                                                                typography: 'body2',
+                                                                ...(option.isNew && {
+                                                                    color: 'primary.main',
+                                                                    fontWeight: 600,
+                                                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                                                    borderTop: (theme) => `1px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
+                                                                    py: '8px !important',
+                                                                    px: '16px !important',
+                                                                    mt: 0.5,
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    '&:hover': {
+                                                                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                                                    },
+                                                                }),
+                                                            }}
+                                                        >
+                                                            {option.isNew ? (
+                                                                <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                                                                    <Iconify icon="solar:add-circle-bold" width={20} />
+                                                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                                                                        {option.inputValue ? `Create Component "${option.inputValue}"` : 'Create New Component'}
+                                                                    </Typography>
+                                                                </Stack>
+                                                            ) : (
+                                                                option.component_name || (typeof option === 'string' ? option : '')
+                                                            )}
+                                                        </Box>
+                                                    );
+                                                }}
                                                 renderInput={(inputParams) => (
                                                     <TextField
                                                         {...inputParams}

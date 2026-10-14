@@ -333,6 +333,7 @@ export function MyProfileView() {
                                 >
                                     <DetailItem label="Department" value={employee.department} icon={FaBuilding} />
                                     <DetailItem label="Designation" value={employee.designation} icon={FaAward} />
+                                    <DetailItem label="Skill" value={employee.skill} icon={FaMedal} />
                                     <DetailItem label="Production Type" value={employee.production_type} icon={FaIndustry} />
                                     <DetailItem label="Joining Date" value={fDate(employee.date_of_joining, 'DD-MM-YYYY')} icon={FaCalendarAlt} />
                                     <DetailItem label="Status" value={employee.status} icon={FaInfoCircle} />
@@ -357,6 +358,11 @@ export function MyProfileView() {
                                     <DetailItem label="Country" value={employee.country} icon={FaGlobeAmericas} />
                                     <DetailItem label="State" value={employee.state} icon={FaMapMarkerAlt} />
                                     <DetailItem label="City" value={employee.city} icon={FaMapMarkerAlt} />
+                                    {employee.full_address && (
+                                        <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2', md: 'span 3' } }}>
+                                            <DetailItem label="Full Address" value={employee.full_address} icon={FaMapMarkerAlt} />
+                                        </Box>
+                                    )}
                                 </Box>
                             </Box>
 
