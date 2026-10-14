@@ -164,6 +164,8 @@ export function AttendanceView() {
             status: 'Present',
             attendance_date: dayjs().format('YYYY-MM-DD'),
             attendance_punches: [],
+            manual: 1,
+            attendance_source: 'Manual',
         });
         setExistingAttendanceDates([]);
         setCurrentAttendanceId(null);
@@ -449,6 +451,8 @@ export function AttendanceView() {
             );
             const payload = {
                 ...formData,
+                manual: 1,
+                attendance_source: 'Manual',
                 attendance_punches: sanitizedPunches,
             };
 

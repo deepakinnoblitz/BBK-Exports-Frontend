@@ -49,6 +49,8 @@ async function fetchFrappeList(params: {
     if (params.filterValues) {
         Object.entries(params.filterValues).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== '') {
+        for (const [key, value] of Object.entries(params.filterValues)) {
+            if (value) {
                 if (key === 'pay_period_start') {
                     filters.push(['Salary Slip', 'pay_period_start', '>=', value]);
                 } else if (key === 'pay_period_end') {
@@ -56,12 +58,28 @@ async function fetchFrappeList(params: {
                 } else if (Array.isArray(value)) {
                     if (value.length > 0) {
                         filters.push(['Salary Slip', key, 'in', value]);
+                } else if (key === 'bank_name') {
+                    try {
+                        const bankRes = await frappeRequest(
+                            `/api/method/frappe.client.get_list?doctype=Bank Account&filters=${encodeURIComponent(
+                                JSON.stringify([['Bank Account', 'bank_name', '=', value]])
+                            )}&fields=${encodeURIComponent(JSON.stringify(['name']))}&limit_page_length=0`
+                        );
+                        const bankJson = await bankRes.json();
+                        const accNames = (bankJson?.message || []).map((b: any) => b.name);
+                        if (accNames.length > 0) {
+                            filters.push(['Salary Slip', 'bank_account', 'in', accNames]);
+                        } else {
+                            filters.push(['Salary Slip', 'bank_account', '=', '__NO_MATCH__']);
+                        }
+                    } catch (e) {
+                        console.error('Failed to filter by bank_name:', e);
                     }
                 } else {
                     filters.push(['Salary Slip', key, '=', value]);
                 }
             }
-        });
+        }
     }
 
     const orderByParam = params.orderBy && params.order ? `${params.orderBy} ${params.order}` : "pay_period_start desc";

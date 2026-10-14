@@ -70,6 +70,8 @@ export function SettingsView() {
     auto_reconciliation_enabled: 0,
   });
 
+  const [biometricErrors, setBiometricErrors] = useState<Record<string, string>>({});
+
   const { user } = useAuth();
   const isAuthorized = (user?.roles || []).some((role: string) =>
     ['HR', 'Administrator', 'System Manager'].includes(role)
@@ -124,6 +126,26 @@ export function SettingsView() {
           setEmailSettingsName(newDoc.name);
         }
       } else if (currentTab === 'biometric') {
+        if (biometricSettings?.enabled) {
+          const newErrors: Record<string, string> = {};
+          if (!biometricSettings?.api_base_url || !String(biometricSettings.api_base_url).trim()) {
+            newErrors.api_base_url = 'API Base URL is required';
+          }
+          if (!biometricSettings?.api_key || !String(biometricSettings.api_key).trim()) {
+            newErrors.api_key = 'API Key is required';
+          }
+          if (Object.keys(newErrors).length > 0) {
+            setBiometricErrors(newErrors);
+            setSnackbar({
+              open: true,
+              message: 'Please fill in all required biometric credentials',
+              severity: 'error',
+            });
+            setSaving(false);
+            return;
+          }
+        }
+        setBiometricErrors({});
         await updateBiometricSettings(biometricSettings);
         await fetchBioSettings();
       } else {
@@ -287,9 +309,24 @@ export function SettingsView() {
         {currentTab === 'biometric' && (
           <SettingsBiometric
             data={biometricSettings}
-            onChange={(fieldname: string, value: any) =>
-              setBiometricSettings((prev: any) => ({ ...prev, [fieldname]: value }))
+            errors={biometricErrors}
+            onClearError={(fieldname: string) =>
+              setBiometricErrors((prev) => {
+                const next = { ...prev };
+                delete next[fieldname];
+                return next;
+              })
             }
+            onChange={(fieldname: string, value: any) => {
+              setBiometricSettings((prev: any) => ({ ...prev, [fieldname]: value }));
+              if (biometricErrors[fieldname]) {
+                setBiometricErrors((prev) => {
+                  const next = { ...prev };
+                  delete next[fieldname];
+                  return next;
+                });
+              }
+            }}
             onRefresh={fetchBioSettings}
           />
         )}

@@ -14,12 +14,26 @@ export async function getHRMSSettings() {
 }
 
 export async function updateHRMSSettings(data: any) {
+    const {
+        modified,
+        creation,
+        owner,
+        modified_by,
+        doctype,
+        name,
+        _user_tags,
+        _comments,
+        _assign,
+        _liked_by,
+        ...cleanData
+    } = data || {};
+
     const res = await frappeRequest("/api/method/frappe.client.set_value", {
         method: "POST",
         body: JSON.stringify({
             doctype: "HRMS Settings",
             name: "HRMS Settings",
-            fieldname: data,
+            fieldname: cleanData,
         })
     });
 

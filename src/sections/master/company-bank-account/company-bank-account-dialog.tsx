@@ -1,9 +1,11 @@
 import type {
-  CompanyBankAccount} from 'src/api/masters';
+  CompanyBankAccount
+} from 'src/api/masters';
 
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -12,14 +14,18 @@ import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import {
   getCompanyBankAccount,
   createCompanyBankAccount,
-  updateCompanyBankAccount
+  updateCompanyBankAccount,
+  getBankDetailsByIfsc,
+  getDistinctBanks
 } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
@@ -54,6 +60,27 @@ export function CompanyBankAccountDialog({ open, onClose, onSuccess, id }: Props
     severity: 'success',
   });
 
+  const [bankOptions, setBankOptions] = useState<string[]>([]);
+  const [ifscLoading, setIfscLoading] = useState(false);
+  const [ifscVerified, setIfscVerified] = useState<boolean | null>(null);
+  const [ifscErrorMsg, setIfscErrorMsg] = useState('');
+
+  useEffect(() => {
+    const fetchBanks = async () => {
+      try {
+        const res = await getDistinctBanks();
+        if (res?.banks) {
+          setBankOptions(res.banks);
+        }
+      } catch (err) {
+        console.error('Failed to load bank list:', err);
+      }
+    };
+    if (open) {
+      fetchBanks();
+    }
+  }, [open]);
+
   useEffect(() => {
     const fetchData = async () => {
       if (open) {
@@ -67,6 +94,11 @@ export function CompanyBankAccountDialog({ open, onClose, onSuccess, id }: Props
             setIfscCode(data.ifsc_code || '');
             setUpiId(data.upi_id || '');
             setStatus(data.status || 'Active');
+            if (data.ifsc_code && data.ifsc_code.length === 11) {
+              setIfscVerified(true);
+            } else {
+              setIfscVerified(null);
+            }
           } catch (err) {
             console.error('Failed to fetch company bank account:', err);
             setSnackbar({ open: true, message: 'Failed to fetch details', severity: 'error' });
@@ -80,6 +112,8 @@ export function CompanyBankAccountDialog({ open, onClose, onSuccess, id }: Props
           setIfscCode('');
           setUpiId('');
           setStatus('Active');
+          setIfscVerified(null);
+          setIfscErrorMsg('');
         }
         setError('');
       }
@@ -88,7 +122,44 @@ export function CompanyBankAccountDialog({ open, onClose, onSuccess, id }: Props
     fetchData();
   }, [open, id]);
 
+  const handleIfscChange = async (val: string) => {
+    const clean = val.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
+    setIfscCode(clean);
+    setIfscVerified(null);
+    setIfscErrorMsg('');
+
+    if (clean.length === 11) {
+      try {
+        setIfscLoading(true);
+        const res = await getBankDetailsByIfsc(clean);
+        if (res.success && res.data) {
+          setIfscVerified(true);
+          if (res.data.bank_name) {
+            setBankName(res.data.bank_name);
+            setBankOptions((prev) => (prev.includes(res.data!.bank_name) ? prev : [res.data!.bank_name, ...prev]));
+            if (error === 'Bank Name') setError('');
+          }
+        } else {
+          setIfscVerified(false);
+          setIfscErrorMsg(res.message || 'IFSC code not found');
+        }
+      } catch (err: any) {
+        setIfscVerified(false);
+        setIfscErrorMsg(err.message || 'Lookup failed');
+      } finally {
+        setIfscLoading(false);
+      }
+    }
+  };
+
+
   const handleSubmit = async () => {
+    if (!ifscCode.trim()) {
+      setError('IFSC Code');
+      setSnackbar({ open: true, message: 'IFSC Code is required', severity: 'error' });
+      return;
+    }
+
     if (!bankName.trim()) {
       setError('Bank Name');
       setSnackbar({ open: true, message: 'Bank Name is required', severity: 'error' });
@@ -149,19 +220,85 @@ export function CompanyBankAccountDialog({ open, onClose, onSuccess, id }: Props
           <TextField
             required
             fullWidth
-            label="Bank Name"
-            placeholder="e.g. HDFC Bank"
-            value={bankName}
+            label="IFSC Code"
+            placeholder="e.g. BARB0AMBATT"
+            value={ifscCode}
             onChange={(e) => {
-              setBankName(e.target.value);
+              handleIfscChange(e.target.value);
+              if (error === 'IFSC Code') setError('');
+            }}
+            disabled={loading}
+            InputLabelProps={{ shrink: true }}
+            inputProps={{ maxLength: 11, style: { textTransform: 'uppercase' } }}
+            error={error === 'IFSC Code' || ifscVerified === false}
+            helperText={
+              ifscVerified === true
+                ? `✓ Verified: ${bankName}`
+                : error === 'IFSC Code'
+                ? 'IFSC Code is required'
+                : ifscErrorMsg || 'Enter 11-digit IFSC to auto-fill Bank Name'
+            }
+            FormHelperTextProps={{
+              sx: {
+                color: ifscVerified === true ? 'success.main' : (error === 'IFSC Code' || ifscVerified === false) ? 'error.main' : 'text.secondary',
+                fontWeight: ifscVerified !== null ? 600 : 400,
+              },
+            }}
+            sx={{ gridColumn: '1 / -1', '& .MuiFormLabel-asterisk': { color: 'red' } }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  {ifscLoading && <CircularProgress size={20} />}
+                  {ifscVerified === true && (
+                    <Chip
+                      size="small"
+                      color="success"
+                      icon={<Iconify icon="solar:check-circle-bold" width={16} />}
+                      label="Verified"
+                      sx={{ height: 24, fontSize: '0.75rem', fontWeight: 700 }}
+                    />
+                  )}
+                  {ifscVerified === false && (
+                    <Chip
+                      size="small"
+                      color="error"
+                      icon={<Iconify icon="solar:close-circle-bold" width={16} />}
+                      label="Invalid"
+                      sx={{ height: 24, fontSize: '0.75rem', fontWeight: 700 }}
+                    />
+                  )}
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <Autocomplete
+            freeSolo
+            options={bankOptions}
+            value={bankName}
+            onChange={(_, newValue) => {
+              setBankName(newValue || '');
               if (error === 'Bank Name') setError('');
             }}
-            error={error === 'Bank Name'}
-            helperText={error === 'Bank Name' ? 'Bank Name is required' : ''}
+            onInputChange={(_, newInputValue) => {
+              setBankName(newInputValue || '');
+              if (error === 'Bank Name') setError('');
+            }}
             disabled={loading}
-            autoFocus
-            InputLabelProps={{ shrink: true }}
-            sx={{ gridColumn: '1 / -1', '& .MuiFormLabel-asterisk': { color: 'red' } }}
+            sx={{ gridColumn: '1 / -1' }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                required
+                fullWidth
+                label="Bank Name"
+                placeholder="Search bank name or auto-filled via IFSC"
+                error={error === 'Bank Name'}
+                helperText={error === 'Bank Name' ? 'Bank Name is required' : ''}
+                InputLabelProps={{ shrink: true }}
+                sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
+              />
+            )}
           />
 
           <TextField
@@ -182,14 +319,6 @@ export function CompanyBankAccountDialog({ open, onClose, onSuccess, id }: Props
             InputLabelProps={{ shrink: true }}
           />
 
-          <TextField
-            fullWidth
-            label="IFSC Code"
-            value={ifscCode}
-            onChange={(e) => setIfscCode(e.target.value)}
-            disabled={loading}
-            InputLabelProps={{ shrink: true }}
-          />
 
           <TextField
             fullWidth

@@ -24,6 +24,7 @@ import { useRouter } from 'src/routes/hooks';
 import { useSalarySlips } from 'src/hooks/useSalarySlips';
 
 import { getDoctypeList } from 'src/api/leads';
+import { getDistinctBanks } from 'src/api/masters';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { deleteSalarySlip, submitSalarySlip, cancelSalarySlip, exportBobNeftFile } from 'src/api/salary-slips';
 
@@ -82,6 +83,7 @@ export function SalarySlipsView() {
         employee: 'all',
         department: 'all',
         designation: 'all',
+        bank_name: 'all',
         pay_period_start: null,
         pay_period_end: null,
     });
@@ -126,24 +128,28 @@ export function SalarySlipsView() {
         employees: any[];
         departments: any[];
         designations: any[];
+        banks: string[];
     }>({
         employees: [],
         departments: [],
         designations: [],
+        banks: [],
     });
 
     useEffect(() => {
         const fetchOptions = async () => {
             try {
-                const [emps, depts, desigs] = await Promise.all([
+                const [emps, depts, desigs, banksRes] = await Promise.all([
                     getDoctypeList('Employee', ['name', 'employee_name']),
                     getDoctypeList('Department', ['name']),
                     getDoctypeList('Designation', ['name']),
+                    getDistinctBanks().catch(() => ({ banks: [] })),
                 ]);
                 setFilterOptions({
                     employees: emps,
                     departments: depts,
                     designations: desigs,
+                    banks: (banksRes as any)?.banks || [],
                 });
             } catch (error) {
                 console.error('Failed to fetch filter options:', error);
@@ -162,6 +168,7 @@ export function SalarySlipsView() {
             employee: 'all',
             department: 'all',
             designation: 'all',
+            bank_name: 'all',
             pay_period_start: null,
             pay_period_end: null,
         });
@@ -171,9 +178,11 @@ export function SalarySlipsView() {
     const canReset = filters.employee !== 'all' ||
         filters.department !== 'all' ||
         filters.designation !== 'all' ||
+        (!!filters.bank_name && filters.bank_name !== 'all') ||
         filters.pay_period_start !== null ||
         filters.pay_period_end !== null ||
         !!filterName;
+
 
     // Dialog state
     const [openCreate, setOpenCreate] = useState(false);

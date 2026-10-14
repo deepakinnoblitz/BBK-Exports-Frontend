@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { 
   LuCalculator, 
   LuReceipt, 
@@ -20,7 +20,8 @@ import {
   LuChevronDown,
   LuHardHat,
   LuMountain,
-  LuBriefcase
+  LuBriefcase,
+  LuCar
 } from 'react-icons/lu';
 
 import Box from '@mui/material/Box';
@@ -102,26 +103,44 @@ const SETTINGS_TABS = [
   },
 ];
 
-type CategoryKey = 'workers' | 'north_indian' | 'general';
+type CategoryKey = 'staff_ctc' | 'staff_non_ctc' | 'workers' | 'north_indian' | 'drivers' | 'general';
 
 const CATEGORIES: { key: CategoryKey; title: string; subtitle: string; icon: React.ReactNode }[] = [
   {
+    key: 'staff_ctc',
+    title: 'Staff - CTC Settings',
+    subtitle: 'Rules for Staff on CTC: Uncapped 12% PF on Basic+DA, Bonus/EL in Gross, ₹0 Employer EL/Bonus Provision',
+    icon: <LuBriefcase size={20} style={{ color: '#6366f1' }} />,
+  },
+  {
+    key: 'staff_non_ctc',
+    title: 'Staff - Non CTC Settings',
+    subtitle: 'Rules for Non-CTC Staff: Capped ₹1,800 PF (at ₹15k wage), Statutory ESI under ₹21k',
+    icon: <LuUser size={20} style={{ color: '#8b5cf6' }} />,
+  },
+  {
     key: 'workers',
     title: 'Workers Settings',
-    subtitle: 'Rules & statutory policies for Factory / Worker staff',
+    subtitle: 'Rules & statutory policies for Factory / Worker staff (2x OT, ₹1,500 Attendance Bonus, Capped PF)',
     icon: <LuHardHat size={20} style={{ color: '#d97706' }} />,
+  },
+  {
+    key: 'drivers',
+    title: 'Drivers Settings',
+    subtitle: 'Rules for Drivers: Fixed 26-Day basis, 2x OT, Capped PF, ₹5/day Tea Allowance, Bonus & EL Provisions',
+    icon: <LuCar size={20} style={{ color: '#10b981' }} />,
   },
   {
     key: 'north_indian',
     title: 'North Indian Settings',
-    subtitle: 'Rules & hourly overtime rates for North Indian staff',
+    subtitle: 'Rules & hourly overtime rates for North Indian staff (₹100/hr OT, Capped PF)',
     icon: <LuMountain size={20} style={{ color: '#0288d1' }} />,
   },
   {
     key: 'general',
-    title: 'Staff / General Settings',
-    subtitle: 'Default company-wide salary calculation policies',
-    icon: <LuBriefcase size={20} style={{ color: '#6366f1' }} />,
+    title: 'Company Default Settings',
+    subtitle: 'Default fallback salary calculation policies across all employee types',
+    icon: <LuBuilding2 size={20} style={{ color: '#64748b' }} />,
   },
 ];
 
@@ -134,6 +153,17 @@ type Props = {
 
 export function SettingsSalarySlip({ data, onChange }: Props) {
   const [currentTab, setCurrentTab] = useState('salary_rules');
+  const [visitedTabs, setVisitedTabs] = useState<Record<string, boolean>>({
+    salary_rules: true,
+  });
+
+  const handleTabChange = (_e: React.SyntheticEvent, val: string) => {
+    setVisitedTabs((prev) => (prev[val] ? prev : { ...prev, [val]: true }));
+    startTransition(() => {
+      setCurrentTab(val);
+    });
+  };
+
   const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
 
   useEffect(() => {
@@ -153,26 +183,72 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
 
   // Helper to read category-specific value or fallback
   const getFieldVal = (cat: CategoryKey, baseField: string, fallbackDefault: any = '') => {
-    if (cat === 'workers') {
+    if (cat === 'staff_ctc') {
+      const field = `staff_ctc_${baseField}`;
+      if (data[field] !== undefined && data[field] !== null && data[field] !== '') {
+        return data[field];
+      }
+      if (baseField === 'apply_pf_ceiling') return 0;
+      if (baseField === 'pf_wage_ceiling') return 0;
+      if (baseField === 'employee_pf_max_amount') return 0;
+      if (baseField === 'enable_bonus_provision') return 0;
+      if (baseField === 'enable_el_provision') return 0;
+      if (baseField === 'pf_wage_basis') return JSON.stringify(['Basic Pay', 'DA']);
+      if (baseField === 'pf_admin_edli_basis') return 'Statutory PF Wage (Capped at Ceiling)';
+      if (baseField === 'pf_admin_edli_gross_percent') return 100;
+    } else if (cat === 'staff_non_ctc') {
+      const field = `staff_non_ctc_${baseField}`;
+      if (data[field] !== undefined && data[field] !== null && data[field] !== '') {
+        return data[field];
+      }
+      if (baseField === 'apply_pf_ceiling') return 1;
+      if (baseField === 'pf_wage_ceiling') return 15000;
+      if (baseField === 'employee_pf_max_amount') return 1800;
+      if (baseField === 'pf_admin_edli_basis') return 'Percentage of Gross Salary';
+      if (baseField === 'pf_admin_edli_gross_percent') return 90;
+    } else if (cat === 'workers') {
       const wField = `workers_${baseField}`;
       if (data[wField] !== undefined && data[wField] !== null && data[wField] !== '') {
         return data[wField];
       }
+      if (baseField === 'pf_admin_edli_basis') return 'Statutory PF Wage (Capped at Ceiling)';
+      if (baseField === 'pf_admin_edli_gross_percent') return 100;
     } else if (cat === 'north_indian') {
       const niField = `north_indian_${baseField}`;
       if (data[niField] !== undefined && data[niField] !== null && data[niField] !== '') {
         return data[niField];
       }
+      if (baseField === 'pf_admin_edli_basis') return 'Statutory PF Wage (Capped at Ceiling)';
+      if (baseField === 'pf_admin_edli_gross_percent') return 100;
+    } else if (cat === 'drivers') {
+      const dField = `drivers_${baseField}`;
+      if (data[dField] !== undefined && data[dField] !== null && data[dField] !== '') {
+        return data[dField];
+      }
+      if (baseField === 'fixed_working_days') return 26;
+      if (baseField === 'salary_working_days_basis') return 'Fixed Working Days (e.g. 26)';
+      if (baseField === 'ot_rate_multiplier') return 2.0;
+      if (baseField === 'tea_allowance_per_day') return 5;
+      if (baseField === 'bonus_provision_rate') return 8.33;
+      if (baseField === 'el_provision_days_per_year') return 15;
+      if (baseField === 'pf_admin_edli_basis') return 'Statutory PF Wage (Capped at Ceiling)';
+      if (baseField === 'pf_admin_edli_gross_percent') return 100;
     }
     return data[baseField] !== undefined && data[baseField] !== null ? data[baseField] : fallbackDefault;
   };
 
   // Helper to update category-specific field
   const setFieldVal = (cat: CategoryKey, baseField: string, value: any) => {
-    if (cat === 'workers') {
+    if (cat === 'staff_ctc') {
+      onChange(`staff_ctc_${baseField}`, value);
+    } else if (cat === 'staff_non_ctc') {
+      onChange(`staff_non_ctc_${baseField}`, value);
+    } else if (cat === 'workers') {
       onChange(`workers_${baseField}`, value);
     } else if (cat === 'north_indian') {
       onChange(`north_indian_${baseField}`, value);
+    } else if (cat === 'drivers') {
+      onChange(`drivers_${baseField}`, value);
     } else {
       onChange(baseField, value);
     }
@@ -266,6 +342,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
     <Accordion
       key={cat.key}
       defaultExpanded={defaultExpanded}
+      TransitionProps={{ unmountOnExit: true }}
       disableGutters
       sx={{
         border: (theme) => `1px solid ${theme.palette.divider}`,
@@ -331,7 +408,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       >
         <Tabs
           value={currentTab}
-          onChange={(_e, val) => setCurrentTab(val)}
+          onChange={handleTabChange}
           variant="scrollable"
           scrollButtons="auto"
           sx={{
@@ -373,8 +450,9 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       </Box>
 
       {/* Tab Panel 1: Salary Calculation Rules (Company-Wide) */}
-      {currentTab === 'salary_rules' && (
-        <Card sx={{ p: 4, borderRadius: 3 }}>
+      <Box sx={{ display: currentTab === 'salary_rules' ? 'block' : 'none' }}>
+        {visitedTabs.salary_rules && (
+          <Card sx={{ p: 4, borderRadius: 3 }}>
           <Stack spacing={4}>
             {/* Important Note Banner */}
             <Box
@@ -545,11 +623,13 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             </Box>
           </Stack>
         </Card>
-      )}
+        )}
+      </Box>
 
       {/* Tab Panel 2: Professional Tax (PT) Rules (With Collapsible per Category) */}
-      {currentTab === 'pt_rules' && (
-        <Box>
+      <Box sx={{ display: currentTab === 'pt_rules' ? 'block' : 'none' }}>
+        {visitedTabs.pt_rules && (
+          <Box>
           {CATEGORIES.map((cat, idx) => {
             const slabs = getParsedSlabs(cat.key);
             const ptEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_pt', 1));
@@ -795,14 +875,17 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             );
           })}
         </Box>
-      )}
+        )}
+      </Box>
 
       {/* Tab Panel 3: Employee Statutory Deductions (PF & ESI) (With Collapsible per Category) */}
-      {currentTab === 'employee_statutory' && (
-        <Box>
+      <Box sx={{ display: currentTab === 'employee_statutory' ? 'block' : 'none' }}>
+        {visitedTabs.employee_statutory && (
+          <Box>
           {CATEGORIES.map((cat, idx) => {
             const autoPfEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_auto_pf', 1));
             const autoEsiEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_auto_esi', 1));
+            const applyPfCeiling = isCheckEnabled(getFieldVal(cat.key, 'apply_pf_ceiling', cat.key === 'staff_ctc' ? 0 : 1));
             const selectedPfComps = getSelectedPfComponents(cat.key);
 
             return renderCategoryAccordion(
@@ -848,8 +931,37 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                     </Stack>
 
                     <Stack spacing={2.5}>
+                      {/* Ceiling Toggle Switch */}
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 1.5,
+                          bgcolor: (theme) => alpha(theme.palette.background.paper, 0.6),
+                          border: (theme) => `1px dashed ${alpha(theme.palette.divider, 0.8)}`,
+                        }}
+                      >
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                            Apply PF Wage Ceiling Cap (₹15,000 / ₹1,800 Cap)
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                            {applyPfCeiling
+                              ? 'Deduction is capped at max ₹1,800 when wage basis exceeds ₹15,000.'
+                              : 'Uncapped contribution: 12% is calculated on the entire wage basis.'}
+                          </Typography>
+                        </Box>
+                        <CustomSwitch
+                          checked={applyPfCeiling}
+                          onChange={(e) => setFieldVal(cat.key, 'apply_pf_ceiling', e.target.checked ? 1 : 0)}
+                          disabled={!autoPfEnabled}
+                        />
+                      </Stack>
+
                       <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, sm: 4 }}>
+                        <Grid size={{ xs: 12, sm: applyPfCeiling ? 4 : 12 }}>
                           <TextField
                             fullWidth
                             type="number"
@@ -867,50 +979,54 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             }}
                           />
                         </Grid>
-                        <Grid size={{ xs: 12, sm: 4 }}>
-                          <TextField
-                            fullWidth
-                            type="number"
-                            label="PF Wage Ceiling"
-                            value={getFieldVal(cat.key, 'pf_wage_ceiling', '15000')}
-                            onChange={(e) => setFieldVal(cat.key, 'pf_wage_ceiling', e.target.value)}
-                            placeholder="15000"
-                            helperText="Wage threshold (e.g. ₹15,000)."
-                            disabled={!autoPfEnabled}
-                            slotProps={{
-                              input: {
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
-                                  </InputAdornment>
-                                ),
-                              },
-                              htmlInput: { min: 0, step: 1000 },
-                            }}
-                          />
-                        </Grid>
-                        <Grid size={{ xs: 12, sm: 4 }}>
-                          <TextField
-                            fullWidth
-                            type="number"
-                            label="Max PF Deduction"
-                            value={getFieldVal(cat.key, 'employee_pf_max_amount', '1800')}
-                            onChange={(e) => setFieldVal(cat.key, 'employee_pf_max_amount', e.target.value)}
-                            placeholder="1800"
-                            helperText="Cap applied when wage ≥ ceiling (₹1,800)."
-                            disabled={!autoPfEnabled}
-                            slotProps={{
-                              input: {
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
-                                  </InputAdornment>
-                                ),
-                              },
-                              htmlInput: { min: 0, step: 100 },
-                            }}
-                          />
-                        </Grid>
+                        {applyPfCeiling && (
+                          <>
+                            <Grid size={{ xs: 12, sm: 4 }}>
+                              <TextField
+                                fullWidth
+                                type="number"
+                                label="PF Wage Ceiling"
+                                value={getFieldVal(cat.key, 'pf_wage_ceiling', '15000')}
+                                onChange={(e) => setFieldVal(cat.key, 'pf_wage_ceiling', e.target.value)}
+                                placeholder="15000"
+                                helperText="Statutory threshold (₹15,000)."
+                                disabled={!autoPfEnabled}
+                                slotProps={{
+                                  input: {
+                                    startAdornment: (
+                                      <InputAdornment position="start">
+                                        <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                                      </InputAdornment>
+                                    ),
+                                  },
+                                  htmlInput: { min: 0, step: 1000 },
+                                }}
+                              />
+                            </Grid>
+                            <Grid size={{ xs: 12, sm: 4 }}>
+                              <TextField
+                                fullWidth
+                                type="number"
+                                label="Max PF Deduction"
+                                value={getFieldVal(cat.key, 'employee_pf_max_amount', '1800')}
+                                onChange={(e) => setFieldVal(cat.key, 'employee_pf_max_amount', e.target.value)}
+                                placeholder="1800"
+                                helperText="Cap applied when wage is above or equal to ceiling (₹1,800)."
+                                disabled={!autoPfEnabled}
+                                slotProps={{
+                                  input: {
+                                    startAdornment: (
+                                      <InputAdornment position="start">
+                                        <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                                      </InputAdornment>
+                                    ),
+                                  },
+                                  htmlInput: { min: 0, step: 100 },
+                                }}
+                              />
+                            </Grid>
+                          </>
+                        )}
                       </Grid>
 
                       <Box sx={{ width: '100%' }}>
@@ -1057,7 +1173,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             value={getFieldVal(cat.key, 'esi_wage_ceiling', '21000')}
                             onChange={(e) => setFieldVal(cat.key, 'esi_wage_ceiling', e.target.value)}
                             placeholder="21000"
-                            helperText="Statutory threshold (Gross <= ₹21,000)."
+                            helperText={`Statutory threshold (Gross less than or equal to ₹${Number(getFieldVal(cat.key, 'esi_wage_ceiling', '21000') || 21000).toLocaleString('en-IN')}).`}
                             disabled={!autoEsiEnabled}
                             slotProps={{
                               input: {
@@ -1072,24 +1188,6 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                           />
                         </Grid>
                       </Grid>
-
-                      <FormControl fullWidth disabled={!autoEsiEnabled}>
-                        <InputLabel id={`esi-rounding-label-${cat.key}`}>ESI Rounding Method</InputLabel>
-                        <Select
-                          labelId={`esi-rounding-label-${cat.key}`}
-                          id={`esi_rounding_method_${cat.key}`}
-                          value={getFieldVal(cat.key, 'esi_rounding_method', 'Round Up to Next Rupee (ROUNDUP / CEIL)')}
-                          label="ESI Rounding Method"
-                          onChange={(e) => setFieldVal(cat.key, 'esi_rounding_method', e.target.value)}
-                        >
-                          <MenuItem value="Round Up to Next Rupee (ROUNDUP / CEIL)">Round Up to Next Rupee (ROUNDUP / CEIL)</MenuItem>
-                          <MenuItem value="Standard Math Round (ROUND)">Standard Math Round (ROUND)</MenuItem>
-                        </Select>
-                        <Typography variant="caption" sx={{ mt: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <LuInfo size={15} style={{ color: '#0288d1', flexShrink: 0 }} />
-                          ESI 0.75% is applied on full Earned Gross if standard wage is ≤ ₹21,000.
-                        </Typography>
-                      </FormControl>
                     </Stack>
                   </Box>
                 </Grid>
@@ -1097,11 +1195,13 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             );
           })}
         </Box>
-      )}
+        )}
+      </Box>
 
       {/* Tab Panel 4: Overtime, Allowance & Attendance Bonus (With Collapsible per Category) */}
-      {currentTab === 'ot_bonus_rules' && (
-        <Box>
+      <Box sx={{ display: currentTab === 'ot_bonus_rules' ? 'block' : 'none' }}>
+        {visitedTabs.ot_bonus_rules && (
+          <Box>
           {CATEGORIES.map((cat, idx) => (
             renderCategoryAccordion(
               cat,
@@ -1115,14 +1215,14 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  {(cat.key === 'workers' || cat.key === 'general') && (
-                    <Grid size={{ xs: 12, sm: 6, md: cat.key === 'workers' ? 6 : 4 }}>
+                  {(cat.key === 'workers' || cat.key === 'drivers' || cat.key === 'general') && (
+                    <Grid size={{ xs: 12, sm: 6, md: (cat.key === 'workers' || cat.key === 'drivers') ? 6 : 4 }}>
                       <TextField
                         fullWidth
                         type="number"
-                        label="Workers OT Multiplier"
-                        value={data.workers_ot_rate_multiplier ?? '2'}
-                        onChange={(e) => onChange('workers_ot_rate_multiplier', e.target.value)}
+                        label={cat.key === 'drivers' ? 'Drivers OT Multiplier' : (cat.key === 'workers' ? 'Workers OT Multiplier' : 'Default OT Multiplier')}
+                        value={cat.key === 'drivers' ? (data.drivers_ot_rate_multiplier ?? '2') : (data.workers_ot_rate_multiplier ?? '2')}
+                        onChange={(e) => onChange(cat.key === 'drivers' ? 'drivers_ot_rate_multiplier' : 'workers_ot_rate_multiplier', e.target.value)}
                         placeholder="2"
                         helperText="Double Rate: (Gross / 26 / 8) × OT Hours × Multiplier"
                         slotProps={{
@@ -1193,11 +1293,13 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             )
           ))}
         </Box>
-      )}
+        )}
+      </Box>
 
       {/* Tab Panel 5: Employer Statutory Contributions & CTC Rules (With Collapsible per Category) */}
-      {currentTab === 'employer_statutory' && (
-        <Box>
+      <Box sx={{ display: currentTab === 'employer_statutory' ? 'block' : 'none' }}>
+        {visitedTabs.employer_statutory && (
+          <Box>
           {CATEGORIES.map((cat, idx) => {
             const bonusEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_bonus_provision', 1));
             const elEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_el_provision', 1));
@@ -1266,7 +1368,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       value={getFieldVal(cat.key, 'employer_pf_max_amount', '1800')}
                       onChange={(e) => setFieldVal(cat.key, 'employer_pf_max_amount', e.target.value)}
                       placeholder="1800"
-                      helperText="Contribution cap applied when wage ≥ ceiling (₹1,800)."
+                      helperText="Contribution cap applied when wage is above or equal to ceiling (₹1,800)."
                       slotProps={{
                         input: {
                           startAdornment: (
@@ -1280,6 +1382,47 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                     />
                   </Grid>
 
+                  {/* PF Admin & EDLI Wage Basis (Not needed for CTC Staff) */}
+                  {cat.key !== 'staff_ctc' && (
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <FormControl fullWidth>
+                        <InputLabel id={`admin-edli-basis-label-${cat.key}`}>PF Admin & EDLI Basis</InputLabel>
+                        <Select
+                          labelId={`admin-edli-basis-label-${cat.key}`}
+                          id={`pf_admin_edli_basis_${cat.key}`}
+                          value={getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)')}
+                          label="PF Admin & EDLI Basis"
+                          onChange={(e) => setFieldVal(cat.key, 'pf_admin_edli_basis', e.target.value)}
+                        >
+                          <MenuItem value="Statutory PF Wage (Capped at Ceiling)">Statutory PF Wage (Capped at Ceiling)</MenuItem>
+                          <MenuItem value="Percentage of Gross Salary">Percentage of Gross Salary</MenuItem>
+                          <MenuItem value="Actual PF Wage (Uncapped)">Actual PF Wage (Uncapped)</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  )}
+
+                  {/* PF Admin & EDLI Gross Basis % */}
+                  {cat.key !== 'staff_ctc' && getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)') === 'Percentage of Gross Salary' && (
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Admin & EDLI Gross Basis (%)"
+                        value={getFieldVal(cat.key, 'pf_admin_edli_gross_percent', cat.key === 'staff_non_ctc' ? '90' : '100')}
+                        onChange={(e) => setFieldVal(cat.key, 'pf_admin_edli_gross_percent', e.target.value)}
+                        placeholder="90"
+                        helperText="Calculated on: (Gross × % ) × Rate."
+                        slotProps={{
+                          input: {
+                            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                          },
+                          htmlInput: { min: 0, max: 100, step: 1 },
+                        }}
+                      />
+                    </Grid>
+                  )}
+
                   {/* PF Admin Charges */}
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <TextField
@@ -1289,7 +1432,11 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       value={getFieldVal(cat.key, 'pf_admin_rate', '0.5')}
                       onChange={(e) => setFieldVal(cat.key, 'pf_admin_rate', e.target.value)}
                       placeholder="0.5"
-                      helperText="EPFO Admin charges rate."
+                      helperText={
+                        cat.key === 'staff_ctc'
+                          ? `EPFO Admin Charges (Capped at ₹${(Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000) * (Number(getFieldVal(cat.key, 'pf_admin_rate', '0.5') || 0.5) / 100)).toFixed(0)} = ₹${Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000).toLocaleString('en-IN')} × ${getFieldVal(cat.key, 'pf_admin_rate', '0.5')}%)`
+                          : "EPFO Admin charges rate."
+                      }
                       slotProps={{
                         input: {
                           endAdornment: <InputAdornment position="end">%</InputAdornment>,
@@ -1308,7 +1455,11 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       value={getFieldVal(cat.key, 'edli_rate', '0.5')}
                       onChange={(e) => setFieldVal(cat.key, 'edli_rate', e.target.value)}
                       placeholder="0.5"
-                      helperText="Deposit Linked Insurance."
+                      helperText={
+                        cat.key === 'staff_ctc'
+                          ? `Deposit Linked Insurance (Capped at ₹${(Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000) * (Number(getFieldVal(cat.key, 'edli_rate', '0.5') || 0.5) / 100)).toFixed(0)} = ₹${Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000).toLocaleString('en-IN')} × ${getFieldVal(cat.key, 'edli_rate', '0.5')}%)`
+                          : "Deposit Linked Insurance."
+                      }
                       slotProps={{
                         input: {
                           endAdornment: <InputAdornment position="end">%</InputAdornment>,
@@ -1327,12 +1478,35 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       value={getFieldVal(cat.key, 'employer_esi_rate', '3.25')}
                       onChange={(e) => setFieldVal(cat.key, 'employer_esi_rate', e.target.value)}
                       placeholder="3.25"
-                      helperText="ESI Contribution (Gross ≤ ₹21,000)."
+                      helperText={`ESI Contribution (Gross less than or equal to ₹${Number(getFieldVal(cat.key, 'esi_wage_ceiling', '21000') || 21000).toLocaleString('en-IN')}).`}
                       slotProps={{
                         input: {
                           endAdornment: <InputAdornment position="end">%</InputAdornment>,
                         },
                         htmlInput: { min: 0, max: 100, step: 0.05 },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* ESI Wage Ceiling */}
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="ESI Wage Ceiling"
+                      value={getFieldVal(cat.key, 'esi_wage_ceiling', '21000')}
+                      onChange={(e) => setFieldVal(cat.key, 'esi_wage_ceiling', e.target.value)}
+                      placeholder="21000"
+                      helperText={`Statutory threshold (Gross <= ₹${Number(getFieldVal(cat.key, 'esi_wage_ceiling', '21000') || 21000).toLocaleString('en-IN')}).`}
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                            </InputAdornment>
+                          ),
+                        },
+                        htmlInput: { min: 0, step: 1000 },
                       }}
                     />
                   </Grid>
@@ -1453,24 +1627,28 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                     </Box>
                   </Grid>
 
-                  {/* Workers Tea Expenses (Employer) Card - Only shown for Workers / General */}
-                  {(cat.key === 'workers' || cat.key === 'general') && (
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <Box
-                        sx={{
-                          p: 2.5,
-                          borderRadius: 2,
-                          bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
-                          border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
-                        }}
-                      >
+                  {/* Tea Expenses (Employer) Card */}
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <Box
+                      sx={{
+                        p: 2.5,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
+                        border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <Box>
                         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
                           <Box>
                             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              Workers Tea Expenses (Employer)
+                              Tea Expenses (Employer CTC)
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              Company tea expense incurred per day worked for worker employees.
+                              Company tea expense incurred per day worked for {cat.title}.
                             </Typography>
                           </Box>
                           <Stack direction="row" alignItems="center" spacing={1.5}>
@@ -1478,28 +1656,28 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                               variant="body2"
                               sx={{
                                 fontWeight: 700,
-                                color: teaEnabled ? '#059669' : 'text.secondary',
+                                color: isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) ? '#059669' : 'text.secondary',
                               }}
                             >
-                              {teaEnabled ? 'Enabled' : 'Disabled'}
+                              {isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) ? 'Enabled' : 'Disabled'}
                             </Typography>
                             <CustomSwitch
-                              checked={teaEnabled}
-                              onChange={(e) => onChange('enable_workers_tea_allowance', e.target.checked ? 1 : 0)}
+                              checked={isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1))}
+                              onChange={(e) => setFieldVal(cat.key, 'enable_tea_allowance', e.target.checked ? 1 : 0)}
                             />
                           </Stack>
                         </Stack>
 
-                        {teaEnabled && (
+                        {isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) && (
                           <TextField
                             fullWidth
                             size="medium"
                             type="number"
-                            label="Workers Tea Allowance Rate"
-                            value={data.workers_tea_allowance_per_day ?? '5'}
-                            onChange={(e) => onChange('workers_tea_allowance_per_day', e.target.value)}
-                            placeholder="5"
-                            helperText="Calculated on Employer CTC only (Days Worked × ₹/day)."
+                            label="Tea Expense Rate (₹/day)"
+                            value={getFieldVal(cat.key, 'tea_allowance_per_day', cat.key.includes('staff') ? '14' : '5')}
+                            onChange={(e) => setFieldVal(cat.key, 'tea_allowance_per_day', e.target.value)}
+                            placeholder={cat.key.includes('staff') ? '14' : '5'}
+                            helperText={`Calculated on Employer CTC (Present Days × ₹/day). Default: ₹${cat.key.includes('staff') ? '14' : '5'}/day.`}
                             slotProps={{
                               input: {
                                 startAdornment: (
@@ -1514,14 +1692,83 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                           />
                         )}
                       </Box>
-                    </Grid>
-                  )}
+                    </Box>
+                  </Grid>
+
+                  {/* Lunch Expenses (Employer CTC) Card */}
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <Box
+                      sx={{
+                        p: 2.5,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
+                        border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <Box>
+                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              Lunch Expenses (Employer CTC)
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Company lunch expense incurred per canteen meal for {cat.title}.
+                            </Typography>
+                          </Box>
+                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 700,
+                                color: isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) ? '#059669' : 'text.secondary',
+                              }}
+                            >
+                              {isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) ? 'Enabled' : 'Disabled'}
+                            </Typography>
+                            <CustomSwitch
+                              checked={isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1))}
+                              onChange={(e) => setFieldVal(cat.key, 'enable_lunch_allowance', e.target.checked ? 1 : 0)}
+                            />
+                          </Stack>
+                        </Stack>
+
+                        {isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) && (
+                          <TextField
+                            fullWidth
+                            size="medium"
+                            type="number"
+                            label="Lunch Expense Rate (₹/meal)"
+                            value={getFieldVal(cat.key, 'lunch_allowance_per_meal', '50')}
+                            onChange={(e) => setFieldVal(cat.key, 'lunch_allowance_per_meal', e.target.value)}
+                            placeholder="50"
+                            helperText="Calculated from Canteen entries (All Canteen Entries × ₹/meal). Default: ₹50/meal."
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                  </InputAdornment>
+                                ),
+                                endAdornment: <InputAdornment position="end">/meal</InputAdornment>,
+                              },
+                              htmlInput: { min: 0, step: 1 },
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </Box>
+                  </Grid>
                 </Grid>
               </Stack>
             );
           })}
         </Box>
-      )}
+        )}
+      </Box>
     </Stack>
   );
 }

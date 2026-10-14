@@ -63,6 +63,7 @@ import { useAuth } from 'src/auth/auth-context';
 import { TableNoData } from '../../lead/table-no-data';
 import { EmployeeTableRow } from '../employee-table-row';
 import { ShiftCreateDialog } from '../shift-create-dialog';
+import { SkillCreateDialog } from '../skill-create-dialog';
 import { TableEmptyRows } from '../../lead/table-empty-rows';
 import { EmployeeImportDialog } from '../employee-import-dialog';
 import { BusRouteCreateDialog } from '../bus-route-create-dialog';
@@ -74,6 +75,7 @@ import EmployeeTableFiltersDrawer from '../employee-table-filters-drawer';
 import { EmployeeTypeCreateDialog } from '../employee-type-create-dialog';
 import { QualificationCreateDialog } from '../qualification-create-dialog';
 import { BankAccountDialog } from '../../master/bank-account/bank-account-dialog';
+import { SalaryComponentFormDialog } from '../../salary-slips/salary-component-form-dialog';
 // ----------------------------------------------------------------------
 
 const filter = createFilterOptions<any>();
@@ -91,7 +93,8 @@ const SalaryRow = memo(({
     hrSettings,
     onRowChange,
     onRowRemove,
-    hasError
+    hasError,
+    onCreateComponent,
 }: {
     index: number;
     type: 'Earning' | 'Deduction';
@@ -101,6 +104,7 @@ const SalaryRow = memo(({
     onRowChange: (index: number, type: 'Earning' | 'Deduction', field: string, value: any) => void;
     onRowRemove: (index: number, type: 'Earning' | 'Deduction') => void;
     hasError: boolean;
+    onCreateComponent?: (type: 'Earning' | 'Deduction', index: number, initialName?: string) => void;
 }) => (
     <TableRow
         sx={{
@@ -114,7 +118,79 @@ const SalaryRow = memo(({
                 size="small"
                 options={componentOptions}
                 value={row.component_name || ''}
-                onChange={(e, newValue) => onRowChange(index, type, 'component_name', newValue || '')}
+                filterOptions={(options, params) => {
+                    const filtered = filter(options, params);
+                    const { inputValue } = params;
+                    const isExisting = options.some(
+                        (opt: any) => (typeof opt === 'string' ? opt : opt?.component_name || '').toLowerCase().trim() === inputValue.toLowerCase().trim()
+                    );
+                    if (inputValue.trim() !== '' && !isExisting) {
+                        filtered.push(`__CREATE_NEW__:${inputValue.trim()}`);
+                    } else {
+                        filtered.push('__CREATE_NEW__:');
+                    }
+                    return filtered;
+                }}
+                getOptionLabel={(option) => {
+                    if (typeof option === 'string') {
+                        if (option.startsWith('__CREATE_NEW__:')) {
+                            const val = option.replace('__CREATE_NEW__:', '');
+                            return val ? `+ Create Component "${val}"` : '+ Create New Component';
+                        }
+                        return option;
+                    }
+                    return '';
+                }}
+                onChange={(e, newValue) => {
+                    if (typeof newValue === 'string' && newValue.startsWith('__CREATE_NEW__:')) {
+                        const inputVal = newValue.replace('__CREATE_NEW__:', '');
+                        if (onCreateComponent) {
+                            onCreateComponent(type, index, inputVal);
+                        }
+                        return;
+                    }
+                    onRowChange(index, type, 'component_name', newValue || '');
+                }}
+                renderOption={(props, option) => {
+                    const { key, ...otherProps } = props;
+                    const isCreate = typeof option === 'string' && option.startsWith('__CREATE_NEW__:');
+                    if (isCreate) {
+                        const val = option.replace('__CREATE_NEW__:', '');
+                        return (
+                            <Box
+                                key={key || 'create-component-option'}
+                                component="li"
+                                {...otherProps}
+                                sx={{
+                                    color: 'primary.main',
+                                    fontWeight: 700,
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                    borderTop: (theme) => `1px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
+                                    py: 1,
+                                    px: 1.5,
+                                    mt: 0.5,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                    cursor: 'pointer',
+                                    '&:hover': {
+                                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                    },
+                                }}
+                            >
+                                <Iconify icon="solar:add-circle-bold" width={20} />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                                    {val ? `Create Component "${val}"` : 'Create New Component'}
+                                </Typography>
+                            </Box>
+                        );
+                    }
+                    return (
+                        <Box key={key || (typeof option === 'string' ? option : 'option')} component="li" {...otherProps} sx={{ typography: 'body2' }}>
+                            {typeof option === 'string' ? option : ''}
+                        </Box>
+                    );
+                }}
                 renderInput={(params) => (
                     <TextField
                         {...params}
@@ -224,10 +300,20 @@ export function EmployeeView() {
     const [openEmployeeTypeCreate, setOpenEmployeeTypeCreate] = useState(false);
     const [employeeTypeSearch, setEmployeeTypeSearch] = useState('');
 
+    // Skill Create Dialog State
+    const [openSkillCreate, setOpenSkillCreate] = useState(false);
+    const [skillSearch, setSkillSearch] = useState('');
+
     // Bank Account Create Dialog State
     const [openBankAccountCreate, setOpenBankAccountCreate] = useState(false);
     const [bankAccountLoading, setBankAccountLoading] = useState(false);
     const bankAccountSearchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Salary Component Create Dialog State
+    const [openSalaryComponentCreate, setOpenSalaryComponentCreate] = useState(false);
+    const [salaryComponentType, setSalaryComponentType] = useState<'Earning' | 'Deduction'>('Earning');
+    const [salaryComponentInitialName, setSalaryComponentInitialName] = useState('');
+    const [salaryComponentTargetRow, setSalaryComponentTargetRow] = useState<{ type: 'Earning' | 'Deduction'; index: number } | null>(null);
 
     const [openCreate, setOpenCreate] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -456,6 +542,13 @@ export function EmployeeView() {
                     setFieldOptions(prev => ({ ...prev, 'employee_type': options }));
                 })
                 .catch(console.error);
+
+            // Explicitly fetch options for skill
+            getDoctypeList('Skill', ['name', 'skill_name'])
+                .then((options) => {
+                    setFieldOptions(prev => ({ ...prev, 'skill': options }));
+                })
+                .catch(console.error);
         }).catch(console.error);
     }, []);
 
@@ -564,30 +657,71 @@ export function EmployeeView() {
         ctcValue: number,
         currentEarnings: any[]
     ): number => {
+        const cName = (comp.component_name || '').toLowerCase().trim();
         const percent = parseFloat(comp.percentage) || 0;
-        if (percent <= 0) {
-            return parseFloat(comp.static_amount) || 0;
-        }
-
         const basis = comp.percentage_basis || 'Full (Total Gross / CTC)';
+
+        let baseSum = ctcValue;
         if (basis === 'Selected Component(s)') {
             let selectedList: string[] = [];
             if (Array.isArray(comp.selected_components)) {
-                selectedList = comp.selected_components;
+                selectedList = comp.selected_components.map((s: any) => String(s).toLowerCase().trim());
             } else if (typeof comp.selected_components === 'string' && comp.selected_components.trim()) {
                 try {
-                    selectedList = JSON.parse(comp.selected_components);
+                    const parsed = JSON.parse(comp.selected_components);
+                    if (Array.isArray(parsed)) {
+                        selectedList = parsed.map((s: any) => String(s).toLowerCase().trim());
+                    }
                 } catch {
-                    selectedList = comp.selected_components.split(',').map((s: string) => s.trim()).filter(Boolean);
+                    selectedList = comp.selected_components.split(',').map((s: string) => s.toLowerCase().trim()).filter(Boolean);
                 }
             }
 
             if (selectedList.length > 0) {
-                const baseSum = currentEarnings
-                    .filter((e: any) => selectedList.includes(e.component_name))
+                baseSum = currentEarnings
+                    .filter((e: any) => {
+                        const name = (e.component_name || '').toLowerCase().trim();
+                        return selectedList.includes(name) || selectedList.some((s: string) => name.includes(s) || s.includes(name));
+                    })
                     .reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
-                return Math.round(((baseSum * percent) / 100) * 100) / 100;
             }
+        }
+
+        // Special handling for Earned Leave / EL
+        if (cName === 'earned leave' || cName === 'el') {
+            const basicDaSum = currentEarnings
+                .filter((e: any) => {
+                    const name = (e.component_name || '').toLowerCase().trim();
+                    return name.includes('basic') || name.includes('da') || name.includes('dearness');
+                })
+                .reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
+            const baseForEl = (basis === 'Selected Component(s)' && baseSum > 0) ? baseSum : (basicDaSum > 0 ? basicDaSum : ctcValue);
+            const elDays = percent > 0 ? percent : 14.0;
+            if (percent > 0 && basis === 'Full (Total Gross / CTC)') {
+                return Math.round(((baseForEl * percent) / 100) * 100) / 100;
+            }
+            return Math.round(((baseForEl / 26.0) * (elDays / 12.0)));
+        }
+
+        // Special handling for Bonus
+        if (cName === 'bonus' || cName === 'bonus provision') {
+            const basicDaSum = currentEarnings
+                .filter((e: any) => {
+                    const name = (e.component_name || '').toLowerCase().trim();
+                    return name.includes('basic') || name.includes('da') || name.includes('dearness');
+                })
+                .reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
+            const baseForBonus = (basis === 'Selected Component(s)' && baseSum > 0) ? baseSum : (basicDaSum > 0 ? basicDaSum : ctcValue);
+            const bonusRate = percent > 0 ? percent : 8.33;
+            return Math.round((baseForBonus * bonusRate) / 100.0);
+        }
+
+        if (percent <= 0) {
+            return parseFloat(comp.static_amount) || 0;
+        }
+
+        if (basis === 'Selected Component(s)') {
+            return Math.round(((baseSum * percent) / 100) * 100) / 100;
         }
 
         // Default to Full CTC / Gross
@@ -604,14 +738,18 @@ export function EmployeeView() {
             const earningComps = components.filter((c: any) => c.type === 'Earning');
             const deductionComps = components.filter((c: any) => c.type === 'Deduction');
 
-            const earnings: any[] = earningComps.map((comp: any) => ({
-                component_name: comp.component_name,
-                amount: calculateSalaryComponentAmount(comp, ctcValue, []),
-                type: comp.type,
-                percentage: comp.percentage,
-                percentage_basis: comp.percentage_basis,
-                selected_components: comp.selected_components,
-            }));
+            const earnings: any[] = [];
+            for (const comp of earningComps) {
+                const amount = calculateSalaryComponentAmount(comp, ctcValue, earnings);
+                earnings.push({
+                    component_name: comp.component_name,
+                    amount,
+                    type: comp.type,
+                    percentage: comp.percentage,
+                    percentage_basis: comp.percentage_basis,
+                    selected_components: comp.selected_components,
+                });
+            }
 
             const deductions: any[] = deductionComps.map((comp: any) => ({
                 component_name: comp.component_name,
@@ -695,6 +833,47 @@ export function EmployeeView() {
         }
     }, [formErrors.salary_components, salaryComponents]);
 
+    const handleOpenCreateSalaryComponent = useCallback((type: 'Earning' | 'Deduction', index?: number, initialName: string = '') => {
+        setSalaryComponentType(type);
+        setSalaryComponentInitialName(initialName);
+        if (index !== undefined) {
+            setSalaryComponentTargetRow({ type, index });
+        } else {
+            setSalaryComponentTargetRow(null);
+        }
+        setOpenSalaryComponentCreate(true);
+    }, []);
+
+    const handleSalaryComponentCreated = useCallback(async (newComponent: any) => {
+        try {
+            const allComps = await fetchSalaryComponents();
+            setSalaryComponents(allComps);
+
+            if (newComponent?.component_name && salaryComponentTargetRow) {
+                handleSalaryRowChange(
+                    salaryComponentTargetRow.index,
+                    salaryComponentTargetRow.type,
+                    'component_name',
+                    newComponent.component_name
+                );
+                if (newComponent.static_amount) {
+                    handleSalaryRowChange(
+                        salaryComponentTargetRow.index,
+                        salaryComponentTargetRow.type,
+                        'amount',
+                        newComponent.static_amount
+                    );
+                }
+            }
+            setSnackbar({ open: true, message: `Salary Component "${newComponent?.component_name || ''}" created successfully`, severity: 'success' });
+        } catch (err) {
+            console.error('Failed to reload salary components:', err);
+        } finally {
+            setOpenSalaryComponentCreate(false);
+            setSalaryComponentTargetRow(null);
+        }
+    }, [handleSalaryRowChange, salaryComponentTargetRow]);
+
 
     const handleDefaultSplitting = async () => {
         const ctcValue = parseFloat(formData.ctc) || 0;
@@ -726,14 +905,18 @@ export function EmployeeView() {
                 return;
             }
 
-            const earnings: any[] = defaultEarnings.map((comp: any) => ({
-                component_name: comp.component_name,
-                amount: calculateSalaryComponentAmount(comp, ctcValue, []),
-                type: comp.type,
-                percentage: comp.percentage,
-                percentage_basis: comp.percentage_basis,
-                selected_components: comp.selected_components,
-            }));
+            const earnings: any[] = [];
+            for (const comp of defaultEarnings) {
+                const amount = calculateSalaryComponentAmount(comp, ctcValue, earnings);
+                earnings.push({
+                    component_name: comp.component_name,
+                    amount,
+                    type: comp.type,
+                    percentage: comp.percentage,
+                    percentage_basis: comp.percentage_basis,
+                    selected_components: comp.selected_components,
+                });
+            }
 
             const deductions: any[] = defaultDeductions.map((comp: any) => ({
                 component_name: comp.component_name,
@@ -2151,6 +2334,99 @@ export function EmployeeView() {
             );
         }
 
+        if (fieldname === 'skill') {
+            return (
+                <Autocomplete
+                    fullWidth
+                    options={options}
+                    value={formData[fieldname] || ''}
+                    onChange={(event, newValue: any) => {
+                        if (newValue?.isNew || newValue === 'Create Skill' || newValue?.name === 'Create Skill' || newValue?.skill_name === 'Create Skill') {
+                            setOpenSkillCreate(true);
+                            setSkillSearch(newValue?.inputValue || '');
+                        } else {
+                            const value = typeof newValue === 'object' ? (newValue.skill_name || newValue.name) : newValue;
+                            handleInputChange(fieldname, value || '');
+                        }
+                    }}
+                    filterOptions={(currentOptions, params) => {
+                        const filtered = filter(currentOptions, params);
+                        const { inputValue } = params;
+                        const hasCreateOption = filtered.some((option: any) =>
+                            (typeof option === 'string' ? option : (option.skill_name || option.name)) === 'Create Skill' || option.isNew
+                        );
+                        if (!hasCreateOption) {
+                            filtered.push({
+                                inputValue: inputValue || '',
+                                name: 'Create Skill',
+                                skill_name: 'Create Skill',
+                                isNew: true,
+                            });
+                        }
+                        return filtered;
+                    }}
+                    renderOption={(props, option: any) => (
+                        <Box component="li" {...props} sx={{
+                            typography: 'body2',
+                            ...(option.isNew && {
+                                color: 'primary.main',
+                                fontWeight: 600,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                mt: 0.5,
+                                py: 3, minHeight: '56px',
+                                '&:hover': {
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                }
+                            })
+                        }}>
+                            {option.isNew ? (
+                                <Stack direction="row" alignItems="center" spacing={1.5}>
+                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                        Create Skill {option.inputValue ? `"${option.inputValue}"` : ''}
+                                    </Typography>
+                                </Stack>
+                            ) : (
+                                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {typeof option === 'string' ? option : (option.skill_name || option.name)}
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Box>
+                    )}
+                    getOptionLabel={(option) => (typeof option === 'string' ? option : (option.skill_name || option.name || ''))}
+                    isOptionEqualToValue={(option, value) => {
+                        const optVal = typeof option === 'string' ? option : (option.skill_name || option.name);
+                        const val = typeof value === 'string' ? value : (value?.skill_name || value?.name);
+                        return optVal === val;
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label={label}
+                            placeholder={`Select ${label}`}
+                            required={required}
+                            error={!!formErrors[fieldname]}
+                            helperText={formErrors[fieldname]}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiFormLabel-asterisk': {
+                                    color: 'red',
+                                },
+                                ...extraProps.sx
+                            }}
+                        />
+                    )}
+                    freeSolo
+                    selectOnFocus
+                    clearOnBlur
+                    handleHomeEndKeys
+                />
+            );
+        }
+
         if (type === 'select' || type === 'link') {
             const selectPlaceholder = extraProps.placeholder || `Select ${label}`;
             return (
@@ -2278,22 +2554,25 @@ export function EmployeeView() {
                     }}>
                         {type === 'Earning' ? 'Earnings' : 'Deductions'}
                     </Typography>
-                    <Button
-                        size="small"
-                        variant="text"
-                        startIcon={<Iconify icon="solar:add-circle-bold" />}
-                        onClick={() => handleAddSalaryRow(type)}
-                        sx={{
-                            color: COMMON_COLORS.emerald.main,
-                            fontWeight: 700,
-                            '&:hover': {
-                                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
-                                color: COMMON_COLORS.emerald.dark,
-                            }
-                        }}
-                    >
-                        Add Row
-                    </Button>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <Button
+                            size="small"
+                            variant="text"
+                            startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
+                            onClick={() => handleAddSalaryRow(type)}
+                            sx={{
+                                color: COMMON_COLORS.emerald.main,
+                                fontWeight: 700,
+                                fontSize: '0.85rem',
+                                '&:hover': {
+                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                    color: COMMON_COLORS.emerald.dark,
+                                }
+                            }}
+                        >
+                            Add Row
+                        </Button>
+                    </Stack>
                 </Box>
                 <TableContainer sx={{
                     border: (theme) => `1px solid ${alpha(theme.palette.grey[500], 0.2)}`,
@@ -2325,6 +2604,7 @@ export function EmployeeView() {
                                     hrSettings={hrSettings}
                                     onRowChange={handleSalaryRowChange}
                                     onRowRemove={handleRemoveSalaryRow}
+                                    onCreateComponent={handleOpenCreateSalaryComponent}
                                     hasError={formData.earnings?.length > 0 || formData.deductions?.length > 0}
                                 />
                             ))}
@@ -2645,6 +2925,7 @@ export function EmployeeView() {
                                     { id: 'employee_name', label: 'Name', minWidth: 160 },
                                     { id: 'employee_id', label: 'Employee ID', minWidth: 120 },
                                     { id: 'employee_type', label: 'Employee Type', minWidth: 130 },
+                                    { id: 'skill', label: 'Skill', minWidth: 120 },
                                     { id: 'department', label: 'Department', minWidth: 120 },
                                     { id: 'designation', label: 'Designation', minWidth: 120 },
                                     { id: 'status', label: 'Status', minWidth: 100 },
@@ -2655,7 +2936,7 @@ export function EmployeeView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
@@ -2671,6 +2952,7 @@ export function EmployeeView() {
                                                     employeeId: row.employee_id,
                                                     name: row.employee_name,
                                                     employeeType: row.employee_type,
+                                                    skill: row.skill,
                                                     department: row.department,
                                                     designation: row.designation,
                                                     status: row.status,
@@ -2802,6 +3084,7 @@ export function EmployeeView() {
                                             {renderField('country', 'Country', 'autocomplete', fieldOptions['country'] || [])}
                                             {renderField('state', 'State', 'autocomplete', stateOptions)}
                                             {renderField('city', 'City', 'autocomplete', cityOptions)}
+                                            {renderField('full_address', 'Full Address', 'text', [], { multiline: true, rows: 2, sx: { gridColumn: { sm: 'span 2' } } })}
                                             {renderField('profile_picture', 'Profile Picture', 'file')}
                                         </Box>
                                     </>
@@ -2813,6 +3096,7 @@ export function EmployeeView() {
                                             {renderField('department', 'Department', 'link', fieldOptions['department'] || [])}
                                             {renderField('designation', 'Designation', 'link', fieldOptions['designation'] || [])}
                                             {renderField('employee_type', 'Employee Type', 'link', fieldOptions['employee_type'] || [])}
+                                            {renderField('skill', 'Skill', 'link', fieldOptions['skill'] || [])}
                                             {renderField('production_type', 'Production Type', 'select', ['Production', 'Non Production'])}
                                             {renderField('line_order', 'Line Order', 'link', fieldOptions['line_order'] || [])}
                                             {renderField('shift', 'Shift', 'link', fieldOptions['shift'] || [])}
@@ -3241,12 +3525,40 @@ export function EmployeeView() {
                 }}
             />
 
+            <SkillCreateDialog
+                open={openSkillCreate}
+                onClose={() => setOpenSkillCreate(false)}
+                currentSkillName={skillSearch}
+                onCreate={async (newSkill) => {
+                    setFieldOptions(prev => {
+                        const existing = prev['skill'] || [];
+                        const exists = existing.some((opt: any) => (typeof opt === 'string' ? opt : (opt.skill_name || opt.name)) === newSkill);
+                        if (exists) return prev;
+                        return {
+                            ...prev,
+                            skill: [...existing, { name: newSkill, skill_name: newSkill }]
+                        };
+                    });
+                    handleInputChange('skill', newSkill);
+                    try {
+                        const freshOptions = await getDoctypeList('Skill', ['name', 'skill_name']);
+                        setFieldOptions(prev => ({
+                            ...prev,
+                            skill: freshOptions
+                        }));
+                    } catch (err) {
+                        console.error('Failed to re-fetch skill options:', err);
+                    }
+                    setSnackbar({ open: true, message: 'Skill created successfully', severity: 'success' });
+                }}
+            />
+
             <BankAccountDialog
                 open={openBankAccountCreate}
                 onClose={() => setOpenBankAccountCreate(false)}
                 onSuccess={async (newAccount?: any) => {
-                    const accountName = typeof newAccount === 'object' && newAccount?.name 
-                        ? newAccount.name 
+                    const accountName = typeof newAccount === 'object' && newAccount?.name
+                        ? newAccount.name
                         : (typeof newAccount === 'string' ? newAccount : '');
 
                     try {
@@ -3261,6 +3573,17 @@ export function EmployeeView() {
 
                     setSnackbar({ open: true, message: 'Bank Account created successfully', severity: 'success' });
                 }}
+            />
+
+            <SalaryComponentFormDialog
+                open={openSalaryComponentCreate}
+                onClose={() => {
+                    setOpenSalaryComponentCreate(false);
+                    setSalaryComponentTargetRow(null);
+                }}
+                onSuccess={handleSalaryComponentCreated}
+                initialName={salaryComponentInitialName}
+                defaultType={salaryComponentType}
             />
         </DashboardContent>
     );

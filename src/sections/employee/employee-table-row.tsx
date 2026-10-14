@@ -20,6 +20,7 @@ type Props = {
         employeeId: string;
         name: string;
         employeeType?: string;
+        skill?: string;
         department: string;
         designation: string;
         status: string;
@@ -119,6 +120,23 @@ export function EmployeeTableRow({
                 <Typography variant="body2" noWrap sx={{ textTransform: 'capitalize' }}>
                     {row.employeeType || '-'}
                 </Typography>
+            </TableCell>
+
+            <TableCell>
+                {row.skill ? (
+                    <Label
+                        variant="soft"
+                        color={
+                            row.skill.toLowerCase().includes('highly') ? 'success' :
+                            row.skill.toLowerCase().includes('skilled') && !row.skill.toLowerCase().includes('semi') && !row.skill.toLowerCase().includes('un') ? 'info' :
+                            row.skill.toLowerCase().includes('semi') ? 'warning' : 'default'
+                        }
+                    >
+                        {row.skill}
+                    </Label>
+                ) : (
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>-</Typography>
+                )}
             </TableCell>
 
             <TableCell>

@@ -23,6 +23,7 @@ export type SalarySlipFiltersProps = {
     employee: string;
     department: string;
     designation: string;
+    bank_name?: string;
     pay_period_start: string | null;
     pay_period_end: string | null;
 };
@@ -39,6 +40,7 @@ type Props = {
         employees: Array<{ name: string; employee_name?: string }>;
         departments: Array<{ name: string }>;
         designations: Array<{ name: string }>;
+        banks?: Array<string>;
     };
     isHR?: boolean;
 };
@@ -284,6 +286,39 @@ export function SalarySlipFiltersDrawer({
         </Stack>
     );
 
+    const renderBank = (
+        <Stack spacing={1.5}>
+            <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                Bank Name
+            </Typography>
+            <Autocomplete
+                fullWidth
+                options={['All Banks', ...(options.banks || [])]}
+                value={filters.bank_name === 'all' || !filters.bank_name ? 'All Banks' : filters.bank_name}
+                onChange={(event, newValue) => {
+                    handleFilterChange('bank_name', newValue === 'All Banks' ? 'all' : (newValue || 'all'));
+                }}
+                renderInput={(params) => (
+                    <TextField
+                        {...params}
+                        placeholder="Search bank name..."
+                        size="small"
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: 1.5,
+                                bgcolor: 'background.neutral',
+                                '&:hover': {
+                                    bgcolor: 'action.hover',
+                                },
+                            },
+                        }}
+                    />
+                )}
+            />
+        </Stack>
+    );
+
+
     const renderDateRange = (
         <Stack spacing={1.5}>
             
@@ -424,6 +459,7 @@ export function SalarySlipFiltersDrawer({
                             {renderEmployee}
                             {renderDepartment}
                             {renderDesignation}
+                            {renderBank}
                         </>
                     )}
                     {renderDateRange}

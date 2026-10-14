@@ -63,6 +63,54 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
         return dayjs(date).format('DD-MM-YYYY');
     };
 
+    const getEmployerEsiRate = () => {
+        if (data?.employer_esi_rate !== undefined && data?.employer_esi_rate !== null && Number(data.employer_esi_rate) > 0) {
+            return Number(data.employer_esi_rate);
+        }
+        const gross = Number(data?.grand_gross_pay || data?.gross_pay || data?.earned_gross_salary || 0);
+        const esiAmt = Number(data?.employer_esi || 0);
+        if (gross > 0 && esiAmt > 0) {
+            const computed = (esiAmt / gross) * 100;
+            if (Math.abs(computed - 3.25) < 0.1) return 3.25;
+            return Number(computed.toFixed(2));
+        }
+        const esiDeduction = (data?.deductions || []).find((d: any) =>
+            (d.component_name || d.salary_component || '').toLowerCase().includes('esi')
+        );
+        if (esiDeduction && Number(esiDeduction.percentage) > 0) {
+            if (Number(esiDeduction.percentage) === 0.75) return 3.25;
+            return Number((Number(esiDeduction.percentage) * (3.25 / 0.75)).toFixed(2));
+        }
+        return hrSettings?.employer_esi_rate ?? 3.25;
+    };
+
+    const getEmployerPfRate = () => {
+        if (data?.employer_pf_rate !== undefined && data?.employer_pf_rate !== null && Number(data.employer_pf_rate) > 0) {
+            return Number(data.employer_pf_rate);
+        }
+        const pfDeduction = (data?.deductions || []).find((d: any) =>
+            (d.component_name || d.salary_component || '').toLowerCase().includes('pf')
+        );
+        if (pfDeduction && Number(pfDeduction.percentage) > 0) {
+            return Number(pfDeduction.percentage);
+        }
+        return hrSettings?.employer_pf_rate ?? 12;
+    };
+
+    const getPfAdminRate = () => {
+        if (data?.pf_admin_rate !== undefined && data?.pf_admin_rate !== null && Number(data.pf_admin_rate) > 0) {
+            return Number(data.pf_admin_rate);
+        }
+        return hrSettings?.pf_admin_rate ?? 0.5;
+    };
+
+    const getEdliRate = () => {
+        if (data?.edli_rate !== undefined && data?.edli_rate !== null && Number(data.edli_rate) > 0) {
+            return Number(data.edli_rate);
+        }
+        return hrSettings?.edli_rate ?? 0.5;
+    };
+
     const renderHeader = (
         <Box
             sx={{
@@ -102,17 +150,16 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                 <InfoRow label="Employee ID" value={data.employee_id || data.employee} />
                 <InfoRow label="Father / Husband Name" value={data.father_husband_name || '-'} />
 
-                <SubHeader title="Contact Details" />
-                <InfoRow label="Official Email" value={data.email || '-'} />
-                <InfoRow label="Personal Email" value={data.personal_email || '-'} />
-                <InfoRow label="Employee Phone Number" value={data.phone_number || '-'} />
-
-
                 <SubHeader title="Job Details" />
                 <InfoRow label="Employee Type" value={data.employee_type || '-'} />
                 <InfoRow label="Department" value={data.department || '-'} />
                 <InfoRow label="Designation" value={data.designation || '-'} />
                 <InfoRow label="Date of Joining" value={formatDate(data.date_of_joining)} />
+
+                <SubHeader title="Statutory Details" />
+                <InfoRow label="PF Number" value={data.pf_no || data.pf_number || '-'} />
+                <InfoRow label="UAN Number" value={data.uan_number || '-'} />
+                <InfoRow label="ESI No" value={data.esi_no || '-'} />
 
                 <SubHeader title="Bank Details" />
                 <InfoRow label="Account Name" value={data.bank_account_name || '-'} />
@@ -195,7 +242,6 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                 <InfoRow label="No of Half Day" value={data.half_day_count || 0} action={renderInfoAction('half_day')} />
                                 <InfoRow label="No of Unpaid Leave" value={data.unpaid_leave_days !== undefined && data.unpaid_leave_days !== null ? data.unpaid_leave_days : (data.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
                                 <InfoRow label="No of Paid Leave" value={data.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                                <InfoRow label="Compensatory Off" value={data.no_of_comp_off || 0} action={renderInfoAction('comp_off')} />
                                 <InfoRow label="LOP Days" value={data.lop_days || 0} action={renderInfoAction('lop')} />
                             </Box>
                         </>
@@ -394,13 +440,15 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
 
     const renderSalaryBreakdown = (
         <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
                 {/* Earnings */}
                 <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: (theme) => alpha(theme.palette.success.main, 0.04), border: (theme) => `1px solid ${alpha(theme.palette.success.main, 0.12)}` }}>
                     <SectionHeader title="Earnings" icon="solar:wad-of-money-bold" color="success.main" />
                     <TableColumnHeader standardLabel="Standard" actualLabel="Earned" />
                     <Stack spacing={1}>
-                        {(data.earnings || []).map((item: any, idx: number) => (
+                        {(data.earnings || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
                             <AmountRow
                                 key={idx}
                                 label={item.component_name || item.salary_component}
@@ -409,7 +457,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                 hrSettings={hrSettings}
                             />
                         ))}
-                        {(!data.earnings || data.earnings.length === 0) && (
+                        {(!data.earnings || !(data.earnings || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>No earnings</Typography>
                         )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
@@ -429,7 +477,9 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                     <SectionHeader title="Deductions" icon="solar:hand-money-bold" color="error.main" />
                     <TableColumnHeader standardLabel="Standard" actualLabel="Actual" />
                     <Stack spacing={1}>
-                        {(data.deductions || []).map((item: any, idx: number) => (
+                        {(data.deductions || [])
+                            .filter((item: any) => Number(item.amount || 0) > 0)
+                            .map((item: any, idx: number) => (
                             <AmountRow
                                 key={idx}
                                 label={item.component_name || item.salary_component}
@@ -438,7 +488,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                 hrSettings={hrSettings}
                             />
                         ))}
-                        {(!data.deductions || data.deductions.length === 0) && (
+                        {(!data.deductions || !(data.deductions || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>No deductions</Typography>
                         )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
@@ -489,7 +539,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
     const renderEmployerContributions = (
         <Box sx={{ mb: 4, mt: 3 }}>
             <SectionHeader title="Employer Contributions & Cost to Company (CTC)" icon="solar:buildings-bold" color="info.main" />
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.2fr 0.8fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
                 {/* Statutory Contributions */}
                 <Box
                     sx={{
@@ -504,37 +554,43 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                         Employer Statutory Contributions
                     </Typography>
                     <Stack spacing={1}>
-                        <AmountRow
-                            label={`Employer PF Contribution (${data.employer_pf_rate ?? hrSettings?.employer_pf_rate ?? 12}%)`}
-                            amount={data.employer_pf || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`PF Admin Charges (${data.pf_admin_rate ?? hrSettings?.pf_admin_rate ?? 0.5}%)`}
-                            amount={data.pf_admin_charges || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`EDLI Charges (${data.edli_rate ?? hrSettings?.edli_rate ?? 0.5}%)`}
-                            amount={data.edli_charges || 0}
-                            hrSettings={hrSettings}
-                        />
-                        <AmountRow
-                            label={`Employer ESI Contribution (${data.employer_esi_rate ?? hrSettings?.employer_esi_rate ?? 3.25}%)`}
-                            amount={data.employer_esi || 0}
-                            hrSettings={hrSettings}
-                        />
-                        {Number(data.tea_expenses || 0) > 0 && (
+                        {Number(data.employer_pf || 0) > 0 && (
                             <AmountRow
-                                label="Tea Expenses (Employer)"
-                                amount={data.tea_expenses || 0}
+                                label={`Employer PF Contribution (${getEmployerPfRate()}%)`}
+                                amount={data.employer_pf || 0}
                                 hrSettings={hrSettings}
                             />
+                        )}
+                        {Number(data.pf_admin_charges || 0) > 0 && (
+                            <AmountRow
+                                label={`PF Admin Charges (${getPfAdminRate()}%)`}
+                                amount={data.pf_admin_charges || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {Number(data.edli_charges || 0) > 0 && (
+                            <AmountRow
+                                label={`EDLI Charges (${getEdliRate()}%)`}
+                                amount={data.edli_charges || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {Number(data.employer_esi || 0) > 0 && (
+                            <AmountRow
+                                label={`Employer ESI Contribution (${getEmployerEsiRate()}%)`}
+                                amount={data.employer_esi || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {(!Number(data.employer_pf || 0) && !Number(data.pf_admin_charges || 0) && !Number(data.edli_charges || 0) && !Number(data.employer_esi || 0)) && (
+                            <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
+                                No employer contributions
+                            </Typography>
                         )}
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
                         <AmountRow
                             label="Total Employer Contribution"
-                            amount={data.total_employer_contribution || 0}
+                            amount={((Number(data.employer_pf) || 0) + (Number(data.pf_admin_charges) || 0) + (Number(data.edli_charges) || 0) + (Number(data.employer_esi) || 0))}
                             isTotal
                             color="info.main"
                             hrSettings={hrSettings}
@@ -560,14 +616,14 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                             Statutory Provisions & CTC
                         </Typography>
                         <Stack spacing={1}>
-                            {(data.enable_bonus_provision !== 0 && data.enable_bonus_provision !== false) && (
+                            {Number(data.bonus_provision || 0) > 0 && (
                                 <AmountRow
                                     label={`Bonus Provision (${data.bonus_provision_rate ?? hrSettings?.bonus_provision_rate ?? 8.33}%)`}
                                     amount={data.bonus_provision || 0}
                                     hrSettings={hrSettings}
                                 />
                             )}
-                            {(data.enable_el_provision !== 0 && data.enable_el_provision !== false) && (
+                            {Number(data.el_provision || 0) > 0 && (
                                 <AmountRow
                                     label={`Earned Leave (EL) Provision (${data.el_provision_days_per_year ?? hrSettings?.el_provision_days_per_year ?? 15.6}d/yr)`}
                                     amount={data.el_provision || 0}
@@ -579,6 +635,50 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                 amount={data.gross_pay || 0}
                                 hrSettings={hrSettings}
                             />
+                            <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
+                            <Box
+                                sx={{
+                                    p: 2,
+                                    borderRadius: 1.5,
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                    border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Box>
+                                        <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                            Earned CTC
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: 11 }}>
+                                            (Gross + Statutory)
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
+                                        <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.85em' }}>
+                                            {hrSettings.currency_symbol}
+                                        </Box>
+                                        {fNumber(data.earned_ctc || ((Number(data.gross_pay) || 0) + (Number(data.employer_pf) || 0) + (Number(data.pf_admin_charges) || 0) + (Number(data.edli_charges) || 0) + (Number(data.employer_esi) || 0)), { locale: hrSettings.default_locale })}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            {Number(data.tea_expenses || 0) > 0 && (
+                                <AmountRow
+                                    label="Tea Expenses"
+                                    amount={data.tea_expenses || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            )}
+                            {Number(data.lunch_expenses || 0) > 0 && (
+                                <AmountRow
+                                    label={
+                                        (data.canteen_meals_count !== undefined && data.canteen_meals_count !== null) || (data.lunch_count !== undefined && data.lunch_count !== null)
+                                            ? `Lunch Expenses (${data.canteen_meals_count ?? data.lunch_count} Meals @ ₹${data.lunch_rate ?? 50})`
+                                            : "Lunch Expenses (Canteen)"
+                                    }
+                                    amount={data.lunch_expenses || 0}
+                                    hrSettings={hrSettings}
+                                />
+                            )}
                         </Stack>
                     </Box>
 
@@ -597,14 +697,14 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                     Total Monthly CTC
                                 </Typography>
                                 <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: 11 }}>
-                                    (Gross + Contrib + Provisions)
+                                    (Earned CTC + Tea + Lunch + Provisions)
                                 </Typography>
                             </Box>
                             <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
                                 <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", mr: 0.3, fontSize: '0.85em' }}>
                                     {hrSettings.currency_symbol}
                                 </Box>
-                                {fNumber(data.total_monthly_ctc || ((Number(data.gross_pay) || 0) + (Number(data.total_employer_contribution) || 0) + (Number(data.bonus_provision) || 0) + (Number(data.el_provision) || 0)), { locale: hrSettings.default_locale })}
+                                {fNumber(data.total_monthly_ctc || data.total_ctc || ((Number(data.earned_ctc) || (Number(data.gross_pay) || 0) + (Number(data.total_employer_contribution) || 0)) + (Number(data.tea_expenses) || 0) + (Number(data.lunch_expenses) || 0) + (Number(data.bonus_provision) || 0) + (Number(data.el_provision) || 0)), { locale: hrSettings.default_locale })}
                             </Typography>
                         </Box>
                     </Box>
@@ -619,8 +719,8 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
         const bd = data?.days_breakdown || [];
         switch (popoverState.type) {
             case 'present': {
-                const days = bd.filter((d: any) => d.status.includes('Work') || d.status.includes('Paid Leave') || d.status.includes('Compensatory Off'));
-                const isDirect = isDirectAllocation || (Number(data?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status.includes('Paid Leave')));
+                const days = bd.filter((d: any) => (d.status?.includes('Work') && !d.status?.includes('Non Working Day')) || d.status?.includes('Paid Leave') || d.status?.includes('Compensatory Off'));
+                const isDirect = isDirectAllocation || (Number(data?.no_of_paid_leave || 0) > 0 && !bd.some((d: any) => d.status?.includes('Paid Leave')));
                 if (isDirect && Number(data?.no_of_paid_leave || 0) > 0) {
                     return [
                         ...days,
@@ -634,9 +734,9 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                 }
                 return days;
             }
-            case 'physical': return bd.filter((d: any) => d.status.includes('Work'));
-            case 'absent': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
-            case 'half_day': return bd.filter((d: any) => d.status.includes('(0.5)'));
+            case 'physical': return bd.filter((d: any) => d.status?.includes('Work') && !d.status?.includes('Non Working Day'));
+            case 'absent': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
+            case 'half_day': return bd.filter((d: any) => d.status?.includes('(0.5)'));
             case 'holiday': {
                 if (holidayTab === 'not_working_days') {
                     if (data?.non_working_days_details?.length) {
@@ -649,10 +749,10 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                 }
                 return bd.filter((d: any) => d.is_holiday || d.status?.includes('Holiday'));
             }
-            case 'unpaid_leave': return bd.filter((d: any) => (d.status.includes('Unpaid Leave') || (!isDirectAllocation && d.status.includes('Absent'))) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
-            case 'paid_leave': return bd.filter((d: any) => d.status.includes('Paid Leave') && !d.status.includes('Compensatory Off'));
-            case 'comp_off': return bd.filter((d: any) => d.status.includes('Compensatory Off'));
-            case 'lop': return bd.filter((d: any) => (d.status.includes('Absent') || d.status.includes('Unpaid Leave')) && !d.status.includes('Compensatory Off') && !d.status.includes('Paid Leave'));
+            case 'unpaid_leave': return bd.filter((d: any) => (d.status?.includes('Unpaid Leave') || (!isDirectAllocation && d.status?.includes('Absent'))) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
+            case 'paid_leave': return bd.filter((d: any) => d.status?.includes('Paid Leave') && !d.status?.includes('Compensatory Off'));
+            case 'comp_off': return bd.filter((d: any) => d.status?.includes('Compensatory Off'));
+            case 'lop': return bd.filter((d: any) => (d.status?.includes('Absent') || d.status?.includes('Unpaid Leave')) && !d.status?.includes('Compensatory Off') && !d.status?.includes('Paid Leave') && !d.status?.includes('Non Working Day'));
             default: return bd;
         }
     };
