@@ -64,6 +64,7 @@ import { TableNoData } from '../../lead/table-no-data';
 import { EmployeeTableRow } from '../employee-table-row';
 import { ShiftCreateDialog } from '../shift-create-dialog';
 import { TableEmptyRows } from '../../lead/table-empty-rows';
+import { EmployeeImportDialog } from '../employee-import-dialog';
 import { BusRouteCreateDialog } from '../bus-route-create-dialog';
 import { LineOrderCreateDialog } from '../line-order-create-dialog';
 import { DepartmentCreateDialog } from '../department-create-dialog';
@@ -188,6 +189,8 @@ export function EmployeeView() {
     const { user } = useAuth();
     const hasCustomPerms = user?.permissions?.custom_permissions_assigned && user?.permissions?.actions?.employee;
     const canCreateEmployee = hasCustomPerms && user?.permissions?.actions?.employee ? !!user?.permissions?.actions?.employee?.create : true;
+    const canImportEmployee = hasCustomPerms && user?.permissions?.actions?.employee ? !!user?.permissions?.actions?.employee?.import : true;
+    const [openImport, setOpenImport] = useState(false);
 
     // Department Create Dialog State
     const [openDepartmentCreate, setOpenDepartmentCreate] = useState(false);
@@ -2572,20 +2575,40 @@ export function EmployeeView() {
                     Employees
                 </Typography>
 
-                {canCreateEmployee && (
-                    <Button
-                        variant="contained"
-                        startIcon={<Iconify icon="mingcute:add-line" />}
-                        onClick={handleOpenCreate}
-                        sx={{
-                            bgcolor: COMMON_COLORS.primaryButton.bg,
-                            color: COMMON_COLORS.primaryButton.color,
-                            '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
-                        }}
-                    >
-                        New Employee
-                    </Button>
-                )}
+                <Stack direction="row" spacing={1.5}>
+                    {canImportEmployee && (
+                        <Button
+                            variant="outlined"
+                            startIcon={<Iconify icon="solar:import-bold-duotone" />}
+                            onClick={() => setOpenImport(true)}
+                            sx={{
+                                color: COMMON_COLORS.emerald.main,
+                                borderColor: COMMON_COLORS.emerald.main,
+                                '&:hover': {
+                                    borderColor: COMMON_COLORS.emerald.dark,
+                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                },
+                            }}
+                        >
+                            Import
+                        </Button>
+                    )}
+
+                    {canCreateEmployee && (
+                        <Button
+                            variant="contained"
+                            startIcon={<Iconify icon="mingcute:add-line" />}
+                            onClick={handleOpenCreate}
+                            sx={{
+                                bgcolor: COMMON_COLORS.primaryButton.bg,
+                                color: COMMON_COLORS.primaryButton.color,
+                                '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+                            }}
+                        >
+                            New Employee
+                        </Button>
+                    )}
+                </Stack>
             </Box>
 
             <Card>
@@ -2950,6 +2973,12 @@ export function EmployeeView() {
                 open={openDetails}
                 onClose={handleCloseDetails}
                 employeeId={detailsId}
+            />
+
+            <EmployeeImportDialog
+                open={openImport}
+                onClose={() => setOpenImport(false)}
+                onSuccess={refetch}
             />
 
             <Snackbar
