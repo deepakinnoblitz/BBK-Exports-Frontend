@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { 
   LuCalculator, 
   LuReceipt, 
@@ -153,6 +153,17 @@ type Props = {
 
 export function SettingsSalarySlip({ data, onChange }: Props) {
   const [currentTab, setCurrentTab] = useState('salary_rules');
+  const [visitedTabs, setVisitedTabs] = useState<Record<string, boolean>>({
+    salary_rules: true,
+  });
+
+  const handleTabChange = (_e: React.SyntheticEvent, val: string) => {
+    setVisitedTabs((prev) => (prev[val] ? prev : { ...prev, [val]: true }));
+    startTransition(() => {
+      setCurrentTab(val);
+    });
+  };
+
   const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
 
   useEffect(() => {
@@ -331,6 +342,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
     <Accordion
       key={cat.key}
       defaultExpanded={defaultExpanded}
+      TransitionProps={{ unmountOnExit: true }}
       disableGutters
       sx={{
         border: (theme) => `1px solid ${theme.palette.divider}`,
@@ -396,7 +408,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       >
         <Tabs
           value={currentTab}
-          onChange={(_e, val) => setCurrentTab(val)}
+          onChange={handleTabChange}
           variant="scrollable"
           scrollButtons="auto"
           sx={{
@@ -438,8 +450,9 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       </Box>
 
       {/* Tab Panel 1: Salary Calculation Rules (Company-Wide) */}
-      {currentTab === 'salary_rules' && (
-        <Card sx={{ p: 4, borderRadius: 3 }}>
+      <Box sx={{ display: currentTab === 'salary_rules' ? 'block' : 'none' }}>
+        {visitedTabs.salary_rules && (
+          <Card sx={{ p: 4, borderRadius: 3 }}>
           <Stack spacing={4}>
             {/* Important Note Banner */}
             <Box
@@ -610,11 +623,13 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             </Box>
           </Stack>
         </Card>
-      )}
+        )}
+      </Box>
 
       {/* Tab Panel 2: Professional Tax (PT) Rules (With Collapsible per Category) */}
-      {currentTab === 'pt_rules' && (
-        <Box>
+      <Box sx={{ display: currentTab === 'pt_rules' ? 'block' : 'none' }}>
+        {visitedTabs.pt_rules && (
+          <Box>
           {CATEGORIES.map((cat, idx) => {
             const slabs = getParsedSlabs(cat.key);
             const ptEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_pt', 1));
@@ -860,11 +875,13 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             );
           })}
         </Box>
-      )}
+        )}
+      </Box>
 
       {/* Tab Panel 3: Employee Statutory Deductions (PF & ESI) (With Collapsible per Category) */}
-      {currentTab === 'employee_statutory' && (
-        <Box>
+      <Box sx={{ display: currentTab === 'employee_statutory' ? 'block' : 'none' }}>
+        {visitedTabs.employee_statutory && (
+          <Box>
           {CATEGORIES.map((cat, idx) => {
             const autoPfEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_auto_pf', 1));
             const autoEsiEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_auto_esi', 1));
@@ -1178,11 +1195,13 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             );
           })}
         </Box>
-      )}
+        )}
+      </Box>
 
       {/* Tab Panel 4: Overtime, Allowance & Attendance Bonus (With Collapsible per Category) */}
-      {currentTab === 'ot_bonus_rules' && (
-        <Box>
+      <Box sx={{ display: currentTab === 'ot_bonus_rules' ? 'block' : 'none' }}>
+        {visitedTabs.ot_bonus_rules && (
+          <Box>
           {CATEGORIES.map((cat, idx) => (
             renderCategoryAccordion(
               cat,
@@ -1274,11 +1293,13 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             )
           ))}
         </Box>
-      )}
+        )}
+      </Box>
 
       {/* Tab Panel 5: Employer Statutory Contributions & CTC Rules (With Collapsible per Category) */}
-      {currentTab === 'employer_statutory' && (
-        <Box>
+      <Box sx={{ display: currentTab === 'employer_statutory' ? 'block' : 'none' }}>
+        {visitedTabs.employer_statutory && (
+          <Box>
           {CATEGORIES.map((cat, idx) => {
             const bonusEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_bonus_provision', 1));
             const elEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_el_provision', 1));
@@ -1746,7 +1767,8 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             );
           })}
         </Box>
-      )}
+        )}
+      </Box>
     </Stack>
   );
 }
