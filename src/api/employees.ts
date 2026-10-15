@@ -109,14 +109,15 @@ export async function getEmployee(name: string) {
     return (await res.json()).message;
 }
 
-export async function bulkImportEmployees(rows: any[], updateExisting: boolean = false) {
+export async function bulkImportEmployees(rows: any[], updateExisting: boolean = false, bankAccounts: any[] = []) {
     const headers = await getAuthHeaders();
     const res = await frappeRequest("/api/method/company.company.api.bulk_import_employees", {
         method: "POST",
         headers,
         body: JSON.stringify({
             rows: JSON.stringify(rows),
-            update_existing: updateExisting ? 1 : 0
+            update_existing: updateExisting ? 1 : 0,
+            bank_accounts: JSON.stringify(bankAccounts)
         })
     });
     const json = await res.json();

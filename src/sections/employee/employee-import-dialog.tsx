@@ -210,6 +210,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
 
     // Processed data for preview
     const [previewRows, setPreviewRows] = useState<any[]>([]);
+    const [parsedBankMap, setParsedBankMap] = useState<Record<string, any>>({});
     const [updateExisting, setUpdateExisting] = useState(false);
 
     // Edit modal state
@@ -332,6 +333,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
         setColumnMapping({});
         setHiddenIndices([]);
         setPreviewRows([]);
+        setParsedBankMap({});
         setUpdateExisting(false);
         setEditingIndex(null);
         setEditForm(null);
@@ -406,6 +408,96 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
 
                 setSheetHeaders(rawHeaders);
                 setSheetRows(dataRows);
+
+                // Parse Bank Account Details sheet if available
+                const bankMap: Record<string, any> = {};
+                const bankSheetName = workbook.SheetNames.find((name, idx) => {
+                    if (idx === 0) return false;
+                    const lower = name.toLowerCase();
+                    return lower.includes('bank') || lower.includes('account');
+                });
+
+                const bankSheetToUse = bankSheetName
+                    ? workbook.Sheets[bankSheetName]
+                    : workbook.SheetNames.length > 1
+                      ? workbook.Sheets[workbook.SheetNames[1]]
+                      : null;
+
+                if (bankSheetToUse) {
+                    const rawBankGrid: any[][] = XLSX.utils.sheet_to_json(bankSheetToUse, { header: 1, defval: '' });
+                    if (rawBankGrid && rawBankGrid.length > 0) {
+                        let bHeaderRowIdx = -1;
+                        for (let r = 0; r < Math.min(rawBankGrid.length, 10); r++) {
+                            const row = rawBankGrid[r] || [];
+                            const nonBlankCells = row.filter((c) => String(c !== undefined && c !== null ? c : '').trim().length > 0);
+                            const rowText = row.map((c) => String(c || '').toLowerCase().trim()).join(' ');
+                            if (
+                                nonBlankCells.length >= 3 &&
+                                (rowText.includes('referral') || rowText.includes('account number') || rowText.includes('ifsc'))
+                            ) {
+                                bHeaderRowIdx = r;
+                                break;
+                            }
+                        }
+
+                        if (bHeaderRowIdx === -1) {
+                            for (let r = 0; r < Math.min(rawBankGrid.length, 10); r++) {
+                                const row = rawBankGrid[r] || [];
+                                const rowText = row.map((c) => String(c || '').toLowerCase().trim()).join(' ');
+                                if (rowText.includes('referral') && rowText.includes('account number')) {
+                                    bHeaderRowIdx = r;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (bHeaderRowIdx === -1) bHeaderRowIdx = 3;
+
+                        const bHeaders = (rawBankGrid[bHeaderRowIdx] || []).map((h) =>
+                            String(h || '').toLowerCase().replace(/[*_()]/g, ' ').replace(/\s+/g, ' ').trim()
+                        );
+
+                        const refIdx = bHeaders.findIndex(
+                            (h) => h.includes('referral') || h.includes('employee id') || h === 'emp id' || h === 'id'
+                        );
+                        const acctNameIdx = bHeaders.findIndex(
+                            (h) => h.includes('bank account name') || h.includes('account name')
+                        );
+                        const acctNoIdx = bHeaders.findIndex(
+                            (h) => h.includes('account number') || h.includes('account no') || h === 'acct no'
+                        );
+                        const acctTypeIdx = bHeaders.findIndex((h) => h.includes('account type') || h === 'type');
+                        const ifscIdx = bHeaders.findIndex((h) => h.includes('ifsc'));
+                        const bankNameIdx = bHeaders.findIndex((h) => h.includes('bank name') || h === 'bank');
+                        const branchIdx = bHeaders.findIndex((h) => h.includes('branch'));
+
+                        if (refIdx !== -1) {
+                            const bDataRows = rawBankGrid.slice(bHeaderRowIdx + 1);
+                            bDataRows.forEach((bRow) => {
+                                const refVal = String(bRow[refIdx] !== undefined && bRow[refIdx] !== null ? bRow[refIdx] : '').trim();
+                                if (!refVal) return;
+                                const acctNo = acctNoIdx !== -1 ? String(bRow[acctNoIdx] !== undefined && bRow[acctNoIdx] !== null ? bRow[acctNoIdx] : '').trim() : '';
+                                const acctName = acctNameIdx !== -1 ? String(bRow[acctNameIdx] !== undefined && bRow[acctNameIdx] !== null ? bRow[acctNameIdx] : '').trim() : '';
+                                const rawAcctType = acctTypeIdx !== -1 ? String(bRow[acctTypeIdx] !== undefined && bRow[acctTypeIdx] !== null ? bRow[acctTypeIdx] : '').trim() : '';
+                                const acctType = rawAcctType || 'Salary Account';
+                                const ifsc = ifscIdx !== -1 ? String(bRow[ifscIdx] !== undefined && bRow[ifscIdx] !== null ? bRow[ifscIdx] : '').trim() : '';
+                                const bankName = bankNameIdx !== -1 ? String(bRow[bankNameIdx] !== undefined && bRow[bankNameIdx] !== null ? bRow[bankNameIdx] : '').trim() : '';
+                                const branch = branchIdx !== -1 ? String(bRow[branchIdx] !== undefined && bRow[branchIdx] !== null ? bRow[branchIdx] : '').trim() : '';
+
+                                bankMap[refVal.toLowerCase()] = {
+                                    referral_no: refVal,
+                                    bank_account_name: acctName || (acctNo ? `Salary Account - ${acctNo}` : 'Salary Account'),
+                                    account_number: acctNo,
+                                    account_type: acctType,
+                                    ifsc_code: ifsc,
+                                    bank_name: bankName,
+                                    branch,
+                                };
+                            });
+                        }
+                    }
+                }
+                setParsedBankMap(bankMap);
 
                 // Helper to detect category row above column headers
                 const categoryRowIdx = headerRowIdx - 1;
@@ -595,6 +687,22 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 }
             });
 
+            // Match with Bank Account Details from secondary sheet (Referral No. == Employee ID)
+            const empIdKey = String(empRecord.employee_id || '').toLowerCase().trim();
+            const matchedBank = parsedBankMap[empIdKey];
+            if (matchedBank) {
+                empRecord.bank_details = matchedBank;
+                empRecord.account_number = matchedBank.account_number;
+                empRecord.bank_account_name = matchedBank.bank_account_name;
+                empRecord.bank_name = matchedBank.bank_name;
+                empRecord.branch = matchedBank.branch;
+                empRecord.ifsc_code = matchedBank.ifsc_code;
+                empRecord.account_type = matchedBank.account_type || empRecord.bank_account || 'Salary Account';
+                if (matchedBank.account_number) {
+                    empRecord.bank_account = matchedBank.account_number;
+                }
+            }
+
             // Validation
             if (!empRecord.employee_id) {
                 empRecord._errors.push('Missing Employee ID');
@@ -698,7 +806,8 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
             });
 
             setProgress(40);
-            const res = await bulkImportEmployees(cleanRows, updateExisting);
+            const bankList = Object.values(parsedBankMap);
+            const res = await bulkImportEmployees(cleanRows, updateExisting, bankList);
             setProgress(100);
             setImportResult(res);
 
@@ -1123,6 +1232,29 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                         letterSpacing: 0.5,
                                     }}
                                 >
+                                    Bank Account
+                                </Typography>
+                            </TableCell>
+                            <TableCell
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    bgcolor: 'background.neutral',
+                                    borderRight: 1,
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    p: 1.5,
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
                                     Earnings
                                 </Typography>
                             </TableCell>
@@ -1291,6 +1423,31 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                         }}
                                     >
                                         {row.designation || '-'}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            borderRight: 1,
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            px: 1.5,
+                                            py: 1,
+                                            minWidth: 160,
+                                        }}
+                                    >
+                                        {row.bank_details || row.account_number ? (
+                                            <Box>
+                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                    {row.bank_details?.account_number || row.account_number || row.bank_account || '-'}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                                                    {row.bank_details?.bank_name || row.bank_name
+                                                        ? `${row.bank_details?.bank_name || row.bank_name}${row.bank_details?.branch || row.branch ? ` (${row.bank_details?.branch || row.branch})` : ''}`
+                                                        : (row.bank_details?.bank_account_name || row.bank_account_name || row.bank_account || '')}
+                                                </Typography>
+                                            </Box>
+                                        ) : (
+                                            row.bank_account || '-'
+                                        )}
                                     </TableCell>
                                     <TableCell
                                         sx={{
