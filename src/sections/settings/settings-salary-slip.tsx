@@ -35,9 +35,11 @@ import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Select from '@mui/material/Select';
 import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
 import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
+import Collapse from '@mui/material/Collapse';
 import MenuItem from '@mui/material/MenuItem';
 import { InputAdornment } from '@mui/material';
 import Accordion from '@mui/material/Accordion';
@@ -51,14 +53,55 @@ import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 import TableContainer from '@mui/material/TableContainer';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
 
 import { fetchSalaryComponents } from 'src/api/hr-management';
+import { fetchDepartments, fetchDesignations } from 'src/api/masters';
 
 import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
 
 // ----------------------------------------------------------------------
+
+export interface BonusScheme {
+  id: string;
+  scheme_name: string;
+  is_active: number | boolean | string;
+  payout_months: string[];
+  categories: string[];
+  departments?: string[];
+  designations?: string[];
+  calc_method: 'Percentage of Selected Components' | 'Percentage of Gross' | 'Flat Fixed Amount' | string;
+  calculation_components?: string[];
+  percentage?: number | '';
+  wage_ceiling?: number;
+  flat_amount?: number;
+  payout_month?: string;
+  components?: string[];
+}
+
+const BONUS_CATEGORY_OPTIONS = [
+  { value: 'all', label: 'All Categories' },
+  { value: 'staff_ctc', label: 'Staff - CTC' },
+  { value: 'staff_non_ctc', label: 'Staff - Non CTC' },
+  { value: 'workers', label: 'Workers' },
+  { value: 'north_indian', label: 'North Indian Workers' },
+  { value: 'drivers', label: 'Drivers' },
+];
+
+const ALL_CATEGORY_VALUES = ['staff_ctc', 'staff_non_ctc', 'workers', 'north_indian', 'drivers'];
+
+const BONUS_CALC_METHODS = [
+  'Percentage of Selected Components',
+  'Percentage of Gross',
+  'Flat Fixed Amount',
+];
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 interface PTSlabItem {
   from_amount: number;
@@ -165,6 +208,8 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
   };
 
   const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+  const [designationOptions, setDesignationOptions] = useState<string[]>([]);
 
   useEffect(() => {
     fetchSalaryComponents()
@@ -174,6 +219,20 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
         }
       })
       .catch((err) => console.error('Failed to load salary components for HRMS Settings:', err));
+
+    fetchDepartments({ page_size: 100 })
+      .then((res: any) => {
+        const list = res?.data || [];
+        setDepartmentOptions(list.map((d: any) => d.department_name || d.name).filter(Boolean));
+      })
+      .catch((err) => console.error('Failed to load departments:', err));
+
+    fetchDesignations({ page_size: 100 })
+      .then((res: any) => {
+        const list = res?.data || [];
+        setDesignationOptions(list.map((d: any) => d.designation_name || d.name).filter(Boolean));
+      })
+      .catch((err) => console.error('Failed to load designations:', err));
   }, []);
 
   const earningComponents = salaryComponents.filter((c) => c.type === 'Earning');
@@ -306,6 +365,93 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
 
   const handleResetSlabs = (cat: CategoryKey) => {
     setFieldVal(cat, 'pt_slabs', JSON.stringify(DEFAULT_PT_SLABS));
+  };
+
+  // Dynamic Bonus Schemes Handlers
+  const getParsedBonusSchemes = (): BonusScheme[] => {
+    const raw = data.bonus_schemes;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (Array.isArray(parsed)) {
+        return parsed.map((s: any, idx: number) => {
+          let calcMethod = s.calc_method || 'Percentage of Selected Components';
+          if (calcMethod === 'Percentage of Basic + DA') {
+            calcMethod = 'Percentage of Selected Components';
+          }
+
+          const rawCats = Array.isArray(s.categories) ? s.categories : ['all'];
+          const normCats = rawCats.map((c: string) => (c === 'north_indian_workers' ? 'north_indian' : c));
+
+          let calcComponents = s.calculation_components || s.components;
+          if (!Array.isArray(calcComponents) || calcComponents.length === 0) {
+            calcComponents = ['Basic Pay', 'DA'];
+          }
+
+          return {
+            id: s.id || `scheme-${idx + 1}`,
+            scheme_name: s.scheme_name || 'Annual Bonus',
+            is_active: s.is_active !== undefined ? s.is_active : 1,
+            payout_months: Array.isArray(s.payout_months)
+              ? s.payout_months
+              : (s.payout_month ? String(s.payout_month).split(',').map((m: string) => m.trim()).filter(Boolean) : ['October']),
+            categories: normCats.length === 0 ? ['all'] : normCats,
+            departments: Array.isArray(s.departments) ? s.departments : [],
+            designations: Array.isArray(s.designations) ? s.designations : [],
+            calc_method: calcMethod,
+            calculation_components: calcComponents,
+            percentage: s.percentage !== undefined ? Number(s.percentage) : 8.33,
+            wage_ceiling: s.wage_ceiling !== undefined ? Number(s.wage_ceiling) : 7000,
+            flat_amount: s.flat_amount !== undefined ? Number(s.flat_amount) : 0,
+          };
+        });
+      }
+    } catch {
+      // ignore
+    }
+    return [];
+  };
+
+  const handleUpdateBonusSchemes = (updated: BonusScheme[]) => {
+    const normalized = updated.map((s) => ({
+      ...s,
+      payout_month: (s.payout_months || []).join(', '),
+      payout_months: s.payout_months || [],
+      calculation_components: s.calculation_components || [],
+      components: s.calculation_components || [],
+    }));
+    onChange('bonus_schemes', JSON.stringify(normalized));
+  };
+
+  const handleAddBonusScheme = () => {
+    const current = getParsedBonusSchemes();
+    const newScheme: BonusScheme = {
+      id: `scheme-${Date.now()}`,
+      scheme_name: 'Festival Bonus',
+      is_active: 1,
+      payout_months: ['October'],
+      categories: ['all'],
+      departments: [],
+      designations: [],
+      calc_method: 'Percentage of Selected Components',
+      calculation_components: ['Basic Pay', 'DA'],
+      percentage: 8.33,
+      wage_ceiling: 7000,
+      flat_amount: 0,
+    };
+    handleUpdateBonusSchemes([...current, newScheme]);
+  };
+
+  const handleRemoveBonusScheme = (schemeId: string) => {
+    const current = getParsedBonusSchemes();
+    handleUpdateBonusSchemes(current.filter((s) => s.id !== schemeId));
+  };
+
+  const handleUpdateSingleScheme = (schemeId: string, field: keyof BonusScheme, value: any) => {
+    const current = getParsedBonusSchemes();
+    const updated = current.map((s) => (s.id === schemeId ? { ...s, [field]: value } : s));
+    handleUpdateBonusSchemes(updated);
   };
 
   // PF Components per Category
@@ -1202,27 +1348,75 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       <Box sx={{ display: currentTab === 'ot_bonus_rules' ? 'block' : 'none' }}>
         {visitedTabs.ot_bonus_rules && (
           <Box>
-          {CATEGORIES.map((cat, idx) => (
+          {CATEGORIES.filter((cat) => ['workers', 'drivers', 'north_indian'].includes(cat.key)).map((cat, idx) => (
             renderCategoryAccordion(
               cat,
               idx === 0,
               <Stack spacing={3}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                  Overtime (OT) & Bonus Rules ({cat.title})
+                  Overtime (OT) & Attendance Bonus Rules ({cat.title})
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: -2 }}>
                   Configure Overtime formulas, hourly rates, and attendance bonus policies for {cat.title}.
                 </Typography>
 
                 <Grid container spacing={3}>
-                  {(cat.key === 'workers' || cat.key === 'drivers' || cat.key === 'general') && (
-                    <Grid size={{ xs: 12, sm: 6, md: (cat.key === 'workers' || cat.key === 'drivers') ? 6 : 4 }}>
+                  {cat.key === 'workers' && (
+                    <>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="Workers OT Multiplier"
+                          value={data.workers_ot_rate_multiplier ?? '2'}
+                          onChange={(e) => onChange('workers_ot_rate_multiplier', e.target.value)}
+                          placeholder="2"
+                          helperText="Double Rate: (Gross / 26 / 8) × OT Hours × Multiplier"
+                          slotProps={{
+                            input: {
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <LuCalculator size={18} style={{ opacity: 0.6, marginLeft: 8 }} />
+                                </InputAdornment>
+                              ),
+                              endAdornment: <InputAdornment position="end">x</InputAdornment>,
+                            },
+                            htmlInput: { min: 1, max: 5, step: 0.5 },
+                          }}
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="Workers Attendance Bonus"
+                          value={data.workers_attendance_bonus ?? '1500'}
+                          onChange={(e) => onChange('workers_attendance_bonus', e.target.value)}
+                          placeholder="1500"
+                          helperText="Bonus awarded for Full Present (0 absent days)."
+                          slotProps={{
+                            input: {
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                </InputAdornment>
+                              ),
+                            },
+                            htmlInput: { min: 0, step: 100 },
+                          }}
+                        />
+                      </Grid>
+                    </>
+                  )}
+
+                  {cat.key === 'drivers' && (
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
                         fullWidth
                         type="number"
-                        label={cat.key === 'drivers' ? 'Drivers OT Multiplier' : (cat.key === 'workers' ? 'Workers OT Multiplier' : 'Default OT Multiplier')}
-                        value={cat.key === 'drivers' ? (data.drivers_ot_rate_multiplier ?? '2') : (data.workers_ot_rate_multiplier ?? '2')}
-                        onChange={(e) => onChange(cat.key === 'drivers' ? 'drivers_ot_rate_multiplier' : 'workers_ot_rate_multiplier', e.target.value)}
+                        label="Drivers OT Multiplier"
+                        value={data.drivers_ot_rate_multiplier ?? '2'}
+                        onChange={(e) => onChange('drivers_ot_rate_multiplier', e.target.value)}
                         placeholder="2"
                         helperText="Double Rate: (Gross / 26 / 8) × OT Hours × Multiplier"
                         slotProps={{
@@ -1240,8 +1434,8 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                     </Grid>
                   )}
 
-                  {(cat.key === 'north_indian' || cat.key === 'general') && (
-                    <Grid size={{ xs: 12, sm: 6, md: cat.key === 'north_indian' ? 12 : 4 }}>
+                  {cat.key === 'north_indian' && (
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
                         fullWidth
                         type="number"
@@ -1264,34 +1458,562 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       />
                     </Grid>
                   )}
-
-                  {(cat.key === 'workers' || cat.key === 'general') && (
-                    <Grid size={{ xs: 12, sm: 6, md: cat.key === 'workers' ? 6 : 4 }}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="Workers Attendance Bonus"
-                        value={data.workers_attendance_bonus ?? '1500'}
-                        onChange={(e) => onChange('workers_attendance_bonus', e.target.value)}
-                        placeholder="1500"
-                        helperText="Bonus awarded for Full Present (0 absent days)."
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                              </InputAdornment>
-                            ),
-                          },
-                          htmlInput: { min: 0, step: 100 },
-                        }}
-                      />
-                    </Grid>
-                  )}
                 </Grid>
               </Stack>
             )
           ))}
+
+          {/* Annual & Festival Bonus Schemes Configuration */}
+          <Card
+            sx={{
+              p: 3,
+              mt: 3,
+              borderRadius: 2,
+              border: (theme) => `1px solid ${theme.palette.divider}`,
+              boxShadow: (theme) => theme.customShadows?.z1 || 'none',
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <LuGift size={20} style={{ color: '#059669' }} />
+                  Annual & Festival Bonus Schemes
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                  Configure periodic bonus schemes (e.g. Diwali Bonus, Annual Statutory Bonus) with eligible employee categories, calculation formulas, and payout months.
+                </Typography>
+              </Box>
+
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<LuCirclePlus size={18} />}
+                onClick={handleAddBonusScheme}
+                sx={{
+                  bgcolor: '#059669',
+                  '&:hover': { bgcolor: '#047857' },
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 1.5,
+                }}
+              >
+                Add Bonus Scheme
+              </Button>
+            </Box>
+
+            {getParsedBonusSchemes().length === 0 ? (
+              <Box
+                sx={{
+                  p: 4,
+                  textAlign: 'center',
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03),
+                  borderRadius: 1.5,
+                  border: '1px dashed',
+                  borderColor: 'divider',
+                }}
+              >
+                <LuGift size={32} style={{ opacity: 0.4, color: '#059669', marginBottom: 8 }} />
+                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                  No bonus schemes configured yet.
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.5 }}>
+                  Click &quot;Add Bonus Scheme&quot; above to configure Diwali, annual, or custom festival bonuses.
+                </Typography>
+              </Box>
+            ) : (
+              <Stack spacing={2.5}>
+                {getParsedBonusSchemes().map((scheme, sIdx) => {
+                  const isActive = isCheckEnabled(scheme.is_active);
+                  return (
+                    <Card
+                      key={scheme.id}
+                      variant="outlined"
+                      sx={{
+                        p: 2.5,
+                        borderRadius: 1.5,
+                        bgcolor: isActive ? 'background.paper' : (theme) => alpha(theme.palette.action.disabledBackground, 0.3),
+                        border: 1,
+                        borderColor: isActive ? 'divider' : 'action.disabledBackground',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: isActive ? 2.5 : 0 }}>
+                        <Stack direction="row" spacing={1.5} alignItems="center">
+                          <Chip
+                            label={`Scheme ${sIdx + 1}`}
+                            size="small"
+                            sx={{
+                              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                              color: 'primary.dark',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                              borderRadius: '6px',
+                            }}
+                          />
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                            {scheme.scheme_name || 'Bonus Scheme'}
+                          </Typography>
+                        </Stack>
+
+                        <Stack direction="row" spacing={2} alignItems="center">
+                          <Stack
+                            direction="row"
+                            spacing={1.25}
+                            alignItems="center"
+                            onClick={() => handleUpdateSingleScheme(scheme.id, 'is_active', isActive ? 0 : 1)}
+                            sx={{ cursor: 'pointer', userSelect: 'none' }}
+                          >
+                            <CustomSwitch
+                              checked={isActive}
+                              onChange={(e) => handleUpdateSingleScheme(scheme.id, 'is_active', e.target.checked ? 1 : 0)}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontSize: '0.82rem',
+                                fontWeight: 600,
+                                color: isActive ? '#059669' : 'text.disabled',
+                              }}
+                            >
+                              {isActive ? 'Active' : 'Inactive'}
+                            </Typography>
+                          </Stack>
+
+                          <Tooltip title="Delete Scheme">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleRemoveBonusScheme(scheme.id)}
+                              sx={{
+                                color: 'error.main',
+                                p: 0.75,
+                                '&:hover': {
+                                  bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                                },
+                              }}
+                            >
+                              <LuTrash2 size={18} />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </Box>
+
+                      <Collapse in={isActive}>
+                        <Grid container spacing={2.5}>
+                        {/* Scheme Name */}
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                          <TextField
+                            fullWidth
+                            size="medium"
+                            label="Bonus Scheme Name"
+                            value={scheme.scheme_name}
+                            onChange={(e) => handleUpdateSingleScheme(scheme.id, 'scheme_name', e.target.value)}
+                            placeholder="e.g. Diwali Annual Bonus"
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        </Grid>
+
+                        {/* Payout Month(s) - Chip selector */}
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                          <Autocomplete
+                            multiple
+                            size="medium"
+                            options={MONTH_NAMES}
+                            value={scheme.payout_months || []}
+                            onChange={(_e, val) => handleUpdateSingleScheme(scheme.id, 'payout_months', val)}
+                            renderTags={(tagValue, getTagProps) =>
+                              tagValue.map((option, index) => (
+                                <Chip
+                                  label={option}
+                                  size="small"
+                                  {...getTagProps({ index })}
+                                  key={option}
+                                  sx={{
+                                    bgcolor: '#00875a',
+                                    color: '#ffffff',
+                                    fontWeight: 600,
+                                    borderRadius: '16px',
+                                    height: 26,
+                                    fontSize: '0.8rem',
+                                    '& .MuiChip-deleteIcon': {
+                                      color: 'rgba(255, 255, 255, 0.85)',
+                                      '&:hover': { color: '#ffffff' },
+                                    },
+                                  }}
+                                />
+                              ))
+                            }
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                size="medium"
+                                label="Payout Month(s)"
+                                placeholder={(!scheme.payout_months || scheme.payout_months.length === 0) ? 'Select month' : ''}
+                                InputLabelProps={{ shrink: true }}
+                              />
+                            )}
+                          />
+                        </Grid>
+
+                        {/* Calculation Method */}
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                          <FormControl fullWidth size="medium">
+                            <InputLabel id={`calc-method-label-${scheme.id}`} shrink>Calculation Method</InputLabel>
+                            <Select
+                              labelId={`calc-method-label-${scheme.id}`}
+                              size="medium"
+                              value={scheme.calc_method || 'Percentage of Selected Components'}
+                              onChange={(e) => handleUpdateSingleScheme(scheme.id, 'calc_method', e.target.value)}
+                              label="Calculation Method"
+                            >
+                              {BONUS_CALC_METHODS.map((method) => (
+                                <MenuItem key={method} value={method}>{method}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
+
+                        {/* Calculation Base Components (Component Select Functionality) */}
+                        {scheme.calc_method !== 'Flat Fixed Amount' && scheme.calc_method !== 'Percentage of Gross' && (
+                          <Grid size={{ xs: 12 }}>
+                            <Box
+                              sx={{
+                                p: 2,
+                                borderRadius: 1.5,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                                border: '1px dashed',
+                                borderColor: (theme) => alpha(theme.palette.primary.main, 0.28),
+                              }}
+                            >
+                              <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} sx={{ mb: 1 }}>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    Calculation Base Components (Earning Basis)
+                                  </Typography>
+                                  <Chip
+                                    label="Bonus % calculated on sum of selected components"
+                                    size="small"
+                                    sx={{
+                                      height: 20,
+                                      fontSize: '0.68rem',
+                                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                                      color: 'primary.dark',
+                                      fontWeight: 600,
+                                    }}
+                                  />
+                                </Stack>
+                                <Stack direction="row" spacing={0.5}>
+                                  <Button
+                                    size="small"
+                                    variant="text"
+                                    onClick={() => handleUpdateSingleScheme(scheme.id, 'calculation_components', earningOptions)}
+                                    sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: '#059669', fontWeight: 700 }}
+                                  >
+                                    Select All
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="text"
+                                    onClick={() => handleUpdateSingleScheme(scheme.id, 'calculation_components', ['Basic Pay', 'DA'].filter((c) => earningOptions.includes(c)))}
+                                    sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: '#059669', fontWeight: 600 }}
+                                  >
+                                    Reset to Basic + DA
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="text"
+                                    color="inherit"
+                                    onClick={() => handleUpdateSingleScheme(scheme.id, 'calculation_components', [])}
+                                    sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: 'text.secondary' }}
+                                  >
+                                    Clear
+                                  </Button>
+                                </Stack>
+                              </Stack>
+
+                              <Autocomplete
+                                multiple
+                                size="medium"
+                                options={earningOptions}
+                                value={scheme.calculation_components || ['Basic Pay', 'DA']}
+                                onChange={(_e, val) => handleUpdateSingleScheme(scheme.id, 'calculation_components', val)}
+                                renderTags={(tagValue, getTagProps) =>
+                                  tagValue.map((option, index) => (
+                                    <Chip
+                                      label={option}
+                                      size="small"
+                                      {...getTagProps({ index })}
+                                      key={option}
+                                      sx={{
+                                        bgcolor: '#00875a',
+                                        color: '#ffffff',
+                                        fontWeight: 600,
+                                        borderRadius: '16px',
+                                        height: 26,
+                                        fontSize: '0.8rem',
+                                        '& .MuiChip-deleteIcon': {
+                                          color: 'rgba(255, 255, 255, 0.85)',
+                                          '&:hover': { color: '#ffffff' },
+                                        },
+                                      }}
+                                    />
+                                  ))
+                                }
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    size="medium"
+                                    placeholder={(!scheme.calculation_components || scheme.calculation_components.length === 0) ? 'Select components (e.g. Basic Pay, DA)' : ''}
+                                    InputLabelProps={{ shrink: true }}
+                                  />
+                                )}
+                              />
+                            </Box>
+                          </Grid>
+                        )}
+
+                        {/* Applicable Categories (All Filter Support) */}
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <Box sx={{ width: '100%' }}>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                                Applicable Categories
+                              </Typography>
+                              <Stack direction="row" spacing={0.5}>
+                                <Button
+                                  size="small"
+                                  variant="text"
+                                  onClick={() => handleUpdateSingleScheme(scheme.id, 'categories', ['all'])}
+                                  sx={{ fontSize: '0.75rem', py: 0, px: 0.8, textTransform: 'none', color: '#059669', fontWeight: 700 }}
+                                >
+                                  All Categories
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="text"
+                                  color="inherit"
+                                  onClick={() => handleUpdateSingleScheme(scheme.id, 'categories', [])}
+                                  sx={{ fontSize: '0.75rem', py: 0, px: 0.8, textTransform: 'none', color: 'text.secondary' }}
+                                >
+                                  Clear
+                                </Button>
+                              </Stack>
+                            </Stack>
+
+                            <Autocomplete
+                              multiple
+                              size="medium"
+                              options={BONUS_CATEGORY_OPTIONS.map((c) => c.value)}
+                              getOptionLabel={(val) => BONUS_CATEGORY_OPTIONS.find((c) => c.value === val)?.label || val}
+                              value={
+                                (scheme.categories || []).includes('all') || (scheme.categories || []).length === ALL_CATEGORY_VALUES.length
+                                  ? ['all']
+                                  : (scheme.categories || [])
+                              }
+                              onChange={(_e, val) => {
+                                if (val.includes('all')) {
+                                  const wasAll = (scheme.categories || []).includes('all') || (scheme.categories || []).length === ALL_CATEGORY_VALUES.length;
+                                  if (wasAll) {
+                                    handleUpdateSingleScheme(scheme.id, 'categories', val.filter((v) => v !== 'all'));
+                                  } else {
+                                    handleUpdateSingleScheme(scheme.id, 'categories', ['all']);
+                                  }
+                                } else {
+                                  handleUpdateSingleScheme(scheme.id, 'categories', val);
+                                }
+                              }}
+                              renderTags={(tagValue, getTagProps) =>
+                                tagValue.map((option, index) => {
+                                  const label = BONUS_CATEGORY_OPTIONS.find((c) => c.value === option)?.label || option;
+                                  return (
+                                    <Chip
+                                      label={label}
+                                      size="small"
+                                      {...getTagProps({ index })}
+                                      key={option}
+                                      sx={{
+                                        bgcolor: '#00875a',
+                                        color: '#ffffff',
+                                        fontWeight: 600,
+                                        borderRadius: '16px',
+                                        height: 26,
+                                        fontSize: '0.8rem',
+                                        '& .MuiChip-deleteIcon': {
+                                          color: 'rgba(255, 255, 255, 0.85)',
+                                          '&:hover': { color: '#ffffff' },
+                                        },
+                                      }}
+                                    />
+                                  );
+                                })
+                              }
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  size="medium"
+                                  placeholder={(!scheme.categories || scheme.categories.length === 0) ? 'All Categories' : ''}
+                                  InputLabelProps={{ shrink: true }}
+                                />
+                              )}
+                            />
+                          </Box>
+                        </Grid>
+
+                        {/* Applicable Departments (All Filter Support) */}
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <Box sx={{ width: '100%' }}>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                                Applicable Departments
+                              </Typography>
+                              <Stack direction="row" spacing={0.5}>
+                                <Button
+                                  size="small"
+                                  variant="text"
+                                  onClick={() => handleUpdateSingleScheme(scheme.id, 'departments', ['all'])}
+                                  sx={{ fontSize: '0.75rem', py: 0, px: 0.8, textTransform: 'none', color: '#059669', fontWeight: 700 }}
+                                >
+                                  All Departments
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="text"
+                                  color="inherit"
+                                  onClick={() => handleUpdateSingleScheme(scheme.id, 'departments', [])}
+                                  sx={{ fontSize: '0.75rem', py: 0, px: 0.8, textTransform: 'none', color: 'text.secondary' }}
+                                >
+                                  Clear
+                                </Button>
+                              </Stack>
+                            </Stack>
+
+                            <Autocomplete
+                              multiple
+                              size="medium"
+                              options={['all', ...departmentOptions]}
+                              getOptionLabel={(val) => (val === 'all' ? 'All Departments' : val)}
+                              value={
+                                (scheme.departments || []).includes('all') ||
+                                ((scheme.departments || []).length === departmentOptions.length && departmentOptions.length > 0)
+                                  ? ['all']
+                                  : (scheme.departments || [])
+                              }
+                              onChange={(_e, val) => {
+                                if (val.includes('all')) {
+                                  const wasAll = (scheme.departments || []).includes('all');
+                                  if (wasAll) {
+                                    handleUpdateSingleScheme(scheme.id, 'departments', val.filter((v) => v !== 'all'));
+                                  } else {
+                                    handleUpdateSingleScheme(scheme.id, 'departments', ['all']);
+                                  }
+                                } else {
+                                  handleUpdateSingleScheme(scheme.id, 'departments', val);
+                                }
+                              }}
+                              renderTags={(tagValue, getTagProps) =>
+                                tagValue.map((option, index) => (
+                                  <Chip
+                                    label={option === 'all' ? 'All Departments' : option}
+                                    size="small"
+                                    {...getTagProps({ index })}
+                                    key={option}
+                                    sx={{
+                                      bgcolor: '#00875a',
+                                      color: '#ffffff',
+                                      fontWeight: 600,
+                                      borderRadius: '16px',
+                                      height: 26,
+                                      fontSize: '0.8rem',
+                                      '& .MuiChip-deleteIcon': {
+                                        color: 'rgba(255, 255, 255, 0.85)',
+                                        '&:hover': { color: '#ffffff' },
+                                      },
+                                    }}
+                                  />
+                                ))
+                              }
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  size="medium"
+                                  placeholder={
+                                    !scheme.departments || scheme.departments.length === 0
+                                      ? 'All Departments'
+                                      : ''
+                                  }
+                                  InputLabelProps={{ shrink: true }}
+                                />
+                              )}
+                            />
+                          </Box>
+                        </Grid>
+
+                        {/* Percentage & Ceiling OR Flat Amount */}
+                        {scheme.calc_method === 'Flat Fixed Amount' ? (
+                          <Grid size={{ xs: 12, md: 6 }}>
+                            <TextField
+                              fullWidth
+                              size="medium"
+                              type="number"
+                              label="Flat Bonus Amount (₹)"
+                              value={scheme.flat_amount ?? 0}
+                              onChange={(e) => handleUpdateSingleScheme(scheme.id, 'flat_amount', e.target.value === '' ? 0 : Number(e.target.value))}
+                              InputLabelProps={{ shrink: true }}
+                              slotProps={{
+                                input: {
+                                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                },
+                              }}
+                            />
+                          </Grid>
+                        ) : (
+                          <>
+                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <TextField
+                                fullWidth
+                                size="medium"
+                                type="number"
+                                label="Bonus Percentage (%)"
+                                value={scheme.percentage ?? 8.33}
+                                onChange={(e) => handleUpdateSingleScheme(scheme.id, 'percentage', e.target.value === '' ? '' : Number(e.target.value))}
+                                InputLabelProps={{ shrink: true }}
+                                slotProps={{
+                                  input: {
+                                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                                  },
+                                  htmlInput: { step: '0.01', min: 0, max: 100 },
+                                }}
+                                helperText="Statutory default: 8.33%"
+                              />
+                            </Grid>
+                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <TextField
+                                fullWidth
+                                size="medium"
+                                type="number"
+                                label="Wage Ceiling Limit (₹)"
+                                value={scheme.wage_ceiling ?? 7000}
+                                onChange={(e) => handleUpdateSingleScheme(scheme.id, 'wage_ceiling', e.target.value === '' ? 0 : Number(e.target.value))}
+                                InputLabelProps={{ shrink: true }}
+                                slotProps={{
+                                  input: {
+                                    startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                  },
+                                  htmlInput: { step: 500, min: 0 },
+                                }}
+                                helperText="e.g. ₹7,000 ceiling (0 for uncapped)"
+                              />
+                            </Grid>
+                          </>
+                        )}
+                      </Grid>
+                    </Collapse>
+                  </Card>
+                  );
+                })}
+              </Stack>
+            )}
+          </Card>
         </Box>
         )}
       </Box>
