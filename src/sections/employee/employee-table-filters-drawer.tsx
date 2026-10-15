@@ -35,6 +35,8 @@ type Props = {
         city: string;
         employee_type: string;
         production_type: string;
+        skill: string;
+        line: string;
     };
     onFilters: (update: any) => void;
     canReset: boolean;
@@ -42,6 +44,8 @@ type Props = {
     departmentOptions: any[];
     designationOptions: any[];
     employeeTypeOptions?: any[];
+    skillOptions?: any[];
+    lineOptions?: any[];
 };
 
 export default function EmployeeTableFiltersDrawer({
@@ -55,6 +59,8 @@ export default function EmployeeTableFiltersDrawer({
     departmentOptions,
     designationOptions,
     employeeTypeOptions = [],
+    skillOptions = [],
+    lineOptions = [],
 }: Props) {
     const [countryOptions, setCountryOptions] = useState<string[]>([]);
     const [stateOptions, setStateOptions] = useState<string[]>([]);
@@ -105,6 +111,14 @@ export default function EmployeeTableFiltersDrawer({
 
     const handleFilterProductionType = (event: any, value: string | null) => {
         onFilters({ production_type: value || 'all' });
+    };
+
+    const handleFilterSkill = (event: any, value: string | null) => {
+        onFilters({ skill: value || 'all' });
+    };
+
+    const handleFilterLine = (event: any, value: string | null) => {
+        onFilters({ line: value || 'all' });
     };
 
     const handleFilterDesignation = (event: any, value: string | null) => {
@@ -299,6 +313,66 @@ export default function EmployeeTableFiltersDrawer({
                                 <TextField
                                     {...params}
                                     placeholder="Select production type..."
+                                    size="small"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                             borderRadius: 1.5,
+                                             bgcolor: 'background.neutral',
+                                             '&:hover': {
+                                                 bgcolor: 'action.hover',
+                                             },
+                                         },
+                                     }}
+                                 />
+                             )}
+                         />
+                    </Stack>
+
+                    <Stack spacing={1.5}>
+                        <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                            Skill
+                        </Typography>
+                        <Autocomplete
+                            fullWidth
+                            options={['All Skills', ...skillOptions.map((s: any) => (typeof s === 'string' ? s : s.name))]}
+                            value={filters.skill === 'all' ? 'All Skills' : filters.skill}
+                            onChange={(event, newValue) => {
+                                handleFilterSkill(event, newValue === 'All Skills' ? 'all' : newValue);
+                            }}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    placeholder="Select skill..."
+                                    size="small"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                             borderRadius: 1.5,
+                                             bgcolor: 'background.neutral',
+                                             '&:hover': {
+                                                 bgcolor: 'action.hover',
+                                             },
+                                         },
+                                     }}
+                                 />
+                             )}
+                         />
+                    </Stack>
+
+                    <Stack spacing={1.5}>
+                        <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                            Line
+                        </Typography>
+                        <Autocomplete
+                            fullWidth
+                            options={['All Lines', ...lineOptions.map((l: any) => (typeof l === 'string' ? l : l.name))]}
+                            value={filters.line === 'all' ? 'All Lines' : filters.line}
+                            onChange={(event, newValue) => {
+                                handleFilterLine(event, newValue === 'All Lines' ? 'all' : newValue);
+                            }}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    placeholder="Select line..."
                                     size="small"
                                     sx={{
                                         '& .MuiOutlinedInput-root': {

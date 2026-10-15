@@ -25,7 +25,6 @@ import TableBody from '@mui/material/TableBody';
 import TableHead from '@mui/material/TableHead';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
-import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
 import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -49,7 +48,6 @@ import { stringToColor, stringToDarkColor } from 'src/utils/color-utils';
 import { runReport } from 'src/api/reports';
 import { getDoctypeList } from 'src/api/leads';
 import { getEmployee } from 'src/api/employees';
-import { COMMON_COLORS } from 'src/theme/common-colors';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRSettings, fetchFrappeList } from 'src/api/hr-management';
 

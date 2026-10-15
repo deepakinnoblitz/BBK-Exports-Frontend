@@ -2,11 +2,10 @@ import type { BiometricStatus } from 'src/api/biometric';
 
 import dayjs from 'dayjs';
 import { useSnackbar } from 'notistack';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
 import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';

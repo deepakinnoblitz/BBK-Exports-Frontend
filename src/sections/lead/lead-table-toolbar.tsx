@@ -31,6 +31,7 @@ type LeadTableToolbarProps = {
   onFilterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDelete?: VoidFunction;
   onCancel?: VoidFunction;
+  onBulkEdit?: VoidFunction;
   sortBy?: string;
   onSortChange?: (value: string) => void;
   // Filter Drawer Props
@@ -62,6 +63,7 @@ export function LeadTableToolbar({
   onFilterName,
   onDelete,
   onCancel,
+  onBulkEdit,
   sortBy = 'modified_desc',
   onSortChange,
   onOpenFilter,
@@ -254,6 +256,29 @@ export function LeadTableToolbar({
       }}>
         {numSelected > 0 ? (
           <Stack direction="row" spacing={1} alignItems="center">
+            {onBulkEdit && (
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<Iconify icon="solar:pen-bold" width={18} />}
+                onClick={onBulkEdit}
+                sx={{
+                  bgcolor: 'var(--btn-primary-bg, #059669)',
+                  color: '#fff',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderRadius: 1,
+                  px: 1.5,
+                  boxShadow: 'none',
+                  '&:hover': {
+                    bgcolor: '#047857',
+                    boxShadow: 'none',
+                  },
+                }}
+              >
+                Bulk Edit ({numSelected})
+              </Button>
+            )}
             {onCancel && (
               <Tooltip title="Cancel Selected Assignments">
                 <Button

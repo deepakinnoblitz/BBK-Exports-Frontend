@@ -6,6 +6,7 @@ import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import { Avatar } from '@mui/material';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
@@ -16,6 +17,7 @@ import DialogContent from '@mui/material/DialogContent';
 
 import { getEmployee } from 'src/api/employees';
 import { getHRDoc } from 'src/api/hr-management';
+import { getAttendanceTransferDetails } from 'src/api/attendance-transfer';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -38,8 +40,13 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
         ['System Manager', 'Administrator'].includes(role)
     );
 
+    const hasHR = user?.roles?.some((role: string) => ['HR', 'HR Manager'].includes(role));
+    const isSuperAdmin = (hasHR && isSystemManager) || user?.roles?.includes('Administrator');
+
     const [attendance, setAttendance] = useState<any>(null);
     const [employeeDetails, setEmployeeDetails] = useState<any>(null);
+    const [transferDetails, setTransferDetails] = useState<any>(null);
+    const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(false);
 
@@ -55,6 +62,22 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                         getEmployee(empId).then(setEmployeeDetails).catch(console.error).finally(() => setFetching(false));
                     } else {
                         setFetching(false);
+                    }
+
+                    if (data.is_transferred || data.attendance_transfer_ref) {
+                        getAttendanceTransferDetails(data.attendance_transfer_ref, attendanceId)
+                            .then((tData) => {
+                                setTransferDetails(tData);
+                                if (!data.attendance_transfer_ref && tData?.name) {
+                                    setAttendance((prev: any) => ({ ...prev, attendance_transfer_ref: tData.name }));
+                                }
+                            })
+                            .catch((err) => {
+                                console.warn('Could not fetch linked transfer details:', err);
+                                setTransferDetails(null);
+                            });
+                    } else {
+                        setTransferDetails(null);
                     }
                 })
                 .catch((err) => {
@@ -79,12 +102,20 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
     };
 
     return (
-        <Dialog
+        <>
+            <Dialog
             open={open}
             onClose={onClose}
             fullWidth
             maxWidth="md"
-            TransitionProps={{ onExited: () => setAttendance(null) }}
+            TransitionProps={{
+                onExited: () => {
+                    setAttendance(null);
+                    setEmployeeDetails(null);
+                    setTransferDetails(null);
+                    setReasonDialogOpen(false);
+                }
+            }}
             PaperProps={{ sx: { borderRadius: 2, boxShadow: (themeVar) => themeVar.customShadows.z24 } }}
         >
             <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>
@@ -157,23 +188,41 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                                         </Typography>
                                     </Box>
                                 </Box>
-                                <Label
-                                    color={getStatusColor(attendance.status)}
-                                    variant="soft"
-                                    sx={{
-                                        fontWeight: 700,
-                                        textTransform: 'uppercase',
-                                        letterSpacing: 0.25,
-                                        px: 1.5,
-                                        py: 2,
-                                        borderRadius: 1,
-                                        fontSize: '0.75rem',
-                                        alignSelf: { xs: 'flex-start', sm: 'center' },
-                                        flexShrink: 0
-                                    }}
-                                >
-                                    {attendance.status}
-                                </Label>
+                                <Stack direction="row" spacing={1} alignItems="center" sx={{ alignSelf: { xs: 'flex-start', sm: 'center' }, flexShrink: 0 }}>
+                                    <Label
+                                        color={getStatusColor(attendance.status)}
+                                        variant="soft"
+                                        sx={{
+                                            fontWeight: 700,
+                                            textTransform: 'uppercase',
+                                            letterSpacing: 0.25,
+                                            px: 1.5,
+                                            py: 2,
+                                            borderRadius: 1,
+                                            fontSize: '0.75rem',
+                                        }}
+                                    >
+                                        {attendance.status}
+                                    </Label>
+                                    {isSuperAdmin && !!attendance.is_transferred && (
+                                        <Label
+                                            color="info"
+                                            variant="filled"
+                                            sx={{
+                                                fontWeight: 800,
+                                                textTransform: 'uppercase',
+                                                letterSpacing: 0.25,
+                                                px: 1.25,
+                                                py: 2,
+                                                borderRadius: 1,
+                                                fontSize: '0.75rem',
+                                                bgcolor: (t) => alpha(t.palette.info.main, 0.9),
+                                            }}
+                                        >
+                                            {attendance.transfer_type === 'Target (Adjusted Working)' ? 'Adjusted Working' : (attendance.transfer_type || 'Transferred')}
+                                        </Label>
+                                    )}
+                                </Stack>
                             </Stack>
 
                             <Divider sx={{ borderStyle: 'dashed', my: 2.5 }} />
@@ -202,6 +251,160 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                                 </Stack>
                             </Stack>
                         </Box>
+
+                        {/* Attendance Transfer Details (Super Admin Only) */}
+                        {isSuperAdmin && !!attendance.is_transferred && (
+                            <Card
+                                variant="outlined"
+                                sx={{
+                                    p: 2.5,
+                                    borderRadius: 2,
+                                    border: (theme) => `1px solid ${alpha(theme.palette.info.main, 0.35)}`,
+                                    bgcolor: (theme) => alpha(theme.palette.info.main, 0.04),
+                                    boxShadow: (theme) => `0 4px 16px 0 ${alpha(theme.palette.info.main, 0.06)}`,
+                                }}
+                            >
+                                <Stack spacing={2}>
+                                    <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5}>
+                                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                                            <Box
+                                                sx={{
+                                                    p: 1.2,
+                                                    borderRadius: 1.5,
+                                                    bgcolor: (theme) => alpha(theme.palette.info.main, 0.12),
+                                                    color: 'info.main',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
+                                                <Iconify icon={"solar:transfer-horizontal-bold" as any} width={24} />
+                                            </Box>
+                                            <Box>
+                                                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                                                    Attendance Transfer Information
+                                                </Typography>
+                                            </Box>
+                                        </Stack>
+
+                                        <Stack direction="row" spacing={1} alignItems="center">
+                                            {transferDetails?.status && (
+                                                <Label
+                                                    color={transferDetails.status === 'Submitted' ? 'success' : 'error'}
+                                                    variant="soft"
+                                                    sx={{ fontWeight: 800, textTransform: 'uppercase' }}
+                                                >
+                                                    {transferDetails.status}
+                                                </Label>
+                                            )}
+                                            <Label
+                                                color="info"
+                                                variant="soft"
+                                                sx={{ fontWeight: 700 }}
+                                            >
+                                                {attendance.transfer_type || 'Working Day Adjustment'}
+                                            </Label>
+                                        </Stack>
+                                    </Stack>
+
+                                    <Divider sx={{ borderStyle: 'dashed', borderColor: (theme) => alpha(theme.palette.info.main, 0.24) }} />
+
+                                    <Grid container spacing={2}>
+                                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: 10 }}>
+                                                Transfer Ref ID
+                                            </Typography>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary', mt: 0.25}}>
+                                                {attendance.attendance_transfer_ref || transferDetails?.name || '-'}
+                                            </Typography>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: 10 }}>
+                                                Transferred From (Source)
+                                            </Typography>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'error.main', mt: 0.25 }}>
+                                                {attendance.transferred_from_date ? dayjs(attendance.transferred_from_date).format('DD MMM YYYY') : (transferDetails?.source_date ? dayjs(transferDetails.source_date).format('DD MMM YYYY') : '-')}
+                                            </Typography>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: 10 }}>
+                                                Adjusted To (Target)
+                                            </Typography>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'success.main', mt: 0.25 }}>
+                                                {attendance.transferred_to_date ? dayjs(attendance.transferred_to_date).format('DD MMM YYYY') : (transferDetails?.target_date ? dayjs(transferDetails.target_date).format('DD MMM YYYY') : dayjs(attendance.attendance_date).format('DD MMM YYYY'))}
+                                            </Typography>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: 10 }}>
+                                                Reason
+                                            </Typography>
+                                            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.25 }}>
+                                                <Button
+                                                    size="small"
+                                                    variant="outlined"
+                                                    color="info"
+                                                    onClick={() => setReasonDialogOpen(true)}
+                                                    startIcon={<Iconify icon="solar:eye-bold" width={13} />}
+                                                    sx={{
+                                                        fontSize: 11,
+                                                        fontWeight: 700,
+                                                        px: 1,
+                                                        py: 0.2,
+                                                        minHeight: 22,
+                                                        height: 22,
+                                                        borderRadius: 0.75,
+                                                        whiteSpace: 'nowrap',
+                                                        flexShrink: 0
+                                                    }}
+                                                >
+                                                    View Detail
+                                                </Button>
+                                            </Stack>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12 }}>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 11 }}>
+                                                Transferred By:{' '}
+                                                <Box component="span" sx={{ color: 'text.primary', fontWeight: 800 }}>
+                                                    {transferDetails?.transferred_by_name
+                                                        ? `${transferDetails.transferred_by_name}${transferDetails.transferred_by && transferDetails.transferred_by !== transferDetails.transferred_by_name ? ` (${transferDetails.transferred_by})` : ''}`
+                                                        : transferDetails?.transferred_by || transferDetails?.owner || 'Authorized Administrator'}
+                                                </Box>
+                                                {(transferDetails?.transfer_datetime || transferDetails?.creation) ? (
+                                                    <Box component="span" sx={{ color: 'text.secondary', ml: 0.5 }}>
+                                                        on {dayjs(transferDetails?.transfer_datetime || transferDetails?.creation).format('DD MMM YYYY, hh:mm A')}
+                                                    </Box>
+                                                ) : null}
+                                            </Typography>
+                                        </Grid>
+
+                                        {transferDetails?.status === 'Reverted' && (
+                                            <Grid size={{ xs: 12 }}>
+                                                <Box
+                                                    sx={{
+                                                        p: 1.5,
+                                                        borderRadius: 1.25,
+                                                        bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                                                        border: (theme) => `1px solid ${alpha(theme.palette.error.main, 0.24)}`,
+                                                    }}
+                                                >
+                                                    <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 800, textTransform: 'uppercase', fontSize: 11, display: 'block', mb: 0.25 }}>
+                                                        Transfer Reverted
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: 'error.darker', fontWeight: 600 }}>
+                                                        Reverted by <strong>{transferDetails.reverted_by_name || transferDetails.reverted_by}</strong> on {dayjs(transferDetails.revert_datetime).format('DD MMM YYYY, hh:mm A')}
+                                                        {transferDetails.revert_reason ? ` — Reason: "${transferDetails.revert_reason}"` : ''}
+                                                    </Typography>
+                                                </Box>
+                                            </Grid>
+                                        )}
+                                    </Grid>
+                                </Stack>
+                            </Card>
+                        )}
 
                         {attendance.manual ? (
                             <Box
@@ -250,6 +453,13 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                                 )}
                                 <DetailRow label="Attendance Source" value={attendance.attendance_source || (attendance.manual ? 'Manual' : 'Biometric')} icon="solar:user-id-bold" />
                                 <DetailRow label="Manual Override" value={attendance.manual ? 'Yes (Protected)' : 'No'} icon="solar:pen-new-square-bold" />
+                                {isSuperAdmin && !!attendance.is_transferred && (
+                                    <DetailRow
+                                        label="Transfer Shift"
+                                        value={attendance.transferred_from_date ? `From ${dayjs(attendance.transferred_from_date).format('DD MMM')}` : (attendance.transferred_to_date ? `To ${dayjs(attendance.transferred_to_date).format('DD MMM')}` : 'Transferred')}
+                                        icon={"solar:transfer-horizontal-bold" as any}
+                                    />
+                                )}
                             </Box>
 
                             {attendance.leave_type && (
@@ -323,6 +533,161 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                 )}
             </DialogContent>
         </Dialog>
+
+        {/* Reason & Transfer Details Dialog */}
+        <Dialog
+            open={reasonDialogOpen}
+            onClose={() => setReasonDialogOpen(false)}
+            maxWidth="sm"
+            fullWidth
+            sx={{ zIndex: (theme) => theme.zIndex.modal + 10 }}
+            PaperProps={{
+                sx: { borderRadius: 2, boxShadow: (theme) => theme.customShadows.z24 }
+            }}
+        >
+            <DialogTitle sx={{ pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>
+                <Stack direction="row" spacing={1.25} alignItems="center">
+                    <Box>
+                        <Typography variant="subtitle1" fontWeight={800}>
+                            Transfer Reason & Details
+                        </Typography>
+                    </Box>
+                </Stack>
+                <IconButton onClick={() => setReasonDialogOpen(false)} size="small" sx={{ color: 'text.secondary' }}>
+                    <Iconify icon={"mingcute:close-line" as any} width={20} />
+                </IconButton>
+            </DialogTitle>
+
+            <DialogContent sx={{ my: 2.5 }}>
+                <Stack spacing={2.5}>
+                    {/* Reason Highlight Card */}
+                    <Box
+                        sx={{
+                            p: 2.5,
+                            borderRadius: 1.5,
+                            bgcolor: (theme) => alpha(theme.palette.info.main, 0.06),
+                            border: (theme) => `1px dashed ${alpha(theme.palette.info.main, 0.36)}`,
+                        }}
+                    >
+                        <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+                            <Iconify icon={"solar:chat-round-dots-bold" as any} width={16} /> Reason / Administrative Note
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary', fontStyle: 'italic', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                            &ldquo;{transferDetails?.reason || 'No reason specified'}&rdquo;
+                        </Typography>
+                    </Box>
+
+                    {/* Transfer Metadata Summary */}
+                    <Box
+                        sx={{
+                            p: 2,
+                            borderRadius: 1.5,
+                            bgcolor: (theme) => theme.palette.mode === 'light' ? '#f8fafc' : 'background.neutral',
+                            border: (theme) => `1px solid ${theme.palette.divider}`,
+                        }}
+                    >
+                        <Grid container spacing={2}>
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: 10 }}>
+                                    Transfer Reference ID
+                                </Typography>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary', mt: 0.25 }}>
+                                    {transferDetails?.name || attendance?.attendance_transfer_ref || '-'}
+                                </Typography>
+                            </Grid>
+
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: 10 }}>
+                                    Batch Status
+                                </Typography>
+                                <Box sx={{ mt: 0.25 }}>
+                                    <Label
+                                        color={transferDetails?.status === 'Submitted' ? 'success' : 'error'}
+                                        variant="soft"
+                                        sx={{ fontWeight: 800 }}
+                                    >
+                                        {transferDetails?.status || 'Submitted'}
+                                    </Label>
+                                </Box>
+                            </Grid>
+
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: 10 }}>
+                                    Original Date (Source)
+                                </Typography>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'error.main', mt: 0.25 }}>
+                                    {transferDetails?.source_date ? dayjs(transferDetails.source_date).format('DD MMM YYYY') : (attendance?.transferred_from_date ? dayjs(attendance.transferred_from_date).format('DD MMM YYYY') : '-')}
+                                </Typography>
+                            </Grid>
+
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: 10 }}>
+                                    Adjusted Working Date (Target)
+                                </Typography>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'success.main', mt: 0.25 }}>
+                                    {transferDetails?.target_date ? dayjs(transferDetails.target_date).format('DD MMM YYYY') : (attendance?.transferred_to_date ? dayjs(attendance.transferred_to_date).format('DD MMM YYYY') : dayjs(attendance?.attendance_date).format('DD MMM YYYY'))}
+                                </Typography>
+                            </Grid>
+
+                            <Grid size={{ xs: 12 }}>
+                                <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
+                            </Grid>
+
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: 10 }}>
+                                    Transferred By
+                                </Typography>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary', mt: 0.25 }}>
+                                    {transferDetails?.transferred_by_name || transferDetails?.transferred_by || transferDetails?.owner || 'Authorized Administrator'}
+                                </Typography>
+                                {transferDetails?.transferred_by && transferDetails.transferred_by !== transferDetails.transferred_by_name && (
+                                    <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block' }}>
+                                        {transferDetails.transferred_by}
+                                    </Typography>
+                                )}
+                            </Grid>
+
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: 10 }}>
+                                    Transferred Timestamp
+                                </Typography>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', mt: 0.25 }}>
+                                    {transferDetails?.transfer_datetime
+                                        ? dayjs(transferDetails.transfer_datetime).format('DD MMM YYYY, hh:mm A')
+                                        : (transferDetails?.creation ? dayjs(transferDetails.creation).format('DD MMM YYYY, hh:mm A') : '-')}
+                                </Typography>
+                            </Grid>
+                        </Grid>
+                    </Box>
+
+                    {/* Reverted Alert if applicable */}
+                    {transferDetails?.status === 'Reverted' && (
+                        <Box
+                            sx={{
+                                p: 1.5,
+                                borderRadius: 1.25,
+                                bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                                border: (theme) => `1px solid ${alpha(theme.palette.error.main, 0.24)}`,
+                            }}
+                        >
+                            <Typography variant="subtitle2" sx={{ color: 'error.main', fontWeight: 800 }}>
+                                Transfer Reverted
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}>
+                                Reverted by: <strong>{transferDetails.reverted_by_name || transferDetails.reverted_by || 'Super Admin'}</strong>
+                                {transferDetails.revert_datetime ? ` on ${dayjs(transferDetails.revert_datetime).format('DD MMM YYYY, hh:mm A')}` : ''}
+                            </Typography>
+                            {transferDetails.revert_reason && (
+                                <Typography variant="body2" sx={{ color: 'error.dark', fontStyle: 'italic', mt: 0.5 }}>
+                                    Revert Reason: &ldquo;{transferDetails.revert_reason}&rdquo;
+                                </Typography>
+                            )}
+                        </Box>
+                    )}
+                </Stack>
+            </DialogContent>
+        </Dialog>
+    </>
     );
 }
 

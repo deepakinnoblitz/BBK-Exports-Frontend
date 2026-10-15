@@ -8,12 +8,24 @@ import { Iconify } from '../iconify';
 // ----------------------------------------------------------------------
 
 type EmptyContentProps = BoxProps & {
-    title?: string;
-    description?: string;
+    title?: React.ReactNode;
+    description?: React.ReactNode;
     icon?: string;
+    iconColor?: string;
+    titleColor?: string;
+    descriptionColor?: string;
 };
 
-export function EmptyContent({ title, description, icon, sx, ...other }: EmptyContentProps) {
+export function EmptyContent({
+    title,
+    description,
+    icon,
+    iconColor,
+    titleColor,
+    descriptionColor,
+    sx,
+    ...other
+}: EmptyContentProps) {
     return (
         <Box
             sx={{
@@ -31,19 +43,35 @@ export function EmptyContent({ title, description, icon, sx, ...other }: EmptyCo
             <Iconify
                 icon={(icon || 'solar:box-minimalistic-bold-duotone') as any}
                 width={100}
-                sx={{ mb: 2, color: 'text.disabled', opacity: 0.12 }}
+                sx={{
+                    mb: 2,
+                    color: iconColor || 'text.disabled',
+                    opacity: iconColor ? 0.9 : 0.12,
+                }}
             />
 
             {title && (
-                <Typography variant="h6" sx={{ color: 'text.disabled' }}>
-                    {title}
-                </Typography>
+                typeof title === 'string' ? (
+                    <Typography variant="h6" sx={{ color: titleColor || 'text.disabled', fontWeight: 600 }}>
+                        {title}
+                    </Typography>
+                ) : (
+                    <Box sx={{ color: titleColor || 'text.primary', typography: 'h6', fontWeight: 600 }}>
+                        {title}
+                    </Box>
+                )
             )}
 
             {description && (
-                <Typography variant="body2" sx={{ color: 'text.disabled', mt: 1 }}>
-                    {description}
-                </Typography>
+                typeof description === 'string' ? (
+                    <Typography variant="body2" sx={{ color: descriptionColor || 'text.disabled', mt: 1, maxWidth: 540 }}>
+                        {description}
+                    </Typography>
+                ) : (
+                    <Box sx={{ color: descriptionColor || 'text.secondary', typography: 'body2', mt: 1, maxWidth: 540 }}>
+                        {description}
+                    </Box>
+                )
             )}
         </Box>
     );

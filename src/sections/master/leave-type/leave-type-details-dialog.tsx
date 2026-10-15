@@ -2,6 +2,7 @@ import React from 'react';
 import { FaLock, FaSyncAlt, FaMoneyBill, FaArrowRight, FaSortNumericUp } from 'react-icons/fa';
 
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
@@ -34,7 +35,22 @@ export function LeaveTypeDetailsDialog({ open, onClose, row }: Props) {
     days_worked_per_leave,
     count_half_day_as,
     include_approved_paid_leaves,
+    is_encashable,
+    encashment_cycles,
+    encashment_payout_months,
+    encashment_rate_basis,
+    encashment_component_name,
   } = row;
+
+  let parsedCycles: any[] = [];
+  if (encashment_cycles) {
+    try {
+      const parsed = JSON.parse(encashment_cycles);
+      if (Array.isArray(parsed)) parsedCycles = parsed;
+    } catch (e) {
+      // ignore
+    }
+  }
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 2, boxShadow: (themeVar: any) => themeVar.customShadows.z24, } }}>
@@ -55,8 +71,8 @@ export function LeaveTypeDetailsDialog({ open, onClose, row }: Props) {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          bgcolor: 'info.lighter',
-                          color: 'info.main',
+                          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                          color: 'primary.main',
                       }}
                   >
                       <Iconify icon="solar:calendar-bold" width={40} />
@@ -106,6 +122,72 @@ export function LeaveTypeDetailsDialog({ open, onClose, row }: Props) {
                       )}
                   </Box>
               </Box>
+
+              {!!is_encashable && (
+                  <>
+                      <Divider sx={{ borderStyle: 'dashed' }} />
+                      <Box>
+                          <SectionHeader title="Encashment & Periodic Payout Rules" />
+                          <Box
+                              sx={{
+                                  display: 'grid',
+                                  gap: 3,
+                                  gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+                              }}
+                          >
+                              <DetailItem label="Is Encashable" value="Yes" icon={<FaMoneyBill size={18} />} />
+                              <DetailItem label="Rate Basis" value={encashment_rate_basis || 'Gross / 26'} icon={<Iconify icon={"eva:pie-chart-2-fill" as any} width={18} />} />
+                              <DetailItem label="Quota Source" value="Leave Allocation DocType" icon={<Iconify icon={"solar:calendar-bold" as any} width={18} />} />
+                              <DetailItem label="Payout Month(s)" value={encashment_payout_months || '-'} icon={<Iconify icon={"solar:calendar-date-bold" as any} width={18} />} />
+                              {encashment_component_name && (
+                                  <DetailItem label="Custom Component Name" value={encashment_component_name} icon={<Iconify icon={"solar:tag-bold" as any} width={18} />} />
+                              )}
+                          </Box>
+
+                          {parsedCycles.length > 0 && (
+                              <Box sx={{ mt: 2.5, p: 2, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04), borderRadius: 1.5, border: 1, borderColor: 'primary.light' }}>
+                                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1 }}>
+                                      CONFIGURED ENCASHMENT CYCLES:
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                      {parsedCycles.map((c: any, idx: number) => {
+                                          const pMonths = c.payout_months || (c.payout_month ? [c.payout_month] : []);
+                                          return (
+                                              <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                                                  <Chip label={`Cycle ${idx + 1}`} size="small" sx={{ fontWeight: 700, borderRadius: '6px' }} />
+                                                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                                      {c.from_month || 'January'} &rarr; {c.to_month || 'June'}
+                                                  </Typography>
+                                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                      (Payout in:
+                                                  </Typography>
+                                                  {pMonths.map((m: string) => (
+                                                      <Chip
+                                                          key={m}
+                                                          label={m}
+                                                          size="small"
+                                                          sx={{
+                                                              bgcolor: '#00875a',
+                                                              color: '#ffffff',
+                                                              fontWeight: 600,
+                                                              borderRadius: '16px',
+                                                              height: 22,
+                                                              fontSize: '0.75rem',
+                                                          }}
+                                                      />
+                                                  ))}
+                                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                      )
+                                                  </Typography>
+                                              </Box>
+                                          );
+                                      })}
+                                  </Box>
+                              </Box>
+                          )}
+                      </Box>
+                  </>
+              )}
           </Box>
       </DialogContent>
     </Dialog>
@@ -125,17 +207,17 @@ function SectionHeader({ title, noMargin = false }: { title: string, noMargin?: 
 function DetailItem({ label, value, icon }: { label: string; value?: React.ReactNode; icon: React.ReactNode }) {
     const theme = useTheme();
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: 50,
-                    height: 50,
-                    borderRadius: 1.5,
-                    bgcolor: alpha(theme.palette.primary.main, 0.08),
-                    color: 'info.main',
+                    width: 40,
+                    height: 40,
+                    borderRadius: 1,
+                    bgcolor: (t) => alpha(t.palette.primary.main, 0.08),
+                    color: 'primary.main',
                     flexShrink: 0,
                 }}
             >

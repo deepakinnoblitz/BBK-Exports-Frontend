@@ -3,7 +3,7 @@ import { MuiTelInput } from 'mui-tel-input';
 import { LuUserCheck } from 'react-icons/lu';
 import { TbMoneybagPlus } from "react-icons/tb";
 import { GrDocumentLocked } from "react-icons/gr";
-import { memo, useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { memo, useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
@@ -327,6 +327,8 @@ export function EmployeeView() {
         employee_type: 'all',
         production_type: 'all',
         designation: 'all',
+        skill: 'all',
+        line: 'all',
         status: 'all',
         country: '',
         state: '',
@@ -448,7 +450,9 @@ export function EmployeeView() {
         null,
         undefined,
         filters.employee_type,
-        filters.production_type
+        filters.production_type,
+        filters.skill,
+        filters.line
     );
 
     const notFound = !data.length && !!filterName;
@@ -1057,6 +1061,8 @@ export function EmployeeView() {
             employee_type: 'all',
             production_type: 'all',
             designation: 'all',
+            skill: 'all',
+            line: 'all',
             status: 'all',
             country: '',
             state: '',
@@ -1064,7 +1070,7 @@ export function EmployeeView() {
         });
     };
 
-    const canReset = !!filterName || filters.department !== 'all' || filters.employee_type !== 'all' || filters.production_type !== 'all' || filters.designation !== 'all' || filters.status !== 'all' || filters.country !== '' || filters.state !== '' || filters.city !== '';
+    const canReset = !!filterName || filters.department !== 'all' || filters.employee_type !== 'all' || filters.production_type !== 'all' || filters.designation !== 'all' || filters.skill !== 'all' || filters.line !== 'all' || filters.status !== 'all' || filters.country !== '' || filters.state !== '' || filters.city !== '';
 
     const handleBulkDelete = async () => {
         try {
@@ -3291,6 +3297,8 @@ export function EmployeeView() {
                 departmentOptions={fieldOptions['department'] || []}
                 designationOptions={fieldOptions['designation'] || []}
                 employeeTypeOptions={fieldOptions['employee_type'] || []}
+                skillOptions={fieldOptions['skill'] || []}
+                lineOptions={fieldOptions['line_order'] || []}
             />
 
             <DepartmentCreateDialog

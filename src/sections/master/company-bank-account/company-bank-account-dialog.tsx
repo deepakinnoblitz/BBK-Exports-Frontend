@@ -21,11 +21,11 @@ import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import {
+  getDistinctBanks,
+  getBankDetailsByIfsc,
   getCompanyBankAccount,
   createCompanyBankAccount,
-  updateCompanyBankAccount,
-  getBankDetailsByIfsc,
-  getDistinctBanks
+  updateCompanyBankAccount
 } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';

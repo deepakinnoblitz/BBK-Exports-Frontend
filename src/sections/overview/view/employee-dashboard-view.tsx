@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
-import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
 import { usePresence } from 'src/hooks/use-presence';
@@ -18,16 +17,11 @@ import { Loader } from 'src/components/loader';
 
 import { useAuth } from 'src/auth/auth-context';
 
-import { UserStatusBar } from '../user-status-bar';
 import { HRAnnouncements } from '../hr-announcements';
 import { EmployeeCalendar } from '../employee-calendar';
 import { HRDashboardTable } from '../hr-dashboard-table';
 import { LeaveStatusCards } from '../leave-status-cards';
-import { DashboardEomCard } from '../dashboard-eom-card';
-import { MissingTimesheets } from '../missing-timesheets';
-import { HRTaskSummaryCards } from '../hr-task-summary-cards';
 import { PremiumWorkingHours } from '../premium-working-hours';
-import { PersonalityManagement } from '../personality-management';
 import { CalendarAttendanceChart } from '../calendar-attendance-chart';
 
 // ----------------------------------------------------------------------

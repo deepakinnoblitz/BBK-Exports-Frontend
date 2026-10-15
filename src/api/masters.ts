@@ -818,6 +818,14 @@ export interface LeaveType {
     days_worked_per_leave?: number;
     count_half_day_as?: '0.5 Day' | '0 (Not Present)';
     include_approved_paid_leaves?: number;
+    is_encashable?: number | boolean;
+    encashment_cycles?: string;
+    encashment_frequency?: 'Semi-Annual (Jan–Jun / Jul–Dec)' | 'Annual (Jan–Dec)' | 'Financial Year (Apr–Mar)' | 'Quarterly' | 'Monthly' | string;
+    encashment_payout_months?: string;
+    encashment_rate_basis?: 'Gross / 26' | 'Basic + DA / 26' | 'Gross / Calendar Days' | 'Basic / 26' | string;
+    encashment_quota_basis?: 'Allocated Days per Cycle minus Leaves Taken' | 'Available Leave Balance from Allocation' | string;
+    encashment_cycle_allocated_days?: number;
+    encashment_component_name?: string;
     creation?: string;
     modified?: string;
     [key: string]: any;

@@ -1,13 +1,11 @@
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { IoMdArrowDropdown } from 'react-icons/io';
-import { IoMdPrint, IoMdTrash, IoMdCreate, IoMdArrowBack, IoMdCheckmarkCircle, IoMdCloseCircle } from 'react-icons/io';
+import { IoMdPrint, IoMdTrash, IoMdCreate, IoMdArrowBack, IoMdCloseCircle, IoMdCheckmarkCircle } from 'react-icons/io';
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
-import Menu from '@mui/material/Menu';
 import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
@@ -15,7 +13,6 @@ import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
 import Divider from '@mui/material/Divider';
 import { alpha } from '@mui/material/styles';
-import MenuItem from '@mui/material/MenuItem';
 import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -28,7 +25,6 @@ import { fNumber } from 'src/utils/format-number';
 
 import { getHRSettings } from 'src/api/hr-management';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { COMMON_COLORS, COMMON_BUTTON_STYLES } from 'src/theme';
 import {
     deleteSalarySlip,
     submitSalarySlip,
