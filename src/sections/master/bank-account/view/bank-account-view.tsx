@@ -33,6 +33,7 @@ import { LeadTableHead } from '../../../lead/lead-table-head';
 import { TableEmptyRows } from '../../../lead/table-empty-rows';
 import { BankAccountTableRow } from '../bank-account-table-row';
 import { LeadTableToolbar } from '../../../lead/lead-table-toolbar';
+import BankAccountTableFiltersDrawer from '../bank-account-table-filters-drawer';
 
 // ----------------------------------------------------------------------
 
@@ -66,6 +67,12 @@ export function BankAccountView() {
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [orderBy, setOrderBy] = useState('modified');
   
+  const [filters, setFilters] = useState({
+    account_type: 'all',
+    bank_name: 'all',
+  });
+  const [openFilters, setOpenFilters] = useState(false);
+
   const [openForm, setOpenForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   
@@ -85,11 +92,25 @@ export function BankAccountView() {
     rowsPerPage,
     filterName,
     orderBy,
-    order
+    order,
+    filters.account_type,
+    filters.bank_name
   );
 
   const notFound = !data.length && !!filterName;
   const empty = !loading && !data.length && !filterName;
+
+  const handleOpenFilters = () => setOpenFilters(true);
+  const handleCloseFilters = () => setOpenFilters(false);
+
+  const handleFilters = (name: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [name]: value }));
+    setPage(0);
+  };
+
+  const handleResetFilters = () => {
+    setFilters({ account_type: 'all', bank_name: 'all' });
+  };
 
   const handleSortChange = (value: string) => {
     const [id, ord] = value.split('_');
@@ -125,6 +146,9 @@ export function BankAccountView() {
     }
   };
 
+  const canReset = filters.account_type !== 'all' || filters.bank_name !== 'all' || !!filterName;
+  const activeFilterCount = (filters.account_type !== 'all' ? 1 : 0) + (filters.bank_name !== 'all' ? 1 : 0);
+
   return (
     <DashboardContent maxWidth={false} sx={{mt: 2}}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 5 }}>
@@ -149,10 +173,13 @@ export function BankAccountView() {
             setFilterName(event.target.value);
             setPage(0);
           }}
+          onOpenFilter={handleOpenFilters}
           searchPlaceholder="Search bank accounts..."
           sortOptions={SORT_OPTIONS}
           sortBy={`${orderBy}_${order}`}
           onSortChange={handleSortChange}
+          canReset={canReset}
+          filterCount={activeFilterCount}
         />
 
         <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
@@ -266,6 +293,16 @@ export function BankAccountView() {
             Delete
           </Button>
         }
+      />
+
+      <BankAccountTableFiltersDrawer
+        open={openFilters}
+        onOpen={handleOpenFilters}
+        onClose={handleCloseFilters}
+        canReset={canReset}
+        filters={filters}
+        onFilters={handleFilters}
+        onResetFilters={handleResetFilters}
       />
     </DashboardContent>
   );

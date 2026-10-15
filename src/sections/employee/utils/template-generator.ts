@@ -86,6 +86,16 @@ export const BANK_FIELDS = [
     { label: 'PAN Number', key: 'pan_number', sample: 'ABCDE1234F', width: 16 },
 ];
 
+export const BANK_ACCOUNT_SHEET_FIELDS = [
+    { label: 'Referral No. *', key: 'referral_no', sample: 'EMP001', width: 18 },
+    { label: 'Bank Account Name *', key: 'bank_account_name', sample: 'Salary Account', width: 24 },
+    { label: 'Account Number *', key: 'account_number', sample: '123456789012', width: 22 },
+    { label: 'Account Type', key: 'account_type', sample: 'Savings', width: 18 },
+    { label: 'IFSC Code *', key: 'ifsc_code', sample: 'BARB0AMBATT', width: 18 },
+    { label: 'Bank Name *', key: 'bank_name', sample: 'Bank of Baroda', width: 24 },
+    { label: 'Branch *', key: 'branch', sample: 'Ambattur Branch', width: 22 },
+];
+
 export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
     const { profileName, earnings, deductions, includeSampleRow = true } = options;
 
@@ -106,15 +116,14 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
     };
 
     // Calculate total columns
-    // Personal (16) + Employment (13) + Bank (5) + CTC (1) + Earnings (N) + Deductions (M) + Summary (3: Tot Earn, Tot Ded, Net)
+    // Personal (16) + Employment (13) + Bank (5) + CTC (1) + Earnings (N) + Deductions (M)
     const personalColCount = PERSONAL_FIELDS.length;
     const employmentColCount = EMPLOYMENT_FIELDS.length;
     const bankColCount = BANK_FIELDS.length;
     const earningsColCount = earnings.length;
     const deductionsColCount = deductions.length;
-    const summaryColCount = 3;
 
-    const totalCols = personalColCount + employmentColCount + bankColCount + 1 + earningsColCount + deductionsColCount + summaryColCount;
+    const totalCols = personalColCount + employmentColCount + bankColCount + 1 + earningsColCount + deductionsColCount;
 
     // Helper: Excel column letter
     const getColumnLetter = (colIdx: number): string => {
@@ -222,14 +231,6 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
         currentStartCol += deductionsColCount;
     }
 
-    // 7. Salary Summary
-    sheet.mergeCells(3, currentStartCol, 3, currentStartCol + summaryColCount - 1);
-    const sumCatCell = sheet.getCell(3, currentStartCol);
-    sumCatCell.value = 'SALARY SUMMARY (AUTO CALCULATED)';
-    sumCatCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF334155' } };
-    sumCatCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-    sumCatCell.alignment = { horizontal: 'center', vertical: 'middle' };
-
     sheet.getRow(3).height = 22;
 
     // Apply borders to row 1, 2, 3
@@ -264,11 +265,6 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
         columnDefs.push({ label: d, key: `deduction_${d}`, sample: '1200', width: 16, type: 'currency' });
     });
 
-    // Calculated summary columns
-    columnDefs.push({ label: 'Total Earnings', key: 'total_earnings', sample: '0', width: 16, type: 'calc' });
-    columnDefs.push({ label: 'Total Deductions', key: 'total_deductions', sample: '0', width: 16, type: 'calc' });
-    columnDefs.push({ label: 'Net Salary', key: 'net_salary', sample: '0', width: 16, type: 'calc' });
-
     columnDefs.forEach((col, idx) => {
         const colNum = idx + 1;
         const cell = row4.getCell(colNum);
@@ -296,39 +292,100 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
             const colNum = idx + 1;
             const cell = row5.getCell(colNum);
             cell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF64748B' } };
-            cell.alignment = { horizontal: col.type === 'currency' || col.type === 'calc' ? 'right' : 'left', vertical: 'middle' };
+            cell.alignment = { horizontal: col.type === 'currency' ? 'right' : 'left', vertical: 'middle' };
             cell.border = thinBorder;
 
             if (col.type === 'currency') {
                 cell.value = parseFloat(col.sample) || 0;
                 cell.numFmt = '#,##0.00';
-            } else if (col.type === 'calc') {
-                if (col.key === 'total_earnings') {
-                    if (earningsColCount > 0) {
-                        const start = getColumnLetter(personalColCount + employmentColCount + bankColCount + 2);
-                        const end = getColumnLetter(personalColCount + employmentColCount + bankColCount + 1 + earningsColCount);
-                        cell.value = { formula: `SUM(${start}5:${end}5)`, result: 0 };
-                    } else {
-                        cell.value = 0;
-                    }
-                } else if (col.key === 'total_deductions') {
-                    if (deductionsColCount > 0) {
-                        const start = getColumnLetter(personalColCount + employmentColCount + bankColCount + 2 + earningsColCount);
-                        const end = getColumnLetter(personalColCount + employmentColCount + bankColCount + 1 + earningsColCount + deductionsColCount);
-                        cell.value = { formula: `SUM(${start}5:${end}5)`, result: 0 };
-                    } else {
-                        cell.value = 0;
-                    }
-                } else if (col.key === 'net_salary') {
-                    const totEarnCol = getColumnLetter(totalCols - 2);
-                    const totDedCol = getColumnLetter(totalCols - 1);
-                    cell.value = { formula: `${totEarnCol}5-${totDedCol}5`, result: 0 };
-                }
-                cell.numFmt = '#,##0.00';
-                cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF059669' } };
             } else {
                 cell.value = col.sample;
             }
+        });
+    }
+
+    // ----------------------------------------------------
+    // WORKSHEET 2: Bank Account Details
+    // ----------------------------------------------------
+    const bankSheet = workbook.addWorksheet('Bank Account Details', {
+        views: [{ showGridLines: true }],
+    });
+
+    const bankCols = BANK_ACCOUNT_SHEET_FIELDS.length; // 7 columns
+
+    // Row 1: Company Banner
+    bankSheet.mergeCells(1, 1, 1, bankCols);
+    const bankRow1 = bankSheet.getCell('A1');
+    bankRow1.value = 'BBK EXPORTS PRIVATE LIMITED';
+    bankRow1.font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+    bankRow1.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF059669' }, // Emerald main
+    };
+    bankRow1.alignment = { horizontal: 'center', vertical: 'middle' };
+    bankSheet.getRow(1).height = 28;
+
+    // Row 2: Sub-header / Title
+    bankSheet.mergeCells(2, 1, 2, bankCols);
+    const bankRow2 = bankSheet.getCell('A2');
+    bankRow2.value = 'EMPLOYEE BANK ACCOUNT IMPORT TEMPLATE (Referral No. must match Employee ID)';
+    bankRow2.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1E293B' } };
+    bankRow2.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE2E8F0' },
+    };
+    bankRow2.alignment = { horizontal: 'center', vertical: 'middle' };
+    bankSheet.getRow(2).height = 22;
+
+    // Row 3: Category Header
+    bankSheet.mergeCells(3, 1, 3, bankCols);
+    const bankSheetCatCell = bankSheet.getCell(3, 1);
+    bankSheetCatCell.value = 'BANK ACCOUNT INFORMATION';
+    bankSheetCatCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFB45309' } };
+    bankSheetCatCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } }; // Light amber
+    bankSheetCatCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    bankSheet.getRow(3).height = 22;
+
+    // Apply borders to rows 1, 2, 3
+    for (let c = 1; c <= bankCols; c++) {
+        bankSheet.getRow(1).getCell(c).border = thinBorder;
+        bankSheet.getRow(2).getCell(c).border = thinBorder;
+        bankSheet.getRow(3).getCell(c).border = thinBorder;
+    }
+
+    // Row 4: Column Labels
+    const bankRow4 = bankSheet.getRow(4);
+    bankRow4.height = 28;
+
+    BANK_ACCOUNT_SHEET_FIELDS.forEach((col, idx) => {
+        const colNum = idx + 1;
+        const cell = bankRow4.getCell(colNum);
+        cell.value = col.label;
+        cell.font = { name: 'Calibri', size: 10, bold: true };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border = thinBorder;
+
+        if (col.label.includes('*')) {
+            cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFB91C1C' } }; // Red for required
+        }
+
+        bankSheet.getColumn(colNum).width = col.width || 18;
+    });
+
+    // Row 5: Sample Row (if requested)
+    if (includeSampleRow) {
+        const bankRow5 = bankSheet.getRow(5);
+        bankRow5.height = 20;
+
+        BANK_ACCOUNT_SHEET_FIELDS.forEach((col, idx) => {
+            const colNum = idx + 1;
+            const cell = bankRow5.getCell(colNum);
+            cell.value = col.sample;
+            cell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF64748B' } };
+            cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            cell.border = thinBorder;
         });
     }
 

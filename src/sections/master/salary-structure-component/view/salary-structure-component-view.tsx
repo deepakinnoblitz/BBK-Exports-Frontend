@@ -34,6 +34,7 @@ import { TableEmptyRows } from '../../../lead/table-empty-rows';
 import { LeadTableToolbar } from '../../../lead/lead-table-toolbar';
 import { SalaryStructureComponentDialog } from '../salary-structure-component-dialog';
 import { SalaryStructureComponentTableRow } from '../salary-structure-component-table-row';
+import SalaryStructureComponentFiltersDrawer from '../salary-structure-component-filters-drawer';
 
 // ----------------------------------------------------------------------
 
@@ -67,6 +68,12 @@ export function SalaryStructureComponentView() {
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [orderBy, setOrderBy] = useState('modified');
 
+  const [filters, setFilters] = useState({
+    type: 'all',
+    is_default: 'all',
+  });
+  const [openFilters, setOpenFilters] = useState(false);
+
   const [openForm, setOpenForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -90,7 +97,9 @@ export function SalaryStructureComponentView() {
     rowsPerPage,
     filterName,
     orderBy,
-    order
+    order,
+    filters.type,
+    filters.is_default
   );
 
   const notFound = !data.length && !!filterName;
@@ -99,6 +108,18 @@ export function SalaryStructureComponentView() {
   const totalDefaultEarningPercent = data
     .filter((c) => c.is_default && c.type === 'Earning')
     .reduce((sum, c) => sum + (parseFloat(c.percentage) || 0), 0);
+
+  const handleOpenFilters = () => setOpenFilters(true);
+  const handleCloseFilters = () => setOpenFilters(false);
+
+  const handleFilters = (name: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [name]: value }));
+    setPage(0);
+  };
+
+  const handleResetFilters = () => {
+    setFilters({ type: 'all', is_default: 'all' });
+  };
 
   const handleSortChange = (value: string) => {
     const [id, ord] = value.split('_');
@@ -133,6 +154,9 @@ export function SalaryStructureComponentView() {
       }
     }
   };
+
+  const canReset = filters.type !== 'all' || filters.is_default !== 'all' || !!filterName;
+  const activeFilterCount = (filters.type !== 'all' ? 1 : 0) + (filters.is_default !== 'all' ? 1 : 0);
 
   return (
     <DashboardContent maxWidth={false} sx={{mt: 2}}>
@@ -174,10 +198,13 @@ export function SalaryStructureComponentView() {
             setFilterName(event.target.value);
             setPage(0);
           }}
+          onOpenFilter={handleOpenFilters}
           searchPlaceholder="Search components..."
           sortOptions={SORT_OPTIONS}
           sortBy={`${orderBy}_${order}`}
           onSortChange={handleSortChange}
+          canReset={canReset}
+          filterCount={activeFilterCount}
         />
 
         <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
@@ -294,6 +321,16 @@ export function SalaryStructureComponentView() {
             Delete
           </Button>
         }
+      />
+
+      <SalaryStructureComponentFiltersDrawer
+        open={openFilters}
+        onOpen={handleOpenFilters}
+        onClose={handleCloseFilters}
+        canReset={canReset}
+        filters={filters}
+        onFilters={handleFilters}
+        onResetFilters={handleResetFilters}
       />
     </DashboardContent>
   );

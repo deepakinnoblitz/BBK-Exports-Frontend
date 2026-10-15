@@ -6,13 +6,11 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Checkbox from '@mui/material/Checkbox';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { COMMON_COLORS } from 'src/theme';
@@ -39,7 +37,8 @@ export function EmployeeTemplateDialog({ open, onClose }: Props) {
     const [loadingComponents, setLoadingComponents] = useState(false);
     const [downloading, setDownloading] = useState(false);
     const [components, setComponents] = useState<SalaryComponentItem[]>([]);
-    const [selectedNames, setSelectedNames] = useState<string[]>([]);
+    const [selectedEarnings, setSelectedEarnings] = useState<string[]>([]);
+    const [selectedDeductions, setSelectedDeductions] = useState<string[]>([]);
 
     useEffect(() => {
         if (open) {
@@ -69,7 +68,10 @@ export function EmployeeTemplateDialog({ open, onClose }: Props) {
             setComponents(uniqueList);
 
             // By default, select all available salary components
-            setSelectedNames(uniqueList.map((c) => c.component_name));
+            const earnNames = uniqueList.filter((c) => c.type === 'Earning').map((c) => c.component_name);
+            const dedNames = uniqueList.filter((c) => c.type === 'Deduction').map((c) => c.component_name);
+            setSelectedEarnings(earnNames);
+            setSelectedDeductions(dedNames);
         } catch (err: any) {
             console.error('Failed to load salary components:', err);
             enqueueSnackbar(err.message || 'Failed to fetch salary components', { variant: 'error' });
@@ -88,46 +90,46 @@ export function EmployeeTemplateDialog({ open, onClose }: Props) {
         [components]
     );
 
-    const selectedEarningsCount = useMemo(
-        () => earningsList.filter((c) => selectedNames.includes(c.component_name)).length,
-        [earningsList, selectedNames]
-    );
+    const selectedEarningsCount = selectedEarnings.length;
+    const selectedDeductionsCount = selectedDeductions.length;
+    const totalSelectedCount = selectedEarningsCount + selectedDeductionsCount;
 
-    const selectedDeductionsCount = useMemo(
-        () => deductionsList.filter((c) => selectedNames.includes(c.component_name)).length,
-        [deductionsList, selectedNames]
-    );
+    const handleToggleEarning = (name: string) => {
+        setSelectedEarnings((prev) =>
+            prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
+        );
+    };
 
-    const handleToggle = (name: string) => {
-        setSelectedNames((prev) =>
+    const handleToggleDeduction = (name: string) => {
+        setSelectedDeductions((prev) =>
             prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
         );
     };
 
     const handleToggleAllEarnings = () => {
         const earningNames = earningsList.map((c) => c.component_name);
-        const allEarningsSelected = earningNames.every((n) => selectedNames.includes(n));
+        const allEarningsSelected = earningNames.length > 0 && selectedEarnings.length === earningNames.length;
 
         if (allEarningsSelected) {
-            setSelectedNames((prev) => prev.filter((n) => !earningNames.includes(n)));
+            setSelectedEarnings([]);
         } else {
-            setSelectedNames((prev) => Array.from(new Set([...prev, ...earningNames])));
+            setSelectedEarnings(earningNames);
         }
     };
 
     const handleToggleAllDeductions = () => {
         const deductionNames = deductionsList.map((c) => c.component_name);
-        const allDeductionsSelected = deductionNames.every((n) => selectedNames.includes(n));
+        const allDeductionsSelected = deductionNames.length > 0 && selectedDeductions.length === deductionNames.length;
 
         if (allDeductionsSelected) {
-            setSelectedNames((prev) => prev.filter((n) => !deductionNames.includes(n)));
+            setSelectedDeductions([]);
         } else {
-            setSelectedNames((prev) => Array.from(new Set([...prev, ...deductionNames])));
+            setSelectedDeductions(deductionNames);
         }
     };
 
     const handleDownload = async () => {
-        if (selectedNames.length === 0) {
+        if (totalSelectedCount === 0) {
             enqueueSnackbar('Please select at least one salary component', { variant: 'warning' });
             return;
         }
@@ -135,18 +137,11 @@ export function EmployeeTemplateDialog({ open, onClose }: Props) {
         try {
             setDownloading(true);
 
-            const selectedComponents = components.filter((c) => selectedNames.includes(c.component_name));
-            const earnings = selectedComponents
-                .filter((c) => c.type === 'Earning')
-                .map((c) => c.component_name);
-            const deductions = selectedComponents
-                .filter((c) => c.type === 'Deduction')
-                .map((c) => c.component_name);
-
+            // Pass earnings and deductions in the exact sequence they were selected
             await generateEmployeeExcelTemplate({
                 profileName: 'Standard',
-                earnings,
-                deductions,
+                earnings: selectedEarnings,
+                deductions: selectedDeductions,
                 includeSampleRow: false,
             });
 
@@ -161,57 +156,124 @@ export function EmployeeTemplateDialog({ open, onClose }: Props) {
     };
 
     const renderComponentCard = (comp: SalaryComponentItem, isEarning: boolean) => {
-        const isChecked = selectedNames.includes(comp.component_name);
+        const selectedList = isEarning ? selectedEarnings : selectedDeductions;
+        const isChecked = selectedList.includes(comp.component_name);
+        const orderIndex = selectedList.indexOf(comp.component_name);
+        const orderNumber = orderIndex !== -1 ? orderIndex + 1 : null;
+
         const activeColor = isEarning ? '#059669' : '#DC2626';
 
         return (
             <Box
                 key={comp.component_name}
-                onClick={() => handleToggle(comp.component_name)}
+                onClick={() => (isEarning ? handleToggleEarning(comp.component_name) : handleToggleDeduction(comp.component_name))}
+                role="checkbox"
+                aria-checked={isChecked}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        if (isEarning) {
+                            handleToggleEarning(comp.component_name);
+                        } else {
+                            handleToggleDeduction(comp.component_name);
+                        }
+                    }
+                }}
                 sx={{
-                    p: 1,
-                    px: 1.25,
-                    borderRadius: 1,
+                    p: 1.15,
+                    px: 1.5,
+                    borderRadius: 1.25,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     cursor: 'pointer',
-                    border: '1px solid',
+                    userSelect: 'none',
+                    border: '1.5px solid',
                     borderColor: isChecked
                         ? isEarning
-                            ? 'rgba(5, 150, 105, 0.4)'
-                            : 'rgba(220, 38, 38, 0.4)'
-                        : 'transparent',
+                            ? 'rgba(5, 150, 105, 0.5)'
+                            : 'rgba(220, 38, 38, 0.5)'
+                        : 'rgba(203, 213, 225, 0.6)',
                     bgcolor: isChecked
                         ? isEarning
                             ? 'rgba(5, 150, 105, 0.04)'
                             : 'rgba(220, 38, 38, 0.04)'
-                        : 'transparent',
-                    transition: 'all 0.15s ease',
+                        : 'background.paper',
+                    transition: 'all 0.15s ease-in-out',
                     '&:hover': {
-                        bgcolor: 'grey.100',
+                        borderColor: isChecked
+                            ? activeColor
+                            : '#94A3B8',
+                        bgcolor: isChecked
+                            ? isEarning
+                                ? 'rgba(5, 150, 105, 0.08)'
+                                : 'rgba(220, 38, 38, 0.08)'
+                            : 'grey.50',
                     },
                 }}
             >
-                <FormControlLabel
-                    control={
-                        <Checkbox
-                            checked={isChecked}
-                            onChange={() => handleToggle(comp.component_name)}
-                            size="small"
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flexGrow: 1 }}>
+                    {/* Checkbox with subtle grey border when unselected, colored when selected */}
+                    <Box
+                        sx={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: '5px',
+                            border: '1.5px solid',
+                            borderColor: isChecked ? activeColor : '#94A3B8',
+                            bgcolor: isChecked ? activeColor : '#FFFFFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#FFFFFF',
+                            transition: 'all 0.15s ease',
+                            flexShrink: 0,
+                            boxShadow: isChecked ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                        }}
+                    >
+                        {isChecked && (
+                            <Iconify icon="eva:checkmark-fill" width={14} sx={{ strokeWidth: 1.5 }} />
+                        )}
+                    </Box>
+
+                    {/* Sequential selection order number badge */}
+                    {isChecked && orderNumber !== null && (
+                        <Box
                             sx={{
-                                color: activeColor,
-                                '&.Mui-checked': { color: activeColor },
+                                minWidth: 22,
+                                height: 20,
+                                px: 0.6,
+                                borderRadius: '5px',
+                                bgcolor: isEarning ? '#DCFCE7' : '#FFE4E6',
+                                color: isEarning ? '#15803D' : '#BE123C',
+                                border: '1px solid',
+                                borderColor: isEarning ? 'rgba(21, 128, 61, 0.25)' : 'rgba(190, 18, 60, 0.25)',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                lineHeight: 1,
                             }}
-                        />
-                    }
-                    label={
-                        <Typography variant="body2" sx={{ fontWeight: isChecked ? 600 : 400 }}>
-                            {comp.component_name}
-                        </Typography>
-                    }
-                    sx={{ m: 0, flexGrow: 1 }}
-                />
+                        >
+                            #{orderNumber}
+                        </Box>
+                    )}
+
+                    <Typography
+                        variant="body2"
+                        noWrap
+                        sx={{
+                            fontWeight: isChecked ? 600 : 400,
+                            color: isChecked ? 'text.primary' : 'text.secondary',
+                        }}
+                    >
+                        {comp.component_name}
+                    </Typography>
+                </Box>
+
                 <Chip
                     label={comp.type}
                     size="small"
@@ -221,6 +283,8 @@ export function EmployeeTemplateDialog({ open, onClose }: Props) {
                         fontWeight: 600,
                         bgcolor: isEarning ? '#DCFCE7' : '#FFE4E6',
                         color: isEarning ? '#15803D' : '#BE123C',
+                        flexShrink: 0,
+                        ml: 1,
                     }}
                 />
             </Box>
@@ -407,7 +471,7 @@ export function EmployeeTemplateDialog({ open, onClose }: Props) {
                 <Button
                     variant="contained"
                     onClick={handleDownload}
-                    disabled={downloading || selectedNames.length === 0}
+                    disabled={downloading || totalSelectedCount === 0}
                     startIcon={
                         downloading ? (
                             <CircularProgress size={18} color="inherit" />
