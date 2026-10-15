@@ -679,3 +679,86 @@ export async function fetchPersonalityDashboardData(employeeId?: string): Promis
     }
 }
 
+export interface WorkforceLineItem {
+    line: string;
+    total: number;
+    present: number;
+    absent: number;
+    attendance_rate: number;
+}
+
+export interface WorkforceDepartmentItem {
+    department: string;
+    total: number;
+    present: number;
+    absent: number;
+    attendance_rate: number;
+}
+
+export interface WorkforceShiftItem {
+    shift: string;
+    total: number;
+    present: number;
+    absent: number;
+    attendance_rate: number;
+}
+
+export interface SkillDistributionItem {
+    skill: string;
+    count: number;
+    percentage: number;
+}
+
+export interface SkillMatrixGroupItem {
+    line?: string;
+    department?: string;
+    total: number;
+    'Highly Skilled'?: number;
+    'Skilled'?: number;
+    'Semi Skilled'?: number;
+    'Unskilled'?: number;
+    'Unassigned'?: number;
+    [key: string]: any;
+}
+
+export interface WorkforceAnalyticsData {
+    date: string;
+    line_wise: WorkforceLineItem[];
+    department_wise: WorkforceDepartmentItem[];
+    shift_wise: WorkforceShiftItem[];
+    skill_matrix: {
+        total_workers: number;
+        overall: SkillDistributionItem[];
+        line_matrix: SkillMatrixGroupItem[];
+        department_matrix: SkillMatrixGroupItem[];
+        summary: {
+            highly_skilled: number;
+            skilled: number;
+            semi_skilled: number;
+            unskilled: number;
+            unassigned: number;
+        };
+    };
+}
+
+export async function fetchWorkforceAnalytics(date?: string): Promise<WorkforceAnalyticsData | null> {
+    try {
+        let url = '/api/method/company.company.frontend_api.get_workforce_dashboard_analytics';
+        if (date) {
+            url += `?date=${date}`;
+        }
+        const res = await frappeRequest(url);
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(handleFrappeError(error, 'Failed to fetch workforce dashboard analytics'));
+        }
+
+        const data = await res.json();
+        return data.message;
+    } catch (error) {
+        console.error('Failed to fetch workforce dashboard analytics:', error);
+        return null;
+    }
+}
+
