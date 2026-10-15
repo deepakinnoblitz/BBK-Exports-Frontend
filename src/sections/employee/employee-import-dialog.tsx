@@ -12,6 +12,7 @@ import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
 import Divider from '@mui/material/Divider';
 import Stepper from '@mui/material/Stepper';
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
@@ -22,6 +23,7 @@ import TableBody from '@mui/material/TableBody';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import InputLabel from '@mui/material/InputLabel';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
 import DialogContent from '@mui/material/DialogContent';
@@ -29,16 +31,120 @@ import DialogActions from '@mui/material/DialogActions';
 import TableContainer from '@mui/material/TableContainer';
 import LinearProgress from '@mui/material/LinearProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
 
 import { COMMON_COLORS } from 'src/theme';
+import { getDoctypeList } from 'src/api/leads';
 import { bulkImportEmployees } from 'src/api/employees';
 import { fetchSalaryComponents } from 'src/api/hr-management';
 
 import { Iconify } from 'src/components/iconify';
 
+import { ShiftCreateDialog } from './shift-create-dialog';
 import { EmployeeTemplateDialog } from './employee-template-dialog';
+import { DepartmentCreateDialog } from './department-create-dialog';
+import { BloodGroupCreateDialog } from './blood-group-create-dialog';
+import { DesignationCreateDialog } from './designation-create-dialog';
+import { EmployeeTypeCreateDialog } from './employee-type-create-dialog';
+import { QualificationCreateDialog } from './qualification-create-dialog';
+import { BankAccountDialog } from '../master/bank-account/bank-account-dialog';
 
 const STEPS = ['Upload', 'Map Columns', 'Preview', 'Import'];
+
+const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
+const MARITAL_STATUS_OPTIONS = ['Single', 'Married', 'Divorced', 'Widowed'];
+const DEFAULT_BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+const filter = createFilterOptions();
+
+const getFilterOptionsWithCreate = (createLabel: string) => (currentOptions: any[], params: any) => {
+    const filtered = filter(currentOptions, params);
+    const { inputValue } = params;
+    const hasCreate = filtered.some((opt: any) =>
+        (typeof opt === 'string' ? opt : opt?.name) === createLabel || opt?.isNew
+    );
+    if (!hasCreate) {
+        filtered.push({
+            inputValue: inputValue || '',
+            name: createLabel,
+            isNew: true,
+        });
+    }
+    return filtered;
+};
+
+const renderOptionWithCreate = (createLabel: string) => (props: any, option: any) => {
+    const { key, ...otherProps } = props;
+    const isNew = option?.isNew || option === createLabel || option?.name === createLabel;
+    return (
+        <Box
+            key={key || (isNew ? `create-${createLabel}` : (typeof option === 'string' ? option : option?.name))}
+            component="li"
+            {...otherProps}
+            sx={{
+                typography: 'body2',
+                ...(isNew && {
+                    color: 'primary.main',
+                    fontWeight: 600,
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                    borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                    mt: 0.5,
+                    py: 1.5,
+                    minHeight: '48px',
+                    '&:hover': {
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                    }
+                })
+            }}
+        >
+            {isNew ? (
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{createLabel}</Typography>
+                </Stack>
+            ) : (
+                typeof option === 'string' ? option : option?.name
+            )}
+        </Box>
+    );
+};
+
+const getOptionLabelWithCreate = (option: any) => {
+    if (typeof option === 'string') return option;
+    if (option?.isNew) return option.inputValue || '';
+    if (option?.name) return option.name;
+    return '';
+};
+
+const isOptionEqualToValueWithCreate = (option: any, val: any) => {
+    const optVal = typeof option === 'string' ? option : option?.name;
+    const testVal = typeof val === 'string' ? val : val?.name;
+    return optVal === testVal;
+};
+
+const filterBankAccountOptions = (listOptions: any[], params: any) => {
+    const { inputValue } = params;
+    const filtered = listOptions.filter((option: any) => {
+        const searchStr = (typeof option === 'string'
+            ? option
+            : `${option.bank_account_name || ''} ${option.account_number || ''} ${option.name || ''}`
+        ).toLowerCase();
+        return searchStr.includes((inputValue || '').toLowerCase());
+    });
+
+    const hasCreateOption = filtered.some((option: any) =>
+        (typeof option === 'string' ? option : (option.bank_account_name || option.name)) === 'Create Bank Account' || option?.isNew
+    );
+    if (!hasCreateOption) {
+        filtered.push({
+            inputValue: inputValue || '',
+            name: 'Create Bank Account',
+            bank_account_name: 'Create Bank Account',
+            isNew: true,
+        });
+    }
+    return filtered;
+};
 
 // Available standard target fields for mapping
 const STANDARD_TARGET_FIELDS = [
@@ -125,11 +231,94 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
         errors: string[];
     } | null>(null);
 
+    // Create dialog states
+    const [openDepartmentCreate, setOpenDepartmentCreate] = useState(false);
+    const [departmentSearch, setDepartmentSearch] = useState('');
+
+    const [openBloodGroupCreate, setOpenBloodGroupCreate] = useState(false);
+    const [bloodGroupSearch, setBloodGroupSearch] = useState('');
+
+    const [openQualificationCreate, setOpenQualificationCreate] = useState(false);
+    const [qualificationSearch, setQualificationSearch] = useState('');
+
+    const [openDesignationCreate, setOpenDesignationCreate] = useState(false);
+    const [designationSearch, setDesignationSearch] = useState('');
+
+    const [openEmployeeTypeCreate, setOpenEmployeeTypeCreate] = useState(false);
+    const [employeeTypeSearch, setEmployeeTypeSearch] = useState('');
+
+    const [openShiftCreate, setOpenShiftCreate] = useState(false);
+    const [shiftSearch, setShiftSearch] = useState('');
+
+    const [openBankAccountCreate, setOpenBankAccountCreate] = useState(false);
+
+    // Master options for edit dialog autocomplete
+    const [fieldOptions, setFieldOptions] = useState<{
+        blood_group: string[];
+        department: string[];
+        designation: string[];
+        employee_type: string[];
+        shift: string[];
+        qualification: string[];
+        bank_account: any[];
+    }>({
+        blood_group: DEFAULT_BLOOD_GROUPS,
+        department: [],
+        designation: [],
+        employee_type: [],
+        shift: [],
+        qualification: [],
+        bank_account: [],
+    });
+
     useEffect(() => {
         if (open) {
             fetchSalaryComponents()
                 .then((data) => setKnownSalaryComponents(data || []))
                 .catch((err) => console.error('Failed to prefetch salary components:', err));
+
+            Promise.allSettled([
+                getDoctypeList('Department', ['name']),
+                getDoctypeList('Designation', ['name', 'designation_name']),
+                getDoctypeList('Employee Type', ['name', 'employee_type']),
+                getDoctypeList('Shift', ['name', 'shift_name']),
+                getDoctypeList('Blood Group', ['name', 'blood_group']),
+                getDoctypeList('Qualification', ['name', 'qualification']),
+                getDoctypeList('Bank Account', ['name', 'bank_account_name', 'account_number']),
+            ]).then(([deptRes, desigRes, typeRes, shiftRes, bgRes, qualRes, bankRes]) => {
+                const depts = deptRes.status === 'fulfilled' && Array.isArray(deptRes.value)
+                    ? deptRes.value.map((d: any) => d.name).filter(Boolean)
+                    : [];
+                const desigs = desigRes.status === 'fulfilled' && Array.isArray(desigRes.value)
+                    ? desigRes.value.map((d: any) => d.designation_name || d.name).filter(Boolean)
+                    : [];
+                const types = typeRes.status === 'fulfilled' && Array.isArray(typeRes.value)
+                    ? typeRes.value.map((t: any) => t.employee_type || t.name).filter(Boolean)
+                    : [];
+                const shifts = shiftRes.status === 'fulfilled' && Array.isArray(shiftRes.value)
+                    ? shiftRes.value.map((s: any) => s.shift_name || s.name).filter(Boolean)
+                    : [];
+                const customBgs = bgRes.status === 'fulfilled' && Array.isArray(bgRes.value)
+                    ? bgRes.value.map((b: any) => b.blood_group || b.name).filter(Boolean)
+                    : [];
+                const bgs = Array.from(new Set([...customBgs, ...DEFAULT_BLOOD_GROUPS]));
+                const quals = qualRes.status === 'fulfilled' && Array.isArray(qualRes.value)
+                    ? qualRes.value.map((q: any) => q.qualification || q.name).filter(Boolean)
+                    : [];
+                const banks = bankRes.status === 'fulfilled' && Array.isArray(bankRes.value)
+                    ? bankRes.value
+                    : [];
+
+                setFieldOptions({
+                    blood_group: bgs,
+                    department: Array.from(new Set(depts)),
+                    designation: Array.from(new Set(desigs)),
+                    employee_type: Array.from(new Set(types)),
+                    shift: Array.from(new Set(shifts)),
+                    qualification: Array.from(new Set(quals)),
+                    bank_account: banks,
+                });
+            }).catch((err) => console.error('Failed to prefetch master options:', err));
         }
     }, [open]);
 
@@ -715,30 +904,311 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 />
             </Box>
 
-            <TableContainer sx={{ maxHeight: 400, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                <Table stickyHeader size="small">
+            <TableContainer
+                sx={{
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    maxHeight: 450,
+                    bgcolor: 'background.paper',
+                    boxShadow: (theme) => theme.customShadows.dropdown,
+                }}
+            >
+                <Table size="small" stickyHeader sx={{ borderCollapse: 'separate', borderSpacing: 0 }}>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider', width: 45 }}>#</TableCell>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Status</TableCell>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Employee ID</TableCell>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Employee Name</TableCell>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Email</TableCell>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Joining Date</TableCell>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Department</TableCell>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Designation</TableCell>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Earnings</TableCell>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider' }}>Deductions</TableCell>
-                            <TableCell sx={{ bgcolor: 'background.neutral', borderBottom: 2, borderColor: 'divider', width: 90 }} align="center">Action</TableCell>
+                            <TableCell
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    bgcolor: 'background.neutral',
+                                    borderRight: 1,
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    p: 1.5,
+                                    width: 60,
+                                    textAlign: 'center',
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
+                                    SNO
+                                </Typography>
+                            </TableCell>
+                            <TableCell
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    bgcolor: 'background.neutral',
+                                    borderRight: 1,
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    p: 1.5,
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
+                                    Status
+                                </Typography>
+                            </TableCell>
+                            <TableCell
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    bgcolor: 'background.neutral',
+                                    borderRight: 1,
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    p: 1.5,
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
+                                    Employee ID
+                                </Typography>
+                            </TableCell>
+                            <TableCell
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    bgcolor: 'background.neutral',
+                                    borderRight: 1,
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    p: 1.5,
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
+                                    Employee Name
+                                </Typography>
+                            </TableCell>
+                            <TableCell
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    bgcolor: 'background.neutral',
+                                    borderRight: 1,
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    p: 1.5,
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
+                                    Email
+                                </Typography>
+                            </TableCell>
+                            <TableCell
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    bgcolor: 'background.neutral',
+                                    borderRight: 1,
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    p: 1.5,
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
+                                    Joining Date
+                                </Typography>
+                            </TableCell>
+                            <TableCell
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    bgcolor: 'background.neutral',
+                                    borderRight: 1,
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    p: 1.5,
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
+                                    Department
+                                </Typography>
+                            </TableCell>
+                            <TableCell
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    bgcolor: 'background.neutral',
+                                    borderRight: 1,
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    p: 1.5,
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
+                                    Designation
+                                </Typography>
+                            </TableCell>
+                            <TableCell
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    bgcolor: 'background.neutral',
+                                    borderRight: 1,
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    p: 1.5,
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
+                                    Earnings
+                                </Typography>
+                            </TableCell>
+                            <TableCell
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    bgcolor: 'background.neutral',
+                                    borderRight: 1,
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    p: 1.5,
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
+                                    Deductions
+                                </Typography>
+                            </TableCell>
+                            <TableCell
+                                sx={{
+                                    bgcolor: 'background.neutral',
+                                    borderBottom: 2,
+                                    borderColor: 'divider',
+                                    width: 90,
+                                    p: 1.5,
+                                    textAlign: 'center',
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        display: 'block',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5,
+                                    }}
+                                >
+                                    Action
+                                </Typography>
+                            </TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {previewRows.map((row, i) => {
                             const hasErrors = row._errors && row._errors.length > 0;
                             return (
-                                <TableRow key={i} hover sx={{ bgcolor: hasErrors ? 'error.lighter' : 'inherit' }}>
-                                    <TableCell>{i + 1}</TableCell>
-                                    <TableCell>
+                                <TableRow
+                                    key={i}
+                                    sx={{
+                                        bgcolor: hasErrors ? 'error.lighter' : 'inherit',
+                                        '&:hover': { bgcolor: hasErrors ? 'error.light' : 'action.hover' },
+                                    }}
+                                >
+                                    <TableCell
+                                        sx={{
+                                            borderRight: 1,
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            px: 1.5,
+                                            py: 1,
+                                            textAlign: 'center',
+                                            color: 'text.secondary',
+                                            fontWeight: 500,
+                                        }}
+                                    >
+                                        {i + 1}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            borderRight: 1,
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            px: 1.5,
+                                            py: 1,
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
                                         {hasErrors ? (
                                             <Typography variant="caption" color="error.main" sx={{ fontWeight: 600 }}>
                                                 {row._errors.join(', ')}
@@ -749,13 +1219,89 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                             </Typography>
                                         )}
                                     </TableCell>
-                                    <TableCell sx={{ fontWeight: 600 }}>{row.employee_id || '-'}</TableCell>
-                                    <TableCell>{row.employee_name || '-'}</TableCell>
-                                    <TableCell>{row.email || '-'}</TableCell>
-                                    <TableCell>{row.date_of_joining || '-'}</TableCell>
-                                    <TableCell>{row.department || '-'}</TableCell>
-                                    <TableCell>{row.designation || '-'}</TableCell>
-                                    <TableCell>
+                                    <TableCell
+                                        sx={{
+                                            borderRight: 1,
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            px: 1.5,
+                                            py: 1,
+                                            fontWeight: 600,
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {row.employee_id || '-'}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            borderRight: 1,
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            px: 1.5,
+                                            py: 1,
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {row.employee_name || '-'}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            borderRight: 1,
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            px: 1.5,
+                                            py: 1,
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {row.email || '-'}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            borderRight: 1,
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            px: 1.5,
+                                            py: 1,
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {row.date_of_joining || '-'}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            borderRight: 1,
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            px: 1.5,
+                                            py: 1,
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {row.department || '-'}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            borderRight: 1,
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            px: 1.5,
+                                            py: 1,
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {row.designation || '-'}
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            borderRight: 1,
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            px: 1.5,
+                                            py: 1,
+                                            minWidth: 160,
+                                        }}
+                                    >
                                         {row.earnings?.length > 0 ? (
                                             <Box>
                                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -767,7 +1313,16 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                             </Box>
                                         ) : '-'}
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell
+                                        sx={{
+                                            borderRight: 1,
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            px: 1.5,
+                                            py: 1,
+                                            minWidth: 160,
+                                        }}
+                                    >
                                         {row.deductions?.length > 0 ? (
                                             <Box>
                                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -779,7 +1334,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                             </Box>
                                         ) : '-'}
                                     </TableCell>
-                                    <TableCell align="center">
+                                    <TableCell sx={{ borderBottom: 1, borderColor: 'divider', px: 1, py: 1, textAlign: 'center' }}>
                                         <Stack direction="row" spacing={0.5} justifyContent="center">
                                             <IconButton
                                                 size="small"
@@ -957,15 +1512,115 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 onClose={() => setOpenTemplateDialog(false)}
             />
 
+            <DepartmentCreateDialog
+                open={openDepartmentCreate}
+                onClose={() => setOpenDepartmentCreate(false)}
+                currentDepartmentName={departmentSearch}
+                onCreate={(newDepartment) => {
+                    setFieldOptions((prev) => ({
+                        ...prev,
+                        department: Array.from(new Set([...prev.department, newDepartment]))
+                    }));
+                    setEditForm((prev: any) => ({ ...prev, department: newDepartment }));
+                    enqueueSnackbar('Department created successfully', { variant: 'success' });
+                }}
+            />
+
+            <BloodGroupCreateDialog
+                open={openBloodGroupCreate}
+                onClose={() => setOpenBloodGroupCreate(false)}
+                currentBloodGroupName={bloodGroupSearch}
+                onCreate={async (newBloodGroup) => {
+                    setFieldOptions((prev) => ({
+                        ...prev,
+                        blood_group: Array.from(new Set([...prev.blood_group, newBloodGroup]))
+                    }));
+                    setEditForm((prev: any) => ({ ...prev, blood_group: newBloodGroup }));
+                    enqueueSnackbar('Blood Group created successfully', { variant: 'success' });
+                }}
+            />
+
+            <QualificationCreateDialog
+                open={openQualificationCreate}
+                onClose={() => setOpenQualificationCreate(false)}
+                currentQualificationName={qualificationSearch}
+                onCreate={async (newQualification) => {
+                    setFieldOptions((prev) => ({
+                        ...prev,
+                        qualification: Array.from(new Set([...prev.qualification, newQualification]))
+                    }));
+                    setEditForm((prev: any) => ({ ...prev, qualification: newQualification }));
+                    enqueueSnackbar('Qualification created successfully', { variant: 'success' });
+                }}
+            />
+
+            <DesignationCreateDialog
+                open={openDesignationCreate}
+                onClose={() => setOpenDesignationCreate(false)}
+                currentDesignationName={designationSearch}
+                defaultDepartment={editForm?.department}
+                onCreate={async (newDesignation) => {
+                    setFieldOptions((prev) => ({
+                        ...prev,
+                        designation: Array.from(new Set([...prev.designation, newDesignation]))
+                    }));
+                    setEditForm((prev: any) => ({ ...prev, designation: newDesignation }));
+                    enqueueSnackbar('Designation created successfully', { variant: 'success' });
+                }}
+            />
+
+            <EmployeeTypeCreateDialog
+                open={openEmployeeTypeCreate}
+                onClose={() => setOpenEmployeeTypeCreate(false)}
+                currentTypeName={employeeTypeSearch}
+                onCreate={async (newType) => {
+                    setFieldOptions((prev) => ({
+                        ...prev,
+                        employee_type: Array.from(new Set([...prev.employee_type, newType]))
+                    }));
+                    setEditForm((prev: any) => ({ ...prev, employee_type: newType }));
+                    enqueueSnackbar('Employee Type created successfully', { variant: 'success' });
+                }}
+            />
+
+            <ShiftCreateDialog
+                open={openShiftCreate}
+                onClose={() => setOpenShiftCreate(false)}
+                currentShiftName={shiftSearch}
+                onCreate={async (newShift) => {
+                    setFieldOptions((prev) => ({
+                        ...prev,
+                        shift: Array.from(new Set([...prev.shift, newShift]))
+                    }));
+                    setEditForm((prev: any) => ({ ...prev, shift: newShift }));
+                    enqueueSnackbar('Shift created successfully', { variant: 'success' });
+                }}
+            />
+
+            <BankAccountDialog
+                open={openBankAccountCreate}
+                onClose={() => setOpenBankAccountCreate(false)}
+                onSuccess={async (newAccount?: any) => {
+                    const accountName = typeof newAccount === 'object' && newAccount?.name
+                        ? newAccount.name
+                        : (typeof newAccount === 'string' ? newAccount : '');
+                    if (accountName) {
+                        setFieldOptions((prev) => ({
+                            ...prev,
+                            bank_account: [newAccount || { name: accountName, bank_account_name: accountName }, ...prev.bank_account]
+                        }));
+                        setEditForm((prev: any) => ({ ...prev, bank_account: accountName }));
+                    }
+                    enqueueSnackbar('Bank Account created successfully', { variant: 'success' });
+                }}
+            />
+
             {/* Edit Employee Dialog */}
             <Dialog open={editingIndex !== null} onClose={() => setEditingIndex(null)} fullWidth maxWidth="md">
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Iconify icon={"solar:pen-bold" as any} width={22} sx={{ color: 'primary.main' }} />
-                        <Typography variant="h6">
-                            Edit Employee Details {editForm?.employee_name ? `(${editForm.employee_name})` : ''}
-                        </Typography>
-                    </Box>
+                    <Typography variant="h6">
+                        Edit Employee Details {editForm?.employee_name ? `(${editForm.employee_name})` : ''}
+                    </Typography>
                     <IconButton onClick={() => setEditingIndex(null)} size="small">
                         <Iconify icon="mingcute:close-line" />
                     </IconButton>
@@ -1022,17 +1677,117 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                         value={editForm.dob || ''}
                                         onChange={(e) => setEditForm({ ...editForm, dob: e.target.value })}
                                     />
-                                    <TextField
-                                        label="Gender"
+                                    <Autocomplete
+                                        freeSolo
+                                        forcePopupIcon
                                         size="small"
+                                        options={GENDER_OPTIONS}
                                         value={editForm.sex || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, sex: e.target.value })}
+                                        onChange={(_, newValue) => {
+                                            setEditForm((prev: any) => ({ ...prev, sex: newValue || '' }));
+                                        }}
+                                        onInputChange={(_, newInputValue, reason) => {
+                                            if (reason === 'input' || reason === 'clear') {
+                                                setEditForm((prev: any) => ({ ...prev, sex: newInputValue || '' }));
+                                            }
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Gender"
+                                                size="small"
+                                                placeholder="Select Gender"
+                                            />
+                                        )}
                                     />
-                                    <TextField
-                                        label="Blood Group"
+                                    <Autocomplete
+                                        freeSolo
+                                        forcePopupIcon
                                         size="small"
+                                        options={fieldOptions.blood_group}
                                         value={editForm.blood_group || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, blood_group: e.target.value })}
+                                        filterOptions={getFilterOptionsWithCreate('Create Blood Group')}
+                                        renderOption={renderOptionWithCreate('Create Blood Group')}
+                                        getOptionLabel={getOptionLabelWithCreate}
+                                        isOptionEqualToValue={isOptionEqualToValueWithCreate}
+                                        onChange={(_, newValue: any) => {
+                                            if (newValue?.isNew || newValue === 'Create Blood Group' || newValue?.name === 'Create Blood Group') {
+                                                setOpenBloodGroupCreate(true);
+                                                setBloodGroupSearch(newValue?.inputValue || '');
+                                            } else {
+                                                const val = typeof newValue === 'object' && newValue ? (newValue.name || newValue.blood_group || '') : (newValue || '');
+                                                setEditForm((prev: any) => ({ ...prev, blood_group: val }));
+                                            }
+                                        }}
+                                        onInputChange={(_, newInputValue, reason) => {
+                                            if (reason === 'input' || reason === 'clear') {
+                                                setEditForm((prev: any) => ({ ...prev, blood_group: newInputValue || '' }));
+                                            }
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Blood Group"
+                                                size="small"
+                                                placeholder="Select Blood Group"
+                                            />
+                                        )}
+                                    />
+                                    <Autocomplete
+                                        freeSolo
+                                        forcePopupIcon
+                                        size="small"
+                                        options={MARITAL_STATUS_OPTIONS}
+                                        value={editForm.marital_status || ''}
+                                        onChange={(_, newValue) => {
+                                            setEditForm((prev: any) => ({ ...prev, marital_status: newValue || '' }));
+                                        }}
+                                        onInputChange={(_, newInputValue, reason) => {
+                                            if (reason === 'input' || reason === 'clear') {
+                                                setEditForm((prev: any) => ({ ...prev, marital_status: newInputValue || '' }));
+                                            }
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Marital Status"
+                                                size="small"
+                                                placeholder="Select Marital Status"
+                                            />
+                                        )}
+                                    />
+                                    <Autocomplete
+                                        freeSolo
+                                        forcePopupIcon
+                                        size="small"
+                                        options={fieldOptions.qualification}
+                                        value={editForm.qualification || ''}
+                                        filterOptions={getFilterOptionsWithCreate('Create Qualification')}
+                                        renderOption={renderOptionWithCreate('Create Qualification')}
+                                        getOptionLabel={getOptionLabelWithCreate}
+                                        isOptionEqualToValue={isOptionEqualToValueWithCreate}
+                                        onChange={(_, newValue: any) => {
+                                            if (newValue?.isNew || newValue === 'Create Qualification' || newValue?.name === 'Create Qualification') {
+                                                setOpenQualificationCreate(true);
+                                                setQualificationSearch(newValue?.inputValue || '');
+                                            } else {
+                                                const val = typeof newValue === 'object' && newValue ? (newValue.name || newValue.qualification || '') : (newValue || '');
+                                                setEditForm((prev: any) => ({ ...prev, qualification: val }));
+                                            }
+                                        }}
+                                        onInputChange={(_, newInputValue, reason) => {
+                                            if (reason === 'input' || reason === 'clear') {
+                                                setEditForm((prev: any) => ({ ...prev, qualification: newInputValue || '' }));
+                                            }
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Qualification"
+                                                size="small"
+                                                placeholder="Select Qualification"
+                                            />
+                                        )}
                                     />
                                 </Box>
                             </Box>
@@ -1045,20 +1800,77 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                     EMPLOYMENT DETAILS
                                 </Typography>
                                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                                    <TextField
-                                        label="Department"
+                                    <Autocomplete
+                                        freeSolo
+                                        forcePopupIcon
                                         size="small"
+                                        options={fieldOptions.department}
                                         value={editForm.department || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                                        filterOptions={getFilterOptionsWithCreate('Create Department')}
+                                        renderOption={renderOptionWithCreate('Create Department')}
+                                        getOptionLabel={getOptionLabelWithCreate}
+                                        isOptionEqualToValue={isOptionEqualToValueWithCreate}
+                                        onChange={(_, newValue: any) => {
+                                            if (newValue?.isNew || newValue === 'Create Department' || newValue?.name === 'Create Department') {
+                                                setOpenDepartmentCreate(true);
+                                                setDepartmentSearch(newValue?.inputValue || '');
+                                            } else {
+                                                const val = typeof newValue === 'object' && newValue ? (newValue.name || '') : (newValue || '');
+                                                setEditForm((prev: any) => ({ ...prev, department: val }));
+                                            }
+                                        }}
+                                        onInputChange={(_, newInputValue, reason) => {
+                                            if (reason === 'input' || reason === 'clear') {
+                                                setEditForm((prev: any) => ({ ...prev, department: newInputValue || '' }));
+                                            }
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Department"
+                                                size="small"
+                                                placeholder="Select Department"
+                                            />
+                                        )}
                                     />
-                                    <TextField
-                                        label="Designation"
+                                    <Autocomplete
+                                        freeSolo
+                                        forcePopupIcon
                                         size="small"
+                                        options={fieldOptions.designation}
                                         value={editForm.designation || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, designation: e.target.value })}
+                                        filterOptions={getFilterOptionsWithCreate('Create Designation')}
+                                        renderOption={renderOptionWithCreate('Create Designation')}
+                                        getOptionLabel={getOptionLabelWithCreate}
+                                        isOptionEqualToValue={isOptionEqualToValueWithCreate}
+                                        onChange={(_, newValue: any) => {
+                                            if (newValue?.isNew || newValue === 'Create Designation' || newValue?.name === 'Create Designation') {
+                                                setOpenDesignationCreate(true);
+                                                setDesignationSearch(newValue?.inputValue || '');
+                                            } else {
+                                                const val = typeof newValue === 'object' && newValue ? (newValue.name || newValue.designation_name || '') : (newValue || '');
+                                                setEditForm((prev: any) => ({ ...prev, designation: val }));
+                                            }
+                                        }}
+                                        onInputChange={(_, newInputValue, reason) => {
+                                            if (reason === 'input' || reason === 'clear') {
+                                                setEditForm((prev: any) => ({ ...prev, designation: newInputValue || '' }));
+                                            }
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Designation"
+                                                size="small"
+                                                placeholder="Select Designation"
+                                            />
+                                        )}
                                     />
                                     <FormControl fullWidth size="small">
+                                        <InputLabel id="edit-employee-status-label">Status</InputLabel>
                                         <Select
+                                            labelId="edit-employee-status-label"
+                                            label="Status"
                                             value={editForm.status || 'Active'}
                                             onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                                         >
@@ -1066,17 +1878,71 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                             <MenuItem value="Inactive">Inactive</MenuItem>
                                         </Select>
                                     </FormControl>
-                                    <TextField
-                                        label="Employee Type"
+                                    <Autocomplete
+                                        freeSolo
+                                        forcePopupIcon
                                         size="small"
+                                        options={fieldOptions.employee_type}
                                         value={editForm.employee_type || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, employee_type: e.target.value })}
+                                        filterOptions={getFilterOptionsWithCreate('Create Employee Type')}
+                                        renderOption={renderOptionWithCreate('Create Employee Type')}
+                                        getOptionLabel={getOptionLabelWithCreate}
+                                        isOptionEqualToValue={isOptionEqualToValueWithCreate}
+                                        onChange={(_, newValue: any) => {
+                                            if (newValue?.isNew || newValue === 'Create Employee Type' || newValue?.name === 'Create Employee Type') {
+                                                setOpenEmployeeTypeCreate(true);
+                                                setEmployeeTypeSearch(newValue?.inputValue || '');
+                                            } else {
+                                                const val = typeof newValue === 'object' && newValue ? (newValue.name || newValue.employee_type || '') : (newValue || '');
+                                                setEditForm((prev: any) => ({ ...prev, employee_type: val }));
+                                            }
+                                        }}
+                                        onInputChange={(_, newInputValue, reason) => {
+                                            if (reason === 'input' || reason === 'clear') {
+                                                setEditForm((prev: any) => ({ ...prev, employee_type: newInputValue || '' }));
+                                            }
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Employee Type"
+                                                size="small"
+                                                placeholder="Select Employee Type"
+                                            />
+                                        )}
                                     />
-                                    <TextField
-                                        label="Shift"
+                                    <Autocomplete
+                                        freeSolo
+                                        forcePopupIcon
                                         size="small"
+                                        options={fieldOptions.shift}
                                         value={editForm.shift || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, shift: e.target.value })}
+                                        filterOptions={getFilterOptionsWithCreate('Create Shift')}
+                                        renderOption={renderOptionWithCreate('Create Shift')}
+                                        getOptionLabel={getOptionLabelWithCreate}
+                                        isOptionEqualToValue={isOptionEqualToValueWithCreate}
+                                        onChange={(_, newValue: any) => {
+                                            if (newValue?.isNew || newValue === 'Create Shift' || newValue?.name === 'Create Shift') {
+                                                setOpenShiftCreate(true);
+                                                setShiftSearch(newValue?.inputValue || '');
+                                            } else {
+                                                const val = typeof newValue === 'object' && newValue ? (newValue.name || newValue.shift_name || '') : (newValue || '');
+                                                setEditForm((prev: any) => ({ ...prev, shift: val }));
+                                            }
+                                        }}
+                                        onInputChange={(_, newInputValue, reason) => {
+                                            if (reason === 'input' || reason === 'clear') {
+                                                setEditForm((prev: any) => ({ ...prev, shift: newInputValue || '' }));
+                                            }
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Shift"
+                                                size="small"
+                                                placeholder="Select Shift"
+                                            />
+                                        )}
                                     />
                                     <TextField
                                         label="Monthly CTC"
@@ -1096,12 +1962,105 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                     FINANCIAL & BANK DETAILS
                                 </Typography>
                                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                                    <TextField
-                                        label="Bank Account"
-                                        size="small"
-                                        value={editForm.bank_account || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, bank_account: e.target.value })}
-                                    />
+                                    {(() => {
+                                        const selectedAccount = fieldOptions.bank_account.find((opt: any) => {
+                                            const optVal = typeof opt === 'string' ? opt : opt?.name;
+                                            const optAcct = typeof opt === 'object' ? opt?.account_number : '';
+                                            return optVal === editForm.bank_account || optAcct === editForm.bank_account;
+                                        });
+
+                                        return (
+                                            <Autocomplete
+                                                freeSolo
+                                                forcePopupIcon
+                                                size="small"
+                                                options={fieldOptions.bank_account}
+                                                value={selectedAccount || editForm.bank_account || ''}
+                                                filterOptions={filterBankAccountOptions}
+                                                onChange={(_, newValue: any) => {
+                                                    if (newValue?.isNew || newValue === 'Create Bank Account' || newValue?.name === 'Create Bank Account' || newValue?.bank_account_name === 'Create Bank Account') {
+                                                        setOpenBankAccountCreate(true);
+                                                    } else {
+                                                        const val = typeof newValue === 'object' && newValue ? (newValue.name || newValue.bank_account_name || '') : (newValue || '');
+                                                        setEditForm((prev: any) => ({ ...prev, bank_account: val }));
+                                                    }
+                                                }}
+                                                onInputChange={(_, newInputValue, reason) => {
+                                                    if (reason === 'input' || reason === 'clear') {
+                                                        setEditForm((prev: any) => ({ ...prev, bank_account: newInputValue || '' }));
+                                                    }
+                                                }}
+                                                getOptionLabel={(option: any) => {
+                                                    if (typeof option === 'string') return option;
+                                                    if (option?.isNew) return option.inputValue || '';
+                                                    if (option?.bank_account_name && option?.account_number) {
+                                                        return `${option.bank_account_name} (${option.account_number})`;
+                                                    }
+                                                    if (option?.bank_account_name) return option.bank_account_name;
+                                                    if (option?.name) return option.name;
+                                                    return '';
+                                                }}
+                                                isOptionEqualToValue={(option: any, val: any) => {
+                                                    const optVal = typeof option === 'string' ? option : option?.name;
+                                                    const testVal = typeof val === 'string' ? val : val?.name;
+                                                    return optVal === testVal;
+                                                }}
+                                                renderOption={(props, option: any) => {
+                                                    const { key, ...otherProps } = props;
+                                                    const isNew = option?.isNew || option === 'Create Bank Account' || option?.name === 'Create Bank Account';
+                                                    const isObj = typeof option === 'object' && option !== null;
+                                                    return (
+                                                        <Box
+                                                            key={key || (isNew ? 'create-bank' : (isObj ? option.name : option))}
+                                                            component="li"
+                                                            {...otherProps}
+                                                            sx={{
+                                                                typography: 'body2',
+                                                                ...(isNew && {
+                                                                    color: 'primary.main',
+                                                                    fontWeight: 600,
+                                                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                                                    borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                                                                    mt: 0.5,
+                                                                    py: 1.5,
+                                                                    minHeight: '48px',
+                                                                    '&:hover': {
+                                                                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+                                                                    }
+                                                                })
+                                                            }}
+                                                        >
+                                                            {isNew ? (
+                                                                <Stack direction="row" alignItems="center" spacing={1.5}>
+                                                                    <Iconify icon={"solar:add-circle-bold" as any} width={18} />
+                                                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Create Bank Account</Typography>
+                                                                </Stack>
+                                                            ) : (
+                                                                <Stack spacing={0.25}>
+                                                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                                        {isObj ? (option.bank_account_name || option.name) : option}
+                                                                    </Typography>
+                                                                    {isObj && option.account_number && (
+                                                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                                            Account: {option.account_number}
+                                                                        </Typography>
+                                                                    )}
+                                                                </Stack>
+                                                            )}
+                                                        </Box>
+                                                    );
+                                                }}
+                                                renderInput={(params) => (
+                                                    <TextField
+                                                        {...params}
+                                                        label="Bank Account"
+                                                        size="small"
+                                                        placeholder="Select Bank Account"
+                                                    />
+                                                )}
+                                            />
+                                        );
+                                    })()}
                                     <TextField
                                         label="PF Number"
                                         size="small"
@@ -1179,11 +2138,22 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
 
                                 {/* Add new earning */}
                                 <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                                    <TextField
-                                        placeholder="Component name (e.g. Basic Salary)"
+                                    <Autocomplete
+                                        freeSolo
                                         size="small"
+                                        options={knownSalaryComponents.filter((c) => c.type === 'Earning' || !c.type).map((c) => c.component_name || c.name)}
                                         value={newEarningName}
-                                        onChange={(e) => setNewEarningName(e.target.value)}
+                                        onChange={(_, val) => setNewEarningName(val || '')}
+                                        onInputChange={(_, val, reason) => {
+                                            if (reason === 'input' || reason === 'clear') setNewEarningName(val || '');
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                placeholder="Component name (e.g. Basic Salary)"
+                                                size="small"
+                                            />
+                                        )}
                                         sx={{ flexGrow: 1 }}
                                     />
                                     <TextField
@@ -1265,11 +2235,22 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
 
                                 {/* Add new deduction */}
                                 <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                                    <TextField
-                                        placeholder="Deduction name (e.g. PF)"
+                                    <Autocomplete
+                                        freeSolo
                                         size="small"
+                                        options={knownSalaryComponents.filter((c) => c.type === 'Deduction').map((c) => c.component_name || c.name)}
                                         value={newDeductionName}
-                                        onChange={(e) => setNewDeductionName(e.target.value)}
+                                        onChange={(_, val) => setNewDeductionName(val || '')}
+                                        onInputChange={(_, val, reason) => {
+                                            if (reason === 'input' || reason === 'clear') setNewDeductionName(val || '');
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                placeholder="Deduction name (e.g. PF)"
+                                                size="small"
+                                            />
+                                        )}
                                         sx={{ flexGrow: 1 }}
                                     />
                                     <TextField
@@ -1299,9 +2280,6 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 </DialogContent>
 
                 <DialogActions sx={{ p: 2 }}>
-                    <Button variant="outlined" onClick={() => setEditingIndex(null)}>
-                        Cancel
-                    </Button>
                     <Button
                         variant="contained"
                         onClick={handleSaveEdit}
