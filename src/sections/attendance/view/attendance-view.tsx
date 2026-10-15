@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -57,6 +58,7 @@ import { AttendanceDetailsDialog } from '../../report/attendance/attendance-deta
 // ----------------------------------------------------------------------
 
 export function AttendanceView() {
+    const navigate = useNavigate();
     const { user } = useAuth();
 
     const hasCustomPerms = user?.permissions?.custom_permissions_assigned && user?.permissions?.actions?.attendance_list;
@@ -125,6 +127,11 @@ export function AttendanceView() {
     const isSystemManager = user?.roles?.some((role: string) =>
         ['System Manager', 'Administrator'].includes(role)
     );
+
+    // Super Admin: User must have BOTH (HR or HR Manager) AND System Manager roles, OR be Administrator
+    const hasHRRole = user?.roles?.some((role: string) => ['HR', 'HR Manager'].includes(role));
+    const hasSMRole = user?.roles?.some((role: string) => ['System Manager', 'Administrator'].includes(role));
+    const isSuperAdmin = (hasHRRole && hasSMRole) || user?.roles?.includes('Administrator');
 
     const effectiveEmployee = isHR ? filterEmployee : user?.employee;
 
@@ -802,6 +809,39 @@ export function AttendanceView() {
                 </Typography>
 
                 <Box sx={{ display: 'flex', gap: 1 }}>
+                    {isSuperAdmin && (
+                        <>
+                            <Button
+                                variant="contained"
+                                startIcon={<Iconify icon={"solar:transfer-horizontal-bold-duotone" as any} />}
+                                onClick={() => navigate('/attendance/transfer')}
+                                sx={{
+                                    borderRadius: 1.5,
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    bgcolor: '#36b37e',
+                                    color: 'common.white',
+                                    '&:hover': { bgcolor: '#2b9065' }
+                                }}
+                            >
+                                Transfer Attendance
+                            </Button>
+
+                            <Button
+                                variant="outlined"
+                                startIcon={<Iconify icon={"solar:history-bold-duotone" as any} />}
+                                onClick={() => navigate('/attendance/transfer-history')}
+                                sx={{
+                                    borderRadius: 1.5,
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                }}
+                            >
+                                Transfer History
+                            </Button>
+                        </>
+                    )}
+
                     {isHR && permissions.write && (
                         <>
                             <Button
@@ -927,6 +967,11 @@ export function AttendanceView() {
                                                     attendance_source: row.attendance_source,
                                                     manual: row.manual,
                                                     modified: row.modified,
+                                                    is_transferred: row.is_transferred,
+                                                    transfer_type: row.transfer_type,
+                                                    transferred_from_date: row.transferred_from_date,
+                                                    transferred_to_date: row.transferred_to_date,
+                                                    attendance_transfer_ref: row.attendance_transfer_ref,
                                                 }}
                                                 canViewUnofficial={isSystemManager}
                                                 selected={selected.includes(row.name)}

@@ -24,6 +24,11 @@ export interface Attendance {
     modified_by_name?: string;
     creation?: string;
     modified?: string;
+    is_transferred?: number;
+    transfer_type?: string;
+    transferred_from_date?: string;
+    transferred_to_date?: string;
+    attendance_transfer_ref?: string;
 }
 
 // Attendance APIs

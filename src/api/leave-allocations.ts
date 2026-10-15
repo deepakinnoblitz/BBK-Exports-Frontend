@@ -292,3 +292,35 @@ export async function fetchAutoLeaveAllocationLogDetails(logId: string): Promise
     return json.message;
 }
 
+export interface BulkUpdateLeaveAllocationsPayload {
+    allocations: string[];
+    update_data: {
+        allocated?: {
+            enabled: boolean;
+            action: 'set' | 'add' | 'subtract';
+            value: number;
+        };
+        taken?: {
+            enabled: boolean;
+            action: 'set' | 'add' | 'subtract' | 'reset';
+            value: number;
+        };
+        status?: {
+            enabled: boolean;
+            value: string;
+        };
+    };
+}
+
+export async function bulkUpdateLeaveAllocations(payload: BulkUpdateLeaveAllocationsPayload) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest('/api/method/company.company.frontend_api.bulk_update_leave_allocations', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, 'Failed to bulk update leave allocations'));
+    return json.message;
+}
+

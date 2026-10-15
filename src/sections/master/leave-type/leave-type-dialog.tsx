@@ -5,18 +5,23 @@ import type {
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
+import Tooltip from '@mui/material/Tooltip';
+import { alpha } from '@mui/material/styles';
 import Snackbar from '@mui/material/Snackbar';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import InputLabel from '@mui/material/InputLabel';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -52,6 +57,25 @@ const ALLOCATION_BASIS_OPTIONS = [
 ];
 const HALF_DAY_COUNT_OPTIONS = ['0.5 Day', '0 (Not Present)'];
 
+export const MONTH_OPTIONS = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+export interface EncashmentCycleItem {
+    id: string;
+    from_month: string;
+    to_month: string;
+    payout_months: string[];
+}
+
+const ENCASHMENT_RATE_BASIS_OPTIONS = [
+    'Gross / 26',
+    'Basic + DA / 26',
+    'Gross / Calendar Days',
+    'Basic / 26',
+];
+
 export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
     const [leaveTypeName, setLeaveTypeName] = useState('');
     const [isPaid, setIsPaid] = useState(false);
@@ -70,6 +94,15 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
     const [daysWorkedPerLeave, setDaysWorkedPerLeave] = useState<number | ''>(20);
     const [countHalfDayAs, setCountHalfDayAs] = useState<string>('0.5 Day');
     const [includeApprovedPaidLeaves, setIncludeApprovedPaidLeaves] = useState(false);
+
+    // Encashment & Payout States
+    const [isEncashable, setIsEncashable] = useState(false);
+    const [encashmentCycles, setEncashmentCycles] = useState<EncashmentCycleItem[]>([
+        { id: '1', from_month: 'January', to_month: 'June', payout_months: ['June'] },
+        { id: '2', from_month: 'July', to_month: 'December', payout_months: ['December'] },
+    ]);
+    const [encashmentRateBasis, setEncashmentRateBasis] = useState<string>('Gross / 26');
+    const [encashmentComponentName, setEncashmentComponentName] = useState<string>('');
 
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(false);
@@ -96,7 +129,36 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
         setDaysWorkedPerLeave(20);
         setCountHalfDayAs('0.5 Day');
         setIncludeApprovedPaidLeaves(false);
+        setIsEncashable(false);
+        setEncashmentCycles([
+            { id: '1', from_month: 'January', to_month: 'June', payout_months: ['June'] },
+            { id: '2', from_month: 'July', to_month: 'December', payout_months: ['December'] },
+        ]);
+        setEncashmentRateBasis('Gross / 26');
+        setEncashmentComponentName('');
         setError('');
+    };
+
+    const handleAddCycle = () => {
+        setEncashmentCycles((prev) => [
+            ...prev,
+            {
+                id: Date.now().toString(),
+                from_month: 'January',
+                to_month: 'December',
+                payout_months: ['December'],
+            },
+        ]);
+    };
+
+    const handleRemoveCycle = (cycleId: string) => {
+        setEncashmentCycles((prev) => prev.filter((c) => c.id !== cycleId));
+    };
+
+    const handleCycleChange = (cycleId: string, field: keyof EncashmentCycleItem, value: any) => {
+        setEncashmentCycles((prev) =>
+            prev.map((c) => (c.id === cycleId ? { ...c, [field]: value } : c))
+        );
     };
 
     useEffect(() => {
@@ -124,6 +186,51 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         setDaysWorkedPerLeave(data.days_worked_per_leave ?? 20);
                         setCountHalfDayAs(data.count_half_day_as || '0.5 Day');
                         setIncludeApprovedPaidLeaves(!!data.include_approved_paid_leaves);
+                        setIsEncashable(!!data.is_encashable);
+
+                        let loadedCycles: EncashmentCycleItem[] = [];
+                        if (data.encashment_cycles) {
+                            try {
+                                const parsed = JSON.parse(data.encashment_cycles);
+                                if (Array.isArray(parsed) && parsed.length > 0) {
+                                    loadedCycles = parsed.map((c: any, i: number) => ({
+                                        id: String(i + 1),
+                                        from_month: c.from_month || 'January',
+                                        to_month: c.to_month || 'June',
+                                        payout_months: Array.isArray(c.payout_months)
+                                            ? c.payout_months
+                                            : (c.payout_month ? [c.payout_month] : ['June']),
+                                    }));
+                                }
+                            } catch (err) {
+                                console.error('Failed to parse encashment_cycles:', err);
+                            }
+                        }
+
+                        if (loadedCycles.length === 0 && data.encashment_payout_months) {
+                            const months = data.encashment_payout_months.split(',').map((m: string) => m.trim()).filter(Boolean);
+                            if (months.length === 1) {
+                                loadedCycles = [
+                                    { id: '1', from_month: 'January', to_month: 'December', payout_months: months }
+                                ];
+                            } else if (months.length >= 2) {
+                                loadedCycles = [
+                                    { id: '1', from_month: 'January', to_month: 'June', payout_months: [months[0]] },
+                                    { id: '2', from_month: 'July', to_month: 'December', payout_months: [months[1]] }
+                                ];
+                            }
+                        }
+
+                        if (loadedCycles.length === 0) {
+                            loadedCycles = [
+                                { id: '1', from_month: 'January', to_month: 'June', payout_months: ['June'] },
+                                { id: '2', from_month: 'July', to_month: 'December', payout_months: ['December'] }
+                            ];
+                        }
+
+                        setEncashmentCycles(loadedCycles);
+                        setEncashmentRateBasis(data.encashment_rate_basis || 'Gross / 26');
+                        setEncashmentComponentName(data.encashment_component_name || '');
                     })
                     .catch((err) => {
                         if (!isMounted) return;
@@ -174,6 +281,10 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
             setLoading(true);
             setError('');
 
+            const allPayoutMonths = Array.from(
+                new Set(encashmentCycles.flatMap((c) => c.payout_months))
+            ).join(', ');
+
             const data: Partial<LeaveType> & Record<string, any> = {
                 leave_type_name: leaveTypeName,
                 is_paid: isPaid ? 1 : 0,
@@ -201,6 +312,17 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         : 20,
                 count_half_day_as: countHalfDayAs as any,
                 include_approved_paid_leaves: includeApprovedPaidLeaves ? 1 : 0,
+                is_encashable: isEncashable ? 1 : 0,
+                encashment_cycles: isEncashable
+                    ? JSON.stringify(encashmentCycles.map((c) => ({
+                        from_month: c.from_month,
+                        to_month: c.to_month,
+                        payout_months: c.payout_months
+                    })))
+                    : '',
+                encashment_payout_months: isEncashable ? allPayoutMonths : '',
+                encashment_rate_basis: encashmentRateBasis,
+                encashment_component_name: encashmentComponentName,
             };
 
             if (id) {
@@ -228,7 +350,7 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
     };
 
     return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 2, boxShadow: (themeVar) => themeVar.customShadows.z24, } }}>
+        <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 2, boxShadow: (themeVar) => themeVar.customShadows.z24, } }}>
             <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h6">{id ? 'Edit Leave Type' : 'New Leave Type'}</Typography>
                 <Iconify icon="mingcute:close-line" onClick={onClose} sx={{ cursor: 'pointer', color: 'text.disabled' }} />
@@ -479,6 +601,208 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                                         'Leaves are calculated proportionally based on actual days worked.'}
                                 </Alert>
                             </>
+                        )}
+                    </Box>
+
+                    {/* Encashment / Payout Configuration Section */}
+                    <Box sx={{ pt: 3, borderTop: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+                            <Box sx={{ flex: 1 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                    Encashment & Periodic Payout Rules
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    Configure periodic unavailed leave payouts using approved Leave Allocations (e.g. 6-month CL settlement, annual EL encashment)
+                                </Typography>
+                            </Box>
+                            <FormControlLabel
+                                control={
+                                    <CustomSwitch
+                                        checked={isEncashable}
+                                        onChange={(e) => setIsEncashable(e.target.checked)}
+                                        disabled={loading}
+                                    />
+                                }
+                                label="Is Encashable"
+                                sx={{
+                                    m: 0,
+                                    flexShrink: 0,
+                                    whiteSpace: 'nowrap',
+                                    '& .MuiFormControlLabel-label': { ml: 1, fontWeight: 600, whiteSpace: 'nowrap' }
+                                }}
+                            />
+                        </Box>
+
+                        {isEncashable && (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04), p: 2.5, borderRadius: 1.5, border: 1, borderColor: 'primary.light' }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Box>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                            Encashment Cycles & Payout Schedule
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                            Set From Month, To Month, and Payout Month (supports multiple encashments per year)
+                                        </Typography>
+                                    </Box>
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        startIcon={<Iconify icon="solar:add-circle-bold" width={16} />}
+                                        onClick={handleAddCycle}
+                                        disabled={loading}
+                                        sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1 }}
+                                    >
+                                        Add Cycle
+                                    </Button>
+                                </Box>
+
+                                <Stack spacing={2}>
+                                    {encashmentCycles.map((cycle, idx) => (
+                                        <Box
+                                            key={cycle.id}
+                                            sx={{
+                                                p: 2,
+                                                borderRadius: 1.5,
+                                                bgcolor: 'background.paper',
+                                                border: 1,
+                                                borderColor: 'divider',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: 1.5,
+                                                boxShadow: (theme) => `0 1px 3px ${alpha(theme.palette.common.black, 0.04)}`
+                                            }}
+                                        >
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Chip
+                                                    label={`Cycle ${idx + 1}`}
+                                                    size="small"
+                                                    sx={{
+                                                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                                                        color: 'primary.dark',
+                                                        fontWeight: 700,
+                                                        fontSize: '0.75rem',
+                                                        borderRadius: '6px'
+                                                    }}
+                                                />
+                                                {encashmentCycles.length > 1 && (
+                                                    <Tooltip title="Remove this cycle">
+                                                        <IconButton
+                                                            size="small"
+                                                            color="error"
+                                                            onClick={() => handleRemoveCycle(cycle.id)}
+                                                            disabled={loading}
+                                                        >
+                                                            <Iconify icon="solar:trash-bin-trash-bold" width={17} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
+                                            </Box>
+
+                                            <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr 1.5fr' }} gap={2} alignItems="center">
+                                                <FormControl fullWidth size="small" disabled={loading}>
+                                                    <InputLabel id={`from-month-label-${cycle.id}`} shrink>From Month</InputLabel>
+                                                    <Select
+                                                        labelId={`from-month-label-${cycle.id}`}
+                                                        value={cycle.from_month}
+                                                        onChange={(e) => handleCycleChange(cycle.id, 'from_month', e.target.value)}
+                                                        label="From Month"
+                                                    >
+                                                        {MONTH_OPTIONS.map((m) => (
+                                                            <MenuItem key={m} value={m}>{m}</MenuItem>
+                                                        ))}
+                                                    </Select>
+                                                </FormControl>
+
+                                                <FormControl fullWidth size="small" disabled={loading}>
+                                                    <InputLabel id={`to-month-label-${cycle.id}`} shrink>To Month</InputLabel>
+                                                    <Select
+                                                        labelId={`to-month-label-${cycle.id}`}
+                                                        value={cycle.to_month}
+                                                        onChange={(e) => handleCycleChange(cycle.id, 'to_month', e.target.value)}
+                                                        label="To Month"
+                                                    >
+                                                        {MONTH_OPTIONS.map((m) => (
+                                                            <MenuItem key={m} value={m}>{m}</MenuItem>
+                                                        ))}
+                                                    </Select>
+                                                </FormControl>
+
+                                                <Autocomplete
+                                                    multiple
+                                                    size="small"
+                                                    disabled={loading}
+                                                    options={MONTH_OPTIONS}
+                                                    value={cycle.payout_months}
+                                                    onChange={(_event, newValue) => {
+                                                        handleCycleChange(cycle.id, 'payout_months', newValue);
+                                                    }}
+                                                    renderTags={(tagValue, getTagProps) =>
+                                                        tagValue.map((option, index) => (
+                                                            <Chip
+                                                                label={option}
+                                                                size="small"
+                                                                {...getTagProps({ index })}
+                                                                key={option}
+                                                                sx={{
+                                                                    bgcolor: '#00875a',
+                                                                    color: '#ffffff',
+                                                                    fontWeight: 600,
+                                                                    borderRadius: '16px',
+                                                                    height: 26,
+                                                                    fontSize: '0.8rem',
+                                                                    '& .MuiChip-deleteIcon': {
+                                                                        color: 'rgba(255, 255, 255, 0.85)',
+                                                                        '&:hover': { color: '#ffffff' },
+                                                                    },
+                                                                }}
+                                                            />
+                                                        ))
+                                                    }
+                                                    renderInput={(params) => (
+                                                        <TextField
+                                                            {...params}
+                                                            label="Payout Month(s)"
+                                                            placeholder={cycle.payout_months.length === 0 ? "Select month" : ""}
+                                                            InputLabelProps={{ shrink: true }}
+                                                        />
+                                                    )}
+                                                />
+                                            </Box>
+                                        </Box>
+                                    ))}
+                                </Stack>
+
+                                <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={2}>
+                                    <FormControl fullWidth disabled={loading}>
+                                        <InputLabel id="encashment-rate-basis-label" shrink>Daily Rate Calculation</InputLabel>
+                                        <Select
+                                            labelId="encashment-rate-basis-label"
+                                            value={encashmentRateBasis}
+                                            onChange={(e) => setEncashmentRateBasis(e.target.value as string)}
+                                            label="Daily Rate Calculation"
+                                        >
+                                            {ENCASHMENT_RATE_BASIS_OPTIONS.map((opt) => (
+                                                <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+
+                                    <TextField
+                                        fullWidth
+                                        label="Custom Component Name (Optional)"
+                                        value={encashmentComponentName}
+                                        onChange={(e) => setEncashmentComponentName(e.target.value)}
+                                        disabled={loading}
+                                        placeholder={`e.g. ${leaveTypeName || 'Leave'} Payout`}
+                                        helperText="Custom earnings label on Salary Slip (defaults to '{Leave Type} Payout')"
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                </Box>
+
+                                <Alert severity="info" sx={{ fontSize: 12 }}>
+                                    Encashment is calculated exclusively using approved <strong>Leave Allocation</strong> DocType records (no fixed monthly quota). In each payout month, the system sums allocations in the cycle, subtracts leaves taken in that cycle (Payable Days = Leaves Allocated – Leaves Taken), and adds the earnings payout at ({encashmentRateBasis}).
+                                </Alert>
+                            </Box>
                         )}
                     </Box>
                 </Box>

@@ -26,7 +26,7 @@ import { useRouter } from 'src/routes/hooks';
 import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { getDoctypeList } from 'src/api/leads';
-import { updateSalarySlip, previewSalarySlip, generateSalarySlipFromEmployee } from 'src/api/salary-slips';
+import { updateSalarySlip, generateSalarySlipFromEmployee } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
 

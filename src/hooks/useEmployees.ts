@@ -18,7 +18,9 @@ export function useEmployees(
     joiningDateTo?: string | null,
     filterEmployee?: string[],
     filterEmployeeType?: string,
-    filterProductionType?: string
+    filterProductionType?: string,
+    filterSkill?: string,
+    filterLine?: string
 ) {
     const [data, setData] = useState<any[]>([]);
     const [total, setTotal] = useState(0);
@@ -99,6 +101,16 @@ export function useEmployees(
                 filters.push(['Employee', 'production_type', '=', filterProductionType]);
             }
 
+            // Add skill filter
+            if (filterSkill && filterSkill !== 'all') {
+                filters.push(['Employee', 'skill', '=', filterSkill]);
+            }
+
+            // Add line filter
+            if (filterLine && filterLine !== 'all') {
+                filters.push(['Employee', 'line_order', '=', filterLine]);
+            }
+
             const result = await fetchEmployees({
                 page,
                 page_size: pageSize,
@@ -115,7 +127,7 @@ export function useEmployees(
         } finally {
             setLoading(false);
         }
-    }, [page, pageSize, search, orderBy, order, filterDepartment, filterDesignation, filterStatus, filterCountry, filterState, filterCity, joiningDateFrom, joiningDateTo, filterEmployee, filterEmployeeType, filterProductionType]);
+    }, [page, pageSize, search, orderBy, order, filterDepartment, filterDesignation, filterStatus, filterCountry, filterState, filterCity, joiningDateFrom, joiningDateTo, filterEmployee, filterEmployeeType, filterProductionType, filterSkill, filterLine]);
 
     useEffect(() => {
         refetch();

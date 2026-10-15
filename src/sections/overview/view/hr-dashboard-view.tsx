@@ -11,7 +11,9 @@ import {
     fetchAttendanceStats,
     fetchHRDashboardData,
     fetchUpcomingRenewals,
+    fetchWorkforceAnalytics,
     fetchWeeklyPresentChartData,
+    type WorkforceAnalyticsData,
     fetchMissingAttendanceChartData,
     fetchWeeklyPresentAbsentChartData
 } from 'src/api/dashboard';
@@ -21,9 +23,13 @@ import { Loader } from 'src/components/loader';
 import { useAuth } from 'src/auth/auth-context';
 
 import { HRCalendar } from '../hr-calendar';
+import { LineWiseChart } from '../line-wise-chart';
+import { ShiftWiseChart } from '../shift-wise-chart';
 import { HRAnnouncements } from '../hr-announcements';
 import { HRSummaryWidget } from '../hr-summary-widget';
 import { HRDashboardTable } from '../hr-dashboard-table';
+import { DepartmentWiseChart } from '../department-wise-chart';
+import { WorkersSkillMatrixChart } from '../workers-skill-matrix-chart';
 // import { DashboardEomCard } from '../dashboard-eom-card';
 import { WeeklyPresentAbsentChart } from '../weekly-present-absent-chart';
 
@@ -33,6 +39,7 @@ export function HRDashboardView() {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [chartLoading, setChartLoading] = useState(false);
+    const [workforceData, setWorkforceData] = useState<WorkforceAnalyticsData | null>(null);
     const [data, setData] = useState<any>({
         announcements: [],
         total_employees: 0,
@@ -67,7 +74,8 @@ export function HRDashboardView() {
                     renewals,
                     missingAttendanceChart,
                     weeklyPresentChart,
-                    weeklyPresentAbsent
+                    weeklyPresentAbsent,
+                    wfAnalytics
                 ] = await Promise.all([
                     fetchHRDashboardData(),
                     fetchAttendanceStats('today'),
@@ -75,10 +83,13 @@ export function HRDashboardView() {
                     fetchUpcomingRenewals(),
                     fetchMissingAttendanceChartData(),
                     fetchWeeklyPresentChartData(),
-                    fetchWeeklyPresentAbsentChartData()
+                    fetchWeeklyPresentAbsentChartData(),
+                    fetchWorkforceAnalytics()
                 ]);
 
                 console.log('Holidays data received:', holidays);
+
+                setWorkforceData(wfAnalytics);
 
                 setData({
                     ...hrData,
@@ -213,6 +224,41 @@ export function HRDashboardView() {
                         filter={attendanceFilter}
                         loading={loading || chartLoading}
                         onFilterChange={handleAttendanceFilterChange}
+                    />
+                </Grid>
+
+                {/* Line-Wise Workforce & Attendance (Full Row) */}
+                <Grid size={{ xs: 12 }}>
+                    <LineWiseChart
+                        data={workforceData?.line_wise || []}
+                        loading={loading}
+                    />
+                </Grid>
+
+                {/* Department-Wise and Shift-Wise Distribution (Row below, sharing 50/50) */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <DepartmentWiseChart
+                        data={workforceData?.department_wise || []}
+                        loading={loading}
+                    />
+                </Grid>
+
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <ShiftWiseChart
+                        data={workforceData?.shift_wise || []}
+                        loading={loading}
+                    />
+                </Grid>
+
+                {/* Workers Skill Matrix Chart */}
+                <Grid size={{ xs: 12 }}>
+                    <WorkersSkillMatrixChart
+                        totalWorkers={workforceData?.skill_matrix?.total_workers || 0}
+                        overall={workforceData?.skill_matrix?.overall || []}
+                        lineMatrix={workforceData?.skill_matrix?.line_matrix || []}
+                        departmentMatrix={workforceData?.skill_matrix?.department_matrix || []}
+                        summary={workforceData?.skill_matrix?.summary || { highly_skilled: 0, skilled: 0, semi_skilled: 0, unskilled: 0, unassigned: 0 }}
+                        loading={loading}
                     />
                 </Grid>
 
