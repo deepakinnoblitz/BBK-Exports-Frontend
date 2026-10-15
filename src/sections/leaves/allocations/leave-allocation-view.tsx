@@ -66,6 +66,7 @@ import AutoAllocateLogDetailsDialog from './auto-allocate-log-details-dialog';
 import { LeaveAllocationDetailsDialog } from './leave-allocation-details-dialog';
 import { LeaveAllocationFiltersDrawer } from './leave-allocation-filters-drawer';
 import { AutoAllocateLogFiltersDrawer } from './auto-allocate-log-filters-drawer';
+import { LeaveAllocationBulkEditDialog } from './leave-allocation-bulk-edit-dialog';
 import { LeadTableToolbar as LeavesTableToolbar } from '../../lead/lead-table-toolbar';
 import LeaveAllocationGenerateProgressDialog from './leave-allocation-generate-progress-dialog';
 
@@ -151,6 +152,7 @@ export function LeaveAllocationView() {
     const [selected, setSelected] = useState<string[]>([]);
     const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
     const [bulkDeleting, setBulkDeleting] = useState(false);
+    const [openBulkEdit, setOpenBulkEdit] = useState(false);
     const [selectedAllocationId, setSelectedAllocationId] = useState<string | null>(null);
     const [openAutoAllocate, setOpenAutoAllocate] = useState(false);
     const [openDetails, setOpenDetails] = useState(false);
@@ -489,6 +491,7 @@ export function LeaveAllocationView() {
                         setFilterName(e.target.value);
                         setPage(0);
                     }}
+                    onBulkEdit={permissions.write ? () => setOpenBulkEdit(true) : undefined}
                     onDelete={permissions.delete ? () => setConfirmBulkDelete(true) : undefined}
                     searchPlaceholder="Search allocations..."
                     sortBy={`${orderBy}_${order}`}
@@ -991,6 +994,22 @@ export function LeaveAllocationView() {
                     setSelectedLogId(null);
                 }}
                 logId={selectedLogId}
+            />
+
+            <LeaveAllocationBulkEditDialog
+                open={openBulkEdit}
+                onClose={() => setOpenBulkEdit(false)}
+                selectedIds={selected}
+                onSuccess={(updatedCount) => {
+                    setOpenBulkEdit(false);
+                    setSelected([]);
+                    setSnackbar({
+                        open: true,
+                        message: `Successfully updated ${updatedCount} leave allocation${updatedCount > 1 ? 's' : ''}`,
+                        severity: 'success',
+                    });
+                    refetch();
+                }}
             />
 
             {/* Filter Drawer */}
