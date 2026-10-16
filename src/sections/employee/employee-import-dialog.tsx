@@ -146,6 +146,74 @@ const filterBankAccountOptions = (listOptions: any[], params: any) => {
     return filtered;
 };
 
+const cleanPhoneField = (val: any): string => {
+    if (val === undefined || val === null) return '';
+    let s = String(val).trim();
+    if (!s) return '';
+    if (/^[0-9.]+[eE]\+[0-9]+$/.test(s)) {
+        try {
+            s = BigInt(Math.round(Number(s))).toString();
+        } catch {
+            // fallback
+        }
+    } else if (s.endsWith('.0')) {
+        s = s.slice(0, -2);
+    }
+    return s;
+};
+
+const matchMasterBankAccount = (
+    bankDetails: any,
+    bankAccountField: string | undefined,
+    masterAccounts: any[]
+) => {
+    if (!masterAccounts || masterAccounts.length === 0) return null;
+
+    const targetAcctNo = String(bankDetails?.account_number || '').trim().toLowerCase();
+    const targetAcctName = String(bankDetails?.bank_account_name || '').trim().toLowerCase();
+    const targetIfsc = String(bankDetails?.ifsc_code || '').trim().toLowerCase();
+    const targetRaw = String(bankAccountField || '').trim().toLowerCase();
+
+    // 1. Match by account number or name
+    if (targetAcctNo) {
+        const found = masterAccounts.find((acc: any) => {
+            const accNum = String(acc.account_number || acc.name || '').trim().toLowerCase();
+            return accNum === targetAcctNo;
+        });
+        if (found) return found;
+    }
+
+    // 2. Match by bank_account_name
+    if (targetAcctName) {
+        const found = masterAccounts.find((acc: any) => {
+            const nameStr = String(acc.bank_account_name || '').trim().toLowerCase();
+            return nameStr === targetAcctName;
+        });
+        if (found) return found;
+    }
+
+    // 3. Match by raw field bank_account
+    if (targetRaw) {
+        const found = masterAccounts.find((acc: any) => {
+            const accNum = String(acc.account_number || acc.name || '').trim().toLowerCase();
+            const nameStr = String(acc.bank_account_name || '').trim().toLowerCase();
+            return accNum === targetRaw || nameStr === targetRaw;
+        });
+        if (found) return found;
+    }
+
+    // 4. Match by IFSC
+    if (targetIfsc) {
+        const found = masterAccounts.find((acc: any) => {
+            const ifscStr = String(acc.ifsc_code || '').trim().toLowerCase();
+            return ifscStr === targetIfsc;
+        });
+        if (found) return found;
+    }
+
+    return null;
+};
+
 // Available standard target fields for mapping
 const STANDARD_TARGET_FIELDS = [
     { value: 'employee_id', label: 'Employee ID *', reqd: true },
@@ -285,7 +353,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 getDoctypeList('Shift', ['name', 'shift_name']),
                 getDoctypeList('Blood Group', ['name', 'blood_group']),
                 getDoctypeList('Qualification', ['name', 'qualification']),
-                getDoctypeList('Bank Account', ['name', 'bank_account_name', 'account_number']),
+                getDoctypeList('Bank Account', ['name', 'bank_account_name', 'account_number', 'bank_name', 'branch', 'ifsc_code']),
             ]).then(([deptRes, desigRes, typeRes, shiftRes, bgRes, qualRes, bankRes]) => {
                 const depts = deptRes.status === 'fulfilled' && Array.isArray(deptRes.value)
                     ? deptRes.value.map((d: any) => d.name).filter(Boolean)
@@ -682,6 +750,8 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                         const amt = isNaN(numVal) ? 0 : numVal;
                         empRecord.deductions.push({ component_name: compName, amount: amt });
                     }
+                } else if (targetField === 'phone' || targetField === 'office_phone_number') {
+                    empRecord[targetField] = cleanPhoneField(cellVal);
                 } else {
                     empRecord[targetField] = cellVal;
                 }
@@ -700,6 +770,38 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 empRecord.account_type = matchedBank.account_type || empRecord.bank_account || 'Salary Account';
                 if (matchedBank.account_number) {
                     empRecord.bank_account = matchedBank.account_number;
+                }
+            }
+
+            // Bank details validation: only allow import if bank matches master Bank Account List
+            const hasBankDetails = Boolean(
+                matchedBank ||
+                (empRecord.bank_account && String(empRecord.bank_account).trim() !== '') ||
+                (empRecord.account_number && String(empRecord.account_number).trim() !== '')
+            );
+
+            if (hasBankDetails) {
+                const matchedMaster = matchMasterBankAccount(
+                    matchedBank,
+                    empRecord.bank_account,
+                    fieldOptions.bank_account
+                );
+
+                if (matchedMaster) {
+                    empRecord.bank_account = matchedMaster.name || matchedMaster.account_number;
+                    empRecord.account_number = matchedMaster.account_number || empRecord.account_number;
+                    empRecord.bank_account_name = matchedMaster.bank_account_name || empRecord.bank_account_name;
+                } else {
+                    const displayBank = (
+                        (matchedBank?.bank_name && matchedBank?.account_number
+                            ? `${matchedBank.bank_name} (${matchedBank.account_number})`
+                            : matchedBank?.bank_name) ||
+                        matchedBank?.bank_account_name ||
+                        matchedBank?.account_number ||
+                        empRecord.bank_account ||
+                        'Specified'
+                    );
+                    empRecord._errors.push(`Bank Account '${displayBank}' not found in master Bank Account List`);
                 }
             }
 
@@ -742,6 +844,30 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
         if (!editForm.employee_id?.trim()) updatedErrors.push('Missing Employee ID');
         if (!editForm.employee_name?.trim()) updatedErrors.push('Missing Employee Name');
         if (!editForm.email?.trim()) updatedErrors.push('Missing Email');
+
+        // Re-validate Bank Account if provided
+        const hasBankDetailsInEdit = Boolean(
+            editForm.bank_details ||
+            (editForm.bank_account && String(editForm.bank_account).trim() !== '') ||
+            (editForm.account_number && String(editForm.account_number).trim() !== '')
+        );
+
+        if (hasBankDetailsInEdit) {
+            const matchedMaster = matchMasterBankAccount(
+                editForm.bank_details,
+                editForm.bank_account,
+                fieldOptions.bank_account
+            );
+
+            if (!matchedMaster) {
+                const displayBank = editForm.bank_account || editForm.account_number || 'Specified';
+                updatedErrors.push(`Bank Account '${displayBank}' not found in master Bank Account List`);
+            } else {
+                editForm.bank_account = matchedMaster.name || matchedMaster.account_number;
+                editForm.account_number = matchedMaster.account_number || editForm.account_number;
+                editForm.bank_account_name = matchedMaster.bank_account_name || editForm.bank_account_name;
+            }
+        }
 
         const updated = {
             ...editForm,
@@ -990,9 +1116,17 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
         </Box>
     );
 
+    const hasRowErrors = previewRows.some((r) => r._errors && r._errors.length > 0);
+
     // Step 2: Preview
     const renderPreview = (
         <Box sx={{ mt: 2 }}>
+            {hasRowErrors && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    Some records have validation errors (e.g., bank details not found in master Bank Account List). Please edit or remove invalid rows before starting the import.
+                </Alert>
+            )}
+
             <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                     Review parsed employees ({previewRows.length} records ready)
@@ -1645,11 +1779,15 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                         <Button
                             variant="contained"
                             onClick={handleStartImport}
-                            disabled={loading || previewRows.length === 0}
+                            disabled={loading || previewRows.length === 0 || hasRowErrors}
                             sx={{
                                 bgcolor: COMMON_COLORS.emerald.main,
                                 color: 'common.white',
                                 '&:hover': { bgcolor: COMMON_COLORS.emerald.dark },
+                                '&.Mui-disabled': {
+                                    bgcolor: 'action.disabledBackground',
+                                    color: 'action.disabled',
+                                },
                             }}
                         >
                             Start Import
