@@ -104,7 +104,7 @@ export function BankAccountTableRow({
       </TableCell>
 
       <TableCell>
-        <Typography variant="body2" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {ifsc_code || '-'}
         </Typography>
       </TableCell>
