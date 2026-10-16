@@ -517,7 +517,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
         </Box>
     );
 
-    // ── Leave Balances Summary (Cycle-based) ──────────────────────────────────
+    // ── Leave Balances Summary (Cycle-based) ──
     const renderLeaveBalancesSummary = () => {
         const rawBalances: any[] = Array.isArray(slip?.leave_balances)
             ? slip.leave_balances
