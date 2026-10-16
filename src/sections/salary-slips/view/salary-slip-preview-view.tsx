@@ -543,6 +543,187 @@ export function SalarySlipPreviewView() {
         </Box>
     );
 
+    // ── Leave Balances Summary (Cycle-based) ──────────────────────────────────
+    const renderLeaveBalancesSummary = () => {
+        const rawBalances: any[] = Array.isArray(data?.leave_balances)
+            ? data.leave_balances
+            : (() => {
+                  try {
+                      return JSON.parse(data?.leave_details || '[]');
+                  } catch {
+                      return [];
+                  }
+              })();
+
+        const balances = (rawBalances || []).filter((item: any) => Boolean(item.is_encashable));
+
+        if (!balances || balances.length === 0) {
+            // Fallback to CL balance if present on doc
+            if (data?.cl_balance !== undefined && data?.cl_balance !== null) {
+                return (
+                    <Box sx={{ mb: 4 }}>
+                        <SectionHeader title="Leave Balance & Encashment Cycle Summary" icon="solar:calendar-minimalistic-bold" color="primary.main" />
+                        <Box
+                            sx={{
+                                p: 2.5,
+                                borderRadius: 2,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                                border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+                            }}
+                        >
+                            <Card
+                                variant="outlined"
+                                sx={{
+                                    p: 2,
+                                    borderRadius: 1.5,
+                                    maxWidth: 360,
+                                    bgcolor: 'background.paper',
+                                    border: (t) => `1px solid ${alpha(t.palette.primary.main, 0.18)}`,
+                                }}
+                            >
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>
+                                    Casual Leave (CL)
+                                </Typography>
+                                <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>Cycle Allocated:</Typography>
+                                    <Typography variant="subtitle2">{data.cl_allocated || 0} Days</Typography>
+                                </Stack>
+                                <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
+                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>Cycle Taken:</Typography>
+                                    <Typography variant="subtitle2" sx={{ color: 'error.main' }}>{data.cl_taken || data.no_of_paid_leave || 0} Days</Typography>
+                                </Stack>
+                                <Box
+                                    sx={{
+                                        p: 1.25,
+                                        borderRadius: 1,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                    }}
+                                >
+                                    <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', color: 'primary.dark' }}>
+                                        Balance:
+                                    </Typography>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'primary.main' }}>
+                                        {data.cl_balance} Days
+                                    </Typography>
+                                </Box>
+                            </Card>
+                        </Box>
+                    </Box>
+                );
+            }
+            return null;
+        }
+
+        return (
+            <Box sx={{ mb: 4 }}>
+                <SectionHeader title="Leave Balance & Encashment Cycle Summary" icon="solar:calendar-minimalistic-bold" color="primary.main" />
+                <Box
+                    sx={{
+                        p: 3,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                        border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+                    }}
+                >
+                    <Box
+                        sx={{
+                            display: 'grid',
+                            gap: 2.5,
+                            gridTemplateColumns: {
+                                xs: 'repeat(1, 1fr)',
+                                sm: `repeat(${Math.min(balances.length, 3)}, 1fr)`,
+                            },
+                        }}
+                    >
+                        {balances.map((item: any, idx: number) => (
+                            <Card
+                                key={idx}
+                                variant="outlined"
+                                sx={{
+                                    p: 2.25,
+                                    borderRadius: 1.5,
+                                    bgcolor: 'background.paper',
+                                    border: (t) => `1px solid ${alpha(t.palette.primary.main, 0.18)}`,
+                                    boxShadow: 'none',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'space-between',
+                                }}
+                            >
+                                <div>
+                                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                                            {item.leave_type_name}
+                                        </Typography>
+                                        <Box
+                                            sx={{
+                                                px: 1,
+                                                py: 0.25,
+                                                borderRadius: 0.75,
+                                                fontSize: '0.7rem',
+                                                fontWeight: 700,
+                                                bgcolor: (theme) => alpha(theme.palette.primary.main, item.is_payout_month ? 0.16 : 0.1),
+                                                color: item.is_payout_month ? 'primary.dark' : 'primary.main',
+                                            }}
+                                        >
+                                            {item.is_payout_month ? 'Encashed Cycle' : item.cycle_type === 'current' ? 'Current Cycle' : (item.is_encashable ? 'Encashable Cycle' : 'Monthly')}
+                                        </Box>
+                                    </Stack>
+
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
+                                        Period: <strong>{item.period_label}</strong>
+                                    </Typography>
+
+                                    <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+
+                                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.75 }}>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8125rem' }}>
+                                            Cycle Allocated:
+                                        </Typography>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                            {item.allocated} {item.uom}
+                                        </Typography>
+                                    </Stack>
+
+                                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8125rem' }}>
+                                            Cycle Taken:
+                                        </Typography>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'error.main' }}>
+                                            {item.taken} {item.uom}
+                                        </Typography>
+                                    </Stack>
+                                </div>
+
+                                <Box
+                                    sx={{
+                                        p: 1.25,
+                                        borderRadius: 1,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                        border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.24)}`,
+                                    }}
+                                >
+                                    <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', color: 'primary.dark' }}>
+                                        {item.is_payout_month ? 'Encashed Balance:' : 'Available Balance:'}
+                                    </Typography>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'primary.main' }}>
+                                        {item.balance} {item.uom}
+                                    </Typography>
+                                </Box>
+                            </Card>
+                        ))}
+                    </Box>
+                </Box>
+            </Box>
+        );
+    };
+
     const renderSalaryBreakdown = (
         <Box sx={{ mb: 4 }}>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
@@ -967,6 +1148,7 @@ export function SalarySlipPreviewView() {
                 {renderHeader}
                 {renderEmployeeDetails}
                 {renderAttendanceSummary}
+                {renderLeaveBalancesSummary()}
                 {renderDetailedSummary}
                 <Divider sx={{ my: 4, borderStyle: 'dashed' }} />
                 {renderSalaryBreakdown}
