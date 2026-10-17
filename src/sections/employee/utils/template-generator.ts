@@ -44,56 +44,56 @@ export const DRIVER_DEFAULT_DEDUCTIONS = [
 
 // Definition of standard employee columns
 export const PERSONAL_FIELDS = [
-    { label: 'Employee ID *', key: 'employee_id', sample: 'EMP001', width: 16 },
-    { label: 'Employee Name *', key: 'employee_name', sample: 'Rajesh Kumar', width: 22 },
-    { label: 'Father/Husband Name', key: 'father_husband_name', sample: 'Suresh Kumar', width: 20 },
-    { label: 'Email *', key: 'email', sample: 'rajesh.kumar@bbkexports.com', width: 28 },
-    { label: 'Personal Email', key: 'personal_email', sample: 'rajesh.personal@gmail.com', width: 26 },
-    { label: 'Personal Phone', key: 'phone', sample: '9876543210', width: 16 },
-    { label: 'Office Phone', key: 'office_phone_number', sample: '044-2345678', width: 16 },
-    { label: 'Date of Birth (DD-MM-YYYY)', key: 'dob', sample: '15-08-1992', width: 20 },
-    { label: 'Blood Group', key: 'blood_group', sample: 'O+', width: 14 },
-    { label: 'Gender (Male/Female/Other)', key: 'sex', sample: 'Male', width: 16 },
-    { label: 'Marital Status', key: 'marital_status', sample: 'Married', width: 16 },
-    { label: 'Qualification', key: 'qualification', sample: 'Graduate', width: 16 },
-    { label: 'Aadhar Number', key: 'aadhar_number', sample: '123456789012', width: 18 },
-    { label: 'Country', key: 'country', sample: 'India', width: 14 },
-    { label: 'State', key: 'state', sample: 'Tamil Nadu', width: 16 },
-    { label: 'City', key: 'city', sample: 'Chennai', width: 16 },
+    { label: 'Employee ID *', key: 'employee_id', sample: 'EMP001', width: 16, type: 'text' },
+    { label: 'Employee Name *', key: 'employee_name', sample: 'Rajesh Kumar', width: 22, type: 'text' },
+    { label: 'Father/Husband Name', key: 'father_husband_name', sample: 'Suresh Kumar', width: 20, type: 'text' },
+    { label: 'Email *', key: 'email', sample: 'rajesh.kumar@bbkexports.com', width: 28, type: 'text' },
+    { label: 'Personal Email', key: 'personal_email', sample: 'rajesh.personal@gmail.com', width: 26, type: 'text' },
+    { label: 'Personal Phone', key: 'phone', sample: '9876543210', width: 16, type: 'text' },
+    { label: 'Office Phone', key: 'office_phone_number', sample: '044-2345678', width: 16, type: 'text' },
+    { label: 'Date of Birth (DD-MM-YYYY)', key: 'dob', sample: '15-08-1992', width: 20, type: 'text' },
+    { label: 'Blood Group', key: 'blood_group', sample: 'O+', width: 14, type: 'text' },
+    { label: 'Gender (Male/Female/Other)', key: 'sex', sample: 'Male', width: 16, type: 'text' },
+    { label: 'Marital Status', key: 'marital_status', sample: 'Married', width: 16, type: 'text' },
+    { label: 'Qualification', key: 'qualification', sample: 'Graduate', width: 16, type: 'text' },
+    { label: 'Aadhar Number', key: 'aadhar_number', sample: '123456789012', width: 18, type: 'text' },
+    { label: 'Country', key: 'country', sample: 'India', width: 14, type: 'text' },
+    { label: 'State', key: 'state', sample: 'Tamil Nadu', width: 16, type: 'text' },
+    { label: 'City', key: 'city', sample: 'Chennai', width: 16, type: 'text' },
 ];
 
 export const EMPLOYMENT_FIELDS = [
-    { label: 'Department', key: 'department', sample: 'Production', width: 18 },
-    { label: 'Designation', key: 'designation', sample: 'Staff Member', width: 18 },
-    { label: 'Employee Type', key: 'employee_type', sample: 'Staff - CTC', width: 18 },
-    { label: 'Production Type', key: 'production_type', sample: 'Production', width: 16 },
-    { label: 'Line Order', key: 'line_order', sample: '', width: 14 },
-    { label: 'Shift', key: 'shift', sample: 'General Shift', width: 16 },
-    { label: 'Bus Travel Route', key: 'bus_travel_route', sample: '', width: 18 },
-    { label: 'Bus Route Point', key: 'bus_route_point', sample: '', width: 18 },
-    { label: 'Joining Date * (DD-MM-YYYY)', key: 'date_of_joining', sample: '01-04-2024', width: 20 },
-    { label: 'Status * (Active/Inactive)', key: 'status', sample: 'Active', width: 16 },
-    { label: 'Date of Leaving', key: 'date_of_leaving', sample: '', width: 18 },
-    { label: 'Skip Probation (Yes/No)', key: 'skip_probation', sample: 'No', width: 16 },
-    { label: 'User Login Email', key: 'user', sample: '', width: 24 },
+    { label: 'Department', key: 'department', sample: 'Production', width: 18, type: 'text' },
+    { label: 'Designation', key: 'designation', sample: 'Staff Member', width: 18, type: 'text' },
+    { label: 'Employee Type', key: 'employee_type', sample: 'Staff - CTC', width: 18, type: 'text' },
+    { label: 'Production Type', key: 'production_type', sample: 'Production', width: 16, type: 'text' },
+    { label: 'Line Order', key: 'line_order', sample: '', width: 14, type: 'text' },
+    { label: 'Shift', key: 'shift', sample: 'General Shift', width: 16, type: 'text' },
+    { label: 'Bus Travel Route', key: 'bus_travel_route', sample: '', width: 18, type: 'text' },
+    { label: 'Bus Route Point', key: 'bus_route_point', sample: '', width: 18, type: 'text' },
+    { label: 'Joining Date * (DD-MM-YYYY)', key: 'date_of_joining', sample: '01-04-2024', width: 20, type: 'text' },
+    { label: 'Status * (Active/Inactive)', key: 'status', sample: 'Active', width: 16, type: 'text' },
+    { label: 'Date of Leaving', key: 'date_of_leaving', sample: '', width: 18, type: 'text' },
+    { label: 'Skip Probation (Yes/No)', key: 'skip_probation', sample: 'No', width: 16, type: 'text' },
+    { label: 'User Login Email', key: 'user', sample: '', width: 24, type: 'text' },
 ];
 
 export const BANK_FIELDS = [
-    { label: 'Bank Account', key: 'bank_account', sample: 'SBI - 123456789', width: 22 },
-    { label: 'PF Number', key: 'pf_number', sample: 'TN/MAS/0012345/000/1234567', width: 22 },
-    { label: 'UAN Number', key: 'uan_number', sample: '100123456789', width: 18 },
-    { label: 'ESI Number', key: 'esi_no', sample: '51001234560001001', width: 20 },
-    { label: 'PAN Number', key: 'pan_number', sample: 'ABCDE1234F', width: 16 },
+    { label: 'Bank Account', key: 'bank_account', sample: 'SBI - 123456789', width: 22, type: 'text' },
+    { label: 'PF Number', key: 'pf_number', sample: 'TN/MAS/0012345/000/1234567', width: 22, type: 'text' },
+    { label: 'UAN Number', key: 'uan_number', sample: '100123456789', width: 18, type: 'text' },
+    { label: 'ESI Number', key: 'esi_no', sample: '51001234560001001', width: 20, type: 'text' },
+    { label: 'PAN Number', key: 'pan_number', sample: 'ABCDE1234F', width: 16, type: 'text' },
 ];
 
 export const BANK_ACCOUNT_SHEET_FIELDS = [
-    { label: 'Referral No. *', key: 'referral_no', sample: 'EMP001', width: 18 },
-    { label: 'Bank Account Name *', key: 'bank_account_name', sample: 'Salary Account', width: 24 },
-    { label: 'Account Number *', key: 'account_number', sample: '123456789012', width: 22 },
-    { label: 'Account Type', key: 'account_type', sample: 'Savings', width: 18 },
-    { label: 'IFSC Code *', key: 'ifsc_code', sample: 'BARB0AMBATT', width: 18 },
-    { label: 'Bank Name *', key: 'bank_name', sample: 'Bank of Baroda', width: 24 },
-    { label: 'Branch *', key: 'branch', sample: 'Ambattur Branch', width: 22 },
+    { label: 'Referral No. *', key: 'referral_no', sample: 'EMP001', width: 18, type: 'text' },
+    { label: 'Bank Account Name *', key: 'bank_account_name', sample: 'Salary Account', width: 24, type: 'text' },
+    { label: 'Account Number *', key: 'account_number', sample: '123456789012', width: 22, type: 'text' },
+    { label: 'Account Type', key: 'account_type', sample: 'Savings', width: 18, type: 'text' },
+    { label: 'IFSC Code *', key: 'ifsc_code', sample: 'BARB0AMBATT', width: 18, type: 'text' },
+    { label: 'Bank Name *', key: 'bank_name', sample: 'Bank of Baroda', width: 24, type: 'text' },
+    { label: 'Branch *', key: 'branch', sample: 'Ambattur Branch', width: 22, type: 'text' },
 ];
 
 export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
@@ -278,8 +278,22 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
             cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFB91C1C' } }; // Red for required
         }
 
-        sheet.getColumn(colNum).width = col.width || 16;
+        const colObj = sheet.getColumn(colNum);
+        colObj.width = col.width || 16;
+        if (col.type === 'text' || col.key === 'phone' || col.key === 'office_phone_number') {
+            colObj.numFmt = '@';
+        }
     });
+
+    // Pre-format data rows (up to 100 rows) as text format for text/phone fields so Excel won't convert numbers to scientific notation
+    for (let r = 5; r <= 100; r++) {
+        const row = sheet.getRow(r);
+        columnDefs.forEach((col, idx) => {
+            if (col.type === 'text' || col.key === 'phone' || col.key === 'office_phone_number') {
+                row.getCell(idx + 1).numFmt = '@';
+            }
+        });
+    }
 
     // ----------------------------------------------------
     // Row 5: Sample Row (if requested)
@@ -300,6 +314,9 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
                 cell.numFmt = '#,##0.00';
             } else {
                 cell.value = col.sample;
+                if (col.type === 'text' || col.key === 'phone' || col.key === 'office_phone_number') {
+                    cell.numFmt = '@';
+                }
             }
         });
     }
@@ -371,8 +388,18 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
             cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFB91C1C' } }; // Red for required
         }
 
-        bankSheet.getColumn(colNum).width = col.width || 18;
+        const bCol = bankSheet.getColumn(colNum);
+        bCol.width = col.width || 18;
+        bCol.numFmt = '@';
     });
+
+    // Pre-format rows 5 to 100 for bank sheet
+    for (let r = 5; r <= 100; r++) {
+        const bRow = bankSheet.getRow(r);
+        for (let c = 1; c <= bankCols; c++) {
+            bRow.getCell(c).numFmt = '@';
+        }
+    }
 
     // Row 5: Sample Row (if requested)
     if (includeSampleRow) {
@@ -386,6 +413,7 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
             cell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF64748B' } };
             cell.alignment = { horizontal: 'left', vertical: 'middle' };
             cell.border = thinBorder;
+            cell.numFmt = '@';
         });
     }
 
