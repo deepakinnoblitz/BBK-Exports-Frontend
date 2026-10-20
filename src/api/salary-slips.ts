@@ -251,6 +251,11 @@ export function getSalarySlipDownloadUrl(name: string, format?: string) {
     return `/api/method/frappe.utils.print_format.download_pdf?doctype=Salary%20Slip&name=${encodeURIComponent(name)}${formatParam}`;
 }
 
+export function getBulkSalarySlip2in1Url(names: string[], format?: string) {
+    const formatParam = format ? `&format=${encodeURIComponent(format)}` : '';
+    return `/api/method/company.company.doctype.salary_slip.salary_slip.bulk_download_pdf_2in1?names=${encodeURIComponent(JSON.stringify(names))}${formatParam}`;
+}
+
 export async function previewSalarySlip(employee: string, start_date: string, end_date: string) {
     const res = await frappeRequest("/api/method/company.company.doctype.salary_slip.salary_slip.preview_salary_slip", {
         method: "POST",

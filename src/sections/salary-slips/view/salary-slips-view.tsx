@@ -25,7 +25,7 @@ import { useSalarySlips } from 'src/hooks/useSalarySlips';
 import { getDoctypeList } from 'src/api/leads';
 import { getDistinctBanks } from 'src/api/masters';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { deleteSalarySlip, submitSalarySlip, cancelSalarySlip, exportBobNeftFile } from 'src/api/salary-slips';
+import { deleteSalarySlip, submitSalarySlip, cancelSalarySlip, exportBobNeftFile, getBulkSalarySlip2in1Url } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -231,6 +231,16 @@ export function SalarySlipsView() {
         }
     };
 
+    const handleBulkPrint2in1 = () => {
+        const targets = selected.length > 0 ? selected : data.map((d) => d.name);
+        if (!targets || targets.length === 0) {
+            setSnackbar({ open: true, message: 'No salary slips available to print', severity: 'error' });
+            return;
+        }
+        const url = getBulkSalarySlip2in1Url(targets);
+        window.open(url, '_blank');
+    };
+
 
 
 
@@ -432,6 +442,30 @@ export function SalarySlipsView() {
                             Settings
                         </Button>
 
+                        {selected.length >= 2 && (
+                            <Button
+                                variant="contained"
+                                startIcon={<Iconify icon={"solar:printer-bold-duotone" as any} width={20} />}
+                                onClick={handleBulkPrint2in1}
+                                sx={{
+                                    borderRadius: 1.5,
+                                    height: 40,
+                                    fontWeight: 700,
+                                    textTransform: 'none',
+                                    px: 2,
+                                    bgcolor: '#2563eb',
+                                    color: '#fff',
+                                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.28)',
+                                    '&:hover': {
+                                        bgcolor: '#1d4ed8',
+                                        boxShadow: '0 6px 16px rgba(37, 99, 235, 0.38)',
+                                    },
+                                }}
+                            >
+                                Bulk Print (2-in-1 A4) ({selected.length})
+                            </Button>
+                        )}
+
                         {/* <Button
                             variant="outlined"
                             startIcon={<Iconify icon="solar:chart-2-bold-duotone" />}
@@ -513,7 +547,7 @@ export function SalarySlipsView() {
                                 rowCount={data.length}
                                 numSelected={selected.length}
                                 onSelectAllRows={(checked: boolean) => handleSelectAllRows(checked)}
-                                hideCheckbox
+                                hideCheckbox={!isHR}
                                 showIndex
                                 sx={{
                                     bgcolor: '#f5f7fb',
@@ -543,7 +577,7 @@ export function SalarySlipsView() {
                                             <SalarySlipTableRow
                                                 key={row.name}
                                                 index={page * rowsPerPage + index}
-                                                hideCheckbox
+                                                hideCheckbox={!isHR}
                                                 row={{
                                                     id: row.name,
                                                     employee_name: row.employee_name,

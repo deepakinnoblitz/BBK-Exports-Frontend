@@ -125,6 +125,8 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
         let defaultFormat: string | undefined;
         if (empType.includes('north indian')) {
             defaultFormat = 'North Indian Form 25B Pay Slip';
+        } else if (empType.includes('driver')) {
+            defaultFormat = 'Driver Form 25B Pay Slip';
         } else if (empType.includes('worker')) {
             defaultFormat = 'Worker Form 25B Pay Slip';
         } else {
@@ -1116,7 +1118,6 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 hrSettings={hrSettings}
                                 sx={{ px: 1.5 }}
                             />
-                            <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
                             <Box
                                 sx={{
                                     px: 1.5,
@@ -1166,7 +1167,6 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             )}
                         </Stack>
                     </Box>
-                    <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
                     <Box
                         sx={{
                             mt: 2,

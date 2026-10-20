@@ -841,25 +841,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
                             EARNINGS
                         </Typography>
                         <Stack direction="row" spacing={1} alignItems="center">
-                            <Button
-                                size="small"
-                                variant="text"
-                                startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
-                                onClick={() => {
-                                    setComponentDialogType('Earning');
-                                    setComponentInitialName('');
-                                    setTargetRowIndex(null);
-                                    setComponentDialogOpen(true);
-                                }}
-                                sx={{
-                                    color: COMMON_COLORS.emerald.main,
-                                    fontWeight: 700,
-                                    fontSize: '0.85rem',
-                                    '&:hover': { bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08) }
-                                }}
-                            >
-                                Create Component
-                            </Button>
+                            
                             <Button
                                 size="small"
                                 variant="text"
@@ -1104,25 +1086,6 @@ export function SalarySlipEditView({ id: propId }: Props) {
                             DEDUCTIONS
                         </Typography>
                         <Stack direction="row" spacing={1} alignItems="center">
-                            <Button
-                                size="small"
-                                variant="text"
-                                startIcon={<Iconify icon="solar:add-circle-bold" width={18} />}
-                                onClick={() => {
-                                    setComponentDialogType('Deduction');
-                                    setComponentInitialName('');
-                                    setTargetRowIndex(null);
-                                    setComponentDialogOpen(true);
-                                }}
-                                sx={{
-                                    color: '#e53935',
-                                    fontWeight: 700,
-                                    fontSize: '0.85rem',
-                                    '&:hover': { bgcolor: alpha('#e53935', 0.08) }
-                                }}
-                            >
-                                Create Component
-                            </Button>
                             <Button
                                 size="small"
                                 variant="text"
