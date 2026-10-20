@@ -522,12 +522,12 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
         const rawBalances: any[] = Array.isArray(slip?.leave_balances)
             ? slip.leave_balances
             : (() => {
-                  try {
-                      return JSON.parse(slip?.leave_details || '[]');
-                  } catch {
-                      return [];
-                  }
-              })();
+                try {
+                    return JSON.parse(slip?.leave_details || '[]');
+                } catch {
+                    return [];
+                }
+            })();
 
         const balances = (rawBalances || []).filter((item: any) => Boolean(item.is_encashable));
 
@@ -1089,7 +1089,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                     }}
                 >
                     <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, px: 1.5, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Iconify icon={"solar:wallet-money-bold" as any} width={18} />
                             Statutory Provisions & CTC
                         </Typography>
@@ -1099,6 +1099,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                     label={`Bonus Provision (${slip.bonus_provision_rate ?? hrSettings?.bonus_provision_rate ?? 8.33}%)`}
                                     amount={slip.bonus_provision || 0}
                                     hrSettings={hrSettings}
+                                    sx={{ px: 1.5 }}
                                 />
                             )}
                             {Number(slip.el_provision || 0) > 0 && (
@@ -1106,17 +1107,20 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                     label={`Earned Leave (EL) Provision (${slip.el_provision_days_per_year ?? hrSettings?.el_provision_days_per_year ?? 15.6}d/yr)`}
                                     amount={slip.el_provision || 0}
                                     hrSettings={hrSettings}
+                                    sx={{ px: 1.5 }}
                                 />
                             )}
                             <AmountRow
                                 label="Gross Salary (Employee)"
                                 amount={slip.gross_pay || 0}
                                 hrSettings={hrSettings}
+                                sx={{ px: 1.5 }}
                             />
                             <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
                             <Box
                                 sx={{
-                                    p: 2,
+                                    px: 1.5,
+                                    py: 1.25,
                                     borderRadius: 1.5,
                                     bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
                                     border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
@@ -1145,6 +1149,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                     label="Tea Expenses"
                                     amount={slip.tea_expenses || 0}
                                     hrSettings={hrSettings}
+                                    sx={{ px: 1.5 }}
                                 />
                             )}
                             {Number(slip.lunch_expenses || 0) > 0 && (
@@ -1156,6 +1161,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                     }
                                     amount={slip.lunch_expenses || 0}
                                     hrSettings={hrSettings}
+                                    sx={{ px: 1.5 }}
                                 />
                             )}
                         </Stack>
@@ -1164,7 +1170,8 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                     <Box
                         sx={{
                             mt: 2,
-                            p: 2,
+                            px: 1.5,
+                            py: 1.25,
                             borderRadius: 1.5,
                             bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
                             border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
@@ -1671,6 +1678,7 @@ function AmountRow({
     isTotal = false,
     color,
     hrSettings,
+    sx,
 }: {
     label: string;
     amount: number;
@@ -1678,10 +1686,11 @@ function AmountRow({
     isTotal?: boolean;
     color?: string;
     hrSettings: any;
+    sx?: any;
 }) {
     const hasStandard = standardAmount !== undefined && standardAmount !== null;
     return (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: isTotal ? 0.5 : 0.25 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: isTotal ? 0.5 : 0.25, ...sx }}>
             <Typography
                 variant={isTotal ? 'subtitle2' : 'body2'}
                 sx={{
