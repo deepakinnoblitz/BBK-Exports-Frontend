@@ -58,7 +58,7 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
 
 import { fetchSalaryComponents } from 'src/api/hr-management';
-import { fetchDepartments, fetchDesignations } from 'src/api/masters';
+import { fetchDepartments, fetchDesignations, fetchEmployeeTypes } from 'src/api/masters';
 
 import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
 
@@ -144,6 +144,11 @@ const SETTINGS_TABS = [
     label: 'Employer Statutory & CTC',
     icon: <LuBuilding2 size={19} />,
   },
+  {
+    value: 'lwf_rules',
+    label: 'Labour Welfare Fund (LWF)',
+    icon: <LuHeartPulse size={19} />,
+  },
 ];
 
 type CategoryKey = 'staff_ctc' | 'staff_non_ctc' | 'workers' | 'north_indian' | 'drivers' | 'general';
@@ -210,6 +215,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
   const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [designationOptions, setDesignationOptions] = useState<string[]>([]);
+  const [employeeTypes, setEmployeeTypes] = useState<string[]>([]);
 
   useEffect(() => {
     fetchSalaryComponents()
@@ -233,12 +239,44 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
         setDesignationOptions(list.map((d: any) => d.designation_name || d.name).filter(Boolean));
       })
       .catch((err) => console.error('Failed to load designations:', err));
+
+    fetchEmployeeTypes({ page_size: 100 })
+      .then((res: any) => {
+        const list = res?.data || (Array.isArray(res) ? res : []);
+        if (Array.isArray(list) && list.length > 0) {
+          setEmployeeTypes(list.map((et: any) => et.employee_type || et.name).filter(Boolean));
+        }
+      })
+      .catch((err) => console.error('Failed to load employee types for HRMS Settings:', err));
   }, []);
 
   const earningComponents = salaryComponents.filter((c) => c.type === 'Earning');
   const earningOptions = earningComponents.length > 0
     ? earningComponents.map((c) => c.component_name)
     : ['Basic Pay', 'DA', 'Other Allowance'];
+
+  const DEFAULT_EMPLOYEE_TYPES = [
+    'Staff - CTC',
+    'Staff - Non CTC',
+    'Workers',
+    'North Indian - CTC',
+    'North Indian - Non CTC',
+    'Drivers',
+    'House Keeping',
+    'Security',
+    'STP',
+    'Contractor',
+    'STP Employees',
+  ];
+
+  const allEmployeeTypeOptions = employeeTypes.length > 0
+    ? employeeTypes
+    : DEFAULT_EMPLOYEE_TYPES;
+
+  const allMasterComponents = salaryComponents.map((c) => c.component_name || c.name).filter(Boolean);
+  const allComponentOptions = allMasterComponents.length > 0
+    ? allMasterComponents
+    : ['Basic Pay', 'DA', 'HRA', 'Attendance Bonus', 'Tea Allowance', 'Other Allowances', 'Medical Allowances', 'Conveyance Allowances', 'Earned Leave', 'Bonus', 'Other Allowance', 'Basic Pay + DA'];
 
   // Helper to read category-specific value or fallback
   const getFieldVal = (cat: CategoryKey, baseField: string, fallbackDefault: any = '') => {
@@ -477,6 +515,54 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       }
     }
     return earningOptions;
+  };
+
+  const getSelectedLwfComponents = (): string[] => {
+    const rawVal = data.lwf_wage_basis;
+    if (rawVal === undefined || rawVal === null || rawVal === '') return ['Gross Pay'];
+    if (Array.isArray(rawVal)) return rawVal;
+    if (typeof rawVal === 'string') {
+      try {
+        const parsed = JSON.parse(rawVal);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        if (rawVal.includes(',')) {
+          return rawVal.split(',').map((s: string) => s.trim()).filter(Boolean);
+        }
+        return [rawVal];
+      }
+    }
+    return ['Gross Pay'];
+  };
+
+  const getSelectedLwfCategories = (): string[] => {
+    const rawVal = data.lwf_applicable_categories;
+    if (rawVal === undefined || rawVal === null || rawVal === '') return allEmployeeTypeOptions;
+    let list: string[] = [];
+    if (Array.isArray(rawVal)) {
+      list = rawVal;
+    } else if (typeof rawVal === 'string') {
+      try {
+        const parsed = JSON.parse(rawVal);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch {
+        if (rawVal.includes(',')) {
+          list = rawVal.split(',').map((s: string) => s.trim()).filter(Boolean);
+        } else {
+          list = [rawVal];
+        }
+      }
+    }
+
+    const legacyMap: Record<string, string> = {
+      staff_ctc: 'Staff - CTC',
+      staff_non_ctc: 'Staff - Non CTC',
+      workers: 'Workers',
+      north_indian: 'North Indian - CTC',
+      drivers: 'Drivers',
+    };
+
+    return list.map((item) => legacyMap[item] || item);
   };
 
   // Common Accordion Wrapper
@@ -2489,6 +2575,558 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             );
           })}
         </Box>
+        )}
+      </Box>
+
+      {/* Tab Panel 6: Labour Welfare Fund (LWF) Rules */}
+      <Box sx={{ display: currentTab === 'lwf_rules' ? 'block' : 'none' }}>
+        {visitedTabs.lwf_rules && (
+          <Stack spacing={3}>
+            {/* Master Control Card */}
+            <Card sx={{ p: 3, border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: 2 }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
+                <Box>
+                  <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 0.5 }}>
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 1.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                        color: 'primary.main',
+                      }}
+                    >
+                      <LuHeartPulse size={22} />
+                    </Box>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Tamil Nadu Labour Welfare Fund (LWF)
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        Under the Tamil Nadu Labour Welfare Fund Act, 1972 (Administered by TN Labour Welfare Board)
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: 700,
+                      color: isCheckEnabled(data.enable_lwf ?? 1) ? '#059669' : 'text.secondary',
+                    }}
+                  >
+                    {isCheckEnabled(data.enable_lwf ?? 1) ? 'LWF Calculation Active' : 'Disabled'}
+                  </Typography>
+                  <CustomSwitch
+                    checked={isCheckEnabled(data.enable_lwf ?? 1)}
+                    onChange={(e) => onChange('enable_lwf', e.target.checked ? 1 : 0)}
+                  />
+                </Stack>
+              </Stack>
+
+              <Divider sx={{ mb: 3 }} />
+
+              {/* Statutory Contributions Summary Banner */}
+              <Box
+                sx={{
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                  border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+                  mb: 3,
+                }}
+              >
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1.5, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}>
+                        Employee Deduction
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'error.main', mt: 0.5 }}>
+                        ₹{data.lwf_employee_contribution ?? '20'} <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>/ year</Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                        Deducted from employee salary in configured month.
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1.5, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}>
+                        Employer Contribution
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'info.main', mt: 0.5 }}>
+                        ₹{data.lwf_employer_contribution ?? '40'} <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>/ year</Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                        Company statutory expense; added to CTC (₹0 impact on Net Pay).
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1.5, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}>
+                        Total Remittance to Board
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main', mt: 0.5 }}>
+                        ₹{Number(data.lwf_employee_contribution ?? 20) + Number(data.lwf_employer_contribution ?? 40)} <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>/ employee</Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                        Remitted to TN Labour Welfare Board by {data.lwf_remittance_deadline || '31st January'}.
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* Policy Inputs Grid */}
+              <Grid container spacing={2.5}>
+                {/* State / Governing Board */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="State / Governing Board"
+                    value={data.lwf_state ?? 'Tamil Nadu'}
+                    onChange={(e) => onChange('lwf_state', e.target.value)}
+                    helperText="Governing Labour Welfare Act"
+                  />
+                </Grid>
+
+                {/* Deduction Month */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth>
+                    <InputLabel id="lwf-deduction-month-label">Deduction Month</InputLabel>
+                    <Select
+                      labelId="lwf-deduction-month-label"
+                      value={data.lwf_deduction_month ?? 'December'}
+                      label="Deduction Month"
+                      onChange={(e) => onChange('lwf_deduction_month', e.target.value)}
+                    >
+                      {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((m) => (
+                        <MenuItem key={m} value={m}>{m}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* Deduction Frequency */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth>
+                    <InputLabel id="lwf-frequency-label">Contribution Frequency</InputLabel>
+                    <Select
+                      labelId="lwf-frequency-label"
+                      value={data.lwf_deduction_frequency ?? 'Annual (Once per Year)'}
+                      label="Contribution Frequency"
+                      onChange={(e) => onChange('lwf_deduction_frequency', e.target.value)}
+                    >
+                      <MenuItem value="Annual (Once per Year)">Annual (Once per Year)</MenuItem>
+                      <MenuItem value="Monthly">Monthly</MenuItem>
+                      <MenuItem value="Half-Yearly">Half-Yearly</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* Remittance Deadline */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="Remittance Deadline"
+                    value={data.lwf_remittance_deadline ?? '31st January'}
+                    onChange={(e) => onChange('lwf_remittance_deadline', e.target.value)}
+                    helperText="Statutory payment deadline"
+                  />
+                </Grid>
+
+                {/* Employee Contribution */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Employee Contribution (₹)"
+                    value={data.lwf_employee_contribution ?? '20'}
+                    onChange={(e) => onChange('lwf_employee_contribution', e.target.value)}
+                    helperText="Deducted from salary (default ₹20)"
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, step: 1 },
+                    }}
+                  />
+                </Grid>
+
+                {/* Employer Contribution */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Employer Contribution (₹)"
+                    value={data.lwf_employer_contribution ?? '40'}
+                    onChange={(e) => onChange('lwf_employer_contribution', e.target.value)}
+                    helperText="Company contribution to CTC (default ₹40)"
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, step: 1 },
+                    }}
+                  />
+                </Grid>
+
+                {/* Government Contribution */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Govt Contribution (₹)"
+                    value={data.lwf_govt_contribution ?? '20'}
+                    onChange={(e) => onChange('lwf_govt_contribution', e.target.value)}
+                    helperText="For compliance audit reporting (default ₹20)"
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, step: 1 },
+                    }}
+                  />
+                </Grid>
+
+                {/* Salary Eligibility Ceiling */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Gross Salary Ceiling (₹)"
+                    value={data.lwf_salary_ceiling ?? '25000'}
+                    onChange={(e) => onChange('lwf_salary_ceiling', e.target.value)}
+                    helperText="Exempt if gross exceeds this amount. Set 0 for no limit."
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, step: 500 },
+                    }}
+                  />
+                </Grid>
+              </Grid>
+
+              <Grid container spacing={3} sx={{ mt: 1 }}>
+                {/* 1. LWF Wage Basis Components */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Box sx={{ width: '100%', p: 2.5, bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04), borderRadius: 2, border: (theme) => `1px dashed ${theme.palette.divider}` }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                        LWF Wage Basis Components
+                      </Typography>
+                      <Stack direction="row" spacing={0.6} alignItems="center">
+                        <Button
+                          size="small"
+                          variant={getSelectedLwfComponents().length === 1 && getSelectedLwfComponents()[0] === 'Gross Pay' ? 'contained' : 'outlined'}
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_wage_basis', JSON.stringify(['Gross Pay']))}
+                          sx={{
+                            fontSize: '0.72rem',
+                            py: 0.1,
+                            px: 0.8,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            height: 22,
+                            borderRadius: '4px',
+                            ...(getSelectedLwfComponents().length === 1 && getSelectedLwfComponents()[0] === 'Gross Pay'
+                              ? { bgcolor: '#00875a', color: '#fff', '&:hover': { bgcolor: '#00704a' } }
+                              : { color: 'text.secondary', borderColor: 'divider' }),
+                          }}
+                        >
+                          Gross Pay
+                        </Button>
+                        <Button
+                          size="small"
+                          variant={getSelectedLwfComponents().length === 1 && getSelectedLwfComponents()[0] === 'Net Pay' ? 'contained' : 'outlined'}
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_wage_basis', JSON.stringify(['Net Pay']))}
+                          sx={{
+                            fontSize: '0.72rem',
+                            py: 0.1,
+                            px: 0.8,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            height: 22,
+                            borderRadius: '4px',
+                            ...(getSelectedLwfComponents().length === 1 && getSelectedLwfComponents()[0] === 'Net Pay'
+                              ? { bgcolor: '#0284c7', color: '#fff', '&:hover': { bgcolor: '#0369a1' } }
+                              : { color: 'text.secondary', borderColor: 'divider' }),
+                          }}
+                        >
+                          Net Pay
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="text"
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_wage_basis', JSON.stringify(allComponentOptions))}
+                          sx={{ fontSize: '0.75rem', py: 0.2, px: 0.6, textTransform: 'none', color: '#059669', fontWeight: 600 }}
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="text"
+                          color="inherit"
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_wage_basis', JSON.stringify([]))}
+                          sx={{ fontSize: '0.75rem', py: 0.2, px: 0.6, textTransform: 'none', color: 'text.secondary' }}
+                        >
+                          Clear
+                        </Button>
+                      </Stack>
+                    </Stack>
+
+                    <Autocomplete
+                      multiple
+                      disableCloseOnSelect
+                      disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                      options={['Gross Pay', 'Net Pay', 'All Components', ...allComponentOptions]}
+                      value={getSelectedLwfComponents()}
+                      onChange={(_event, newValue) => {
+                        // If user clicked 'Gross Pay'
+                        const justAddedGross = newValue.includes('Gross Pay') && !getSelectedLwfComponents().includes('Gross Pay');
+                        if (justAddedGross) {
+                          onChange('lwf_wage_basis', JSON.stringify(['Gross Pay']));
+                          return;
+                        }
+                        // If user clicked 'Net Pay'
+                        const justAddedNet = newValue.includes('Net Pay') && !getSelectedLwfComponents().includes('Net Pay');
+                        if (justAddedNet) {
+                          onChange('lwf_wage_basis', JSON.stringify(['Net Pay']));
+                          return;
+                        }
+                        // If user clicked 'All Components'
+                        if (newValue.includes('All Components')) {
+                          const currentSelected = getSelectedLwfComponents().filter((c) => c !== 'Gross Pay' && c !== 'Net Pay');
+                          const wasAll = currentSelected.length >= allComponentOptions.length;
+                          if (wasAll) {
+                            onChange('lwf_wage_basis', JSON.stringify([]));
+                          } else {
+                            onChange('lwf_wage_basis', JSON.stringify(allComponentOptions));
+                          }
+                          return;
+                        }
+                        // Filter out meta tags from component selections
+                        onChange('lwf_wage_basis', JSON.stringify(newValue.filter((v) => v !== 'All Components' && v !== 'Gross Pay' && v !== 'Net Pay')));
+                      }}
+                      renderOption={(props, option) => {
+                        const selectedComps = getSelectedLwfComponents();
+                        const isGrossOption = option === 'Gross Pay';
+                        const isNetOption = option === 'Net Pay';
+                        const isAllOption = option === 'All Components';
+                        const isAllSelected = selectedComps.length > 0 && selectedComps.length >= allComponentOptions.length && !selectedComps.includes('Gross Pay') && !selectedComps.includes('Net Pay');
+
+                        let isChecked = false;
+                        let isIndeterminate = false;
+
+                        if (isGrossOption) {
+                          isChecked = selectedComps.includes('Gross Pay');
+                        } else if (isNetOption) {
+                          isChecked = selectedComps.includes('Net Pay');
+                        } else if (isAllOption) {
+                          isChecked = isAllSelected;
+                          isIndeterminate = selectedComps.length > 0 && selectedComps.length < allComponentOptions.length && !selectedComps.includes('Gross Pay') && !selectedComps.includes('Net Pay');
+                        } else {
+                          isChecked = selectedComps.includes(option);
+                        }
+
+                        return (
+                          <li {...props} key={option}>
+                            <Checkbox
+                              size="small"
+                              checked={isChecked}
+                              indeterminate={isIndeterminate}
+                              sx={{ mr: 1, p: 0.5 }}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: (isGrossOption || isNetOption || isAllOption) ? 700 : 400,
+                                color: isGrossOption ? '#00875a' : isNetOption ? '#0284c7' : isAllOption ? 'primary.main' : 'inherit',
+                              }}
+                            >
+                              {option}
+                            </Typography>
+                          </li>
+                        );
+                      }}
+                      renderTags={(tagValue, getTagProps) =>
+                        tagValue.filter((option) => option !== 'All Components').map((option, index) => {
+                          const isGross = option === 'Gross Pay';
+                          const isNet = option === 'Net Pay';
+                          return (
+                            <Chip
+                              label={option}
+                              size="small"
+                              {...getTagProps({ index })}
+                              key={option}
+                              sx={{
+                                borderRadius: '6px',
+                                bgcolor: isGross ? '#00875a' : isNet ? '#0284c7' : (theme) => alpha(theme.palette.primary.main, 0.1),
+                                color: (isGross || isNet) ? '#ffffff' : 'primary.dark',
+                                fontWeight: 600,
+                                fontSize: '0.75rem',
+                                height: 24,
+                                '& .MuiChip-deleteIcon': (isGross || isNet) ? {
+                                  color: 'rgba(255, 255, 255, 0.7)',
+                                  '&:hover': { color: '#ffffff' },
+                                } : undefined,
+                              }}
+                            />
+                          );
+                        })
+                      }
+                      renderInput={(params) => {
+                        const selected = getSelectedLwfComponents();
+                        const isGross = selected.length === 1 && selected[0] === 'Gross Pay';
+                        const isNet = selected.length === 1 && selected[0] === 'Net Pay';
+                        const count = selected.length;
+                        const isAll = count > 0 && count >= allComponentOptions.length && !isGross && !isNet;
+
+                        let helperMsg = "When empty, full Gross Salary is used as wage basis.";
+                        if (isGross) {
+                          helperMsg = "Wage basis uses total Gross Pay for LWF ceiling check (<= ₹25,000).";
+                        } else if (isNet) {
+                          helperMsg = "Wage basis uses total Net Pay for LWF ceiling check (<= ₹25,000).";
+                        } else if (isAll) {
+                          helperMsg = `All ${count} salary components included in LWF wage basis calculation.`;
+                        } else if (count > 0) {
+                          helperMsg = `Wage basis includes sum of ${count} selected component(s).`;
+                        }
+
+                        return (
+                          <TextField
+                            {...params}
+                            placeholder={count === 0 ? "Select Gross Pay, Net Pay, or components" : ""}
+                            helperText={helperMsg}
+                          />
+                        );
+                      }}
+                    />
+                  </Box>
+                </Grid>
+
+                {/* 2. Covered Employee Types from Masters */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Box sx={{ width: '100%', p: 2.5, bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04), borderRadius: 2, border: (theme) => `1px dashed ${theme.palette.divider}` }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                        Covered Employee Types
+                      </Typography>
+                      <Stack direction="row" spacing={0.5}>
+                        <Button
+                          size="small"
+                          variant="text"
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_applicable_categories', JSON.stringify(allEmployeeTypeOptions))}
+                          sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: '#059669', fontWeight: 600 }}
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="text"
+                          color="inherit"
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_applicable_categories', JSON.stringify([]))}
+                          sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: 'text.secondary' }}
+                        >
+                          Clear
+                        </Button>
+                      </Stack>
+                    </Stack>
+
+                    <Autocomplete
+                      multiple
+                      disableCloseOnSelect
+                      disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                      options={['All Employee Types', ...allEmployeeTypeOptions]}
+                      value={getSelectedLwfCategories()}
+                      onChange={(_event, newValue) => {
+                        if (newValue.includes('All Employee Types')) {
+                          const currentSelected = getSelectedLwfCategories();
+                          const wasAll = currentSelected.length >= allEmployeeTypeOptions.length;
+                          if (wasAll) {
+                            onChange('lwf_applicable_categories', JSON.stringify([]));
+                          } else {
+                            onChange('lwf_applicable_categories', JSON.stringify(allEmployeeTypeOptions));
+                          }
+                        } else {
+                          onChange('lwf_applicable_categories', JSON.stringify(newValue.filter((v) => v !== 'All Employee Types')));
+                        }
+                      }}
+                      renderOption={(props, option) => {
+                        const selectedCats = getSelectedLwfCategories();
+                        const isAllOption = option === 'All Employee Types';
+                        const isAllSelected = selectedCats.length > 0 && selectedCats.length >= allEmployeeTypeOptions.length;
+                        const isChecked = isAllOption ? isAllSelected : selectedCats.includes(option);
+                        const isIndeterminate = isAllOption && selectedCats.length > 0 && selectedCats.length < allEmployeeTypeOptions.length;
+
+                        return (
+                          <li {...props} key={option}>
+                            <Checkbox
+                              size="small"
+                              checked={isChecked}
+                              indeterminate={isIndeterminate}
+                              sx={{ mr: 1, p: 0.5 }}
+                            />
+                            <Typography variant="body2" sx={{ fontWeight: isAllOption ? 700 : 400, color: isAllOption ? 'primary.main' : 'inherit' }}>
+                              {option}
+                            </Typography>
+                          </li>
+                        );
+                      }}
+                      renderTags={(tagValue, getTagProps) =>
+                        tagValue.filter((option) => option !== 'All Employee Types').map((option, index) => (
+                          <Chip
+                            label={option}
+                            size="small"
+                            {...getTagProps({ index })}
+                            key={option}
+                            sx={{
+                              borderRadius: '6px',
+                              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                              color: 'primary.dark',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              height: 24,
+                            }}
+                          />
+                        ))
+                      }
+                      renderInput={(params) => {
+                        const selected = getSelectedLwfCategories();
+                        const count = selected.length;
+                        const isAll = count > 0 && count >= allEmployeeTypeOptions.length;
+                        return (
+                          <TextField
+                            {...params}
+                            placeholder={count === 0 ? "Select employee types eligible for LWF" : ""}
+                            helperText={
+                              isAll
+                                ? `LWF applies to all ${count} employee types in Masters.`
+                                : `LWF applies to ${count} selected employee type(s). Unchecked types are exempt.`
+                            }
+                          />
+                        );
+                      }}
+                    />
+                  </Box>
+                </Grid>
+              </Grid>
+            </Card>
+          </Stack>
         )}
       </Box>
     </Stack>

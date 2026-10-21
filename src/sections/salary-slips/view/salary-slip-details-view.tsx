@@ -1062,7 +1062,14 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 hrSettings={hrSettings}
                             />
                         )}
-                        {(!Number(slip.employer_pf || 0) && !Number(slip.pf_admin_charges || 0) && !Number(slip.edli_charges || 0) && !Number(slip.employer_esi || 0)) && (
+                        {Number(slip.employer_lwf || 0) > 0 && (
+                            <AmountRow
+                                label="Employer LWF Contribution"
+                                amount={slip.employer_lwf || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {(!Number(slip.employer_pf || 0) && !Number(slip.pf_admin_charges || 0) && !Number(slip.edli_charges || 0) && !Number(slip.employer_esi || 0) && !Number(slip.employer_lwf || 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No employer contributions
                             </Typography>
@@ -1070,7 +1077,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
                         <AmountRow
                             label="Total Employer Contribution"
-                            amount={((Number(slip.employer_pf) || 0) + (Number(slip.pf_admin_charges) || 0) + (Number(slip.edli_charges) || 0) + (Number(slip.employer_esi) || 0))}
+                            amount={Number(slip.total_employer_contribution) || ((Number(slip.employer_pf) || 0) + (Number(slip.pf_admin_charges) || 0) + (Number(slip.edli_charges) || 0) + (Number(slip.employer_esi) || 0) + (Number(slip.employer_lwf) || 0))}
                             isTotal
                             color="info.main"
                             hrSettings={hrSettings}

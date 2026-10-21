@@ -582,7 +582,14 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                 hrSettings={hrSettings}
                             />
                         )}
-                        {(!Number(data.employer_pf || 0) && !Number(data.pf_admin_charges || 0) && !Number(data.edli_charges || 0) && !Number(data.employer_esi || 0)) && (
+                        {Number(data.employer_lwf || 0) > 0 && (
+                            <AmountRow
+                                label="Employer LWF Contribution"
+                                amount={data.employer_lwf || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {(!Number(data.employer_pf || 0) && !Number(data.pf_admin_charges || 0) && !Number(data.edli_charges || 0) && !Number(data.employer_esi || 0) && !Number(data.employer_lwf || 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No employer contributions
                             </Typography>
@@ -590,7 +597,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
                         <AmountRow
                             label="Total Employer Contribution"
-                            amount={((Number(data.employer_pf) || 0) + (Number(data.pf_admin_charges) || 0) + (Number(data.edli_charges) || 0) + (Number(data.employer_esi) || 0))}
+                            amount={Number(data.total_employer_contribution) || ((Number(data.employer_pf) || 0) + (Number(data.pf_admin_charges) || 0) + (Number(data.edli_charges) || 0) + (Number(data.employer_esi) || 0) + (Number(data.employer_lwf) || 0))}
                             isTotal
                             color="info.main"
                             hrSettings={hrSettings}
