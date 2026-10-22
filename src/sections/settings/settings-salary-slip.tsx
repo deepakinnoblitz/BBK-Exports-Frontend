@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { useState, useEffect, startTransition } from 'react';
 import { 
   LuCar, 
@@ -53,9 +54,12 @@ import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 import TableContainer from '@mui/material/TableContainer';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { fetchSalaryComponents } from 'src/api/hr-management';
 import { fetchDepartments, fetchDesignations, fetchEmployeeTypes } from 'src/api/masters';
@@ -118,6 +122,28 @@ const DEFAULT_PT_SLABS: PTSlabItem[] = [
   { from_amount: 75001, to_amount: null, tax_amount: 1250 },
 ];
 
+export interface TDSSlabItem {
+  from_amount: number;
+  to_amount: number | null;
+  rate_percent: number;
+}
+
+const DEFAULT_TDS_NEW_SLABS: TDSSlabItem[] = [
+  { from_amount: 0, to_amount: 300000, rate_percent: 0 },
+  { from_amount: 300001, to_amount: 700000, rate_percent: 5 },
+  { from_amount: 700001, to_amount: 1000000, rate_percent: 10 },
+  { from_amount: 1000001, to_amount: 1200000, rate_percent: 15 },
+  { from_amount: 1200001, to_amount: 1500000, rate_percent: 20 },
+  { from_amount: 1500001, to_amount: null, rate_percent: 30 },
+];
+
+const DEFAULT_TDS_OLD_SLABS: TDSSlabItem[] = [
+  { from_amount: 0, to_amount: 250000, rate_percent: 0 },
+  { from_amount: 250001, to_amount: 500000, rate_percent: 5 },
+  { from_amount: 500001, to_amount: 1000000, rate_percent: 20 },
+  { from_amount: 1000001, to_amount: null, rate_percent: 30 },
+];
+
 const SETTINGS_TABS = [
   {
     value: 'salary_rules',
@@ -148,6 +174,11 @@ const SETTINGS_TABS = [
     value: 'lwf_rules',
     label: 'Labour Welfare Fund (LWF)',
     icon: <LuHeartPulse size={19} />,
+  },
+  {
+    value: 'tds_rules',
+    label: 'TDS (Income Tax) Rules',
+    icon: <LuCalculator size={19} />,
   },
 ];
 
@@ -254,6 +285,11 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
   const earningOptions = earningComponents.length > 0
     ? earningComponents.map((c) => c.component_name)
     : ['Basic Pay', 'DA', 'Other Allowance'];
+
+  const deductionComponents = salaryComponents.filter((c) => c.type === 'Deduction');
+  const deductionOptions = deductionComponents.length > 0
+    ? Array.from(new Set(['TDS', ...deductionComponents.map((c) => c.component_name || c.name).filter(Boolean)]))
+    : ['TDS', 'PF', 'Prof.Tax', 'LWF', 'ESI/Health Insurance', 'Loan Recovery', 'Canteen', 'Uniform', 'ADV'];
 
   const DEFAULT_EMPLOYEE_TYPES = [
     'Staff - CTC',
@@ -563,6 +599,124 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
     };
 
     return list.map((item) => legacyMap[item] || item);
+  };
+
+  // TDS Slabs Handlers
+  const getParsedTdsNewSlabs = (): TDSSlabItem[] => {
+    const rawSlabs = data.tds_new_regime_slabs;
+    if (!rawSlabs) return DEFAULT_TDS_NEW_SLABS;
+    if (Array.isArray(rawSlabs)) return rawSlabs;
+    try {
+      const parsed = typeof rawSlabs === 'string' ? JSON.parse(rawSlabs) : rawSlabs;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // ignore
+    }
+    return DEFAULT_TDS_NEW_SLABS;
+  };
+
+  const handleUpdateTdsNewSlab = (index: number, field: keyof TDSSlabItem, val: any) => {
+    const currentSlabs = getParsedTdsNewSlabs();
+    const updated = currentSlabs.map((item, i) => {
+      if (i === index) {
+        let parsedVal: any = val;
+        if (field === 'to_amount') {
+          parsedVal = val === '' || val === null || val === undefined ? null : Number(val);
+        } else {
+          parsedVal = val === '' ? 0 : Number(val);
+        }
+        return { ...item, [field]: parsedVal };
+      }
+      return item;
+    });
+    onChange('tds_new_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleAddTdsNewSlab = () => {
+    const currentSlabs = getParsedTdsNewSlabs();
+    const last = currentSlabs[currentSlabs.length - 1];
+    const nextFrom = last && last.to_amount != null ? Number(last.to_amount) + 1 : 0;
+    const updated = [...currentSlabs, { from_amount: nextFrom, to_amount: null, rate_percent: 0 }];
+    onChange('tds_new_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleRemoveTdsNewSlab = (index: number) => {
+    const currentSlabs = getParsedTdsNewSlabs();
+    const updated = currentSlabs.filter((_, i) => i !== index);
+    onChange('tds_new_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleResetTdsNewSlabs = () => {
+    onChange('tds_new_regime_slabs', JSON.stringify(DEFAULT_TDS_NEW_SLABS));
+  };
+
+  const getParsedTdsOldSlabs = (): TDSSlabItem[] => {
+    const rawSlabs = data.tds_old_regime_slabs;
+    if (!rawSlabs) return DEFAULT_TDS_OLD_SLABS;
+    if (Array.isArray(rawSlabs)) return rawSlabs;
+    try {
+      const parsed = typeof rawSlabs === 'string' ? JSON.parse(rawSlabs) : rawSlabs;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // ignore
+    }
+    return DEFAULT_TDS_OLD_SLABS;
+  };
+
+  const handleUpdateTdsOldSlab = (index: number, field: keyof TDSSlabItem, val: any) => {
+    const currentSlabs = getParsedTdsOldSlabs();
+    const updated = currentSlabs.map((item, i) => {
+      if (i === index) {
+        let parsedVal: any = val;
+        if (field === 'to_amount') {
+          parsedVal = val === '' || val === null || val === undefined ? null : Number(val);
+        } else {
+          parsedVal = val === '' ? 0 : Number(val);
+        }
+        return { ...item, [field]: parsedVal };
+      }
+      return item;
+    });
+    onChange('tds_old_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleAddTdsOldSlab = () => {
+    const currentSlabs = getParsedTdsOldSlabs();
+    const last = currentSlabs[currentSlabs.length - 1];
+    const nextFrom = last && last.to_amount != null ? Number(last.to_amount) + 1 : 0;
+    const updated = [...currentSlabs, { from_amount: nextFrom, to_amount: null, rate_percent: 0 }];
+    onChange('tds_old_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleRemoveTdsOldSlab = (index: number) => {
+    const currentSlabs = getParsedTdsOldSlabs();
+    const updated = currentSlabs.filter((_, i) => i !== index);
+    onChange('tds_old_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleResetTdsOldSlabs = () => {
+    onChange('tds_old_regime_slabs', JSON.stringify(DEFAULT_TDS_OLD_SLABS));
+  };
+
+  const getSelectedTdsCategories = (): string[] => {
+    const rawVal = data.tds_applicable_categories;
+    if (rawVal === undefined || rawVal === null || rawVal === '') return allEmployeeTypeOptions;
+    let list: string[] = [];
+    if (Array.isArray(rawVal)) {
+      list = rawVal;
+    } else if (typeof rawVal === 'string') {
+      try {
+        const parsed = JSON.parse(rawVal);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch {
+        if (rawVal.includes(',')) {
+          list = rawVal.split(',').map((s: string) => s.trim()).filter(Boolean);
+        } else {
+          list = [rawVal];
+        }
+      }
+    }
+    return list;
   };
 
   // Common Accordion Wrapper
@@ -3125,6 +3279,577 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   </Box>
                 </Grid>
               </Grid>
+            </Card>
+          </Stack>
+        )}
+      </Box>
+
+      {/* Tab Panel 7: TDS (Income Tax) Rules */}
+      <Box sx={{ display: currentTab === 'tds_rules' ? 'block' : 'none' }}>
+        {visitedTabs.tds_rules && (
+          <Stack spacing={3}>
+            {/* Master Header Card */}
+            <Card sx={{ p: 3.5, borderRadius: 3 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'primary.main',
+                    }}
+                  >
+                    <LuCalculator size={26} />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      Salary TDS (Tax Deducted at Source) Policies
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      Configurable annual income tax computation & monthly payroll TDS deduction under Section 192
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: 700,
+                      color: isCheckEnabled(data.enable_tds ?? 1) ? '#059669' : 'text.secondary',
+                    }}
+                  >
+                    {isCheckEnabled(data.enable_tds ?? 1) ? 'TDS Deductions Active' : 'TDS Disabled'}
+                  </Typography>
+                  <CustomSwitch
+                    checked={isCheckEnabled(data.enable_tds ?? 1)}
+                    onChange={(e) => onChange('enable_tds', e.target.checked ? 1 : 0)}
+                  />
+                </Stack>
+              </Stack>
+
+              <Divider sx={{ mb: 3 }} />
+
+              {/* Company Tax Identifiers & General Settings */}
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>
+                1. Company Statutory Tax Profile & Global Defaults
+              </Typography>
+              <Grid container spacing={2.5}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="Company TAN Number"
+                    value={data.tds_tan || ''}
+                    onChange={(e) => onChange('tds_tan', e.target.value.toUpperCase())}
+                    placeholder="e.g. CHNB12345E"
+                    helperText="10-digit Tax Deduction Account Number"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="Company PAN"
+                    value={data.tds_pan || ''}
+                    onChange={(e) => onChange('tds_pan', e.target.value.toUpperCase())}
+                    placeholder="e.g. AABCB1234E"
+                    helperText="Corporate Permanent Account Number"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth disabled={!isCheckEnabled(data.enable_tds ?? 1)}>
+                    <InputLabel id="tds_active_fy_label">Active Financial Year</InputLabel>
+                    <Select
+                      labelId="tds_active_fy_label"
+                      value={data.tds_active_financial_year || '2026-2027'}
+                      label="Active Financial Year"
+                      onChange={(e) => onChange('tds_active_financial_year', e.target.value)}
+                    >
+                      <MenuItem value="2026-2027">FY 2026–2027 (Current)</MenuItem>
+                      <MenuItem value="2025-2026">FY 2025–2026</MenuItem>
+                      <MenuItem value="2024-2025">FY 2024–2025</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth disabled={!isCheckEnabled(data.enable_tds ?? 1)}>
+                    <InputLabel id="tds_default_regime_label">Default Tax Regime</InputLabel>
+                    <Select
+                      labelId="tds_default_regime_label"
+                      value={data.tds_default_regime || 'New Tax Regime u/s 115BAC'}
+                      label="Default Tax Regime"
+                      onChange={(e) => onChange('tds_default_regime', e.target.value)}
+                    >
+                      <MenuItem value="New Tax Regime u/s 115BAC">New Tax Regime u/s 115BAC (Default)</MenuItem>
+                      <MenuItem value="Old Tax Regime">Old Tax Regime</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+
+              <Grid container spacing={2.5} sx={{ mt: 1 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Health & Education Cess (%)"
+                    value={data.tds_cess_rate ?? '4.0'}
+                    onChange={(e) => onChange('tds_cess_rate', e.target.value)}
+                    helperText="Standard statutory cess on tax liability (default 4%)"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    slotProps={{
+                      input: {
+                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, max: 20, step: 0.1 },
+                    }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Autocomplete
+                    freeSolo
+                    options={deductionOptions}
+                    value={data.tds_deduction_component || 'TDS'}
+                    onChange={(_event, newValue) => {
+                      onChange('tds_deduction_component', newValue || 'TDS');
+                    }}
+                    onInputChange={(_event, newInputValue) => {
+                      if (newInputValue !== undefined) {
+                        onChange('tds_deduction_component', newInputValue);
+                      }
+                    }}
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        label="TDS Salary Component"
+                        helperText="Salary Structure deduction item for payroll deduction"
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      label="Investment Proof Cutoff Date"
+                      value={data.tds_lock_declarations_date ? dayjs(data.tds_lock_declarations_date) : null}
+                      onChange={(newVal) => {
+                        onChange('tds_lock_declarations_date', newVal && newVal.isValid() ? newVal.format('YYYY-MM-DD') : '');
+                      }}
+                      format="DD-MM-YYYY"
+                      disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          helperText: 'Cutoff for employee investment submissions',
+                          InputLabelProps: { shrink: true },
+                        },
+                      }}
+                    />
+                  </LocalizationProvider>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* Standard Deductions & Section 87A Rebate */}
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>
+                2. Standard Deductions & Section 87A Rebates
+              </Typography>
+              <Grid container spacing={2.5}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Std Deduction - New Regime (₹)"
+                    value={data.tds_standard_deduction_new ?? '75000'}
+                    onChange={(e) => onChange('tds_standard_deduction_new', e.target.value)}
+                    helperText="Statutory deduction for New Regime (default ₹75,000)"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    slotProps={{
+                      input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> },
+                      htmlInput: { min: 0, step: 1000 },
+                    }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Std Deduction - Old Regime (₹)"
+                    value={data.tds_standard_deduction_old ?? '50000'}
+                    onChange={(e) => onChange('tds_standard_deduction_old', e.target.value)}
+                    helperText="Statutory deduction for Old Regime (default ₹50,000)"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    slotProps={{
+                      input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> },
+                      htmlInput: { min: 0, step: 1000 },
+                    }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="87A Rebate Threshold - New Regime (₹)"
+                    value={data.tds_rebate_limit_87a_new ?? '700000'}
+                    onChange={(e) => onChange('tds_rebate_limit_87a_new', e.target.value)}
+                    helperText="Full tax rebate if net taxable <= threshold (default ₹7,00,000)"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    slotProps={{
+                      input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> },
+                      htmlInput: { min: 0, step: 10000 },
+                    }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="87A Rebate Threshold - Old Regime (₹)"
+                    value={data.tds_rebate_limit_87a_old ?? '500000'}
+                    onChange={(e) => onChange('tds_rebate_limit_87a_old', e.target.value)}
+                    helperText="Full tax rebate if net taxable <= threshold (default ₹5,00,000)"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    slotProps={{
+                      input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> },
+                      htmlInput: { min: 0, step: 10000 },
+                    }}
+                  />
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* 3. Configurable Tax Slabs */}
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>
+                3. Statutory Income Tax Slabs (Configurable by Financial Year)
+              </Typography>
+              <Grid container spacing={3}>
+                {/* New Tax Regime Slabs */}
+                <Grid size={{ xs: 12, lg: 6 }}>
+                  <Box sx={{ p: 2.5, bgcolor: (theme) => alpha(theme.palette.grey[500], 0.03), borderRadius: 2, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+                      <Box>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Chip label="Default" size="small" color="primary" sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }} />
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            New Tax Regime u/s 115BAC Slabs
+                          </Typography>
+                        </Stack>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                          Standard default statutory slabs for FY 2026–27
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                          onClick={handleAddTdsNewSlab}
+                          startIcon={<LuCirclePlus size={14} />}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0.2 }}
+                        >
+                          Add Tier
+                        </Button>
+                        <Button
+                          size="small"
+                          color="inherit"
+                          disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                          onClick={handleResetTdsNewSlabs}
+                          startIcon={<LuRotateCcw size={14} />}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0.2 }}
+                        >
+                          Reset
+                        </Button>
+                      </Stack>
+                    </Stack>
+
+                    <TableContainer sx={{ border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: 1.5, bgcolor: 'background.paper' }}>
+                      <Table size="small">
+                        <TableHead sx={{ bgcolor: (theme) => alpha(theme.palette.grey[500], 0.05) }}>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>From (₹)</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>To (₹)</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Rate (%)</TableCell>
+                            <TableCell align="center" sx={{ width: 48, fontWeight: 700, fontSize: '0.75rem' }}>Action</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {getParsedTdsNewSlabs().map((slab, sIdx) => (
+                            <TableRow key={sIdx} hover>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={slab.from_amount}
+                                  onChange={(e) => handleUpdateTdsNewSlab(sIdx, 'from_amount', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{ htmlInput: { style: { fontSize: '0.8rem', padding: '4px 8px' } } }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  placeholder="Above"
+                                  value={slab.to_amount === null ? '' : slab.to_amount}
+                                  onChange={(e) => handleUpdateTdsNewSlab(sIdx, 'to_amount', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{ htmlInput: { style: { fontSize: '0.8rem', padding: '4px 8px' } } }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={slab.rate_percent}
+                                  onChange={(e) => handleUpdateTdsNewSlab(sIdx, 'rate_percent', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{
+                                    input: {
+                                      endAdornment: <InputAdornment position="end" sx={{ '& p': { fontSize: '0.75rem' } }}>%</InputAdornment>,
+                                    },
+                                    htmlInput: { min: 0, max: 50, step: 1, style: { fontSize: '0.8rem', padding: '4px 8px' } }
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell align="center" sx={{ py: 0.75 }}>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1) || getParsedTdsNewSlabs().length <= 1}
+                                  onClick={() => handleRemoveTdsNewSlab(sIdx)}
+                                >
+                                  <LuTrash2 size={15} />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </Grid>
+
+                {/* Old Tax Regime Slabs */}
+                <Grid size={{ xs: 12, lg: 6 }}>
+                  <Box sx={{ p: 2.5, bgcolor: (theme) => alpha(theme.palette.grey[500], 0.03), borderRadius: 2, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          Old Tax Regime Slabs
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                          Applicable for employees who opt out of New Regime
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                          onClick={handleAddTdsOldSlab}
+                          startIcon={<LuCirclePlus size={14} />}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0.2 }}
+                        >
+                          Add Tier
+                        </Button>
+                        <Button
+                          size="small"
+                          color="inherit"
+                          disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                          onClick={handleResetTdsOldSlabs}
+                          startIcon={<LuRotateCcw size={14} />}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0.2 }}
+                        >
+                          Reset
+                        </Button>
+                      </Stack>
+                    </Stack>
+
+                    <TableContainer sx={{ border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: 1.5, bgcolor: 'background.paper' }}>
+                      <Table size="small">
+                        <TableHead sx={{ bgcolor: (theme) => alpha(theme.palette.grey[500], 0.05) }}>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>From (₹)</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>To (₹)</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Rate (%)</TableCell>
+                            <TableCell align="center" sx={{ width: 48, fontWeight: 700, fontSize: '0.75rem' }}>Action</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {getParsedTdsOldSlabs().map((slab, sIdx) => (
+                            <TableRow key={sIdx} hover>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={slab.from_amount}
+                                  onChange={(e) => handleUpdateTdsOldSlab(sIdx, 'from_amount', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{ htmlInput: { style: { fontSize: '0.8rem', padding: '4px 8px' } } }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  placeholder="Above"
+                                  value={slab.to_amount === null ? '' : slab.to_amount}
+                                  onChange={(e) => handleUpdateTdsOldSlab(sIdx, 'to_amount', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{ htmlInput: { style: { fontSize: '0.8rem', padding: '4px 8px' } } }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={slab.rate_percent}
+                                  onChange={(e) => handleUpdateTdsOldSlab(sIdx, 'rate_percent', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{
+                                    input: {
+                                      endAdornment: <InputAdornment position="end" sx={{ '& p': { fontSize: '0.75rem' } }}>%</InputAdornment>,
+                                    },
+                                    htmlInput: { min: 0, max: 50, step: 1, style: { fontSize: '0.8rem', padding: '4px 8px' } }
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell align="center" sx={{ py: 0.75 }}>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1) || getParsedTdsOldSlabs().length <= 1}
+                                  onClick={() => handleRemoveTdsOldSlab(sIdx)}
+                                >
+                                  <LuTrash2 size={15} />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* 4. Covered Employee Types */}
+              <Box sx={{ p: 2.5, bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04), borderRadius: 2, border: (theme) => `1px dashed ${theme.palette.divider}` }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                    TDS Covered Employee Types
+                  </Typography>
+                  <Stack direction="row" spacing={0.5}>
+                    <Button
+                      size="small"
+                      variant="text"
+                      disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                      onClick={() => onChange('tds_applicable_categories', JSON.stringify(allEmployeeTypeOptions))}
+                      sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: '#059669', fontWeight: 600 }}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="text"
+                      color="inherit"
+                      disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                      onClick={() => onChange('tds_applicable_categories', JSON.stringify([]))}
+                      sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: 'text.secondary' }}
+                    >
+                      Clear
+                    </Button>
+                  </Stack>
+                </Stack>
+
+                <Autocomplete
+                  multiple
+                  disableCloseOnSelect
+                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                  options={['All Employee Types', ...allEmployeeTypeOptions]}
+                  value={getSelectedTdsCategories()}
+                  onChange={(_event, newValue) => {
+                    if (newValue.includes('All Employee Types')) {
+                      const currentSelected = getSelectedTdsCategories();
+                      const wasAll = currentSelected.length >= allEmployeeTypeOptions.length;
+                      if (wasAll) {
+                        onChange('tds_applicable_categories', JSON.stringify([]));
+                      } else {
+                        onChange('tds_applicable_categories', JSON.stringify(allEmployeeTypeOptions));
+                      }
+                    } else {
+                      onChange('tds_applicable_categories', JSON.stringify(newValue.filter((v) => v !== 'All Employee Types')));
+                    }
+                  }}
+                  renderOption={(props, option) => {
+                    const selectedCats = getSelectedTdsCategories();
+                    const isAllOption = option === 'All Employee Types';
+                    const isAllSelected = selectedCats.length > 0 && selectedCats.length >= allEmployeeTypeOptions.length;
+                    const isChecked = isAllOption ? isAllSelected : selectedCats.includes(option);
+                    const isIndeterminate = isAllOption && selectedCats.length > 0 && selectedCats.length < allEmployeeTypeOptions.length;
+
+                    return (
+                      <li {...props} key={option}>
+                        <Checkbox
+                          size="small"
+                          checked={isChecked}
+                          indeterminate={isIndeterminate}
+                          sx={{ mr: 1, p: 0.5 }}
+                        />
+                        <Typography variant="body2" sx={{ fontWeight: isAllOption ? 700 : 400, color: isAllOption ? 'primary.main' : 'inherit' }}>
+                          {option}
+                        </Typography>
+                      </li>
+                    );
+                  }}
+                  renderTags={(tagValue, getTagProps) =>
+                    tagValue.filter((option) => option !== 'All Employee Types').map((option, index) => (
+                      <Chip
+                        label={option}
+                        size="small"
+                        {...getTagProps({ index })}
+                        key={option}
+                        sx={{
+                          borderRadius: '6px',
+                          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                          color: 'primary.dark',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          height: 24,
+                        }}
+                      />
+                    ))
+                  }
+                  renderInput={(params) => {
+                    const selected = getSelectedTdsCategories();
+                    const count = selected.length;
+                    const isAll = count > 0 && count >= allEmployeeTypeOptions.length;
+                    return (
+                      <TextField
+                        {...params}
+                        placeholder={count === 0 ? "Select employee types subject to salary TDS" : ""}
+                        helperText={
+                          isAll
+                            ? `Salary TDS applies to all ${count} employee types in Masters.`
+                            : `TDS applies to ${count} selected employee type(s). Unchecked types are exempt from automatic TDS deductions.`
+                        }
+                      />
+                    );
+                  }}
+                />
+              </Box>
             </Card>
           </Stack>
         )}
