@@ -340,7 +340,7 @@ export function SalarySlipPreviewView() {
                                 <InfoRow label="No of Half Day" value={data.half_day_count || 0} action={renderInfoAction('half_day')} />
                                 <InfoRow label="No of Unpaid Leave" value={data.unpaid_leave_days !== undefined && data.unpaid_leave_days !== null ? data.unpaid_leave_days : (data.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
                                 <InfoRow label="No of Paid Leave" value={data.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                                <InfoRow label="LOP Days" value={data.lop_days || 0} action={renderInfoAction('lop')} />
+                                <InfoRow label="LOP Days" value={data.lop_days !== undefined && data.lop_days !== null && (Number(data.lop_days) > 0 || !data.lop) ? data.lop_days : (data.unpaid_leave_days ?? data.no_of_leave ?? 0)} action={renderInfoAction('lop')} />
                             </Box>
                         </>
                     );
@@ -422,7 +422,7 @@ export function SalarySlipPreviewView() {
                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
                         <FormulaChip label="Working Days" value={`${data.total_working_days}`} color="info" />
                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                        <FormulaChip label="LOP Days" value={`${data.lop_days}`} color="error" />
+                        <FormulaChip label="LOP Days" value={`${data.lop_days !== undefined && data.lop_days !== null && (Number(data.lop_days) > 0 || !data.lop) ? data.lop_days : (data.unpaid_leave_days ?? data.no_of_leave ?? 0)}`} color="error" />
                         <Typography variant="h5" sx={{ px: 1, color: 'text.primary', fontWeight: 300 }}>=</Typography>
                         <Box
                             sx={{

@@ -206,7 +206,7 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
                                 <InfoRow label="No of Half Day" value={slip.half_day_count || 0} action={renderInfoAction('half_day')} />
                                 <InfoRow label="No of Unpaid Leave" value={slip.no_of_leave || 0} action={renderInfoAction('unpaid_leave')} />
                                 <InfoRow label="No of Paid Leave" value={slip.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                                <InfoRow label="LOP Days" value={slip.lop_days || 0} action={renderInfoAction('lop')} />
+                                <InfoRow label="LOP Days" value={slip.lop_days !== undefined && slip.lop_days !== null && (Number(slip.lop_days) > 0 || !slip.lop) ? slip.lop_days : (slip.unpaid_leave_days ?? slip.no_of_leave ?? 0)} action={renderInfoAction('lop')} />
                             </Box>
                         </>
                     );
