@@ -334,10 +334,13 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
             case 'absent': return slip.absent_days !== undefined && slip.absent_days !== null ? slip.absent_days : ((slip.lop_days || 0) + (isDirectAllocation ? (slip.no_of_paid_leave || 0) : 0));
             case 'half_day': return slip.half_day_count !== undefined && slip.half_day_count !== null ? slip.half_day_count : filteredBreakdown.length;
             case 'holiday': return slip.holiday_count !== undefined && slip.holiday_count !== null ? slip.holiday_count : filteredBreakdown.length;
-            case 'unpaid_leave': return slip.no_of_leave !== undefined && slip.no_of_leave !== null ? slip.no_of_leave : filteredBreakdown.length;
+            case 'unpaid_leave': return slip.unpaid_leave_days !== undefined && slip.unpaid_leave_days !== null ? slip.unpaid_leave_days : (slip.no_of_leave !== undefined && slip.no_of_leave !== null ? slip.no_of_leave : filteredBreakdown.length);
             case 'paid_leave': return slip.no_of_paid_leave !== undefined && slip.no_of_paid_leave !== null ? slip.no_of_paid_leave : filteredBreakdown.length;
             case 'comp_off': return slip.no_of_comp_off !== undefined && slip.no_of_comp_off !== null ? slip.no_of_comp_off : filteredBreakdown.length;
-            case 'lop': return slip.lop_days !== undefined && slip.lop_days !== null ? slip.lop_days : filteredBreakdown.length;
+            case 'lop': {
+                const lopVal = slip.lop_days !== undefined && slip.lop_days !== null && (Number(slip.lop_days) > 0 || !slip.lop) ? slip.lop_days : (slip.unpaid_leave_days ?? slip.no_of_leave ?? filteredBreakdown.length);
+                return lopVal !== undefined && lopVal !== null ? lopVal : filteredBreakdown.length;
+            };
             default: return filteredBreakdown.length;
         }
     };
@@ -510,7 +513,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 <InfoRow label="No of Half Day" value={slip.half_day_count || 0} action={renderInfoAction('half_day')} />
                                 <InfoRow label="No of Unpaid Leave" value={slip.unpaid_leave_days !== undefined && slip.unpaid_leave_days !== null ? slip.unpaid_leave_days : (slip.no_of_leave || 0)} action={renderInfoAction('unpaid_leave')} />
                                 <InfoRow label="No of Paid Leave" value={slip.no_of_paid_leave || 0} action={renderInfoAction('paid_leave')} />
-                                <InfoRow label="LOP Days" value={slip.lop_days || 0} action={renderInfoAction('lop')} />
+                                <InfoRow label="LOP Days" value={slip.lop_days !== undefined && slip.lop_days !== null && (Number(slip.lop_days) > 0 || !slip.lop) ? slip.lop_days : (slip.unpaid_leave_days ?? slip.no_of_leave ?? 0)} action={renderInfoAction('lop')} />
                             </Box>
                         </>
                     );
@@ -773,7 +776,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
                         <FormulaChip label="Working Days" value={`${slip.total_working_days || 26}`} color="info" />
                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                        <FormulaChip label="LOP Days" value={`${slip.lop_days || 0}`} color="error" />
+                        <FormulaChip label="LOP Days" value={`${slip.lop_days !== undefined && slip.lop_days !== null && (Number(slip.lop_days) > 0 || !slip.lop) ? slip.lop_days : (slip.unpaid_leave_days ?? slip.no_of_leave ?? 0)}`} color="error" />
                         <Typography variant="h5" sx={{ px: 1, color: 'text.primary', fontWeight: 300 }}>=</Typography>
                         <Box
                             sx={{
