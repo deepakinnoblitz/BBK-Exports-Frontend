@@ -142,6 +142,7 @@ export function SalarySlipEditView({ id: propId }: Props) {
         const empType = (data.employee_type || '').toLowerCase();
         const isStaff = empType.includes('staff');
         const isWorker = empType.includes('worker');
+        const isDriver = empType.includes('driver');
         const isNorthIndian = empType.includes('north indian');
 
         const otHours = getNum(data.ot_hours);
@@ -151,6 +152,10 @@ export function SalarySlipEditView({ id: propId }: Props) {
             otAmount = 0;
         } else if (isWorker) {
             const multiplier = getNum(hrSettings.workers_ot_rate_multiplier) || 2.0;
+            // Formula: ROUND(Gross / 26 / 8 * OT Hours, 0) * Multiplier
+            otAmount = Math.round((grossPay / 26 / 8) * otHours) * multiplier;
+        } else if (isDriver) {
+            const multiplier = getNum(hrSettings.drivers_ot_rate_multiplier) || 2.0;
             // Formula: ROUND(Gross / 26 / 8 * OT Hours, 0) * Multiplier
             otAmount = Math.round((grossPay / 26 / 8) * otHours) * multiplier;
         } else if (isNorthIndian) {
@@ -303,16 +308,28 @@ export function SalarySlipEditView({ id: propId }: Props) {
         const { otAmount, attendanceBonus, ptAmount, pfAmount, esiAmount } = calculateDynamicRules(data, grossPay, earnedGrossSalary, earnedBasicDa, updatedEarnings);
 
         // Update OT / Bonus in earnings only if present and not manual
+        let hasOTComp = false;
         const finalEarnings = updatedEarnings.map((item: any) => {
             const name = getCompName(item).toLowerCase();
             if (name.includes('overtime') || name.includes('ot amount') || name === 'ot') {
-                if (!item.isManual && otAmount > 0) return { ...item, amount: otAmount.toFixed(2) };
+                hasOTComp = true;
+                if (!item.isManual) return { ...item, amount: otAmount.toFixed(2) };
             }
             if (name.includes('attendance bonus') || name.includes('present bonus')) {
                 if (!item.isManual) return { ...item, amount: attendanceBonus.toFixed(2) };
             }
             return item;
         });
+
+        if (!hasOTComp && otAmount > 0) {
+            finalEarnings.push({
+                salary_component: 'Overtime Pay (OT)',
+                component_name: 'Overtime Pay (OT)',
+                amount: otAmount.toFixed(2),
+                abbr: 'OT',
+                isManual: false
+            });
+        }
 
         // Update PT, PF, ESI in deductions only if present and not manual (keep Canteen, Advance, etc. intact)
         const finalDeductions = updatedDeductions.map((item: any) => {

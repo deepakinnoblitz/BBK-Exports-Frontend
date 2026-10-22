@@ -446,13 +446,14 @@ export function SalarySlipPreviewView() {
                 </Stack>
             </Box>
 
-            {/* Overtime (OT) Formula Card - Only for eligible Workers/North Indian with OT, never for Staff */}
+            {/* Overtime (OT) Formula Card - Only for eligible Workers/Drivers/North Indian with OT, never for Staff */}
             {(() => {
                 const empType = (data.employee_type || '').toLowerCase();
                 const isStaff = empType.includes('staff');
                 const isWorker = empType.includes('worker');
+                const isDriver = empType.includes('driver');
                 const isNorthIndian = empType.includes('north indian');
-                const isOTEligible = (isWorker || isNorthIndian) && !isStaff && Number(data.ot_hours || 0) > 0 && Number(data.ot_amount || 0) > 0;
+                const isOTEligible = (isWorker || isNorthIndian || isDriver) && !isStaff && Number(data.ot_hours || 0) > 0 && Number(data.ot_amount || 0) > 0;
 
                 if (!isOTEligible) return null;
 
@@ -513,7 +514,7 @@ export function SalarySlipPreviewView() {
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
                                         <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                                        <FormulaChip label="Multiplier" value={`${hrSettings.workers_ot_rate_multiplier || 2}×`} color="warning" />
+                                        <FormulaChip label="Multiplier" value={`${(isDriver ? (hrSettings.drivers_ot_rate_multiplier || 2) : (hrSettings.workers_ot_rate_multiplier || 2))}×`} color="warning" />
                                     </>
                                 )}
                                 <Typography variant="h5" sx={{ px: 1, color: 'text.primary', fontWeight: 300 }}>=</Typography>
