@@ -63,6 +63,8 @@ export function SalarySlipDetailsDialog({ open, onClose, slip }: Props) {
         let format: string | undefined;
         if (empType.includes('north indian')) {
             format = 'North Indian Form 25B Pay Slip';
+        } else if (empType.includes('driver')) {
+            format = 'Driver Form 25B Pay Slip';
         } else if (empType.includes('worker')) {
             format = 'Worker Form 25B Pay Slip';
         } else {

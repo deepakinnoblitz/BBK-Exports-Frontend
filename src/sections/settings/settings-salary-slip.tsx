@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { useState, useEffect, startTransition } from 'react';
 import { 
   LuCar, 
@@ -53,12 +54,15 @@ import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 import TableContainer from '@mui/material/TableContainer';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { fetchSalaryComponents } from 'src/api/hr-management';
-import { fetchDepartments, fetchDesignations } from 'src/api/masters';
+import { fetchDepartments, fetchDesignations, fetchEmployeeTypes } from 'src/api/masters';
 
 import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
 
@@ -118,6 +122,28 @@ const DEFAULT_PT_SLABS: PTSlabItem[] = [
   { from_amount: 75001, to_amount: null, tax_amount: 1250 },
 ];
 
+export interface TDSSlabItem {
+  from_amount: number;
+  to_amount: number | null;
+  rate_percent: number;
+}
+
+const DEFAULT_TDS_NEW_SLABS: TDSSlabItem[] = [
+  { from_amount: 0, to_amount: 300000, rate_percent: 0 },
+  { from_amount: 300001, to_amount: 700000, rate_percent: 5 },
+  { from_amount: 700001, to_amount: 1000000, rate_percent: 10 },
+  { from_amount: 1000001, to_amount: 1200000, rate_percent: 15 },
+  { from_amount: 1200001, to_amount: 1500000, rate_percent: 20 },
+  { from_amount: 1500001, to_amount: null, rate_percent: 30 },
+];
+
+const DEFAULT_TDS_OLD_SLABS: TDSSlabItem[] = [
+  { from_amount: 0, to_amount: 250000, rate_percent: 0 },
+  { from_amount: 250001, to_amount: 500000, rate_percent: 5 },
+  { from_amount: 500001, to_amount: 1000000, rate_percent: 20 },
+  { from_amount: 1000001, to_amount: null, rate_percent: 30 },
+];
+
 const SETTINGS_TABS = [
   {
     value: 'salary_rules',
@@ -143,6 +169,16 @@ const SETTINGS_TABS = [
     value: 'employer_statutory',
     label: 'Employer Statutory & CTC',
     icon: <LuBuilding2 size={19} />,
+  },
+  {
+    value: 'lwf_rules',
+    label: 'Labour Welfare Fund (LWF)',
+    icon: <LuHeartPulse size={19} />,
+  },
+  {
+    value: 'tds_rules',
+    label: 'TDS (Income Tax) Rules',
+    icon: <LuCalculator size={19} />,
   },
 ];
 
@@ -210,6 +246,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
   const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [designationOptions, setDesignationOptions] = useState<string[]>([]);
+  const [employeeTypes, setEmployeeTypes] = useState<string[]>([]);
 
   useEffect(() => {
     fetchSalaryComponents()
@@ -233,12 +270,49 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
         setDesignationOptions(list.map((d: any) => d.designation_name || d.name).filter(Boolean));
       })
       .catch((err) => console.error('Failed to load designations:', err));
+
+    fetchEmployeeTypes({ page_size: 100 })
+      .then((res: any) => {
+        const list = res?.data || (Array.isArray(res) ? res : []);
+        if (Array.isArray(list) && list.length > 0) {
+          setEmployeeTypes(list.map((et: any) => et.employee_type || et.name).filter(Boolean));
+        }
+      })
+      .catch((err) => console.error('Failed to load employee types for HRMS Settings:', err));
   }, []);
 
   const earningComponents = salaryComponents.filter((c) => c.type === 'Earning');
   const earningOptions = earningComponents.length > 0
     ? earningComponents.map((c) => c.component_name)
     : ['Basic Pay', 'DA', 'Other Allowance'];
+
+  const deductionComponents = salaryComponents.filter((c) => c.type === 'Deduction');
+  const deductionOptions = deductionComponents.length > 0
+    ? Array.from(new Set(['TDS', ...deductionComponents.map((c) => c.component_name || c.name).filter(Boolean)]))
+    : ['TDS', 'PF', 'Prof.Tax', 'LWF', 'ESI/Health Insurance', 'Loan Recovery', 'Canteen', 'Uniform', 'ADV'];
+
+  const DEFAULT_EMPLOYEE_TYPES = [
+    'Staff - CTC',
+    'Staff - Non CTC',
+    'Workers',
+    'North Indian - CTC',
+    'North Indian - Non CTC',
+    'Drivers',
+    'House Keeping',
+    'Security',
+    'STP',
+    'Contractor',
+    'STP Employees',
+  ];
+
+  const allEmployeeTypeOptions = employeeTypes.length > 0
+    ? employeeTypes
+    : DEFAULT_EMPLOYEE_TYPES;
+
+  const allMasterComponents = salaryComponents.map((c) => c.component_name || c.name).filter(Boolean);
+  const allComponentOptions = allMasterComponents.length > 0
+    ? allMasterComponents
+    : ['Basic Pay', 'DA', 'HRA', 'Attendance Bonus', 'Tea Allowance', 'Other Allowances', 'Medical Allowances', 'Conveyance Allowances', 'Earned Leave', 'Bonus', 'Other Allowance', 'Basic Pay + DA'];
 
   // Helper to read category-specific value or fallback
   const getFieldVal = (cat: CategoryKey, baseField: string, fallbackDefault: any = '') => {
@@ -477,6 +551,172 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       }
     }
     return earningOptions;
+  };
+
+  const getSelectedLwfComponents = (): string[] => {
+    const rawVal = data.lwf_wage_basis;
+    if (rawVal === undefined || rawVal === null || rawVal === '') return ['Gross Pay'];
+    if (Array.isArray(rawVal)) return rawVal;
+    if (typeof rawVal === 'string') {
+      try {
+        const parsed = JSON.parse(rawVal);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        if (rawVal.includes(',')) {
+          return rawVal.split(',').map((s: string) => s.trim()).filter(Boolean);
+        }
+        return [rawVal];
+      }
+    }
+    return ['Gross Pay'];
+  };
+
+  const getSelectedLwfCategories = (): string[] => {
+    const rawVal = data.lwf_applicable_categories;
+    if (rawVal === undefined || rawVal === null || rawVal === '') return allEmployeeTypeOptions;
+    let list: string[] = [];
+    if (Array.isArray(rawVal)) {
+      list = rawVal;
+    } else if (typeof rawVal === 'string') {
+      try {
+        const parsed = JSON.parse(rawVal);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch {
+        if (rawVal.includes(',')) {
+          list = rawVal.split(',').map((s: string) => s.trim()).filter(Boolean);
+        } else {
+          list = [rawVal];
+        }
+      }
+    }
+
+    const legacyMap: Record<string, string> = {
+      staff_ctc: 'Staff - CTC',
+      staff_non_ctc: 'Staff - Non CTC',
+      workers: 'Workers',
+      north_indian: 'North Indian - CTC',
+      drivers: 'Drivers',
+    };
+
+    return list.map((item) => legacyMap[item] || item);
+  };
+
+  // TDS Slabs Handlers
+  const getParsedTdsNewSlabs = (): TDSSlabItem[] => {
+    const rawSlabs = data.tds_new_regime_slabs;
+    if (!rawSlabs) return DEFAULT_TDS_NEW_SLABS;
+    if (Array.isArray(rawSlabs)) return rawSlabs;
+    try {
+      const parsed = typeof rawSlabs === 'string' ? JSON.parse(rawSlabs) : rawSlabs;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // ignore
+    }
+    return DEFAULT_TDS_NEW_SLABS;
+  };
+
+  const handleUpdateTdsNewSlab = (index: number, field: keyof TDSSlabItem, val: any) => {
+    const currentSlabs = getParsedTdsNewSlabs();
+    const updated = currentSlabs.map((item, i) => {
+      if (i === index) {
+        let parsedVal: any = val;
+        if (field === 'to_amount') {
+          parsedVal = val === '' || val === null || val === undefined ? null : Number(val);
+        } else {
+          parsedVal = val === '' ? 0 : Number(val);
+        }
+        return { ...item, [field]: parsedVal };
+      }
+      return item;
+    });
+    onChange('tds_new_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleAddTdsNewSlab = () => {
+    const currentSlabs = getParsedTdsNewSlabs();
+    const last = currentSlabs[currentSlabs.length - 1];
+    const nextFrom = last && last.to_amount != null ? Number(last.to_amount) + 1 : 0;
+    const updated = [...currentSlabs, { from_amount: nextFrom, to_amount: null, rate_percent: 0 }];
+    onChange('tds_new_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleRemoveTdsNewSlab = (index: number) => {
+    const currentSlabs = getParsedTdsNewSlabs();
+    const updated = currentSlabs.filter((_, i) => i !== index);
+    onChange('tds_new_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleResetTdsNewSlabs = () => {
+    onChange('tds_new_regime_slabs', JSON.stringify(DEFAULT_TDS_NEW_SLABS));
+  };
+
+  const getParsedTdsOldSlabs = (): TDSSlabItem[] => {
+    const rawSlabs = data.tds_old_regime_slabs;
+    if (!rawSlabs) return DEFAULT_TDS_OLD_SLABS;
+    if (Array.isArray(rawSlabs)) return rawSlabs;
+    try {
+      const parsed = typeof rawSlabs === 'string' ? JSON.parse(rawSlabs) : rawSlabs;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // ignore
+    }
+    return DEFAULT_TDS_OLD_SLABS;
+  };
+
+  const handleUpdateTdsOldSlab = (index: number, field: keyof TDSSlabItem, val: any) => {
+    const currentSlabs = getParsedTdsOldSlabs();
+    const updated = currentSlabs.map((item, i) => {
+      if (i === index) {
+        let parsedVal: any = val;
+        if (field === 'to_amount') {
+          parsedVal = val === '' || val === null || val === undefined ? null : Number(val);
+        } else {
+          parsedVal = val === '' ? 0 : Number(val);
+        }
+        return { ...item, [field]: parsedVal };
+      }
+      return item;
+    });
+    onChange('tds_old_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleAddTdsOldSlab = () => {
+    const currentSlabs = getParsedTdsOldSlabs();
+    const last = currentSlabs[currentSlabs.length - 1];
+    const nextFrom = last && last.to_amount != null ? Number(last.to_amount) + 1 : 0;
+    const updated = [...currentSlabs, { from_amount: nextFrom, to_amount: null, rate_percent: 0 }];
+    onChange('tds_old_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleRemoveTdsOldSlab = (index: number) => {
+    const currentSlabs = getParsedTdsOldSlabs();
+    const updated = currentSlabs.filter((_, i) => i !== index);
+    onChange('tds_old_regime_slabs', JSON.stringify(updated));
+  };
+
+  const handleResetTdsOldSlabs = () => {
+    onChange('tds_old_regime_slabs', JSON.stringify(DEFAULT_TDS_OLD_SLABS));
+  };
+
+  const getSelectedTdsCategories = (): string[] => {
+    const rawVal = data.tds_applicable_categories;
+    if (rawVal === undefined || rawVal === null || rawVal === '') return allEmployeeTypeOptions;
+    let list: string[] = [];
+    if (Array.isArray(rawVal)) {
+      list = rawVal;
+    } else if (typeof rawVal === 'string') {
+      try {
+        const parsed = JSON.parse(rawVal);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch {
+        if (rawVal.includes(',')) {
+          list = rawVal.split(',').map((s: string) => s.trim()).filter(Boolean);
+        } else {
+          list = [rawVal];
+        }
+      }
+    }
+    return list;
   };
 
   // Common Accordion Wrapper
@@ -2489,6 +2729,1129 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             );
           })}
         </Box>
+        )}
+      </Box>
+
+      {/* Tab Panel 6: Labour Welfare Fund (LWF) Rules */}
+      <Box sx={{ display: currentTab === 'lwf_rules' ? 'block' : 'none' }}>
+        {visitedTabs.lwf_rules && (
+          <Stack spacing={3}>
+            {/* Master Control Card */}
+            <Card sx={{ p: 3, border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: 2 }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
+                <Box>
+                  <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 0.5 }}>
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 1.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                        color: 'primary.main',
+                      }}
+                    >
+                      <LuHeartPulse size={22} />
+                    </Box>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Tamil Nadu Labour Welfare Fund (LWF)
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        Under the Tamil Nadu Labour Welfare Fund Act, 1972 (Administered by TN Labour Welfare Board)
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: 700,
+                      color: isCheckEnabled(data.enable_lwf ?? 1) ? '#059669' : 'text.secondary',
+                    }}
+                  >
+                    {isCheckEnabled(data.enable_lwf ?? 1) ? 'LWF Calculation Active' : 'Disabled'}
+                  </Typography>
+                  <CustomSwitch
+                    checked={isCheckEnabled(data.enable_lwf ?? 1)}
+                    onChange={(e) => onChange('enable_lwf', e.target.checked ? 1 : 0)}
+                  />
+                </Stack>
+              </Stack>
+
+              <Divider sx={{ mb: 3 }} />
+
+              {/* Statutory Contributions Summary Banner */}
+              <Box
+                sx={{
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                  border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+                  mb: 3,
+                }}
+              >
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1.5, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}>
+                        Employee Deduction
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'error.main', mt: 0.5 }}>
+                        ₹{data.lwf_employee_contribution ?? '20'} <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>/ year</Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                        Deducted from employee salary in configured month.
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1.5, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}>
+                        Employer Contribution
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'info.main', mt: 0.5 }}>
+                        ₹{data.lwf_employer_contribution ?? '40'} <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>/ year</Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                        Company statutory expense; added to CTC (₹0 impact on Net Pay).
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1.5, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}>
+                        Total Remittance to Board
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main', mt: 0.5 }}>
+                        ₹{Number(data.lwf_employee_contribution ?? 20) + Number(data.lwf_employer_contribution ?? 40)} <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>/ employee</Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                        Remitted to TN Labour Welfare Board by {data.lwf_remittance_deadline || '31st January'}.
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* Policy Inputs Grid */}
+              <Grid container spacing={2.5}>
+                {/* State / Governing Board */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="State / Governing Board"
+                    value={data.lwf_state ?? 'Tamil Nadu'}
+                    onChange={(e) => onChange('lwf_state', e.target.value)}
+                    helperText="Governing Labour Welfare Act"
+                  />
+                </Grid>
+
+                {/* Deduction Month */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth>
+                    <InputLabel id="lwf-deduction-month-label">Deduction Month</InputLabel>
+                    <Select
+                      labelId="lwf-deduction-month-label"
+                      value={data.lwf_deduction_month ?? 'December'}
+                      label="Deduction Month"
+                      onChange={(e) => onChange('lwf_deduction_month', e.target.value)}
+                    >
+                      {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((m) => (
+                        <MenuItem key={m} value={m}>{m}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* Deduction Frequency */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth>
+                    <InputLabel id="lwf-frequency-label">Contribution Frequency</InputLabel>
+                    <Select
+                      labelId="lwf-frequency-label"
+                      value={data.lwf_deduction_frequency ?? 'Annual (Once per Year)'}
+                      label="Contribution Frequency"
+                      onChange={(e) => onChange('lwf_deduction_frequency', e.target.value)}
+                    >
+                      <MenuItem value="Annual (Once per Year)">Annual (Once per Year)</MenuItem>
+                      <MenuItem value="Monthly">Monthly</MenuItem>
+                      <MenuItem value="Half-Yearly">Half-Yearly</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* Remittance Deadline */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="Remittance Deadline"
+                    value={data.lwf_remittance_deadline ?? '31st January'}
+                    onChange={(e) => onChange('lwf_remittance_deadline', e.target.value)}
+                    helperText="Statutory payment deadline"
+                  />
+                </Grid>
+
+                {/* Employee Contribution */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Employee Contribution (₹)"
+                    value={data.lwf_employee_contribution ?? '20'}
+                    onChange={(e) => onChange('lwf_employee_contribution', e.target.value)}
+                    helperText="Deducted from salary (default ₹20)"
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, step: 1 },
+                    }}
+                  />
+                </Grid>
+
+                {/* Employer Contribution */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Employer Contribution (₹)"
+                    value={data.lwf_employer_contribution ?? '40'}
+                    onChange={(e) => onChange('lwf_employer_contribution', e.target.value)}
+                    helperText="Company contribution to CTC (default ₹40)"
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, step: 1 },
+                    }}
+                  />
+                </Grid>
+
+                {/* Government Contribution */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Govt Contribution (₹)"
+                    value={data.lwf_govt_contribution ?? '20'}
+                    onChange={(e) => onChange('lwf_govt_contribution', e.target.value)}
+                    helperText="For compliance audit reporting (default ₹20)"
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, step: 1 },
+                    }}
+                  />
+                </Grid>
+
+                {/* Salary Eligibility Ceiling */}
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Gross Salary Ceiling (₹)"
+                    value={data.lwf_salary_ceiling ?? '25000'}
+                    onChange={(e) => onChange('lwf_salary_ceiling', e.target.value)}
+                    helperText="Exempt if gross exceeds this amount. Set 0 for no limit."
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, step: 500 },
+                    }}
+                  />
+                </Grid>
+              </Grid>
+
+              <Grid container spacing={3} sx={{ mt: 1 }}>
+                {/* 1. LWF Wage Basis Components */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Box sx={{ width: '100%', p: 2.5, bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04), borderRadius: 2, border: (theme) => `1px dashed ${theme.palette.divider}` }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                        LWF Wage Basis Components
+                      </Typography>
+                      <Stack direction="row" spacing={0.6} alignItems="center">
+                        <Button
+                          size="small"
+                          variant={getSelectedLwfComponents().length === 1 && getSelectedLwfComponents()[0] === 'Gross Pay' ? 'contained' : 'outlined'}
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_wage_basis', JSON.stringify(['Gross Pay']))}
+                          sx={{
+                            fontSize: '0.72rem',
+                            py: 0.1,
+                            px: 0.8,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            height: 22,
+                            borderRadius: '4px',
+                            ...(getSelectedLwfComponents().length === 1 && getSelectedLwfComponents()[0] === 'Gross Pay'
+                              ? { bgcolor: '#00875a', color: '#fff', '&:hover': { bgcolor: '#00704a' } }
+                              : { color: 'text.secondary', borderColor: 'divider' }),
+                          }}
+                        >
+                          Gross Pay
+                        </Button>
+                        <Button
+                          size="small"
+                          variant={getSelectedLwfComponents().length === 1 && getSelectedLwfComponents()[0] === 'Net Pay' ? 'contained' : 'outlined'}
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_wage_basis', JSON.stringify(['Net Pay']))}
+                          sx={{
+                            fontSize: '0.72rem',
+                            py: 0.1,
+                            px: 0.8,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            height: 22,
+                            borderRadius: '4px',
+                            ...(getSelectedLwfComponents().length === 1 && getSelectedLwfComponents()[0] === 'Net Pay'
+                              ? { bgcolor: '#0284c7', color: '#fff', '&:hover': { bgcolor: '#0369a1' } }
+                              : { color: 'text.secondary', borderColor: 'divider' }),
+                          }}
+                        >
+                          Net Pay
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="text"
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_wage_basis', JSON.stringify(allComponentOptions))}
+                          sx={{ fontSize: '0.75rem', py: 0.2, px: 0.6, textTransform: 'none', color: '#059669', fontWeight: 600 }}
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="text"
+                          color="inherit"
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_wage_basis', JSON.stringify([]))}
+                          sx={{ fontSize: '0.75rem', py: 0.2, px: 0.6, textTransform: 'none', color: 'text.secondary' }}
+                        >
+                          Clear
+                        </Button>
+                      </Stack>
+                    </Stack>
+
+                    <Autocomplete
+                      multiple
+                      disableCloseOnSelect
+                      disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                      options={['Gross Pay', 'Net Pay', 'All Components', ...allComponentOptions]}
+                      value={getSelectedLwfComponents()}
+                      onChange={(_event, newValue) => {
+                        // If user clicked 'Gross Pay'
+                        const justAddedGross = newValue.includes('Gross Pay') && !getSelectedLwfComponents().includes('Gross Pay');
+                        if (justAddedGross) {
+                          onChange('lwf_wage_basis', JSON.stringify(['Gross Pay']));
+                          return;
+                        }
+                        // If user clicked 'Net Pay'
+                        const justAddedNet = newValue.includes('Net Pay') && !getSelectedLwfComponents().includes('Net Pay');
+                        if (justAddedNet) {
+                          onChange('lwf_wage_basis', JSON.stringify(['Net Pay']));
+                          return;
+                        }
+                        // If user clicked 'All Components'
+                        if (newValue.includes('All Components')) {
+                          const currentSelected = getSelectedLwfComponents().filter((c) => c !== 'Gross Pay' && c !== 'Net Pay');
+                          const wasAll = currentSelected.length >= allComponentOptions.length;
+                          if (wasAll) {
+                            onChange('lwf_wage_basis', JSON.stringify([]));
+                          } else {
+                            onChange('lwf_wage_basis', JSON.stringify(allComponentOptions));
+                          }
+                          return;
+                        }
+                        // Filter out meta tags from component selections
+                        onChange('lwf_wage_basis', JSON.stringify(newValue.filter((v) => v !== 'All Components' && v !== 'Gross Pay' && v !== 'Net Pay')));
+                      }}
+                      renderOption={(props, option) => {
+                        const selectedComps = getSelectedLwfComponents();
+                        const isGrossOption = option === 'Gross Pay';
+                        const isNetOption = option === 'Net Pay';
+                        const isAllOption = option === 'All Components';
+                        const isAllSelected = selectedComps.length > 0 && selectedComps.length >= allComponentOptions.length && !selectedComps.includes('Gross Pay') && !selectedComps.includes('Net Pay');
+
+                        let isChecked = false;
+                        let isIndeterminate = false;
+
+                        if (isGrossOption) {
+                          isChecked = selectedComps.includes('Gross Pay');
+                        } else if (isNetOption) {
+                          isChecked = selectedComps.includes('Net Pay');
+                        } else if (isAllOption) {
+                          isChecked = isAllSelected;
+                          isIndeterminate = selectedComps.length > 0 && selectedComps.length < allComponentOptions.length && !selectedComps.includes('Gross Pay') && !selectedComps.includes('Net Pay');
+                        } else {
+                          isChecked = selectedComps.includes(option);
+                        }
+
+                        return (
+                          <li {...props} key={option}>
+                            <Checkbox
+                              size="small"
+                              checked={isChecked}
+                              indeterminate={isIndeterminate}
+                              sx={{ mr: 1, p: 0.5 }}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: (isGrossOption || isNetOption || isAllOption) ? 700 : 400,
+                                color: isGrossOption ? '#00875a' : isNetOption ? '#0284c7' : isAllOption ? 'primary.main' : 'inherit',
+                              }}
+                            >
+                              {option}
+                            </Typography>
+                          </li>
+                        );
+                      }}
+                      renderTags={(tagValue, getTagProps) =>
+                        tagValue.filter((option) => option !== 'All Components').map((option, index) => {
+                          const isGross = option === 'Gross Pay';
+                          const isNet = option === 'Net Pay';
+                          return (
+                            <Chip
+                              label={option}
+                              size="small"
+                              {...getTagProps({ index })}
+                              key={option}
+                              sx={{
+                                borderRadius: '6px',
+                                bgcolor: isGross ? '#00875a' : isNet ? '#0284c7' : (theme) => alpha(theme.palette.primary.main, 0.1),
+                                color: (isGross || isNet) ? '#ffffff' : 'primary.dark',
+                                fontWeight: 600,
+                                fontSize: '0.75rem',
+                                height: 24,
+                                '& .MuiChip-deleteIcon': (isGross || isNet) ? {
+                                  color: 'rgba(255, 255, 255, 0.7)',
+                                  '&:hover': { color: '#ffffff' },
+                                } : undefined,
+                              }}
+                            />
+                          );
+                        })
+                      }
+                      renderInput={(params) => {
+                        const selected = getSelectedLwfComponents();
+                        const isGross = selected.length === 1 && selected[0] === 'Gross Pay';
+                        const isNet = selected.length === 1 && selected[0] === 'Net Pay';
+                        const count = selected.length;
+                        const isAll = count > 0 && count >= allComponentOptions.length && !isGross && !isNet;
+
+                        let helperMsg = "When empty, full Gross Salary is used as wage basis.";
+                        if (isGross) {
+                          helperMsg = "Wage basis uses total Gross Pay for LWF ceiling check (<= ₹25,000).";
+                        } else if (isNet) {
+                          helperMsg = "Wage basis uses total Net Pay for LWF ceiling check (<= ₹25,000).";
+                        } else if (isAll) {
+                          helperMsg = `All ${count} salary components included in LWF wage basis calculation.`;
+                        } else if (count > 0) {
+                          helperMsg = `Wage basis includes sum of ${count} selected component(s).`;
+                        }
+
+                        return (
+                          <TextField
+                            {...params}
+                            placeholder={count === 0 ? "Select Gross Pay, Net Pay, or components" : ""}
+                            helperText={helperMsg}
+                          />
+                        );
+                      }}
+                    />
+                  </Box>
+                </Grid>
+
+                {/* 2. Covered Employee Types from Masters */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Box sx={{ width: '100%', p: 2.5, bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04), borderRadius: 2, border: (theme) => `1px dashed ${theme.palette.divider}` }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                        Covered Employee Types
+                      </Typography>
+                      <Stack direction="row" spacing={0.5}>
+                        <Button
+                          size="small"
+                          variant="text"
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_applicable_categories', JSON.stringify(allEmployeeTypeOptions))}
+                          sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: '#059669', fontWeight: 600 }}
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="text"
+                          color="inherit"
+                          disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                          onClick={() => onChange('lwf_applicable_categories', JSON.stringify([]))}
+                          sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: 'text.secondary' }}
+                        >
+                          Clear
+                        </Button>
+                      </Stack>
+                    </Stack>
+
+                    <Autocomplete
+                      multiple
+                      disableCloseOnSelect
+                      disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                      options={['All Employee Types', ...allEmployeeTypeOptions]}
+                      value={getSelectedLwfCategories()}
+                      onChange={(_event, newValue) => {
+                        if (newValue.includes('All Employee Types')) {
+                          const currentSelected = getSelectedLwfCategories();
+                          const wasAll = currentSelected.length >= allEmployeeTypeOptions.length;
+                          if (wasAll) {
+                            onChange('lwf_applicable_categories', JSON.stringify([]));
+                          } else {
+                            onChange('lwf_applicable_categories', JSON.stringify(allEmployeeTypeOptions));
+                          }
+                        } else {
+                          onChange('lwf_applicable_categories', JSON.stringify(newValue.filter((v) => v !== 'All Employee Types')));
+                        }
+                      }}
+                      renderOption={(props, option) => {
+                        const selectedCats = getSelectedLwfCategories();
+                        const isAllOption = option === 'All Employee Types';
+                        const isAllSelected = selectedCats.length > 0 && selectedCats.length >= allEmployeeTypeOptions.length;
+                        const isChecked = isAllOption ? isAllSelected : selectedCats.includes(option);
+                        const isIndeterminate = isAllOption && selectedCats.length > 0 && selectedCats.length < allEmployeeTypeOptions.length;
+
+                        return (
+                          <li {...props} key={option}>
+                            <Checkbox
+                              size="small"
+                              checked={isChecked}
+                              indeterminate={isIndeterminate}
+                              sx={{ mr: 1, p: 0.5 }}
+                            />
+                            <Typography variant="body2" sx={{ fontWeight: isAllOption ? 700 : 400, color: isAllOption ? 'primary.main' : 'inherit' }}>
+                              {option}
+                            </Typography>
+                          </li>
+                        );
+                      }}
+                      renderTags={(tagValue, getTagProps) =>
+                        tagValue.filter((option) => option !== 'All Employee Types').map((option, index) => (
+                          <Chip
+                            label={option}
+                            size="small"
+                            {...getTagProps({ index })}
+                            key={option}
+                            sx={{
+                              borderRadius: '6px',
+                              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                              color: 'primary.dark',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              height: 24,
+                            }}
+                          />
+                        ))
+                      }
+                      renderInput={(params) => {
+                        const selected = getSelectedLwfCategories();
+                        const count = selected.length;
+                        const isAll = count > 0 && count >= allEmployeeTypeOptions.length;
+                        return (
+                          <TextField
+                            {...params}
+                            placeholder={count === 0 ? "Select employee types eligible for LWF" : ""}
+                            helperText={
+                              isAll
+                                ? `LWF applies to all ${count} employee types in Masters.`
+                                : `LWF applies to ${count} selected employee type(s). Unchecked types are exempt.`
+                            }
+                          />
+                        );
+                      }}
+                    />
+                  </Box>
+                </Grid>
+              </Grid>
+            </Card>
+          </Stack>
+        )}
+      </Box>
+
+      {/* Tab Panel 7: TDS (Income Tax) Rules */}
+      <Box sx={{ display: currentTab === 'tds_rules' ? 'block' : 'none' }}>
+        {visitedTabs.tds_rules && (
+          <Stack spacing={3}>
+            {/* Master Header Card */}
+            <Card sx={{ p: 3.5, borderRadius: 3 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'primary.main',
+                    }}
+                  >
+                    <LuCalculator size={26} />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      Salary TDS (Tax Deducted at Source) Policies
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      Configurable annual income tax computation & monthly payroll TDS deduction under Section 192
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: 700,
+                      color: isCheckEnabled(data.enable_tds ?? 1) ? '#059669' : 'text.secondary',
+                    }}
+                  >
+                    {isCheckEnabled(data.enable_tds ?? 1) ? 'TDS Deductions Active' : 'TDS Disabled'}
+                  </Typography>
+                  <CustomSwitch
+                    checked={isCheckEnabled(data.enable_tds ?? 1)}
+                    onChange={(e) => onChange('enable_tds', e.target.checked ? 1 : 0)}
+                  />
+                </Stack>
+              </Stack>
+
+              <Divider sx={{ mb: 3 }} />
+
+              {/* Company Tax Identifiers & General Settings */}
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>
+                1. Company Statutory Tax Profile & Global Defaults
+              </Typography>
+              <Grid container spacing={2.5}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="Company TAN Number"
+                    value={data.tds_tan || ''}
+                    onChange={(e) => onChange('tds_tan', e.target.value.toUpperCase())}
+                    placeholder="e.g. CHNB12345E"
+                    helperText="10-digit Tax Deduction Account Number"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="Company PAN"
+                    value={data.tds_pan || ''}
+                    onChange={(e) => onChange('tds_pan', e.target.value.toUpperCase())}
+                    placeholder="e.g. AABCB1234E"
+                    helperText="Corporate Permanent Account Number"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth disabled={!isCheckEnabled(data.enable_tds ?? 1)}>
+                    <InputLabel id="tds_active_fy_label">Active Financial Year</InputLabel>
+                    <Select
+                      labelId="tds_active_fy_label"
+                      value={data.tds_active_financial_year || '2026-2027'}
+                      label="Active Financial Year"
+                      onChange={(e) => onChange('tds_active_financial_year', e.target.value)}
+                    >
+                      <MenuItem value="2026-2027">FY 2026–2027 (Current)</MenuItem>
+                      <MenuItem value="2025-2026">FY 2025–2026</MenuItem>
+                      <MenuItem value="2024-2025">FY 2024–2025</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth disabled={!isCheckEnabled(data.enable_tds ?? 1)}>
+                    <InputLabel id="tds_default_regime_label">Default Tax Regime</InputLabel>
+                    <Select
+                      labelId="tds_default_regime_label"
+                      value={data.tds_default_regime || 'New Tax Regime u/s 115BAC'}
+                      label="Default Tax Regime"
+                      onChange={(e) => onChange('tds_default_regime', e.target.value)}
+                    >
+                      <MenuItem value="New Tax Regime u/s 115BAC">New Tax Regime u/s 115BAC (Default)</MenuItem>
+                      <MenuItem value="Old Tax Regime">Old Tax Regime</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+
+              <Grid container spacing={2.5} sx={{ mt: 1 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Health & Education Cess (%)"
+                    value={data.tds_cess_rate ?? '4.0'}
+                    onChange={(e) => onChange('tds_cess_rate', e.target.value)}
+                    helperText="Standard statutory cess on tax liability (default 4%)"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    slotProps={{
+                      input: {
+                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, max: 20, step: 0.1 },
+                    }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Autocomplete
+                    freeSolo
+                    options={deductionOptions}
+                    value={data.tds_deduction_component || 'TDS'}
+                    onChange={(_event, newValue) => {
+                      onChange('tds_deduction_component', newValue || 'TDS');
+                    }}
+                    onInputChange={(_event, newInputValue) => {
+                      if (newInputValue !== undefined) {
+                        onChange('tds_deduction_component', newInputValue);
+                      }
+                    }}
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        label="TDS Salary Component"
+                        helperText="Salary Structure deduction item for payroll deduction"
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      label="Investment Proof Cutoff Date"
+                      value={data.tds_lock_declarations_date ? dayjs(data.tds_lock_declarations_date) : null}
+                      onChange={(newVal) => {
+                        onChange('tds_lock_declarations_date', newVal && newVal.isValid() ? newVal.format('YYYY-MM-DD') : '');
+                      }}
+                      format="DD-MM-YYYY"
+                      disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          helperText: 'Cutoff for employee investment submissions',
+                          InputLabelProps: { shrink: true },
+                        },
+                      }}
+                    />
+                  </LocalizationProvider>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* Standard Deductions & Section 87A Rebate */}
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>
+                2. Standard Deductions & Section 87A Rebates
+              </Typography>
+              <Grid container spacing={2.5}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Std Deduction - New Regime (₹)"
+                    value={data.tds_standard_deduction_new ?? '75000'}
+                    onChange={(e) => onChange('tds_standard_deduction_new', e.target.value)}
+                    helperText="Statutory deduction for New Regime (default ₹75,000)"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    slotProps={{
+                      input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> },
+                      htmlInput: { min: 0, step: 1000 },
+                    }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Std Deduction - Old Regime (₹)"
+                    value={data.tds_standard_deduction_old ?? '50000'}
+                    onChange={(e) => onChange('tds_standard_deduction_old', e.target.value)}
+                    helperText="Statutory deduction for Old Regime (default ₹50,000)"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    slotProps={{
+                      input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> },
+                      htmlInput: { min: 0, step: 1000 },
+                    }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="87A Rebate Threshold - New Regime (₹)"
+                    value={data.tds_rebate_limit_87a_new ?? '700000'}
+                    onChange={(e) => onChange('tds_rebate_limit_87a_new', e.target.value)}
+                    helperText="Full tax rebate if net taxable <= threshold (default ₹7,00,000)"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    slotProps={{
+                      input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> },
+                      htmlInput: { min: 0, step: 10000 },
+                    }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="87A Rebate Threshold - Old Regime (₹)"
+                    value={data.tds_rebate_limit_87a_old ?? '500000'}
+                    onChange={(e) => onChange('tds_rebate_limit_87a_old', e.target.value)}
+                    helperText="Full tax rebate if net taxable <= threshold (default ₹5,00,000)"
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    slotProps={{
+                      input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> },
+                      htmlInput: { min: 0, step: 10000 },
+                    }}
+                  />
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* 3. Configurable Tax Slabs */}
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>
+                3. Statutory Income Tax Slabs (Configurable by Financial Year)
+              </Typography>
+              <Grid container spacing={3}>
+                {/* New Tax Regime Slabs */}
+                <Grid size={{ xs: 12, lg: 6 }}>
+                  <Box sx={{ p: 2.5, bgcolor: (theme) => alpha(theme.palette.grey[500], 0.03), borderRadius: 2, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+                      <Box>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Chip label="Default" size="small" color="primary" sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }} />
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            New Tax Regime u/s 115BAC Slabs
+                          </Typography>
+                        </Stack>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                          Standard default statutory slabs for FY 2026–27
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                          onClick={handleAddTdsNewSlab}
+                          startIcon={<LuCirclePlus size={14} />}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0.2 }}
+                        >
+                          Add Tier
+                        </Button>
+                        <Button
+                          size="small"
+                          color="inherit"
+                          disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                          onClick={handleResetTdsNewSlabs}
+                          startIcon={<LuRotateCcw size={14} />}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0.2 }}
+                        >
+                          Reset
+                        </Button>
+                      </Stack>
+                    </Stack>
+
+                    <TableContainer sx={{ border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: 1.5, bgcolor: 'background.paper' }}>
+                      <Table size="small">
+                        <TableHead sx={{ bgcolor: (theme) => alpha(theme.palette.grey[500], 0.05) }}>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>From (₹)</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>To (₹)</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Rate (%)</TableCell>
+                            <TableCell align="center" sx={{ width: 48, fontWeight: 700, fontSize: '0.75rem' }}>Action</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {getParsedTdsNewSlabs().map((slab, sIdx) => (
+                            <TableRow key={sIdx} hover>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={slab.from_amount}
+                                  onChange={(e) => handleUpdateTdsNewSlab(sIdx, 'from_amount', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{ htmlInput: { style: { fontSize: '0.8rem', padding: '4px 8px' } } }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  placeholder="Above"
+                                  value={slab.to_amount === null ? '' : slab.to_amount}
+                                  onChange={(e) => handleUpdateTdsNewSlab(sIdx, 'to_amount', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{ htmlInput: { style: { fontSize: '0.8rem', padding: '4px 8px' } } }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={slab.rate_percent}
+                                  onChange={(e) => handleUpdateTdsNewSlab(sIdx, 'rate_percent', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{
+                                    input: {
+                                      endAdornment: <InputAdornment position="end" sx={{ '& p': { fontSize: '0.75rem' } }}>%</InputAdornment>,
+                                    },
+                                    htmlInput: { min: 0, max: 50, step: 1, style: { fontSize: '0.8rem', padding: '4px 8px' } }
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell align="center" sx={{ py: 0.75 }}>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1) || getParsedTdsNewSlabs().length <= 1}
+                                  onClick={() => handleRemoveTdsNewSlab(sIdx)}
+                                >
+                                  <LuTrash2 size={15} />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </Grid>
+
+                {/* Old Tax Regime Slabs */}
+                <Grid size={{ xs: 12, lg: 6 }}>
+                  <Box sx={{ p: 2.5, bgcolor: (theme) => alpha(theme.palette.grey[500], 0.03), borderRadius: 2, border: (theme) => `1px solid ${theme.palette.divider}` }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          Old Tax Regime Slabs
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                          Applicable for employees who opt out of New Regime
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                          onClick={handleAddTdsOldSlab}
+                          startIcon={<LuCirclePlus size={14} />}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0.2 }}
+                        >
+                          Add Tier
+                        </Button>
+                        <Button
+                          size="small"
+                          color="inherit"
+                          disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                          onClick={handleResetTdsOldSlabs}
+                          startIcon={<LuRotateCcw size={14} />}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0.2 }}
+                        >
+                          Reset
+                        </Button>
+                      </Stack>
+                    </Stack>
+
+                    <TableContainer sx={{ border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: 1.5, bgcolor: 'background.paper' }}>
+                      <Table size="small">
+                        <TableHead sx={{ bgcolor: (theme) => alpha(theme.palette.grey[500], 0.05) }}>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>From (₹)</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>To (₹)</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Rate (%)</TableCell>
+                            <TableCell align="center" sx={{ width: 48, fontWeight: 700, fontSize: '0.75rem' }}>Action</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {getParsedTdsOldSlabs().map((slab, sIdx) => (
+                            <TableRow key={sIdx} hover>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={slab.from_amount}
+                                  onChange={(e) => handleUpdateTdsOldSlab(sIdx, 'from_amount', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{ htmlInput: { style: { fontSize: '0.8rem', padding: '4px 8px' } } }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  placeholder="Above"
+                                  value={slab.to_amount === null ? '' : slab.to_amount}
+                                  onChange={(e) => handleUpdateTdsOldSlab(sIdx, 'to_amount', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{ htmlInput: { style: { fontSize: '0.8rem', padding: '4px 8px' } } }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={slab.rate_percent}
+                                  onChange={(e) => handleUpdateTdsOldSlab(sIdx, 'rate_percent', e.target.value)}
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                                  slotProps={{
+                                    input: {
+                                      endAdornment: <InputAdornment position="end" sx={{ '& p': { fontSize: '0.75rem' } }}>%</InputAdornment>,
+                                    },
+                                    htmlInput: { min: 0, max: 50, step: 1, style: { fontSize: '0.8rem', padding: '4px 8px' } }
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell align="center" sx={{ py: 0.75 }}>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  disabled={!isCheckEnabled(data.enable_tds ?? 1) || getParsedTdsOldSlabs().length <= 1}
+                                  onClick={() => handleRemoveTdsOldSlab(sIdx)}
+                                >
+                                  <LuTrash2 size={15} />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* 4. Covered Employee Types */}
+              <Box sx={{ p: 2.5, bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04), borderRadius: 2, border: (theme) => `1px dashed ${theme.palette.divider}` }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                    TDS Covered Employee Types
+                  </Typography>
+                  <Stack direction="row" spacing={0.5}>
+                    <Button
+                      size="small"
+                      variant="text"
+                      disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                      onClick={() => onChange('tds_applicable_categories', JSON.stringify(allEmployeeTypeOptions))}
+                      sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: '#059669', fontWeight: 600 }}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="text"
+                      color="inherit"
+                      disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                      onClick={() => onChange('tds_applicable_categories', JSON.stringify([]))}
+                      sx={{ fontSize: '0.75rem', py: 0.2, px: 0.8, textTransform: 'none', color: 'text.secondary' }}
+                    >
+                      Clear
+                    </Button>
+                  </Stack>
+                </Stack>
+
+                <Autocomplete
+                  multiple
+                  disableCloseOnSelect
+                  disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                  options={['All Employee Types', ...allEmployeeTypeOptions]}
+                  value={getSelectedTdsCategories()}
+                  onChange={(_event, newValue) => {
+                    if (newValue.includes('All Employee Types')) {
+                      const currentSelected = getSelectedTdsCategories();
+                      const wasAll = currentSelected.length >= allEmployeeTypeOptions.length;
+                      if (wasAll) {
+                        onChange('tds_applicable_categories', JSON.stringify([]));
+                      } else {
+                        onChange('tds_applicable_categories', JSON.stringify(allEmployeeTypeOptions));
+                      }
+                    } else {
+                      onChange('tds_applicable_categories', JSON.stringify(newValue.filter((v) => v !== 'All Employee Types')));
+                    }
+                  }}
+                  renderOption={(props, option) => {
+                    const selectedCats = getSelectedTdsCategories();
+                    const isAllOption = option === 'All Employee Types';
+                    const isAllSelected = selectedCats.length > 0 && selectedCats.length >= allEmployeeTypeOptions.length;
+                    const isChecked = isAllOption ? isAllSelected : selectedCats.includes(option);
+                    const isIndeterminate = isAllOption && selectedCats.length > 0 && selectedCats.length < allEmployeeTypeOptions.length;
+
+                    return (
+                      <li {...props} key={option}>
+                        <Checkbox
+                          size="small"
+                          checked={isChecked}
+                          indeterminate={isIndeterminate}
+                          sx={{ mr: 1, p: 0.5 }}
+                        />
+                        <Typography variant="body2" sx={{ fontWeight: isAllOption ? 700 : 400, color: isAllOption ? 'primary.main' : 'inherit' }}>
+                          {option}
+                        </Typography>
+                      </li>
+                    );
+                  }}
+                  renderTags={(tagValue, getTagProps) =>
+                    tagValue.filter((option) => option !== 'All Employee Types').map((option, index) => (
+                      <Chip
+                        label={option}
+                        size="small"
+                        {...getTagProps({ index })}
+                        key={option}
+                        sx={{
+                          borderRadius: '6px',
+                          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                          color: 'primary.dark',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          height: 24,
+                        }}
+                      />
+                    ))
+                  }
+                  renderInput={(params) => {
+                    const selected = getSelectedTdsCategories();
+                    const count = selected.length;
+                    const isAll = count > 0 && count >= allEmployeeTypeOptions.length;
+                    return (
+                      <TextField
+                        {...params}
+                        placeholder={count === 0 ? "Select employee types subject to salary TDS" : ""}
+                        helperText={
+                          isAll
+                            ? `Salary TDS applies to all ${count} employee types in Masters.`
+                            : `TDS applies to ${count} selected employee type(s). Unchecked types are exempt from automatic TDS deductions.`
+                        }
+                      />
+                    );
+                  }}
+                />
+              </Box>
+            </Card>
+          </Stack>
         )}
       </Box>
     </Stack>

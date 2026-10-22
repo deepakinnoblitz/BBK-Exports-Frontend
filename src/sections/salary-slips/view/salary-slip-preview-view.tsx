@@ -967,7 +967,14 @@ export function SalarySlipPreviewView() {
                                 hrSettings={hrSettings}
                             />
                         )}
-                        {(!Number(data.employer_pf || 0) && !Number(data.pf_admin_charges || 0) && !Number(data.edli_charges || 0) && !Number(data.employer_esi || 0)) && (
+                        {Number(data.employer_lwf || 0) > 0 && (
+                            <AmountRow
+                                label="Employer LWF Contribution"
+                                amount={data.employer_lwf || 0}
+                                hrSettings={hrSettings}
+                            />
+                        )}
+                        {(!Number(data.employer_pf || 0) && !Number(data.pf_admin_charges || 0) && !Number(data.edli_charges || 0) && !Number(data.employer_esi || 0) && !Number(data.employer_lwf || 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No employer contributions
                             </Typography>
@@ -975,7 +982,7 @@ export function SalarySlipPreviewView() {
                         <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
                         <AmountRow
                             label="Total Employer Contribution"
-                            amount={((Number(data.employer_pf) || 0) + (Number(data.pf_admin_charges) || 0) + (Number(data.edli_charges) || 0) + (Number(data.employer_esi) || 0))}
+                            amount={Number(data.total_employer_contribution) || ((Number(data.employer_pf) || 0) + (Number(data.pf_admin_charges) || 0) + (Number(data.edli_charges) || 0) + (Number(data.employer_esi) || 0) + (Number(data.employer_lwf) || 0))}
                             isTotal
                             color="info.main"
                             hrSettings={hrSettings}
@@ -996,7 +1003,7 @@ export function SalarySlipPreviewView() {
                     }}
                 >
                     <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, px: 1.5, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Iconify icon={"solar:wallet-money-bold" as any} width={18} />
                             Statutory Provisions & CTC
                         </Typography>
@@ -1006,6 +1013,7 @@ export function SalarySlipPreviewView() {
                                     label={`Bonus Provision (${data.bonus_provision_rate ?? hrSettings?.bonus_provision_rate ?? 8.33}%)`}
                                     amount={data.bonus_provision || 0}
                                     hrSettings={hrSettings}
+                                    sx={{ px: 1.5 }}
                                 />
                             )}
                             {Number(data.el_provision || 0) > 0 && (
@@ -1013,17 +1021,20 @@ export function SalarySlipPreviewView() {
                                     label={`Earned Leave (EL) Provision (${data.el_provision_days_per_year ?? hrSettings?.el_provision_days_per_year ?? 15.6}d/yr)`}
                                     amount={data.el_provision || 0}
                                     hrSettings={hrSettings}
+                                    sx={{ px: 1.5 }}
                                 />
                             )}
                             <AmountRow
                                 label="Gross Salary (Employee)"
                                 amount={data.gross_pay || 0}
                                 hrSettings={hrSettings}
+                                sx={{ px: 1.5 }}
                             />
                             <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
                             <Box
                                 sx={{
-                                    p: 2,
+                                    px: 1.5,
+                                    py: 1.25,
                                     borderRadius: 1.5,
                                     bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
                                     border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
@@ -1051,6 +1062,7 @@ export function SalarySlipPreviewView() {
                                     label="Tea Expenses"
                                     amount={data.tea_expenses || 0}
                                     hrSettings={hrSettings}
+                                    sx={{ px: 1.5 }}
                                 />
                             )}
                             {Number(data.lunch_expenses || 0) > 0 && (
@@ -1062,6 +1074,7 @@ export function SalarySlipPreviewView() {
                                     }
                                     amount={data.lunch_expenses || 0}
                                     hrSettings={hrSettings}
+                                    sx={{ px: 1.5 }}
                                 />
                             )}
                         </Stack>
@@ -1070,7 +1083,8 @@ export function SalarySlipPreviewView() {
                     <Box
                         sx={{
                             mt: 2,
-                            p: 2,
+                            px: 1.5,
+                            py: 1.25,
                             borderRadius: 1.5,
                             bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
                             border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
@@ -1366,6 +1380,7 @@ function AmountRow({
     isTotal = false,
     color,
     hrSettings,
+    sx,
 }: {
     label: string;
     amount: number;
@@ -1373,10 +1388,11 @@ function AmountRow({
     isTotal?: boolean;
     color?: string;
     hrSettings: any;
+    sx?: any;
 }) {
     const hasStandard = standardAmount !== undefined && standardAmount !== null;
     return (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: isTotal ? 0.5 : 0.25 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: isTotal ? 0.5 : 0.25, ...sx }}>
             <Typography variant={isTotal ? 'subtitle2' : 'body2'} sx={{ color: isTotal ? color || 'text.primary' : 'text.secondary', fontWeight: isTotal ? 700 : 500, flex: 1, pr: 1 }}>
                 {label}
             </Typography>

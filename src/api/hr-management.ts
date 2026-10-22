@@ -38,13 +38,16 @@ export async function fetchFrappeList(doctype: string, params: {
         }
     }
 
+    const page = Number(params.page) > 0 ? Number(params.page) : 1;
+    const pageSize = Number(params.page_size) > 0 ? Number(params.page_size) : 20;
+
     const query = new URLSearchParams({
         doctype,
         fields: JSON.stringify(params.fields || ["*"]),
         filters: JSON.stringify(filters),
         or_filters: params.or_filters ? JSON.stringify(params.or_filters) : "[]",
-        limit_start: String((params.page - 1) * params.page_size),
-        limit_page_length: String(params.page_size),
+        limit_start: String((page - 1) * pageSize),
+        limit_page_length: String(pageSize),
         order_by: orderByParam,
         _: String(Date.now())
     });
