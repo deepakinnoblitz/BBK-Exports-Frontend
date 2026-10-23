@@ -44,11 +44,11 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { fDate } from 'src/utils/format-time';
 import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
-import { runReport } from 'src/api/reports';
 import { getDoctypeList } from 'src/api/leads';
 import { COMMON_COLORS } from 'src/theme/common-colors';
 import { fetchLeaveApplications } from 'src/api/leaves';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { runReport, getDailyAttendanceSummary } from 'src/api/reports';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';   
@@ -59,6 +59,8 @@ import { useAuth } from 'src/auth/auth-context';
 import { AttendanceCalendar } from './attendance-calendar';
 import { AttendanceDetailsDialog } from '../attendance-details-dialog';
 import { LeavesDetailsDialog } from '../../leaves/leaves-details-dialog';
+import { exportDailyReportToExcel } from './daily-report-excel-exporter';
+import { AttendanceDailyReportView } from './attendance-daily-report-view';
 
 
 export function AttendanceReportView() {
@@ -85,13 +87,15 @@ export function AttendanceReportView() {
     const [employee, setEmployee] = useState<string[]>([]);
     const [status, setStatus] = useState('all');
     const [sortBy, setSortBy] = useState('date_asc');
-    const [currentView, setCurrentView] = useState<'list' | 'calendar' | 'muster'>('list');
+    const [currentView, setCurrentView] = useState<'list' | 'calendar' | 'muster' | 'daily'>('list');
     const [musterPage, setMusterPage] = useState(0);
     const [musterRowsPerPage, setMusterRowsPerPage] = useState(50);
     const [openExportDialog, setOpenExportDialog] = useState(false);
     const [exportType, setExportType] = useState<'excel' | 'pdf'>('excel');
-    const [selectedExportView, setSelectedExportView] = useState<'list' | 'muster'>('list');
+    const [selectedExportView, setSelectedExportView] = useState<'list' | 'muster' | 'daily'>('list');
     const [preparing, setPreparing] = useState(false);
+
+    const isSingleDay = Boolean(fromDate && toDate && fromDate.isSame(toDate, 'day'));
 
     // --- Muster Roll drag-scroll (ref-based — zero React re-renders) ---
     const musterScrollRef = useRef<HTMLDivElement>(null);
@@ -145,7 +149,7 @@ export function AttendanceReportView() {
         }
     };
 
-    const handleViewChange = useCallback((newView: 'list' | 'calendar' | 'muster') => {
+    const handleViewChange = useCallback((newView: 'list' | 'calendar' | 'muster' | 'daily') => {
         if (newView === currentView) return;
         setPreparing(true);
         setTimeout(() => {
@@ -160,6 +164,12 @@ export function AttendanceReportView() {
             setCurrentView('list');
         }
     }, [employee, currentView]);
+
+    useEffect(() => {
+        if (!isSingleDay && currentView === 'daily') {
+            setCurrentView('list');
+        }
+    }, [isSingleDay, currentView]);
 
     useEffect(() => {
         if (user && user.roles) {
@@ -379,7 +389,13 @@ export function AttendanceReportView() {
         if (type === 'pdf') {
             setSelectedExportView('list');
         } else {
-            setSelectedExportView(currentView === 'muster' ? 'muster' : 'list');
+            if (currentView === 'daily') {
+                setSelectedExportView('daily');
+            } else if (currentView === 'muster') {
+                setSelectedExportView('muster');
+            } else {
+                setSelectedExportView('list');
+            }
         }
         setOpenExportDialog(true);
     };
@@ -482,10 +498,22 @@ export function AttendanceReportView() {
         getDoctypeList('Employee', ['name', 'employee_name']).then(setEmployeeOptions);
     }, []);
 
-    const handleExport = async (targetView?: 'list' | 'muster') => {
-        const viewToExport = targetView || (currentView === 'muster' ? 'muster' : 'list');
+    const handleExport = async (targetView?: 'list' | 'muster' | 'daily') => {
+        const viewToExport = targetView || (currentView === 'daily' ? 'daily' : currentView === 'muster' ? 'muster' : 'list');
         setExportingExcel(true);
         try {
+            if (viewToExport === 'daily' && fromDate) {
+                const res = await getDailyAttendanceSummary(fromDate.format('YYYY-MM-DD'));
+                if (res && res.status === 'success') {
+                    await exportDailyReportToExcel(res, fromDate.format('YYYY-MM-DD'));
+                    enqueueSnackbar('Daily Report Excel exported successfully!', { variant: 'success' });
+                } else {
+                    enqueueSnackbar(res?.message || 'Failed to export Daily Report Excel', { variant: 'error' });
+                }
+                setExportingExcel(false);
+                return;
+            }
+
             if (viewToExport === 'muster') {
                 const workbook = new ExcelJS.Workbook();
                 const sheet = workbook.addWorksheet('Muster Roll Report');
@@ -830,10 +858,6 @@ export function AttendanceReportView() {
         setRowsPerPage(parseInt(event.target.value, 10));
         setPage(0);
     }, []);
-
-
-
-    const totalEntries = reportData.length;
 
     const handlePreset = useCallback((preset: 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'lastMonth') => {
         const today = dayjs();
@@ -1272,12 +1296,14 @@ export function AttendanceReportView() {
                         {(employee.length !== 1
                             ? [
                                 { value: 'list', label: 'List View', icon: 'solar:list-bold' },
-                                { value: 'muster', label: 'Muster Roll View', icon: 'material-symbols:grid-on' }
+                                { value: 'muster', label: 'Muster Roll View', icon: 'material-symbols:grid-on' },
+                                ...(isSingleDay ? [{ value: 'daily' as const, label: 'Daily Report', icon: 'solar:document-text-bold' }] : [])
                             ]
                             : [
                                 { value: 'list', label: 'List View', icon: 'solar:list-bold' },
                                 { value: 'calendar', label: 'Calendar View', icon: 'solar:calendar-bold' },
-                                { value: 'muster', label: 'Muster Roll View', icon: 'material-symbols:grid-on' }
+                                { value: 'muster', label: 'Muster Roll View', icon: 'material-symbols:grid-on' },
+                                ...(isSingleDay ? [{ value: 'daily' as const, label: 'Daily Report', icon: 'solar:document-text-bold' }] : [])
                             ]
                         ).map((tab) => {
                             const isActive = currentView === tab.value;
@@ -1783,6 +1809,18 @@ export function AttendanceReportView() {
                                 />
                             </Card>
                         )}
+
+                        {currentView === 'daily' && fromDate && (
+                            <AttendanceDailyReportView
+                                date={fromDate.format('YYYY-MM-DD')}
+                                onViewEmployeeDetails={(attendanceId) => {
+                                    if (attendanceId) {
+                                        setSelectedAttendanceName(attendanceId);
+                                        setOpenDetails(true);
+                                    }
+                                }}
+                            />
+                        )}
                     </>
                 )}
 
@@ -1858,6 +1896,24 @@ export function AttendanceReportView() {
                                     sx={{ alignItems: 'flex-start' }}
                                 />
                             )}
+                            {isSingleDay && exportType !== 'pdf' && (
+                                <FormControlLabel
+                                    value="daily"
+                                    control={<Radio color="primary" />}
+                                    label={
+                                        <Box sx={{ ml: 0.5 }}>
+                                            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                                                <Iconify icon={"solar:document-text-bold" as any} width={18} sx={{ color: 'text.secondary' }} />
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Daily Report (3 Sheets)</Typography>
+                                            </Stack>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                                                Exports full statutory factory report with 3 dedicated sheets: Attendance with Department, Factory Head Count, and Line Wise Manpower report.
+                                            </Typography>
+                                        </Box>
+                                    }
+                                    sx={{ alignItems: 'flex-start' }}
+                                />
+                            )}
                         </RadioGroup>
                     </DialogContent>
                     <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'flex-end', gap: 1.5 }}>
@@ -1892,6 +1948,21 @@ export function AttendanceReportView() {
                                     Export PDF
                                 </Button>
                             </>
+                        ) : selectedExportView === 'daily' ? (
+                            <Button
+                                variant="contained"
+                                onClick={() => {
+                                    setOpenExportDialog(false);
+                                    handleExport('daily');
+                                }}
+                                sx={{
+                                    bgcolor: COMMON_COLORS.primaryButton.bg,
+                                    color: COMMON_COLORS.primaryButton.color,
+                                    '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg }
+                                }}
+                            >
+                                Export Daily Report Excel
+                            </Button>
                         ) : (
                             <Button
                                 variant="contained"
