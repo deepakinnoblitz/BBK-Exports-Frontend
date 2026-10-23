@@ -255,6 +255,10 @@ export function SalarySlipsView() {
 
     const [deleting, setDeleting] = useState(false);
 
+    // Bulk Delete confirmation
+    const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+
     // Submit confirmation
     const [submitDialog, setSubmitDialog] = useState<{
         open: boolean;
@@ -281,7 +285,7 @@ export function SalarySlipsView() {
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
         message: string;
-        severity: 'success' | 'error';
+        severity: 'success' | 'error' | 'warning' | 'info';
     }>({
         open: false,
         message: '',
@@ -319,6 +323,7 @@ export function SalarySlipsView() {
         setDeleting(true);
         try {
             await deleteSalarySlip(deleteDialog.slipName);
+            setSelected((prev) => prev.filter((id) => id !== deleteDialog.slipName));
             setSnackbar({
                 open: true,
                 message: 'Salary slip deleted successfully',
@@ -337,6 +342,60 @@ export function SalarySlipsView() {
             setDeleteDialog({ open: false, slipName: '' });
         }
     }, [deleteDialog.slipName, refetch]);
+
+    const handleConfirmBulkDelete = useCallback(async () => {
+        if (!selected.length) return;
+        setBulkDeleting(true);
+        try {
+            const results = await Promise.allSettled(
+                selected.map((name) => deleteSalarySlip(name))
+            );
+
+            const succeeded: string[] = [];
+            const failedMessages: string[] = [];
+
+            results.forEach((res, index) => {
+                if (res.status === 'fulfilled') {
+                    succeeded.push(selected[index]);
+                } else {
+                    const msg = (res as PromiseRejectedResult).reason?.message || 'Delete failed';
+                    if (!failedMessages.includes(msg)) {
+                        failedMessages.push(msg);
+                    }
+                }
+            });
+
+            if (succeeded.length > 0) {
+                setSelected((prev) => prev.filter((id) => !succeeded.includes(id)));
+                refetch();
+            }
+
+            if (failedMessages.length > 0) {
+                setSnackbar({
+                    open: true,
+                    message: succeeded.length > 0
+                        ? `Deleted ${succeeded.length} salary slip(s). Some failed: ${failedMessages.join(', ')}`
+                        : failedMessages.join(', '),
+                    severity: succeeded.length > 0 ? 'warning' : 'error',
+                });
+            } else {
+                setSnackbar({
+                    open: true,
+                    message: `${succeeded.length} salary slip(s) deleted successfully`,
+                    severity: 'success',
+                });
+            }
+        } catch (error: any) {
+            setSnackbar({
+                open: true,
+                message: error.message || 'Failed to delete selected salary slips',
+                severity: 'error',
+            });
+        } finally {
+            setBulkDeleting(false);
+            setConfirmBulkDelete(false);
+        }
+    }, [selected, refetch]);
 
     const handleSubmitRow = useCallback((name: string) => {
         setSubmitDialog({ open: true, slipName: name });
@@ -535,6 +594,7 @@ export function SalarySlipsView() {
                     onOpenFilter={() => setOpenFilters(true)}
 
                     canReset={canReset}
+                    onDelete={isHR && canDeleteSalarySlip && selected.length > 0 ? () => setConfirmBulkDelete(true) : undefined}
                 />
 
 
@@ -545,7 +605,7 @@ export function SalarySlipsView() {
                                 order={order}
                                 orderBy={orderBy}
                                 rowCount={data.length}
-                                numSelected={selected.length}
+                                numSelected={selected.filter((id) => data.some((row) => row.name === id)).length}
                                 onSelectAllRows={(checked: boolean) => handleSelectAllRows(checked)}
                                 hideCheckbox={!isHR}
                                 showIndex
@@ -735,6 +795,26 @@ export function SalarySlipsView() {
                         color="error"
                         loading={deleting}
                         onClick={handleConfirmDelete}
+                        sx={{ borderRadius: 1.5, minWidth: 100 }}
+                    >
+                        Delete
+                    </LoadingButton>
+                }
+            />
+
+            {/* Bulk Delete Confirmation Dialog */}
+            <ConfirmDialog
+                open={confirmBulkDelete}
+                onClose={() => setConfirmBulkDelete(false)}
+                title="Bulk Delete Salary Slips"
+                content={`Are you sure you want to delete ${selected.length} selected salary slip(s)? This action cannot be undone.`}
+                isLoading={bulkDeleting}
+                action={
+                    <LoadingButton
+                        variant="contained"
+                        color="error"
+                        loading={bulkDeleting}
+                        onClick={handleConfirmBulkDelete}
                         sx={{ borderRadius: 1.5, minWidth: 100 }}
                     >
                         Delete
