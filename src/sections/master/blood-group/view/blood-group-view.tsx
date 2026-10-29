@@ -233,7 +233,8 @@ export function BloodGroupView() {
         }}
         onSuccess={async () => {
           const isEdit = !!selectedId;
-          await refetch();
+          setPage(0);
+          await refetch({ page: 1 });
           enqueueSnackbar(
             isEdit ? 'Blood Group updated successfully' : 'Blood Group created successfully',
             { variant: 'success' }

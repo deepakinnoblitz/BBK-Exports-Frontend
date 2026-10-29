@@ -798,18 +798,19 @@ export async function updateSalaryStructureComponent(name: string, data: Partial
     }
 
     const { component_name, ...otherFields } = data;
-    if (Object.keys(otherFields).length > 0) {
-        const headers = await getAuthHeaders();
-        const res = await frappeRequest("/api/method/frappe.client.set_value", {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ doctype: "Salary Structure Component", name: currentName, fieldname: otherFields })
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update salary structure component"));
-        return json.message;
-    }
-    return { name: currentName, component_name: currentName };
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.set_value", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+            doctype: "Salary Structure Component",
+            name: currentName,
+            fieldname: { component_name: currentName, ...otherFields }
+        })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update salary structure component"));
+    return json.message;
 }
 
 export async function deleteSalaryStructureComponent(name: string) {
@@ -1994,18 +1995,19 @@ export async function updateBloodGroup(name: string, data: Partial<BloodGroup>) 
     }
 
     const { blood_group, ...otherFields } = data;
-    if (Object.keys(otherFields).length > 0) {
-        const headers = await getAuthHeaders();
-        const res = await frappeRequest("/api/method/frappe.client.set_value", {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ doctype: "Blood Group", name: currentName, fieldname: otherFields })
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update blood group"));
-        return json.message;
-    }
-    return { name: currentName, blood_group: currentName };
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.set_value", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+            doctype: "Blood Group",
+            name: currentName,
+            fieldname: { blood_group: currentName, ...otherFields }
+        })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update blood group"));
+    return json.message;
 }
 
 export async function deleteBloodGroup(name: string) {
