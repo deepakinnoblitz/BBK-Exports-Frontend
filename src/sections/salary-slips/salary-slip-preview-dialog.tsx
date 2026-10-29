@@ -487,7 +487,13 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                             .map((item: any, idx: number) => (
                             <AmountRow
                                 key={idx}
-                                label={item.component_name || item.salary_component}
+                                label={
+                                    (item.component_name === 'Canteen Deduction' || item.salary_component === 'Canteen Deduction') && (data.canteen_meals_count || data.lunch_count)
+                                        ? `Canteen Deduction (${data.canteen_meals_count ?? data.lunch_count} Meals${data.employee_canteen_rate ? ` @ ₹${data.employee_canteen_rate}` : ''})`
+                                        : (item.component_name === 'Tea Deduction' || item.salary_component === 'Tea Deduction') && (data.actual_present_days ?? data.present_days) && data.employee_tea_rate
+                                            ? `Tea Deduction (${data.actual_present_days ?? data.present_days} Days @ ₹${data.employee_tea_rate})`
+                                            : (item.component_name || item.salary_component)
+                                }
                                 standardAmount={item.standard_amount !== undefined ? item.standard_amount : item.amount}
                                 amount={item.amount}
                                 hrSettings={hrSettings}

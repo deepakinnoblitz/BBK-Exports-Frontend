@@ -19,6 +19,8 @@ import {
   LuCirclePlus, 
   LuHeartPulse,
   LuShieldCheck,
+  LuCoffee,
+  LuUtensils,
   LuChevronDown,
   LuCalendarDays,
   LuTriangleAlert,
@@ -157,7 +159,7 @@ const SETTINGS_TABS = [
   },
   {
     value: 'employee_statutory',
-    label: 'Employee Statutory (PF & ESI)',
+    label: 'Employee Statutory & Deductions',
     icon: <LuShieldCheck size={19} />,
   },
   {
@@ -1273,6 +1275,10 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             const autoEsiEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_auto_esi', 1));
             const applyPfCeiling = isCheckEnabled(getFieldVal(cat.key, 'apply_pf_ceiling', cat.key === 'staff_ctc' ? 0 : 1));
             const selectedPfComps = getSelectedPfComponents(cat.key);
+            const empTeaEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_employee_tea_deduction', 0));
+            const empCanteenEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_employee_canteen_deduction', 0));
+            const defaultTeaRate = String(data['employee_tea_deduction_per_day'] || '0');
+            const defaultCanteenRate = String(data['employee_canteen_deduction_per_meal'] || '0');
 
             return renderCategoryAccordion(
               cat,
@@ -1575,6 +1581,164 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                         </Grid>
                       </Grid>
                     </Stack>
+                  </Box>
+                </Grid>
+
+                {/* Employee Tea Deduction Card */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Box
+                    sx={{
+                      p: 2.5,
+                      borderRadius: 2,
+                      bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
+                      border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <Box>
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <LuCoffee size={20} style={{ color: '#d97706' }} />
+                            Tea Deduction (Employee)
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {cat.key === 'general'
+                              ? 'Company-wide default employee tea expense deduction per day worked.'
+                              : `Employee tea expense deduction per day worked for ${cat.title}.`}
+                          </Typography>
+                        </Box>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 700,
+                              color: empTeaEnabled ? '#059669' : 'text.secondary',
+                            }}
+                          >
+                            {empTeaEnabled ? 'Enabled' : 'Disabled'}
+                          </Typography>
+                          <CustomSwitch
+                            checked={empTeaEnabled}
+                            onChange={(e) => setFieldVal(cat.key, 'enable_employee_tea_deduction', e.target.checked ? 1 : 0)}
+                          />
+                        </Stack>
+                      </Stack>
+
+                      {empTeaEnabled && (
+                        <TextField
+                          fullWidth
+                          size="medium"
+                          type="number"
+                          label="Tea Deduction Rate (₹/day)"
+                          value={getFieldVal(cat.key, 'employee_tea_deduction_per_day', defaultTeaRate)}
+                          onChange={(e) => setFieldVal(cat.key, 'employee_tea_deduction_per_day', e.target.value)}
+                          placeholder={cat.key === 'general' ? '0' : defaultTeaRate}
+                          helperText={
+                            cat.key === 'general'
+                              ? 'Default baseline deducted from Gross Pay (Present Days × ₹/day).'
+                              : `Deducted from Employee Gross Pay (Present Days × ₹/day). ${
+                                  data[`${cat.key}_employee_tea_deduction_per_day`] === undefined || data[`${cat.key}_employee_tea_deduction_per_day`] === ''
+                                    ? `(Inheriting Company Default: ₹${defaultTeaRate}/day)`
+                                    : ''
+                                }`
+                          }
+                          slotProps={{
+                            input: {
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                </InputAdornment>
+                              ),
+                              endAdornment: <InputAdornment position="end">/day</InputAdornment>,
+                            },
+                            htmlInput: { min: 0, step: 1 },
+                          }}
+                        />
+                      )}
+                    </Box>
+                  </Box>
+                </Grid>
+
+                {/* Employee Canteen Deduction Card */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Box
+                    sx={{
+                      p: 2.5,
+                      borderRadius: 2,
+                      bgcolor: (theme) => alpha(theme.palette.success.main, 0.04),
+                      border: (theme) => `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <Box>
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <LuUtensils size={20} style={{ color: '#059669' }} />
+                            Canteen / Lunch Deduction (Employee)
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {cat.key === 'general'
+                              ? 'Company-wide default employee canteen deduction per meal.'
+                              : `Employee canteen deduction per meal for ${cat.title}.`}
+                          </Typography>
+                        </Box>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 700,
+                              color: empCanteenEnabled ? '#059669' : 'text.secondary',
+                            }}
+                          >
+                            {empCanteenEnabled ? 'Enabled' : 'Disabled'}
+                          </Typography>
+                          <CustomSwitch
+                            checked={empCanteenEnabled}
+                            onChange={(e) => setFieldVal(cat.key, 'enable_employee_canteen_deduction', e.target.checked ? 1 : 0)}
+                          />
+                        </Stack>
+                      </Stack>
+
+                      {empCanteenEnabled && (
+                        <TextField
+                          fullWidth
+                          size="medium"
+                          type="number"
+                          label="Canteen Deduction Rate (₹/meal)"
+                          value={getFieldVal(cat.key, 'employee_canteen_deduction_per_meal', defaultCanteenRate)}
+                          onChange={(e) => setFieldVal(cat.key, 'employee_canteen_deduction_per_meal', e.target.value)}
+                          placeholder={cat.key === 'general' ? '0' : defaultCanteenRate}
+                          helperText={
+                            cat.key === 'general'
+                              ? 'Default baseline deducted from Gross Pay (Canteen Entries × ₹/meal).'
+                              : `Deducted from Employee Gross Pay (All Canteen Entries × ₹/meal). ${
+                                  data[`${cat.key}_employee_canteen_deduction_per_meal`] === undefined || data[`${cat.key}_employee_canteen_deduction_per_meal`] === ''
+                                    ? `(Inheriting Company Default: ₹${defaultCanteenRate}/meal)`
+                                    : ''
+                                }`
+                          }
+                          slotProps={{
+                            input: {
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                </InputAdornment>
+                              ),
+                              endAdornment: <InputAdornment position="end">/meal</InputAdornment>,
+                            },
+                            htmlInput: { min: 0, step: 1 },
+                          }}
+                        />
+                      )}
+                    </Box>
                   </Box>
                 </Grid>
               </Grid>

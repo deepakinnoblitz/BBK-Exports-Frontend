@@ -963,7 +963,13 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             .map((item: any, idx: number) => (
                                 <AmountRow
                                     key={idx}
-                                    label={item.component_name || item.salary_component}
+                                    label={
+                                        (item.component_name === 'Canteen Deduction' || item.salary_component === 'Canteen Deduction') && (slip.canteen_meals_count || slip.lunch_count)
+                                            ? `Canteen Deduction (${slip.canteen_meals_count ?? slip.lunch_count} Meals${slip.employee_canteen_rate ? ` @ ₹${slip.employee_canteen_rate}` : ''})`
+                                            : (item.component_name === 'Tea Deduction' || item.salary_component === 'Tea Deduction') && (slip.actual_present_days ?? slip.present_days) && slip.employee_tea_rate
+                                                ? `Tea Deduction (${slip.actual_present_days ?? slip.present_days} Days @ ₹${slip.employee_tea_rate})`
+                                                : (item.component_name || item.salary_component)
+                                    }
                                     standardAmount={item.standard_amount !== undefined ? item.standard_amount : item.amount}
                                     amount={item.amount}
                                     hrSettings={hrSettings}
