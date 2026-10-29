@@ -286,13 +286,13 @@ export function SalaryStructureComponentView() {
           setSelectedId(null);
         }}
         id={selectedId}
-        onSuccess={() => {
+        onSuccess={async () => {
           setSnackbar({
             open: true,
             message: `Component ${selectedId ? 'updated' : 'created'} successfully`,
             severity: 'success',
           });
-          refetch();
+          await refetch();
         }}
       />
 

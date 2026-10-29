@@ -105,7 +105,7 @@ export function SalaryStructureComponentTableRow({
       <TableCell>
         <Stack spacing={0.25}>
           <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
-            {component_name}
+            {component_name || row.name}
           </Typography>
         </Stack>
       </TableCell>

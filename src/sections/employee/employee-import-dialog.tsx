@@ -250,7 +250,7 @@ const STANDARD_TARGET_FIELDS = [
     { value: 'uan_number', label: 'UAN Number' },
     { value: 'esi_no', label: 'ESI No' },
     { value: 'pan_number', label: 'PAN Number' },
-    { value: 'ctc', label: 'CTC (Monthly)' },
+    { value: 'ctc', label: 'CTC (Yearly)' },
 ];
 
 type Props = {

@@ -253,7 +253,7 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
     BANK_FIELDS.forEach(f => columnDefs.push({ ...f }));
 
     // CTC
-    columnDefs.push({ label: 'CTC (Monthly)', key: 'ctc', sample: '25000', width: 16, type: 'currency' });
+    columnDefs.push({ label: 'CTC (Yearly)', key: 'ctc', sample: '25000', width: 16, type: 'currency' });
 
     // Earnings
     earnings.forEach(e => {
