@@ -16,7 +16,6 @@ import {
   LuCalendar, 
   LuMountain, 
   LuUtensils, 
-  LuSparkles,
   LuBuilding2,
   LuRotateCcw,
   LuBriefcase,
@@ -70,6 +69,7 @@ import { fetchSalaryComponents } from 'src/api/hr-management';
 import { fetchDepartments, fetchDesignations, fetchEmployeeTypes } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
+import { EmptyContent } from 'src/components/empty-content';
 
 import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
 import { EmployeeSelectorDialog } from 'src/sections/shift-rotation/employee-selector-dialog';
@@ -1847,20 +1847,6 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
             >
               <Box>
                 <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 0.5 }}>
-                  <Box
-                    sx={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: '8px',
-                      bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
-                      color: COMMON_COLORS.emerald.main,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <LuLayers size={20} />
-                  </Box>
                   <Typography variant="h6" sx={{ fontWeight: 800 }}>
                     Custom & Periodic Salary Components
                   </Typography>
@@ -1896,36 +1882,18 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
               <Card
                 variant="outlined"
                 sx={{
-                  p: 6,
-                  textAlign: 'center',
+                  py: 6,
+                  px: 3,
                   borderRadius: '14px',
-                  borderStyle: 'dashed',
-                  borderColor: (theme) => alpha(theme.palette.divider, 0.8),
-                  bgcolor: (theme) => alpha(theme.palette.background.default, 0.4),
+                  bgcolor: 'background.paper',
+                  border: (theme) => `1px solid ${theme.palette.divider}`,
                 }}
               >
-                <Box
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: '50%',
-                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                    color: 'primary.main',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mx: 'auto',
-                    mb: 2,
-                  }}
-                >
-                  <LuSparkles size={32} />
-                </Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                  No Custom Components Defined
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 480, mx: 'auto', mb: 3 }}>
-                  Click &ldquo;Add Component Rule&rdquo; above to create a custom earning or deduction component for a specific month, specific assignees, or universal calculation.
-                </Typography>
+                <EmptyContent
+                  icon="solar:document-text-bold-duotone"
+                  title="No Custom Components Found"
+                  description="Create and manage custom salary rules for earnings and deductions here."
+                />
               </Card>
             ) : (
               <Stack spacing={2.5}>
