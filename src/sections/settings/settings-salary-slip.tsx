@@ -1588,17 +1588,67 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       <Box sx={{ display: currentTab === 'ot_bonus_rules' ? 'block' : 'none' }}>
         {visitedTabs.ot_bonus_rules && (
           <Box>
-          {CATEGORIES.filter((cat) => ['workers', 'drivers', 'north_indian'].includes(cat.key)).map((cat, idx) => (
-            renderCategoryAccordion(
+          {CATEGORIES.filter((cat) => ['workers', 'drivers', 'north_indian'].includes(cat.key)).map((cat, idx) => {
+            const rawVal = getFieldVal(cat.key, 'enable_overtime', null);
+            let otEnabled = true;
+            if (rawVal !== null && rawVal !== undefined && rawVal !== '') {
+              otEnabled = isCheckEnabled(rawVal);
+            } else {
+              try {
+                const saved = localStorage.getItem('salary_slip_ot_rules_enabled');
+                if (saved) {
+                  const parsed = JSON.parse(saved);
+                  if (parsed && parsed[cat.key] !== undefined) {
+                    otEnabled = isCheckEnabled(parsed[cat.key]);
+                  }
+                }
+              } catch {
+                // ignore
+              }
+            }
+
+            return renderCategoryAccordion(
               cat,
               idx === 0,
               <Stack spacing={3}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                  Overtime (OT) & Attendance Bonus Rules ({cat.title})
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: -2 }}>
-                  Configure Overtime formulas, hourly rates, and attendance bonus policies for {cat.title}.
-                </Typography>
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                      Overtime (OT) & Attendance Bonus Rules ({cat.title})
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Configure Overtime formulas, hourly rates, and attendance bonus policies for {cat.title}.
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 700,
+                        color: otEnabled ? '#059669' : 'text.secondary',
+                      }}
+                    >
+                      {otEnabled ? 'Enabled' : 'Disabled'}
+                    </Typography>
+                    <CustomSwitch
+                      checked={otEnabled}
+                      onChange={(e) => {
+                        const nextVal = e.target.checked ? 1 : 0;
+                        setFieldVal(cat.key, 'enable_overtime', nextVal);
+                        try {
+                          const saved = localStorage.getItem('salary_slip_ot_rules_enabled');
+                          const parsed = saved ? JSON.parse(saved) : {};
+                          parsed[cat.key] = nextVal;
+                          localStorage.setItem('salary_slip_ot_rules_enabled', JSON.stringify(parsed));
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                    />
+                  </Stack>
+                </Stack>
+
+                <Divider />
 
                 <Grid container spacing={3}>
                   {cat.key === 'workers' && (
@@ -1611,6 +1661,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                           value={data.workers_ot_rate_multiplier ?? '2'}
                           onChange={(e) => onChange('workers_ot_rate_multiplier', e.target.value)}
                           placeholder="2"
+                          disabled={!otEnabled}
                           helperText="Double Rate: (Gross / 26 / 8) × OT Hours × Multiplier"
                           slotProps={{
                             input: {
@@ -1621,7 +1672,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                               ),
                               endAdornment: <InputAdornment position="end">x</InputAdornment>,
                             },
-                            htmlInput: { min: 1, max: 5, step: 0.5 },
+                            htmlInput: { min: 0, max: 5, step: 0.5 },
                           }}
                         />
                       </Grid>
@@ -1633,6 +1684,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                           value={data.workers_attendance_bonus ?? '1500'}
                           onChange={(e) => onChange('workers_attendance_bonus', e.target.value)}
                           placeholder="1500"
+                          disabled={!otEnabled}
                           helperText="Bonus awarded for Full Present (0 absent days)."
                           slotProps={{
                             input: {
@@ -1658,6 +1710,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                         value={data.drivers_ot_rate_multiplier ?? '2'}
                         onChange={(e) => onChange('drivers_ot_rate_multiplier', e.target.value)}
                         placeholder="2"
+                        disabled={!otEnabled}
                         helperText="Double Rate: (Gross / 26 / 8) × OT Hours × Multiplier"
                         slotProps={{
                           input: {
@@ -1668,7 +1721,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             ),
                             endAdornment: <InputAdornment position="end">x</InputAdornment>,
                           },
-                          htmlInput: { min: 1, max: 5, step: 0.5 },
+                          htmlInput: { min: 0, max: 5, step: 0.5 },
                         }}
                       />
                     </Grid>
@@ -1683,6 +1736,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                         value={data.north_indian_ot_rate ?? '100'}
                         onChange={(e) => onChange('north_indian_ot_rate', e.target.value)}
                         placeholder="100"
+                        disabled={!otEnabled}
                         helperText="Fixed hourly rate for North Indian Staff (OT Hours × Rate)."
                         slotProps={{
                           input: {
@@ -1700,8 +1754,8 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   )}
                 </Grid>
               </Stack>
-            )
-          ))}
+            );
+          })}
 
           {/* Annual & Festival Bonus Schemes Configuration */}
           <Card
@@ -2263,6 +2317,24 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
         {visitedTabs.employer_statutory && (
           <Box>
           {CATEGORIES.map((cat, idx) => {
+            const rawStatutoryVal = getFieldVal(cat.key, 'enable_employer_statutory', null);
+            let employerStatutoryEnabled = true;
+            if (rawStatutoryVal !== null && rawStatutoryVal !== undefined && rawStatutoryVal !== '') {
+              employerStatutoryEnabled = isCheckEnabled(rawStatutoryVal);
+            } else {
+              try {
+                const saved = localStorage.getItem('salary_slip_employer_statutory_rules_enabled');
+                if (saved) {
+                  const parsed = JSON.parse(saved);
+                  if (parsed && parsed[cat.key] !== undefined) {
+                    employerStatutoryEnabled = isCheckEnabled(parsed[cat.key]);
+                  }
+                }
+              } catch {
+                // ignore
+              }
+            }
+
             const bonusEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_bonus_provision', 1));
             const elEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_el_provision', 1));
             const teaEnabled = isCheckEnabled(data.enable_workers_tea_allowance ?? 1);
@@ -2271,460 +2343,517 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
               cat,
               idx === 0,
               <Stack spacing={3}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                  Employer Statutory Contributions & CTC Rules ({cat.title})
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: -2 }}>
-                  Configure employer contributions, PF/ESI rates, and CTC provisions for {cat.title}.
-                </Typography>
-
-                <Grid container spacing={2.5}>
-                  {/* Employer PF Rate */}
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Employer PF Rate (%)"
-                      value={getFieldVal(cat.key, 'employer_pf_rate', '12')}
-                      onChange={(e) => setFieldVal(cat.key, 'employer_pf_rate', e.target.value)}
-                      placeholder="12"
-                      helperText="Statutory EPF rate: 12%."
-                      slotProps={{
-                        input: {
-                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                        },
-                        htmlInput: { min: 0, max: 100, step: 0.1 },
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                      Employer Statutory Contributions & CTC Rules ({cat.title})
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Configure employer contributions, PF/ESI rates, and CTC provisions for {cat.title}.
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 700,
+                        color: employerStatutoryEnabled ? '#059669' : 'text.secondary',
+                      }}
+                    >
+                      {employerStatutoryEnabled ? 'Enabled' : 'Disabled'}
+                    </Typography>
+                    <CustomSwitch
+                      checked={employerStatutoryEnabled}
+                      onChange={(e) => {
+                        const nextVal = e.target.checked ? 1 : 0;
+                        setFieldVal(cat.key, 'enable_employer_statutory', nextVal);
+                        try {
+                          const saved = localStorage.getItem('salary_slip_employer_statutory_rules_enabled');
+                          const parsed = saved ? JSON.parse(saved) : {};
+                          parsed[cat.key] = nextVal;
+                          localStorage.setItem('salary_slip_employer_statutory_rules_enabled', JSON.stringify(parsed));
+                        } catch {
+                          // ignore
+                        }
                       }}
                     />
-                  </Grid>
+                  </Stack>
+                </Stack>
 
-                  {/* Employer PF Wage Ceiling */}
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Employer PF Wage Ceiling"
-                      value={getFieldVal(cat.key, 'employer_pf_wage_ceiling', getFieldVal(cat.key, 'pf_wage_ceiling', '15000'))}
-                      onChange={(e) => setFieldVal(cat.key, 'employer_pf_wage_ceiling', e.target.value)}
-                      placeholder="15000"
-                      helperText="Wage basis threshold (e.g. ₹15,000)."
-                      slotProps={{
-                        input: {
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
-                            </InputAdornment>
-                          ),
-                        },
-                        htmlInput: { min: 0, step: 1000 },
-                      }}
-                    />
-                  </Grid>
+                <Divider />
 
-                  {/* Max Employer PF Contribution */}
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Max Employer PF Contribution"
-                      value={getFieldVal(cat.key, 'employer_pf_max_amount', '1800')}
-                      onChange={(e) => setFieldVal(cat.key, 'employer_pf_max_amount', e.target.value)}
-                      placeholder="1800"
-                      helperText="Contribution cap applied when wage is above or equal to ceiling (₹1,800)."
-                      slotProps={{
-                        input: {
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
-                            </InputAdornment>
-                          ),
-                        },
-                        htmlInput: { min: 0, step: 100 },
-                      }}
-                    />
-                  </Grid>
-
-                  {/* PF Admin & EDLI Wage Basis (Not needed for CTC Staff) */}
-                  {cat.key !== 'staff_ctc' && (
-                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                      <FormControl fullWidth>
-                        <InputLabel id={`admin-edli-basis-label-${cat.key}`}>PF Admin & EDLI Basis</InputLabel>
-                        <Select
-                          labelId={`admin-edli-basis-label-${cat.key}`}
-                          id={`pf_admin_edli_basis_${cat.key}`}
-                          value={getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)')}
-                          label="PF Admin & EDLI Basis"
-                          onChange={(e) => setFieldVal(cat.key, 'pf_admin_edli_basis', e.target.value)}
-                        >
-                          <MenuItem value="Statutory PF Wage (Capped at Ceiling)">Statutory PF Wage (Capped at Ceiling)</MenuItem>
-                          <MenuItem value="Percentage of Gross Salary">Percentage of Gross Salary</MenuItem>
-                          <MenuItem value="Actual PF Wage (Uncapped)">Actual PF Wage (Uncapped)</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                  )}
-
-                  {/* PF Admin & EDLI Gross Basis % */}
-                  {cat.key !== 'staff_ctc' && getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)') === 'Percentage of Gross Salary' && (
+                <Box
+                  sx={{
+                    opacity: employerStatutoryEnabled ? 1 : 0.6,
+                    pointerEvents: employerStatutoryEnabled ? 'auto' : 'none',
+                    transition: 'opacity 0.2s ease',
+                  }}
+                >
+                  <Grid container spacing={2.5}>
+                    {/* Employer PF Rate */}
                     <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                       <TextField
                         fullWidth
                         type="number"
-                        label="Admin & EDLI Gross Basis (%)"
-                        value={getFieldVal(cat.key, 'pf_admin_edli_gross_percent', cat.key === 'staff_non_ctc' ? '90' : '100')}
-                        onChange={(e) => setFieldVal(cat.key, 'pf_admin_edli_gross_percent', e.target.value)}
-                        placeholder="90"
-                        helperText="Calculated on: (Gross × % ) × Rate."
+                        label="Employer PF Rate (%)"
+                        value={getFieldVal(cat.key, 'employer_pf_rate', '12')}
+                        onChange={(e) => setFieldVal(cat.key, 'employer_pf_rate', e.target.value)}
+                        placeholder="12"
+                        disabled={!employerStatutoryEnabled}
+                        helperText="Statutory EPF rate: 12%."
                         slotProps={{
                           input: {
                             endAdornment: <InputAdornment position="end">%</InputAdornment>,
                           },
-                          htmlInput: { min: 0, max: 100, step: 1 },
+                          htmlInput: { min: 0, max: 100, step: 0.1 },
                         }}
                       />
                     </Grid>
-                  )}
 
-                  {/* PF Admin Charges */}
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="PF Admin Charges (%)"
-                      value={getFieldVal(cat.key, 'pf_admin_rate', '0.5')}
-                      onChange={(e) => setFieldVal(cat.key, 'pf_admin_rate', e.target.value)}
-                      placeholder="0.5"
-                      helperText={
-                        cat.key === 'staff_ctc'
-                          ? `EPFO Admin Charges (Capped at ₹${(Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000) * (Number(getFieldVal(cat.key, 'pf_admin_rate', '0.5') || 0.5) / 100)).toFixed(0)} = ₹${Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000).toLocaleString('en-IN')} × ${getFieldVal(cat.key, 'pf_admin_rate', '0.5')}%)`
-                          : "EPFO Admin charges rate."
-                      }
-                      slotProps={{
-                        input: {
-                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                        },
-                        htmlInput: { min: 0, max: 10, step: 0.01 },
-                      }}
-                    />
-                  </Grid>
+                    {/* Employer PF Wage Ceiling */}
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Employer PF Wage Ceiling"
+                        value={getFieldVal(cat.key, 'employer_pf_wage_ceiling', getFieldVal(cat.key, 'pf_wage_ceiling', '15000'))}
+                        onChange={(e) => setFieldVal(cat.key, 'employer_pf_wage_ceiling', e.target.value)}
+                        placeholder="15000"
+                        disabled={!employerStatutoryEnabled}
+                        helperText="Wage basis threshold (e.g. ₹15,000)."
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                              </InputAdornment>
+                            ),
+                          },
+                          htmlInput: { min: 0, step: 1000 },
+                        }}
+                      />
+                    </Grid>
 
-                  {/* EDLI Charges */}
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="EDLI Charges (%)"
-                      value={getFieldVal(cat.key, 'edli_rate', '0.5')}
-                      onChange={(e) => setFieldVal(cat.key, 'edli_rate', e.target.value)}
-                      placeholder="0.5"
-                      helperText={
-                        cat.key === 'staff_ctc'
-                          ? `Deposit Linked Insurance (Capped at ₹${(Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000) * (Number(getFieldVal(cat.key, 'edli_rate', '0.5') || 0.5) / 100)).toFixed(0)} = ₹${Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000).toLocaleString('en-IN')} × ${getFieldVal(cat.key, 'edli_rate', '0.5')}%)`
-                          : "Deposit Linked Insurance."
-                      }
-                      slotProps={{
-                        input: {
-                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                        },
-                        htmlInput: { min: 0, max: 10, step: 0.01 },
-                      }}
-                    />
-                  </Grid>
+                    {/* Max Employer PF Contribution */}
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Max Employer PF Contribution"
+                        value={getFieldVal(cat.key, 'employer_pf_max_amount', '1800')}
+                        onChange={(e) => setFieldVal(cat.key, 'employer_pf_max_amount', e.target.value)}
+                        placeholder="1800"
+                        disabled={!employerStatutoryEnabled}
+                        helperText="Contribution cap applied when wage is above or equal to ceiling (₹1,800)."
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                              </InputAdornment>
+                            ),
+                          },
+                          htmlInput: { min: 0, step: 100 },
+                        }}
+                      />
+                    </Grid>
 
-                  {/* Employer ESI Rate */}
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Employer ESI Rate (%)"
-                      value={getFieldVal(cat.key, 'employer_esi_rate', '3.25')}
-                      onChange={(e) => setFieldVal(cat.key, 'employer_esi_rate', e.target.value)}
-                      placeholder="3.25"
-                      helperText={`ESI Contribution (Gross less than or equal to ₹${Number(getFieldVal(cat.key, 'esi_wage_ceiling', '21000') || 21000).toLocaleString('en-IN')}).`}
-                      slotProps={{
-                        input: {
-                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                        },
-                        htmlInput: { min: 0, max: 100, step: 0.05 },
-                      }}
-                    />
-                  </Grid>
-
-                  {/* ESI Wage Ceiling */}
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="ESI Wage Ceiling"
-                      value={getFieldVal(cat.key, 'esi_wage_ceiling', '21000')}
-                      onChange={(e) => setFieldVal(cat.key, 'esi_wage_ceiling', e.target.value)}
-                      placeholder="21000"
-                      helperText={`Statutory threshold (Gross <= ₹${Number(getFieldVal(cat.key, 'esi_wage_ceiling', '21000') || 21000).toLocaleString('en-IN')}).`}
-                      slotProps={{
-                        input: {
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
-                            </InputAdornment>
-                          ),
-                        },
-                        htmlInput: { min: 0, step: 1000 },
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-
-                <Grid container spacing={3} sx={{ mt: 1 }}>
-                  {/* Bonus Provision Card */}
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Box
-                      sx={{
-                        p: 2.5,
-                        borderRadius: 2,
-                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
-                        border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
-                      }}
-                    >
-                      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                        <Box>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                            Bonus Provision (Payment of Bonus Act)
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            Calculate monthly bonus provision towards annual bonus payment.
-                          </Typography>
-                        </Box>
-                        <Stack direction="row" alignItems="center" spacing={1.5}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: 700,
-                              color: bonusEnabled ? '#059669' : 'text.secondary',
-                            }}
+                    {/* PF Admin & EDLI Wage Basis (Not needed for CTC Staff) */}
+                    {cat.key !== 'staff_ctc' && (
+                      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                        <FormControl fullWidth disabled={!employerStatutoryEnabled}>
+                          <InputLabel id={`admin-edli-basis-label-${cat.key}`}>PF Admin & EDLI Basis</InputLabel>
+                          <Select
+                            labelId={`admin-edli-basis-label-${cat.key}`}
+                            id={`pf_admin_edli_basis_${cat.key}`}
+                            value={getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)')}
+                            label="PF Admin & EDLI Basis"
+                            onChange={(e) => setFieldVal(cat.key, 'pf_admin_edli_basis', e.target.value)}
+                            disabled={!employerStatutoryEnabled}
                           >
-                            {bonusEnabled ? 'Enabled' : 'Disabled'}
-                          </Typography>
-                          <CustomSwitch
-                            checked={bonusEnabled}
-                            onChange={(e) => setFieldVal(cat.key, 'enable_bonus_provision', e.target.checked ? 1 : 0)}
-                          />
-                        </Stack>
-                      </Stack>
+                            <MenuItem value="Statutory PF Wage (Capped at Ceiling)">Statutory PF Wage (Capped at Ceiling)</MenuItem>
+                            <MenuItem value="Percentage of Gross Salary">Percentage of Gross Salary</MenuItem>
+                            <MenuItem value="Actual PF Wage (Uncapped)">Actual PF Wage (Uncapped)</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                    )}
 
-                      {bonusEnabled && (
+                    {/* PF Admin & EDLI Gross Basis % */}
+                    {cat.key !== 'staff_ctc' && getFieldVal(cat.key, 'pf_admin_edli_basis', cat.key === 'staff_non_ctc' ? 'Percentage of Gross Salary' : 'Statutory PF Wage (Capped at Ceiling)') === 'Percentage of Gross Salary' && (
+                      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                         <TextField
                           fullWidth
-                          size="medium"
                           type="number"
-                          label="Bonus Provision Rate (%)"
-                          value={getFieldVal(cat.key, 'bonus_provision_rate', '8.33')}
-                          onChange={(e) => setFieldVal(cat.key, 'bonus_provision_rate', e.target.value)}
-                          placeholder="8.33"
-                          helperText="Default standard statutory rate: 8.33% (1 month basic pay/year)."
+                          label="Admin & EDLI Gross Basis (%)"
+                          value={getFieldVal(cat.key, 'pf_admin_edli_gross_percent', cat.key === 'staff_non_ctc' ? '90' : '100')}
+                          onChange={(e) => setFieldVal(cat.key, 'pf_admin_edli_gross_percent', e.target.value)}
+                          placeholder="90"
+                          disabled={!employerStatutoryEnabled}
+                          helperText="Calculated on: (Gross × % ) × Rate."
                           slotProps={{
                             input: {
                               endAdornment: <InputAdornment position="end">%</InputAdornment>,
                             },
-                            htmlInput: { min: 0, max: 100, step: 0.01 },
+                            htmlInput: { min: 0, max: 100, step: 1 },
                           }}
                         />
-                      )}
-                    </Box>
+                      </Grid>
+                    )}
+
+                    {/* PF Admin Charges */}
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="PF Admin Charges (%)"
+                        value={getFieldVal(cat.key, 'pf_admin_rate', '0.5')}
+                        onChange={(e) => setFieldVal(cat.key, 'pf_admin_rate', e.target.value)}
+                        placeholder="0.5"
+                        disabled={!employerStatutoryEnabled}
+                        helperText={
+                          cat.key === 'staff_ctc'
+                            ? `EPFO Admin Charges (Capped at ₹${(Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000) * (Number(getFieldVal(cat.key, 'pf_admin_rate', '0.5') || 0.5) / 100)).toFixed(0)} = ₹${Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000).toLocaleString('en-IN')} × ${getFieldVal(cat.key, 'pf_admin_rate', '0.5')}%)`
+                            : "EPFO Admin charges rate."
+                        }
+                        slotProps={{
+                          input: {
+                            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                          },
+                          htmlInput: { min: 0, max: 10, step: 0.01 },
+                        }}
+                      />
+                    </Grid>
+
+                    {/* EDLI Charges */}
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="EDLI Charges (%)"
+                        value={getFieldVal(cat.key, 'edli_rate', '0.5')}
+                        onChange={(e) => setFieldVal(cat.key, 'edli_rate', e.target.value)}
+                        placeholder="0.5"
+                        disabled={!employerStatutoryEnabled}
+                        helperText={
+                          cat.key === 'staff_ctc'
+                            ? `Deposit Linked Insurance (Capped at ₹${(Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000) * (Number(getFieldVal(cat.key, 'edli_rate', '0.5') || 0.5) / 100)).toFixed(0)} = ₹${Number(getFieldVal(cat.key, 'employer_pf_wage_ceiling', '15000') || 15000).toLocaleString('en-IN')} × ${getFieldVal(cat.key, 'edli_rate', '0.5')}%)`
+                            : "Deposit Linked Insurance."
+                        }
+                        slotProps={{
+                          input: {
+                            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                          },
+                          htmlInput: { min: 0, max: 10, step: 0.01 },
+                        }}
+                      />
+                    </Grid>
+
+                    {/* Employer ESI Rate */}
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Employer ESI Rate (%)"
+                        value={getFieldVal(cat.key, 'employer_esi_rate', '3.25')}
+                        onChange={(e) => setFieldVal(cat.key, 'employer_esi_rate', e.target.value)}
+                        placeholder="3.25"
+                        disabled={!employerStatutoryEnabled}
+                        helperText={`ESI Contribution (Gross less than or equal to ₹${Number(getFieldVal(cat.key, 'esi_wage_ceiling', '21000') || 21000).toLocaleString('en-IN')}).`}
+                        slotProps={{
+                          input: {
+                            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                          },
+                          htmlInput: { min: 0, max: 100, step: 0.05 },
+                        }}
+                      />
+                    </Grid>
+
+                    {/* ESI Wage Ceiling */}
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="ESI Wage Ceiling"
+                        value={getFieldVal(cat.key, 'esi_wage_ceiling', '21000')}
+                        onChange={(e) => setFieldVal(cat.key, 'esi_wage_ceiling', e.target.value)}
+                        placeholder="21000"
+                        disabled={!employerStatutoryEnabled}
+                        helperText={`Statutory threshold (Gross <= ₹${Number(getFieldVal(cat.key, 'esi_wage_ceiling', '21000') || 21000).toLocaleString('en-IN')}).`}
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', mr: 0.25 }}>₹</Typography>
+                              </InputAdornment>
+                            ),
+                          },
+                          htmlInput: { min: 0, step: 1000 },
+                        }}
+                      />
+                    </Grid>
                   </Grid>
 
-                  {/* Earned Leave (EL) Provision Card */}
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Box
-                      sx={{
-                        p: 2.5,
-                        borderRadius: 2,
-                        bgcolor: (theme) => alpha(theme.palette.success.main, 0.04),
-                        border: (theme) => `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
-                      }}
-                    >
-                      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                  <Grid container spacing={3} sx={{ mt: 1 }}>
+                    {/* Bonus Provision Card */}
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Box
+                        sx={{
+                          p: 2.5,
+                          borderRadius: 2,
+                          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                          border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+                        }}
+                      >
+                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              Bonus Provision (Payment of Bonus Act)
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Calculate monthly bonus provision towards annual bonus payment.
+                            </Typography>
+                          </Box>
+                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 700,
+                                color: bonusEnabled ? '#059669' : 'text.secondary',
+                              }}
+                            >
+                              {bonusEnabled ? 'Enabled' : 'Disabled'}
+                            </Typography>
+                            <CustomSwitch
+                              checked={bonusEnabled}
+                              disabled={!employerStatutoryEnabled}
+                              onChange={(e) => setFieldVal(cat.key, 'enable_bonus_provision', e.target.checked ? 1 : 0)}
+                            />
+                          </Stack>
+                        </Stack>
+
+                        {bonusEnabled && (
+                          <TextField
+                            fullWidth
+                            size="medium"
+                            type="number"
+                            label="Bonus Provision Rate (%)"
+                            value={getFieldVal(cat.key, 'bonus_provision_rate', '8.33')}
+                            onChange={(e) => setFieldVal(cat.key, 'bonus_provision_rate', e.target.value)}
+                            placeholder="8.33"
+                            disabled={!employerStatutoryEnabled}
+                            helperText="Default standard statutory rate: 8.33% (1 month basic pay/year)."
+                            slotProps={{
+                              input: {
+                                endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                              },
+                              htmlInput: { min: 0, max: 100, step: 0.01 },
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </Grid>
+
+                    {/* Earned Leave (EL) Provision Card */}
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Box
+                        sx={{
+                          p: 2.5,
+                          borderRadius: 2,
+                          bgcolor: (theme) => alpha(theme.palette.success.main, 0.04),
+                          border: (theme) => `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
+                        }}
+                      >
+                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              Earned Leave (EL) Provision
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Calculate monthly provision for annual earned leave accruals.
+                            </Typography>
+                          </Box>
+                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 700,
+                                color: elEnabled ? '#059669' : 'text.secondary',
+                              }}
+                            >
+                              {elEnabled ? 'Enabled' : 'Disabled'}
+                            </Typography>
+                            <CustomSwitch
+                              checked={elEnabled}
+                              disabled={!employerStatutoryEnabled}
+                              onChange={(e) => setFieldVal(cat.key, 'enable_el_provision', e.target.checked ? 1 : 0)}
+                            />
+                          </Stack>
+                        </Stack>
+
+                        {elEnabled && (
+                          <TextField
+                            fullWidth
+                            size="medium"
+                            type="number"
+                            label="EL Provision Days / Year"
+                            value={getFieldVal(cat.key, 'el_provision_days_per_year', '15.6')}
+                            onChange={(e) => setFieldVal(cat.key, 'el_provision_days_per_year', e.target.value)}
+                            placeholder="15.6"
+                            disabled={!employerStatutoryEnabled}
+                            helperText="Formula: (Basic / 26) × (EL Days / 12 months). Default: 15.6 days."
+                            slotProps={{
+                              input: {
+                                endAdornment: <InputAdornment position="end">days/yr</InputAdornment>,
+                              },
+                              htmlInput: { min: 0, max: 365, step: 0.1 },
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </Grid>
+
+                    {/* Tea Expenses (Employer) Card */}
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Box
+                        sx={{
+                          p: 2.5,
+                          borderRadius: 2,
+                          bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
+                          border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                        }}
+                      >
                         <Box>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                            Earned Leave (EL) Provision
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            Calculate monthly provision for annual earned leave accruals.
-                          </Typography>
+                          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                            <Box>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                Tea Expenses (Employer CTC)
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                Company tea expense incurred per day worked for {cat.title}.
+                              </Typography>
+                            </Box>
+                            <Stack direction="row" alignItems="center" spacing={1.5}>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) ? '#059669' : 'text.secondary',
+                                }}
+                              >
+                                {isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) ? 'Enabled' : 'Disabled'}
+                              </Typography>
+                              <CustomSwitch
+                                checked={isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1))}
+                                disabled={!employerStatutoryEnabled}
+                                onChange={(e) => setFieldVal(cat.key, 'enable_tea_allowance', e.target.checked ? 1 : 0)}
+                              />
+                            </Stack>
+                          </Stack>
+
+                          {isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) && (
+                            <TextField
+                              fullWidth
+                              size="medium"
+                              type="number"
+                              label="Tea Expense Rate (₹/day)"
+                              value={getFieldVal(cat.key, 'tea_allowance_per_day', cat.key.includes('staff') ? '14' : '5')}
+                              onChange={(e) => setFieldVal(cat.key, 'tea_allowance_per_day', e.target.value)}
+                              placeholder={cat.key.includes('staff') ? '14' : '5'}
+                              disabled={!employerStatutoryEnabled}
+                              helperText={`Calculated on Employer CTC (Present Days × ₹/day). Default: ₹${cat.key.includes('staff') ? '14' : '5'}/day.`}
+                              slotProps={{
+                                input: {
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                    </InputAdornment>
+                                  ),
+                                  endAdornment: <InputAdornment position="end">/day</InputAdornment>,
+                                },
+                                htmlInput: { min: 0, step: 1 },
+                              }}
+                            />
+                          )}
                         </Box>
-                        <Stack direction="row" alignItems="center" spacing={1.5}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: 700,
-                              color: elEnabled ? '#059669' : 'text.secondary',
-                            }}
-                          >
-                            {elEnabled ? 'Enabled' : 'Disabled'}
-                          </Typography>
-                          <CustomSwitch
-                            checked={elEnabled}
-                            onChange={(e) => setFieldVal(cat.key, 'enable_el_provision', e.target.checked ? 1 : 0)}
-                          />
-                        </Stack>
-                      </Stack>
-
-                      {elEnabled && (
-                        <TextField
-                          fullWidth
-                          size="medium"
-                          type="number"
-                          label="EL Provision Days / Year"
-                          value={getFieldVal(cat.key, 'el_provision_days_per_year', '15.6')}
-                          onChange={(e) => setFieldVal(cat.key, 'el_provision_days_per_year', e.target.value)}
-                          placeholder="15.6"
-                          helperText="Formula: (Basic / 26) × (EL Days / 12 months). Default: 15.6 days."
-                          slotProps={{
-                            input: {
-                              endAdornment: <InputAdornment position="end">days/yr</InputAdornment>,
-                            },
-                            htmlInput: { min: 0, max: 365, step: 0.1 },
-                          }}
-                        />
-                      )}
-                    </Box>
-                  </Grid>
-
-                  {/* Tea Expenses (Employer) Card */}
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Box
-                      sx={{
-                        p: 2.5,
-                        borderRadius: 2,
-                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
-                        border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <Box>
-                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                          <Box>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              Tea Expenses (Employer CTC)
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              Company tea expense incurred per day worked for {cat.title}.
-                            </Typography>
-                          </Box>
-                          <Stack direction="row" alignItems="center" spacing={1.5}>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: 700,
-                                color: isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) ? '#059669' : 'text.secondary',
-                              }}
-                            >
-                              {isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) ? 'Enabled' : 'Disabled'}
-                            </Typography>
-                            <CustomSwitch
-                              checked={isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1))}
-                              onChange={(e) => setFieldVal(cat.key, 'enable_tea_allowance', e.target.checked ? 1 : 0)}
-                            />
-                          </Stack>
-                        </Stack>
-
-                        {isCheckEnabled(getFieldVal(cat.key, 'enable_tea_allowance', 1)) && (
-                          <TextField
-                            fullWidth
-                            size="medium"
-                            type="number"
-                            label="Tea Expense Rate (₹/day)"
-                            value={getFieldVal(cat.key, 'tea_allowance_per_day', cat.key.includes('staff') ? '14' : '5')}
-                            onChange={(e) => setFieldVal(cat.key, 'tea_allowance_per_day', e.target.value)}
-                            placeholder={cat.key.includes('staff') ? '14' : '5'}
-                            helperText={`Calculated on Employer CTC (Present Days × ₹/day). Default: ₹${cat.key.includes('staff') ? '14' : '5'}/day.`}
-                            slotProps={{
-                              input: {
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                                  </InputAdornment>
-                                ),
-                                endAdornment: <InputAdornment position="end">/day</InputAdornment>,
-                              },
-                              htmlInput: { min: 0, step: 1 },
-                            }}
-                          />
-                        )}
                       </Box>
-                    </Box>
-                  </Grid>
+                    </Grid>
 
-                  {/* Lunch Expenses (Employer CTC) Card */}
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Box
-                      sx={{
-                        p: 2.5,
-                        borderRadius: 2,
-                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
-                        border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <Box>
-                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                          <Box>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              Lunch Expenses (Employer CTC)
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              Company lunch expense incurred per canteen meal for {cat.title}.
-                            </Typography>
-                          </Box>
-                          <Stack direction="row" alignItems="center" spacing={1.5}>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: 700,
-                                color: isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) ? '#059669' : 'text.secondary',
-                              }}
-                            >
-                              {isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) ? 'Enabled' : 'Disabled'}
-                            </Typography>
-                            <CustomSwitch
-                              checked={isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1))}
-                              onChange={(e) => setFieldVal(cat.key, 'enable_lunch_allowance', e.target.checked ? 1 : 0)}
-                            />
+                    {/* Lunch Expenses (Employer CTC) Card */}
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Box
+                        sx={{
+                          p: 2.5,
+                          borderRadius: 2,
+                          bgcolor: (theme) => alpha(theme.palette.warning.main, 0.04),
+                          border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <Box>
+                          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                            <Box>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                Lunch Expenses (Employer CTC)
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                Company lunch expense incurred per canteen meal for {cat.title}.
+                              </Typography>
+                            </Box>
+                            <Stack direction="row" alignItems="center" spacing={1.5}>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) ? '#059669' : 'text.secondary',
+                                }}
+                              >
+                                {isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) ? 'Enabled' : 'Disabled'}
+                              </Typography>
+                              <CustomSwitch
+                                checked={isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1))}
+                                disabled={!employerStatutoryEnabled}
+                                onChange={(e) => setFieldVal(cat.key, 'enable_lunch_allowance', e.target.checked ? 1 : 0)}
+                              />
+                            </Stack>
                           </Stack>
-                        </Stack>
 
-                        {isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) && (
-                          <TextField
-                            fullWidth
-                            size="medium"
-                            type="number"
-                            label="Lunch Expense Rate (₹/meal)"
-                            value={getFieldVal(cat.key, 'lunch_allowance_per_meal', '50')}
-                            onChange={(e) => setFieldVal(cat.key, 'lunch_allowance_per_meal', e.target.value)}
-                            placeholder="50"
-                            helperText="Calculated from Canteen entries (All Canteen Entries × ₹/meal). Default: ₹50/meal."
-                            slotProps={{
-                              input: {
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                                  </InputAdornment>
-                                ),
-                                endAdornment: <InputAdornment position="end">/meal</InputAdornment>,
-                              },
-                              htmlInput: { min: 0, step: 1 },
-                            }}
-                          />
-                        )}
+                          {isCheckEnabled(getFieldVal(cat.key, 'enable_lunch_allowance', 1)) && (
+                            <TextField
+                              fullWidth
+                              size="medium"
+                              type="number"
+                              label="Lunch Expense Rate (₹/meal)"
+                              value={getFieldVal(cat.key, 'lunch_allowance_per_meal', '50')}
+                              onChange={(e) => setFieldVal(cat.key, 'lunch_allowance_per_meal', e.target.value)}
+                              placeholder="50"
+                              disabled={!employerStatutoryEnabled}
+                              helperText="Calculated from Canteen entries (All Canteen Entries × ₹/meal). Default: ₹50/meal."
+                              slotProps={{
+                                input: {
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                    </InputAdornment>
+                                  ),
+                                  endAdornment: <InputAdornment position="end">/meal</InputAdornment>,
+                                },
+                                htmlInput: { min: 0, step: 1 },
+                              }}
+                            />
+                          )}
+                        </Box>
                       </Box>
-                    </Box>
+                    </Grid>
                   </Grid>
-                </Grid>
+                </Box>
               </Stack>
             );
           })}
