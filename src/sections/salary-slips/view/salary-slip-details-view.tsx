@@ -846,7 +846,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                     <>
                                         <FormulaChip
                                             label="Fixed OT Rate"
-                                            value={`${hrSettings.currency_symbol}${fNumber(hrSettings.north_indian_ot_rate || 100, { locale: hrSettings.default_locale })}`}
+                                            value={`${hrSettings.currency_symbol}${fNumber(hrSettings.north_indian_ot_rate !== undefined && hrSettings.north_indian_ot_rate !== null && hrSettings.north_indian_ot_rate !== '' ? hrSettings.north_indian_ot_rate : 100, { locale: hrSettings.default_locale })}`}
                                             color="warning"
                                             currencySymbol={hrSettings.currency_symbol}
                                         />
@@ -868,7 +868,11 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
                                         <FormulaChip label="OT Hours" value={`${slip.ot_hours || 0} hrs`} color="info" />
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                                        <FormulaChip label="Multiplier" value={`${(isDriver ? (hrSettings.drivers_ot_rate_multiplier || 2) : (hrSettings.workers_ot_rate_multiplier || 2))}×`} color="warning" />
+                                        <FormulaChip
+                                            label="Multiplier"
+                                            value={`${isDriver ? (hrSettings.drivers_ot_rate_multiplier !== undefined && hrSettings.drivers_ot_rate_multiplier !== null && hrSettings.drivers_ot_rate_multiplier !== '' ? hrSettings.drivers_ot_rate_multiplier : 2) : (hrSettings.workers_ot_rate_multiplier !== undefined && hrSettings.workers_ot_rate_multiplier !== null && hrSettings.workers_ot_rate_multiplier !== '' ? hrSettings.workers_ot_rate_multiplier : 2)}×`}
+                                            color="warning"
+                                        />
                                     </>
                                 )}
                                 <Typography variant="h5" sx={{ px: 1, color: 'text.primary', fontWeight: 300 }}>=</Typography>
@@ -1444,7 +1448,11 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 )}
                 <Scrollbar>
                     <Stack spacing={1.5}>
-                        {filteredBreakdown.length > 0 ? (
+                        {filteredBreakdown.length === 0 ? (
+                            <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic', textAlign: 'center', display: 'block', mt: 1 }}>
+                                No days found for this category
+                            </Typography>
+                        ) : (
                             filteredBreakdown.map((day: any, idx: number) => {
                                 let colorStr = 'text.secondary';
                                 if (day.status?.includes('Non Working Day') || day.status?.includes('Weekly Off')) colorStr = 'text.secondary';
@@ -1453,6 +1461,14 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                 else if (day.status.includes('Work')) colorStr = 'success.main';
                                 else if (day.status.includes('Holiday')) colorStr = 'info.main';
                                 else if (day.status.includes('Leave')) colorStr = 'warning.main';
+
+                                const key = colorStr.replace('.main', '');
+                                const statusText = (() => {
+                                    if (day.status?.includes('Non Working Day') || day.status?.includes('Weekly Off')) return 'Non Working Day';
+                                    if ((popoverState.type === 'absent' || popoverState.type === 'lop') && day.status.includes('Work') && day.status.includes('Absent')) return 'Half Day Absent';
+                                    if (['present', 'physical', 'half_day'].includes(popoverState.type) && day.status.includes('Work') && day.status.includes('Absent')) return 'Present Half Day';
+                                    return day.status.replaceAll('(1.0)', 'Full Day').replaceAll('(0.5)', 'Half Day').replace(/\bWork\b/g, 'Present');
+                                })();
 
                                 return (
                                     <Box
@@ -1483,21 +1499,11 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                                     px: 1,
                                                     py: 0.25,
                                                     borderRadius: 0.5,
-                                                    bgcolor: (theme) =>
-                                                        alpha(
-                                                            theme.palette[
-                                                                colorStr.replace('.main', '') as 'success' | 'info' | 'warning' | 'error'
-                                                            ]?.main || theme.palette.text.secondary,
-                                                            0.12
-                                                        ),
+                                                    bgcolor: (theme: any) =>
+                                                        alpha(theme.palette[key]?.main || theme.palette.text.secondary, 0.12),
                                                 }}
                                             >
-                                                {(() => {
-                                                    if (day.status?.includes('Non Working Day') || day.status?.includes('Weekly Off')) return 'Non Working Day';
-                                                    if ((popoverState.type === 'absent' || popoverState.type === 'lop') && day.status.includes('Work') && day.status.includes('Absent')) return 'Half Day Absent';
-                                                    if (['present', 'physical', 'half_day'].includes(popoverState.type) && day.status.includes('Work') && day.status.includes('Absent')) return 'Present Half Day';
-                                                    return day.status.replaceAll('(1.0)', 'Full Day').replaceAll('(0.5)', 'Half Day').replace(/\bWork\b/g, 'Present');
-                                                })()}
+                                                {statusText}
                                             </Typography>
                                             {day.hours ? (
                                                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
@@ -1508,10 +1514,6 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                     </Box>
                                 );
                             })
-                        ) : (
-                            <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic', textAlign: 'center', display: 'block', mt: 1 }}>
-                                No days found for this category
-                            </Typography>
                         )}
                     </Stack>
                 </Scrollbar>

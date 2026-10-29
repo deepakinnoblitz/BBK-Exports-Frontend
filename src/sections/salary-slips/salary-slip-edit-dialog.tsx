@@ -247,15 +247,21 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         if (isStaff) {
             otAmount = 0;
         } else if (isWorker) {
-            const multiplier = getNum(hrSettings.workers_ot_rate_multiplier) || 2.0;
+            const multiplier = hrSettings.workers_ot_rate_multiplier !== undefined && hrSettings.workers_ot_rate_multiplier !== null && hrSettings.workers_ot_rate_multiplier !== '' 
+                ? Number(hrSettings.workers_ot_rate_multiplier) 
+                : 2.0;
             // Formula: ROUND(Gross / 26 / 8 * OT Hours, 0) * Multiplier
             otAmount = Math.round((grossPay / 26 / 8) * otHours) * multiplier;
         } else if (isDriver) {
-            const multiplier = getNum(hrSettings.drivers_ot_rate_multiplier) || 2.0;
+            const multiplier = hrSettings.drivers_ot_rate_multiplier !== undefined && hrSettings.drivers_ot_rate_multiplier !== null && hrSettings.drivers_ot_rate_multiplier !== '' 
+                ? Number(hrSettings.drivers_ot_rate_multiplier) 
+                : 2.0;
             // Formula: ROUND(Gross / 26 / 8 * OT Hours, 0) * Multiplier
             otAmount = Math.round((grossPay / 26 / 8) * otHours) * multiplier;
         } else if (isNorthIndian) {
-            const rate = getNum(hrSettings.north_indian_ot_rate) || 100.0;
+            const rate = hrSettings.north_indian_ot_rate !== undefined && hrSettings.north_indian_ot_rate !== null && hrSettings.north_indian_ot_rate !== '' 
+                ? Number(hrSettings.north_indian_ot_rate) 
+                : 100.0;
             // Formula: 100 / Per Hour
             otAmount = round(rate * otHours);
         }
@@ -264,7 +270,9 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
         const lopDays = getNum(data.lop_days);
         let attendanceBonus = 0;
         if (isWorker && lopDays <= 0) {
-            attendanceBonus = getNum(hrSettings.workers_attendance_bonus) || 1500;
+            attendanceBonus = hrSettings.workers_attendance_bonus !== undefined && hrSettings.workers_attendance_bonus !== null && hrSettings.workers_attendance_bonus !== '' 
+                ? Number(hrSettings.workers_attendance_bonus) 
+                : 1500;
         }
 
         // PT Calculation

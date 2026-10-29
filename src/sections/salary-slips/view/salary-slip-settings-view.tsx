@@ -39,14 +39,76 @@ export function SalarySlipSettingsView() {
     ['HR', 'Administrator', 'System Manager'].includes(role)
   );
 
+  const OT_RULES_STORAGE_KEY = 'salary_slip_ot_rules_enabled';
+  const EMPLOYER_STATUTORY_STORAGE_KEY = 'salary_slip_employer_statutory_rules_enabled';
+
+  const getStoredOtRules = () => {
+    try {
+      const saved = localStorage.getItem(OT_RULES_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const getStoredEmployerStatutoryRules = () => {
+    try {
+      const saved = localStorage.getItem(EMPLOYER_STATUTORY_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  };
+
   useEffect(() => {
     if (settings && (!formData || formData.modified !== settings.modified)) {
-      setFormData(settings);
+      const stored = getStoredOtRules();
+      const storedStatutory = getStoredEmployerStatutoryRules();
+      setFormData({
+        ...settings,
+        workers_enable_overtime: settings.workers_enable_overtime ?? stored.workers ?? 1,
+        drivers_enable_overtime: settings.drivers_enable_overtime ?? stored.drivers ?? 1,
+        north_indian_enable_overtime: settings.north_indian_enable_overtime ?? stored.north_indian ?? 1,
+        staff_ctc_enable_employer_statutory: settings.staff_ctc_enable_employer_statutory ?? storedStatutory.staff_ctc ?? 1,
+        staff_non_ctc_enable_employer_statutory: settings.staff_non_ctc_enable_employer_statutory ?? storedStatutory.staff_non_ctc ?? 1,
+        workers_enable_employer_statutory: settings.workers_enable_employer_statutory ?? storedStatutory.workers ?? 1,
+        drivers_enable_employer_statutory: settings.drivers_enable_employer_statutory ?? storedStatutory.drivers ?? 1,
+        north_indian_enable_employer_statutory: settings.north_indian_enable_employer_statutory ?? storedStatutory.north_indian ?? 1,
+        enable_employer_statutory: settings.enable_employer_statutory ?? storedStatutory.general ?? 1,
+      });
     }
   }, [settings, formData]);
 
   const handleUpdateField = useCallback((fieldname: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [fieldname]: value }));
+    if (fieldname === 'workers_enable_overtime') {
+      const stored = getStoredOtRules();
+      localStorage.setItem(OT_RULES_STORAGE_KEY, JSON.stringify({ ...stored, workers: value }));
+    } else if (fieldname === 'drivers_enable_overtime') {
+      const stored = getStoredOtRules();
+      localStorage.setItem(OT_RULES_STORAGE_KEY, JSON.stringify({ ...stored, drivers: value }));
+    } else if (fieldname === 'north_indian_enable_overtime') {
+      const stored = getStoredOtRules();
+      localStorage.setItem(OT_RULES_STORAGE_KEY, JSON.stringify({ ...stored, north_indian: value }));
+    } else if (fieldname === 'staff_ctc_enable_employer_statutory') {
+      const stored = getStoredEmployerStatutoryRules();
+      localStorage.setItem(EMPLOYER_STATUTORY_STORAGE_KEY, JSON.stringify({ ...stored, staff_ctc: value }));
+    } else if (fieldname === 'staff_non_ctc_enable_employer_statutory') {
+      const stored = getStoredEmployerStatutoryRules();
+      localStorage.setItem(EMPLOYER_STATUTORY_STORAGE_KEY, JSON.stringify({ ...stored, staff_non_ctc: value }));
+    } else if (fieldname === 'workers_enable_employer_statutory') {
+      const stored = getStoredEmployerStatutoryRules();
+      localStorage.setItem(EMPLOYER_STATUTORY_STORAGE_KEY, JSON.stringify({ ...stored, workers: value }));
+    } else if (fieldname === 'drivers_enable_employer_statutory') {
+      const stored = getStoredEmployerStatutoryRules();
+      localStorage.setItem(EMPLOYER_STATUTORY_STORAGE_KEY, JSON.stringify({ ...stored, drivers: value }));
+    } else if (fieldname === 'north_indian_enable_employer_statutory') {
+      const stored = getStoredEmployerStatutoryRules();
+      localStorage.setItem(EMPLOYER_STATUTORY_STORAGE_KEY, JSON.stringify({ ...stored, north_indian: value }));
+    } else if (fieldname === 'enable_employer_statutory') {
+      const stored = getStoredEmployerStatutoryRules();
+      localStorage.setItem(EMPLOYER_STATUTORY_STORAGE_KEY, JSON.stringify({ ...stored, general: value }));
+    }
   }, []);
 
   const handleSave = async () => {
@@ -56,7 +118,20 @@ export function SalarySlipSettingsView() {
       setSnackbar({ open: true, message: 'Salary Slip Settings updated successfully', severity: 'success' });
       const freshSettings = await refetch();
       if (freshSettings) {
-        setFormData(freshSettings);
+        const stored = getStoredOtRules();
+        const storedStatutory = getStoredEmployerStatutoryRules();
+        setFormData({
+          ...freshSettings,
+          workers_enable_overtime: formData?.workers_enable_overtime ?? stored.workers ?? 1,
+          drivers_enable_overtime: formData?.drivers_enable_overtime ?? stored.drivers ?? 1,
+          north_indian_enable_overtime: formData?.north_indian_enable_overtime ?? stored.north_indian ?? 1,
+          staff_ctc_enable_employer_statutory: formData?.staff_ctc_enable_employer_statutory ?? storedStatutory.staff_ctc ?? 1,
+          staff_non_ctc_enable_employer_statutory: formData?.staff_non_ctc_enable_employer_statutory ?? storedStatutory.staff_non_ctc ?? 1,
+          workers_enable_employer_statutory: formData?.workers_enable_employer_statutory ?? storedStatutory.workers ?? 1,
+          drivers_enable_employer_statutory: formData?.drivers_enable_employer_statutory ?? storedStatutory.drivers ?? 1,
+          north_indian_enable_employer_statutory: formData?.north_indian_enable_employer_statutory ?? storedStatutory.north_indian ?? 1,
+          enable_employer_statutory: formData?.enable_employer_statutory ?? storedStatutory.general ?? 1,
+        });
       }
     } catch (error: any) {
       console.error('Failed to update salary slip settings:', error);
