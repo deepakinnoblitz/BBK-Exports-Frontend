@@ -5,22 +5,25 @@ import {
   LuGift, 
   LuUser, 
   LuInfo, 
+  LuPlus, 
   LuTrash2, 
-  LuWallet, 
+  LuWallet,
+  LuCoffee,
+  LuLayers, 
   LuReceipt, 
-  LuHistory,
-  LuHardHat,
+  LuHistory, 
+  LuHardHat, 
   LuCalendar, 
   LuMountain, 
-  LuBuilding2, 
-  LuRotateCcw, 
-  LuBriefcase, 
-  LuCalculator, 
-  LuCirclePlus, 
+  LuUtensils, 
+  LuSparkles,
+  LuBuilding2,
+  LuRotateCcw,
+  LuBriefcase,
+  LuCalculator,
+  LuCirclePlus,
   LuHeartPulse,
   LuShieldCheck,
-  LuCoffee,
-  LuUtensils,
   LuChevronDown,
   LuCalendarDays,
   LuTriangleAlert,
@@ -57,18 +60,37 @@ import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 import TableContainer from '@mui/material/TableContainer';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { COMMON_COLORS } from 'src/theme';
 import { fetchSalaryComponents } from 'src/api/hr-management';
 import { fetchDepartments, fetchDesignations, fetchEmployeeTypes } from 'src/api/masters';
 
+import { Iconify } from 'src/components/iconify';
+
 import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
+import { EmployeeSelectorDialog } from 'src/sections/shift-rotation/employee-selector-dialog';
 
 // ----------------------------------------------------------------------
+
+export interface CustomSalaryRule {
+  id: string;
+  name: string;
+  type: 'Earning' | 'Deduction';
+  enabled: boolean | number;
+  calculation_mode: 'fixed' | 'per_day' | 'per_ot_hour' | 'percent_gross' | 'percent_component';
+  selected_components?: string[];
+  amount: number | '';
+  applicability: 'always_active' | 'specific_month';
+  applicable_month?: string;
+  target_type: 'all' | 'categories' | 'assignees';
+  target_categories?: string[];
+  target_employee_ids?: string[];
+  description?: string;
+}
 
 export interface BonusScheme {
   id: string;
@@ -163,6 +185,11 @@ const SETTINGS_TABS = [
     icon: <LuShieldCheck size={19} />,
   },
   {
+    value: 'custom_components',
+    label: 'Custom Earnings & Deductions',
+    icon: <LuLayers size={19} />,
+  },
+  {
     value: 'ot_bonus_rules',
     label: 'Overtime & Bonus Rules',
     icon: <LuGift size={19} />,
@@ -247,7 +274,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
 
   const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
-  const [designationOptions, setDesignationOptions] = useState<string[]>([]);
+  const [, setDesignationOptions] = useState<string[]>([]);
   const [employeeTypes, setEmployeeTypes] = useState<string[]>([]);
 
   useEffect(() => {
@@ -719,6 +746,57 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       }
     }
     return list;
+  };
+
+  // Custom Salary Component Rules State & Handlers
+  const [activeAssigneeRuleIndex, setActiveAssigneeRuleIndex] = useState<number | null>(null);
+
+  const getParsedCustomRules = (): CustomSalaryRule[] => {
+    const raw = data.custom_salary_component_rules;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // ignore
+    }
+    return [];
+  };
+
+  const handleUpdateCustomRules = (updatedRules: CustomSalaryRule[]) => {
+    onChange('custom_salary_component_rules', JSON.stringify(updatedRules));
+  };
+
+  const handleAddCustomRule = () => {
+    const current = getParsedCustomRules();
+    const newRule: CustomSalaryRule = {
+      id: `rule_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      name: '',
+      type: 'Deduction',
+      enabled: true,
+      calculation_mode: 'fixed',
+      selected_components: ['Basic Pay', 'DA'],
+      amount: '',
+      applicability: 'always_active',
+      applicable_month: dayjs().format('YYYY-MM'),
+      target_type: 'all',
+      target_categories: [],
+      target_employee_ids: [],
+      description: '',
+    };
+    handleUpdateCustomRules([...current, newRule]);
+  };
+
+  const handleModifyCustomRule = (index: number, patch: Partial<CustomSalaryRule>) => {
+    const current = getParsedCustomRules();
+    const updated = current.map((r, i) => (i === index ? { ...r, ...patch } : r));
+    handleUpdateCustomRules(updated);
+  };
+
+  const handleRemoveCustomRule = (index: number) => {
+    const current = getParsedCustomRules();
+    handleUpdateCustomRules(current.filter((_, i) => i !== index));
   };
 
   // Common Accordion Wrapper
@@ -1748,6 +1826,668 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
         )}
       </Box>
 
+      {/* Tab Panel: Custom Earnings & Deductions */}
+      <Box sx={{ display: currentTab === 'custom_components' ? 'block' : 'none' }}>
+        {visitedTabs.custom_components && (
+          <Box>
+            {/* Header Banner */}
+            <Card
+              sx={{
+                p: 3,
+                mb: 3,
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, rgba(5, 150, 105, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%)',
+                border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+                display: 'flex',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                justifyContent: 'space-between',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: 2,
+              }}
+            >
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 0.5 }}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '8px',
+                      bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                      color: COMMON_COLORS.emerald.main,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <LuLayers size={20} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                    Custom & Periodic Salary Components
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 780 }}>
+                  Configure periodic or ad-hoc components (e.g. <b>Uniform Deductions</b>, <b>Safety Shoes</b>, <b>Festival Bonuses</b>, <b>Production Incentives</b>).
+                  Deductions are appended directly to the Salary Slip <code>deductions</code> child table, and Earnings are appended to <code>earnings</code>, dynamically updating Net or Gross Pay.
+                </Typography>
+              </Box>
+
+              <Button
+                variant="contained"
+                onClick={handleAddCustomRule}
+                startIcon={<LuPlus size={18} />}
+                sx={{
+                  bgcolor: COMMON_COLORS.primaryButton.bg,
+                  color: COMMON_COLORS.primaryButton.color,
+                  '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  px: 2.5,
+                  py: 1,
+                  boxShadow: (theme) => `0 4px 12px ${alpha(COMMON_COLORS.emerald.main, 0.25)}`,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Add Component Rule
+              </Button>
+            </Card>
+
+            {/* Rules List or Empty State */}
+            {getParsedCustomRules().length === 0 ? (
+              <Card
+                variant="outlined"
+                sx={{
+                  p: 6,
+                  textAlign: 'center',
+                  borderRadius: '14px',
+                  borderStyle: 'dashed',
+                  borderColor: (theme) => alpha(theme.palette.divider, 0.8),
+                  bgcolor: (theme) => alpha(theme.palette.background.default, 0.4),
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: '50%',
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                    color: 'primary.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 2,
+                  }}
+                >
+                  <LuSparkles size={32} />
+                </Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                  No Custom Components Defined
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 480, mx: 'auto', mb: 3 }}>
+                  Click &ldquo;Add Component Rule&rdquo; above to create a custom earning or deduction component for a specific month, specific assignees, or universal calculation.
+                </Typography>
+              </Card>
+            ) : (
+              <Stack spacing={2.5}>
+                {getParsedCustomRules().map((rule, idx) => {
+                  const isEarning = rule.type === 'Earning';
+                  const isEnabled = isCheckEnabled(rule.enabled);
+                  const selectedAssigneesCount = rule.target_employee_ids?.length || 0;
+
+                  return (
+                    <Card
+                      key={rule.id || `rule-${idx}`}
+                      variant="outlined"
+                      sx={{
+                        p: 3,
+                        borderRadius: '14px',
+                        border: (theme) =>
+                          `1.5px solid ${
+                            isEnabled
+                              ? isEarning
+                                ? alpha(COMMON_COLORS.emerald.main, 0.35)
+                                : alpha(theme.palette.warning.main, 0.35)
+                              : theme.palette.divider
+                          }`,
+                        boxShadow: (theme) =>
+                          isEnabled
+                            ? `0 4px 16px ${alpha(isEarning ? COMMON_COLORS.emerald.main : theme.palette.warning.main, 0.06)}`
+                            : 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {/* Rule Top Bar */}
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        justifyContent="space-between"
+                        spacing={2}
+                        sx={{ pb: 2.5, mb: 2.5, borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}
+                      >
+                        <Stack direction="row" alignItems="center" spacing={1.25} flexWrap="wrap" useFlexGap>
+                          <Box
+                            sx={{
+                              px: 1.25,
+                              py: 0.5,
+                              borderRadius: '8px',
+                              fontWeight: 800,
+                              fontSize: '0.78rem',
+                              bgcolor: (theme) => alpha(theme.palette.text.primary, 0.06),
+                              color: 'text.primary',
+                              border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+                              letterSpacing: 0.2,
+                            }}
+                          >
+                            Rule No: {idx + 1}
+                          </Box>
+
+                          <Box
+                            sx={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 0.75,
+                              px: 1.25,
+                              py: 0.5,
+                              borderRadius: '8px',
+                              fontWeight: 700,
+                              fontSize: '0.78rem',
+                              bgcolor: isEarning
+                                ? alpha(COMMON_COLORS.emerald.main, 0.1)
+                                : alpha('#d97706', 0.1),
+                              color: isEarning
+                                ? COMMON_COLORS.emerald.darker
+                                : '#b45309',
+                              border: `1px solid ${isEarning ? alpha(COMMON_COLORS.emerald.main, 0.28) : alpha('#d97706', 0.28)}`,
+                            }}
+                          >
+                            <Box
+                              component="span"
+                              sx={{
+                                width: 7,
+                                height: 7,
+                                borderRadius: '50%',
+                                bgcolor: isEarning ? COMMON_COLORS.emerald.main : '#d97706',
+                              }}
+                            />
+                            {isEarning ? 'Earning (Add to Gross)' : 'Deduction (Subtract from Net)'}
+                          </Box>
+
+                          <Box
+                            sx={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 0.6,
+                              px: 1.25,
+                              py: 0.5,
+                              borderRadius: '8px',
+                              fontWeight: 700,
+                              fontSize: '0.78rem',
+                              bgcolor: (theme) => alpha(theme.palette.info.main, 0.08),
+                              color: 'info.dark',
+                              border: (theme) => `1px solid ${alpha(theme.palette.info.main, 0.25)}`,
+                            }}
+                          >
+                            <LuCalculator size={13} />
+                            {rule.calculation_mode === 'fixed'
+                              ? 'Fixed Flat Amount'
+                              : rule.calculation_mode === 'per_day'
+                              ? 'Per Present Day'
+                              : rule.calculation_mode === 'per_ot_hour'
+                              ? 'Per OT Hour'
+                              : rule.calculation_mode === 'percent_gross'
+                              ? '% of Gross Salary'
+                              : rule.calculation_mode === 'percent_component'
+                              ? '% of Selected Components'
+                              : 'Calculation'}
+                          </Box>
+                        </Stack>
+
+                        <Stack direction="row" alignItems="center" spacing={2}>
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={1.25}
+                            sx={{ cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => handleModifyCustomRule(idx, { enabled: !isEnabled })}
+                          >
+                            <CustomSwitch
+                              checked={isEnabled}
+                              onChange={(e: any) => handleModifyCustomRule(idx, { enabled: e.target.checked })}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: '0.85rem',
+                                color: isEnabled ? 'text.primary' : 'text.disabled',
+                                lineHeight: 1,
+                              }}
+                            >
+                              {isEnabled ? 'Enabled' : 'Disabled'}
+                            </Typography>
+                          </Stack>
+
+                          <Divider orientation="vertical" flexItem sx={{ height: 20, my: 'auto' }} />
+
+                          <Tooltip title="Delete Rule">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleRemoveCustomRule(idx)}
+                              sx={{
+                                width: 32,
+                                height: 32,
+                                color: 'error.main',
+                                bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                                '&:hover': { bgcolor: (theme) => alpha(theme.palette.error.main, 0.16) },
+                              }}
+                            >
+                              <LuTrash2 size={16} />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </Stack>
+
+                      {/* Fields Form */}
+                      <Grid container spacing={2.5}>
+                        {/* Row 1: Component Name (Autocomplete with freeSolo) */}
+                        <Grid size={{ xs: 12, sm: 6, md: 5 }}>
+                          <Autocomplete
+                            freeSolo
+                            options={
+                              rule.type === 'Earning'
+                                ? Array.from(new Set([...earningOptions, 'Incentive', 'Production Bonus', 'Special Allowance', 'Night Shift Allowance', 'Attendance Bonus']))
+                                : Array.from(new Set([...deductionOptions, 'Uniform Deduction', 'Safety Shoes', 'Mess Fee', 'Security Deposit', 'ID Card Fine', 'Loan Recovery', 'Advance Salary', 'Penalty']))
+                            }
+                            value={rule.name || ''}
+                            onInputChange={(_e, newInputValue) => handleModifyCustomRule(idx, { name: newInputValue })}
+                            onChange={(_e, newValue) => handleModifyCustomRule(idx, { name: newValue || '' })}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Component Name"
+                                placeholder="Select or type component..."
+                                helperText="Appears as child table row on the salary slip"
+                                required
+                              />
+                            )}
+                          />
+                        </Grid>
+
+                        {/* Row 1: Component Type */}
+                        <Grid size={{ xs: 12, sm: 6, md: 3.5 }}>
+                          <FormControl fullWidth size="medium">
+                            <InputLabel id={`rule-type-label-${idx}`}>Component Type</InputLabel>
+                            <Select
+                              labelId={`rule-type-label-${idx}`}
+                              value={rule.type}
+                              label="Component Type"
+                              onChange={(e) => handleModifyCustomRule(idx, { type: e.target.value as any })}
+                            >
+                              <MenuItem value="Deduction">Deduction (Child Table: Deductions)</MenuItem>
+                              <MenuItem value="Earning">Earning (Child Table: Earnings)</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+
+                        {/* Row 1: Calculation Mode */}
+                        <Grid size={{ xs: 12, sm: 6, md: 3.5 }}>
+                          <FormControl fullWidth size="medium">
+                            <InputLabel id={`calc-mode-label-${idx}`}>Calculation Mode</InputLabel>
+                            <Select
+                              labelId={`calc-mode-label-${idx}`}
+                              value={rule.calculation_mode}
+                              label="Calculation Mode"
+                              onChange={(e) => handleModifyCustomRule(idx, { calculation_mode: e.target.value as any })}
+                            >
+                              <MenuItem value="fixed">Fixed Flat Amount (₹)</MenuItem>
+                              <MenuItem value="per_day">Per Present Day (₹/day)</MenuItem>
+                              <MenuItem value="per_ot_hour">Per OT Hour (₹/hr)</MenuItem>
+                              <MenuItem value="percent_gross">% of Gross Salary</MenuItem>
+                              <MenuItem value="percent_component">% of Selected Component(s)</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+
+                        {/* Row 2: Rate / Amount */}
+                        <Grid size={{ xs: 12, sm: 6, md: rule.calculation_mode === 'percent_component' ? 3 : 4 }}>
+                          <TextField
+                            fullWidth
+                            size="medium"
+                            type="number"
+                            label={
+                              rule.calculation_mode === 'fixed'
+                                ? 'Flat Amount'
+                                : rule.calculation_mode === 'percent_gross' || rule.calculation_mode === 'percent_component'
+                                ? 'Percentage Rate (%)'
+                                : 'Rate per Unit (₹)'
+                            }
+                            value={rule.amount}
+                            onChange={(e) =>
+                              handleModifyCustomRule(idx, {
+                                amount: e.target.value === '' ? '' : Number(e.target.value),
+                              })
+                            }
+                            placeholder="0"
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    {rule.calculation_mode === 'percent_gross' || rule.calculation_mode === 'percent_component' ? (
+                                      '%'
+                                    ) : (
+                                      <Typography
+                                        component="span"
+                                        sx={{
+                                          fontFamily: "Arial, 'sans-serif'",
+                                          fontWeight: 700,
+                                          fontSize: '0.875rem',
+                                          color: 'text.secondary',
+                                        }}
+                                      >
+                                        ₹
+                                      </Typography>
+                                    )}
+                                  </InputAdornment>
+                                ),
+                                endAdornment: (
+                                  <InputAdornment position="end">
+                                    {rule.calculation_mode === 'per_day'
+                                      ? '/day'
+                                      : rule.calculation_mode === 'per_ot_hour'
+                                      ? '/hr'
+                                      : ''}
+                                  </InputAdornment>
+                                ),
+                              },
+                              htmlInput: { min: 0, step: 0.01 },
+                            }}
+                            helperText={
+                              rule.calculation_mode === 'fixed'
+                                ? 'Fixed sum applied to each eligible employee'
+                                : rule.calculation_mode === 'per_day'
+                                ? 'Calculated as: Present Days × Rate'
+                                : rule.calculation_mode === 'per_ot_hour'
+                                ? 'Calculated as: Total OT Hours × Rate'
+                                : rule.calculation_mode === 'percent_gross'
+                                ? 'Calculated as: Rate% × Grand Gross Pay'
+                                : rule.calculation_mode === 'percent_component'
+                                ? 'Calculated as: Rate% × Selected Components Sum'
+                                : ''
+                            }
+                          />
+                        </Grid>
+
+                        {/* Row 2: Selected Components (if percent_component) */}
+                        {rule.calculation_mode === 'percent_component' && (
+                          <Grid size={{ xs: 12, sm: 6, md: 5 }}>
+                            <Autocomplete
+                              multiple
+                              options={earningOptions.length > 0 ? earningOptions : ['Basic Pay', 'DA', 'HRA', 'Other Allowance']}
+                              value={rule.selected_components || []}
+                              onChange={(_e, val) => handleModifyCustomRule(idx, { selected_components: val })}
+                              renderTags={(tagValue, getTagProps) =>
+                                tagValue.map((option, index) => (
+                                  <Chip
+                                    label={option}
+                                    size="small"
+                                    {...getTagProps({ index })}
+                                    key={option}
+                                    sx={{
+                                      borderRadius: '6px',
+                                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                                      color: 'primary.dark',
+                                      fontWeight: 600,
+                                      fontSize: '0.75rem',
+                                      height: 24,
+                                    }}
+                                  />
+                                ))
+                              }
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Components for % Calculation"
+                                  placeholder="Select components (e.g. Basic Pay, DA)"
+                                  helperText="Percentage will calculate from sum of these components"
+                                />
+                              )}
+                            />
+                          </Grid>
+                        )}
+
+                        {/* Row 2: Applicability Timing */}
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                          <FormControl fullWidth size="medium">
+                            <InputLabel id={`timing-label-${idx}`}>Payroll Applicability</InputLabel>
+                            <Select
+                              labelId={`timing-label-${idx}`}
+                              value={rule.applicability}
+                              label="Payroll Applicability"
+                              onChange={(e) => handleModifyCustomRule(idx, { applicability: e.target.value as any })}
+                            >
+                              <MenuItem value="always_active">Always Active (Every Payroll Month)</MenuItem>
+                              <MenuItem value="specific_month">Specific Month Only (One-Time / Periodic)</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+
+                        {/* Row 2: Specific Month (if applicable) */}
+                        {rule.applicability === 'specific_month' && (
+                          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                              <DatePicker
+                                views={['year', 'month']}
+                                label="Applicable Month"
+                                value={rule.applicable_month ? dayjs(rule.applicable_month, 'YYYY-MM') : dayjs()}
+                                onChange={(newVal: any) => {
+                                  if (newVal && dayjs(newVal).isValid()) {
+                                    handleModifyCustomRule(idx, {
+                                      applicable_month: dayjs(newVal).format('YYYY-MM'),
+                                    });
+                                  }
+                                }}
+                                format="MMMM, YYYY"
+                                slotProps={{
+                                  textField: {
+                                    fullWidth: true,
+                                    size: 'medium',
+                                    helperText: 'Rule executes ONLY for salary slips in this pay period',
+                                  },
+                                }}
+                              />
+                            </LocalizationProvider>
+                          </Grid>
+                        )}
+
+                        {/* Row 3: Target Assignees Scope (ALWAYS on its own row) */}
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                          <FormControl fullWidth size="medium">
+                            <InputLabel id={`target-type-label-${idx}`}>Target Assignees</InputLabel>
+                            <Select
+                              labelId={`target-type-label-${idx}`}
+                              value={rule.target_type}
+                              label="Target Assignees"
+                              onChange={(e) => handleModifyCustomRule(idx, { target_type: e.target.value as any })}
+                            >
+                              <MenuItem value="all">All Active Employees (Universal)</MenuItem>
+                              <MenuItem value="categories">By Employee Category</MenuItem>
+                              <MenuItem value="assignees">Specific Assignees (Individual Employees)</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+
+                        {/* Row 4: Target Categories (if categories) - ALWAYS full-width row */}
+                        {rule.target_type === 'categories' && (
+                          <Grid size={{ xs: 12 }}>
+                            <Autocomplete
+                              multiple
+                              options={allEmployeeTypeOptions}
+                              value={rule.target_categories || []}
+                              onChange={(_e, val) => handleModifyCustomRule(idx, { target_categories: val })}
+                              renderTags={(tagValue, getTagProps) =>
+                                tagValue.map((option, index) => (
+                                  <Chip
+                                    label={option}
+                                    size="small"
+                                    {...getTagProps({ index })}
+                                    key={option}
+                                    sx={{
+                                      borderRadius: '6px',
+                                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                                      color: 'primary.dark',
+                                      fontWeight: 600,
+                                      fontSize: '0.75rem',
+                                      height: 24,
+                                    }}
+                                  />
+                                ))
+                              }
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Applicable Employee Categories"
+                                  placeholder="Select employee types"
+                                  helperText="Component will only be computed for employees belonging to selected categories"
+                                />
+                              )}
+                            />
+                          </Grid>
+                        )}
+
+                        {/* Row 4: Target Assignees Card (if assignees) - ALWAYS full-width row */}
+                        {rule.target_type === 'assignees' && (
+                          <Grid size={{ xs: 12 }}>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  fontWeight: 800,
+                                  textTransform: 'uppercase',
+                                  fontSize: '12px',
+                                  color: 'text.secondary',
+                                }}
+                              >
+                                Target Assignees ({selectedAssigneesCount} selected)
+                              </Typography>
+
+                              {selectedAssigneesCount > 0 && (
+                                <Button
+                                  size="small"
+                                  variant="text"
+                                  color="error"
+                                  onClick={() => handleModifyCustomRule(idx, { target_employee_ids: [] })}
+                                  sx={{ fontSize: '12px' }}
+                                  startIcon={<Iconify icon={"solar:trash-bin-minimalistic-bold" as any} />}
+                                >
+                                  Clear All
+                                </Button>
+                              )}
+                            </Stack>
+
+                            <Card
+                              variant="outlined"
+                              sx={{
+                                p: 2.5,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                bgcolor:
+                                  selectedAssigneesCount > 0
+                                    ? alpha(COMMON_COLORS.emerald.main, 0.04)
+                                    : (theme) => alpha(theme.palette.grey[500], 0.04),
+                                borderColor:
+                                  selectedAssigneesCount > 0
+                                    ? alpha(COMMON_COLORS.emerald.main, 0.3)
+                                    : 'divider',
+                                borderRadius: 1.5,
+                                gap: 2,
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <Stack direction="row" spacing={2} alignItems="center">
+                                <Box
+                                  sx={{
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor:
+                                      selectedAssigneesCount > 0
+                                        ? alpha(COMMON_COLORS.emerald.main, 0.12)
+                                        : (theme) => alpha(theme.palette.grey[500], 0.12),
+                                    color:
+                                      selectedAssigneesCount > 0
+                                        ? COMMON_COLORS.emerald.main
+                                        : 'text.secondary',
+                                  }}
+                                >
+                                  <Iconify icon={"solar:users-group-rounded-bold" as any} width={24} />
+                                </Box>
+
+                                <div>
+                                  <Typography
+                                    variant="subtitle1"
+                                    sx={{
+                                      fontWeight: 800,
+                                      color:
+                                        selectedAssigneesCount > 0
+                                          ? COMMON_COLORS.emerald.darker
+                                          : 'text.primary',
+                                    }}
+                                  >
+                                    {selectedAssigneesCount === 0
+                                      ? 'No Employees Selected'
+                                      : `${selectedAssigneesCount} employees selected for this ${rule.type.toLowerCase()}`}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                    {selectedAssigneesCount === 0
+                                      ? 'Filter by Department, Shift, and Line Order.'
+                                      : 'Will receive this component in their salary slip child table.'}
+                                  </Typography>
+                                </div>
+                              </Stack>
+
+                              <Button
+                                size="small"
+                                variant={selectedAssigneesCount > 0 ? 'outlined' : 'contained'}
+                                onClick={() => setActiveAssigneeRuleIndex(idx)}
+                                startIcon={<Iconify icon={"solar:filter-bold" as any} width={16} />}
+                                sx={{
+                                  ...(selectedAssigneesCount === 0
+                                    ? {
+                                        bgcolor: COMMON_COLORS.primaryButton.bg,
+                                        color: COMMON_COLORS.primaryButton.color,
+                                        '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+                                      }
+                                    : {
+                                        color: COMMON_COLORS.emerald.main,
+                                        borderColor: COMMON_COLORS.emerald.main,
+                                        '&:hover': {
+                                          borderColor: COMMON_COLORS.emerald.darker,
+                                          bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                        },
+                                      }),
+                                }}
+                              >
+                                {selectedAssigneesCount === 0
+                                  ? 'Select Assignees'
+                                  : `Edit Selection (${selectedAssigneesCount})`}
+                              </Button>
+                            </Card>
+                          </Grid>
+                        )}
+                      </Grid>
+                    </Card>
+                  );
+                })}
+              </Stack>
+            )}
+          </Box>
+        )}
+      </Box>
+
       {/* Tab Panel 4: Overtime, Allowance & Attendance Bonus (With Collapsible per Category) */}
       <Box sx={{ display: currentTab === 'ot_bonus_rules' ? 'block' : 'none' }}>
         {visitedTabs.ot_bonus_rules && (
@@ -2501,7 +3241,6 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
 
             const bonusEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_bonus_provision', 1));
             const elEnabled = isCheckEnabled(getFieldVal(cat.key, 'enable_el_provision', 1));
-            const teaEnabled = isCheckEnabled(data.enable_workers_tea_allowance ?? 1);
 
             return renderCategoryAccordion(
               cat,
@@ -4147,6 +4886,21 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
           </Stack>
         )}
       </Box>
+
+      {/* Employee Selector Dialog for Custom Component Assignees */}
+      {activeAssigneeRuleIndex !== null && (
+        <EmployeeSelectorDialog
+          open={activeAssigneeRuleIndex !== null}
+          onClose={() => setActiveAssigneeRuleIndex(null)}
+          selectedIds={getParsedCustomRules()[activeAssigneeRuleIndex]?.target_employee_ids || []}
+          onConfirm={(ids) => {
+            handleModifyCustomRule(activeAssigneeRuleIndex, { target_employee_ids: ids });
+            setActiveAssigneeRuleIndex(null);
+          }}
+          title={`Select Target Assignees for ${getParsedCustomRules()[activeAssigneeRuleIndex]?.name || 'Component'}`}
+          contextLabel="for this custom salary component"
+        />
+      )}
     </Stack>
   );
 }

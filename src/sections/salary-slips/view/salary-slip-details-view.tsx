@@ -136,10 +136,6 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
         window.open(url, '_blank');
     };
 
-    const handleDownload = () => {
-        handlePrintFormat();
-    };
-
     const handleDelete = async () => {
         if (!id) return;
         try {
