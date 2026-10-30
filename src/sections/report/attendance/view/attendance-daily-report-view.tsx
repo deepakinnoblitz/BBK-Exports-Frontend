@@ -666,29 +666,34 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
 
                                 return (
                                     <Grid key={tg.employee_type} size={{ xs: 12, lg: 6 }}>
-                                        <Card sx={{ border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                                            <Box sx={{ p: 2, px: 2.5, bgcolor: '#059669', color: '#ffffff' }}>
+                                        <Card sx={{ border: '1px solid #e2e8f0', borderRadius: 1.5, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                            <Box sx={{ p: 1.25, px: 2, bgcolor: '#1e293b', color: '#ffffff' }}>
                                                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                                                    <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.9rem', letterSpacing: 0.3 }}>
                                                         {tg.employee_type} Head Count
                                                     </Typography>
-                                                    <Typography variant="caption" sx={{ fontWeight: 600, opacity: 0.9 }}>
-                                                        Manpower: {tg.manpower} | Present: {tg.present}
-                                                    </Typography>
+                                                    <Stack direction="row" spacing={1} alignItems="center">
+                                                        <Box sx={{ px: 1, py: 0.2, bgcolor: 'rgba(255,255,255,0.15)', borderRadius: 1, fontSize: '0.75rem', fontWeight: 700 }}>
+                                                            STR: {tg.manpower}
+                                                        </Box>
+                                                        <Box sx={{ px: 1, py: 0.2, bgcolor: 'rgba(5, 150, 105, 0.35)', color: '#34d399', borderRadius: 1, fontSize: '0.75rem', fontWeight: 700 }}>
+                                                            PRE: {tg.present}
+                                                        </Box>
+                                                    </Stack>
                                                 </Stack>
                                             </Box>
 
                                             <TableContainer>
                                                 <Table size="small">
                                                     <TableHead>
-                                                        <TableRow sx={{ bgcolor: '#f1f5f9' }}>
-                                                            <TableCell sx={{ fontWeight: 700 }}>
+                                                        <TableRow sx={{ bgcolor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                                            <TableCell sx={{ py: 0.6, px: 1.5, fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b' }}>
                                                                 {headcountGroupBy === 'department' ? 'Department' : 'Designation'}
                                                             </TableCell>
-                                                            <TableCell align="center" sx={{ fontWeight: 700 }}>Manpower</TableCell>
-                                                            <TableCell align="center" sx={{ fontWeight: 700 }}>Actual - Present</TableCell>
-                                                            <TableCell align="center" sx={{ fontWeight: 700 }}>Absent</TableCell>
-                                                            <TableCell align="center" sx={{ fontWeight: 700 }}>Absent %</TableCell>
+                                                            <TableCell align="center" sx={{ py: 0.6, px: 1, fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b' }}>Manpower</TableCell>
+                                                            <TableCell align="center" sx={{ py: 0.6, px: 1, fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b' }}>Actual - Present</TableCell>
+                                                            <TableCell align="center" sx={{ py: 0.6, px: 1, fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b' }}>Absent</TableCell>
+                                                            <TableCell align="center" sx={{ py: 0.6, px: 1, fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b' }}>Absent %</TableCell>
                                                         </TableRow>
                                                     </TableHead>
                                                     <TableBody>
@@ -705,40 +710,40 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
                                                                                 setExpandedHeadcountRows((prev) => ({ ...prev, [rowKey]: !prev[rowKey] }));
                                                                             }
                                                                         }}
-                                                                        sx={{ cursor: hasSubs ? 'pointer' : 'default' }}
+                                                                        sx={{ cursor: hasSubs ? 'pointer' : 'default', height: 32 }}
                                                                     >
-                                                                        <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>
-                                                                            <Stack direction="row" alignItems="center" spacing={1}>
+                                                                        <TableCell sx={{ py: 0.45, px: 1.5, fontWeight: 600, color: '#1e293b', fontSize: '0.82rem' }}>
+                                                                            <Stack direction="row" alignItems="center" spacing={0.75}>
                                                                                 {hasSubs && (
                                                                                     <Iconify
                                                                                         icon={isExpanded ? 'eva:arrow-ios-downward-fill' : 'eva:arrow-ios-forward-fill'}
-                                                                                        width={16}
+                                                                                        width={14}
                                                                                         sx={{ color: 'text.secondary' }}
                                                                                     />
                                                                                 )}
                                                                                 <span>{row.category}</span>
                                                                             </Stack>
                                                                         </TableCell>
-                                                                        <TableCell align="center" sx={{ fontWeight: 700 }}>{row.manpower}</TableCell>
-                                                                        <TableCell align="center" sx={{ color: '#059669', fontWeight: 700 }}>{row.present}</TableCell>
-                                                                        <TableCell align="center" sx={{ color: row.absent > 0 ? '#dc2626' : 'text.secondary', fontWeight: 600 }}>
+                                                                        <TableCell align="center" sx={{ py: 0.45, px: 1, fontWeight: 700, fontSize: '0.82rem' }}>{row.manpower}</TableCell>
+                                                                        <TableCell align="center" sx={{ py: 0.45, px: 1, color: '#059669', fontWeight: 700, fontSize: '0.82rem' }}>{row.present}</TableCell>
+                                                                        <TableCell align="center" sx={{ py: 0.45, px: 1, color: row.absent > 0 ? '#dc2626' : 'text.secondary', fontWeight: 600, fontSize: '0.82rem' }}>
                                                                             {row.absent}
                                                                         </TableCell>
-                                                                        <TableCell align="center" sx={{ fontWeight: 600, color: row.absent_pct > 20 ? '#dc2626' : 'text.primary' }}>
+                                                                        <TableCell align="center" sx={{ py: 0.45, px: 1, fontWeight: 600, fontSize: '0.82rem', color: row.absent_pct > 20 ? '#dc2626' : 'text.primary' }}>
                                                                             {row.absent_pct.toFixed(1)}%
                                                                         </TableCell>
                                                                     </TableRow>
                                                                     {hasSubs && isExpanded && row.sub_items?.map((sub) => (
-                                                                        <TableRow key={sub.category} sx={{ bgcolor: alpha('#059669', 0.03) }}>
-                                                                            <TableCell sx={{ pl: 5, color: 'text.secondary', fontSize: '0.8rem' }}>
+                                                                        <TableRow key={sub.category} sx={{ bgcolor: alpha('#1e293b', 0.02), height: 28 }}>
+                                                                            <TableCell sx={{ py: 0.25, pl: 4.5, pr: 1.5, color: 'text.secondary', fontSize: '0.76rem' }}>
                                                                                 ↳ {sub.category}
                                                                             </TableCell>
-                                                                            <TableCell align="center" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{sub.manpower}</TableCell>
-                                                                            <TableCell align="center" sx={{ fontSize: '0.8rem', color: '#059669' }}>{sub.present}</TableCell>
-                                                                            <TableCell align="center" sx={{ fontSize: '0.8rem', color: sub.absent > 0 ? '#dc2626' : 'text.secondary' }}>
+                                                                            <TableCell align="center" sx={{ py: 0.25, px: 1, fontSize: '0.76rem', color: 'text.secondary' }}>{sub.manpower}</TableCell>
+                                                                            <TableCell align="center" sx={{ py: 0.25, px: 1, fontSize: '0.76rem', color: '#059669', fontWeight: 600 }}>{sub.present}</TableCell>
+                                                                            <TableCell align="center" sx={{ py: 0.25, px: 1, fontSize: '0.76rem', color: sub.absent > 0 ? '#dc2626' : 'text.secondary' }}>
                                                                                 {sub.absent}
                                                                             </TableCell>
-                                                                            <TableCell align="center" sx={{ fontSize: '0.8rem' }}>{sub.absent_pct.toFixed(1)}%</TableCell>
+                                                                            <TableCell align="center" sx={{ py: 0.25, px: 1, fontSize: '0.76rem' }}>{sub.absent_pct.toFixed(1)}%</TableCell>
                                                                         </TableRow>
                                                                     ))}
                                                                 </React.Fragment>
@@ -746,20 +751,20 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
                                                         })}
 
                                                         {/* Total Row for this Employee Type */}
-                                                        <TableRow sx={{ bgcolor: alpha('#059669', 0.08), borderTop: '2px solid #059669' }}>
-                                                            <TableCell sx={{ fontWeight: 800, color: '#064e3b' }}>
+                                                        <TableRow sx={{ bgcolor: '#f1f5f9', borderTop: '2px solid #cbd5e1', height: 32 }}>
+                                                            <TableCell sx={{ py: 0.5, px: 1.5, fontWeight: 800, color: '#0f172a', fontSize: '0.82rem' }}>
                                                                 {tg.employee_type} Total
                                                             </TableCell>
-                                                            <TableCell align="center" sx={{ fontWeight: 800, color: '#064e3b' }}>
+                                                            <TableCell align="center" sx={{ py: 0.5, px: 1, fontWeight: 800, color: '#0f172a', fontSize: '0.82rem' }}>
                                                                 {tg.manpower}
                                                             </TableCell>
-                                                            <TableCell align="center" sx={{ fontWeight: 800, color: '#059669' }}>
+                                                            <TableCell align="center" sx={{ py: 0.5, px: 1, fontWeight: 800, color: '#059669', fontSize: '0.82rem' }}>
                                                                 {tg.present}
                                                             </TableCell>
-                                                            <TableCell align="center" sx={{ fontWeight: 800, color: '#dc2626' }}>
+                                                            <TableCell align="center" sx={{ py: 0.5, px: 1, fontWeight: 800, color: '#dc2626', fontSize: '0.82rem' }}>
                                                                 {tg.absent}
                                                             </TableCell>
-                                                            <TableCell align="center" sx={{ fontWeight: 800, color: '#064e3b' }}>
+                                                            <TableCell align="center" sx={{ py: 0.5, px: 1, fontWeight: 800, color: '#0f172a', fontSize: '0.82rem' }}>
                                                                 {tg.absent_pct.toFixed(1)}%
                                                             </TableCell>
                                                         </TableRow>
@@ -1019,8 +1024,8 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
                                 ))}
 
                                 {/* Grand Total of Production */}
-                                <TableRow sx={{ bgcolor: alpha('#1e40af', 0.12), borderTop: '2px solid #1e40af', borderBottom: '2px solid #1e40af' }}>
-                                    <TableCell colSpan={2} sx={{ fontWeight: 800, color: '#1e3a8a', py: 0.85, px: 1, fontSize: '0.8rem' }}>
+                                <TableRow sx={{ bgcolor: alpha('#059669', 0.1), borderTop: '2px solid #059669', borderBottom: '2px solid #059669' }}>
+                                    <TableCell colSpan={2} sx={{ fontWeight: 800, color: '#064e3b', py: 0.85, px: 1, fontSize: '0.8rem' }}>
                                         {line_wise.production_grand_total.line_name}
                                     </TableCell>
 
@@ -1039,10 +1044,10 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
                                     <TableCell align="center" sx={{ fontWeight: 800, color: '#dc2626', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.north_indian.abs}</TableCell>
                                     <TableCell align="center" sx={{ fontWeight: 800, px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.north_indian.abs_pct.toFixed(1)}%</TableCell>
 
-                                    <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 900, color: '#1e3a8a', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.total.str}</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 900, color: '#064e3b', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.total.str}</TableCell>
                                     <TableCell align="center" sx={{ fontWeight: 900, color: '#059669', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.total.pre}</TableCell>
                                     <TableCell align="center" sx={{ fontWeight: 900, color: '#dc2626', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.total.abs}</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#1e3a8a', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.total.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#064e3b', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.total.abs_pct.toFixed(1)}%</TableCell>
                                 </TableRow>
 
                                 {/* Non-Production Section */}

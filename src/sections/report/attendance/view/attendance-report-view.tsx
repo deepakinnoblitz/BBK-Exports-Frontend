@@ -1874,7 +1874,7 @@ export function AttendanceReportView() {
                                     pt: 2,
                                     mt: 1,
                                     borderTop: (t) => `1px solid ${t.palette.divider}`,
-                                    mb: 2,
+                                    mb: 2.5,
                                     alignItems: 'flex-start'
                                 }}
                             />
@@ -1893,7 +1893,10 @@ export function AttendanceReportView() {
                                             </Typography>
                                         </Box>
                                     }
-                                    sx={{ alignItems: 'flex-start' }}
+                                    sx={{
+                                        alignItems: 'flex-start',
+                                        mb: 2.5
+                                    }}
                                 />
                             )}
                             {isSingleDay && exportType !== 'pdf' && (
@@ -1911,7 +1914,10 @@ export function AttendanceReportView() {
                                             </Typography>
                                         </Box>
                                     }
-                                    sx={{ alignItems: 'flex-start' }}
+                                    sx={{
+                                        alignItems: 'flex-start',
+                                        mb: 1.5
+                                    }}
                                 />
                             )}
                         </RadioGroup>

@@ -33,6 +33,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { useRouter } from 'src/routes/hooks';
+
 import { fDate } from 'src/utils/format-time';
 import { fNumber } from 'src/utils/format-number';
 import { filterEmployeeOptions } from 'src/utils/filter-employees';
@@ -40,19 +42,17 @@ import { filterEmployeeOptions } from 'src/utils/filter-employees';
 import { getDoctypeList } from 'src/api/leads';
 import { getHRSettings } from 'src/api/hr-management';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { fetchSalarySlips, getSalarySlipWithDetails, fetchSalarySlipsWithDetails } from 'src/api/salary-slips';
+import { fetchSalarySlips, fetchSalarySlipsWithDetails } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
 import { useAuth } from 'src/auth/auth-context';
 
-import { SalarySlipDetailsDialog } from '../../salary-slips/salary-slip-details-dialog';
-
 // ----------------------------------------------------------------------
 
 export function SalarySlipReportView() {
-    const theme = useTheme();
+    const router = useRouter();
     const { user } = useAuth();
     const actionPerms = user?.permissions?.actions?.salary_slip_report;
     const hasCustomPerms = !!user?.permissions?.custom_permissions_assigned && !!actionPerms;
@@ -124,10 +124,6 @@ export function SalarySlipReportView() {
         }
         return false;
     }, [fromDate, toDate]);
-
-    // Details Dialog
-    const [openDetails, setOpenDetails] = useState(false);
-    const [selectedSlip, setSelectedSlip] = useState<any>(null);
 
     useEffect(() => {
         if (user && user.roles) {
@@ -569,15 +565,8 @@ export function SalarySlipReportView() {
         }
     };
 
-    const handleViewDetails = async (name: string) => {
-        try {
-            const details = await getSalarySlipWithDetails(name);
-            setSelectedSlip(details);
-            setOpenDetails(true);
-        } catch (error) {
-            console.error('Failed to fetch details:', error);
-            enqueueSnackbar('Failed to load salary slip details', { variant: 'error' });
-        }
+    const handleViewDetails = (name: string) => {
+        router.push(`/salary-slips/${name}`);
     };
 
     const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -613,7 +602,6 @@ export function SalarySlipReportView() {
     const totalGross = reportData.reduce((acc, curr) => acc + (curr.grand_gross_pay ?? curr.gross_pay ?? 0), 0);
     const totalNet = reportData.reduce((acc, curr) => acc + (curr.grand_net_pay ?? curr.net_pay ?? 0), 0);
     const totalDeductions = reportData.reduce((acc, curr) => acc + (curr.total_deduction ?? 0), 0);
-    const totalLop = reportData.reduce((acc, curr) => acc + (curr.lop ?? 0), 0);
 
     return (
         <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
@@ -969,7 +957,18 @@ export function SalarySlipReportView() {
                                                             <TableCell padding="checkbox">
                                                                 <Checkbox checked={isSelected} onClick={(event) => handleClick(event, row.name)} />
                                                             </TableCell>
-                                                            <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{row.name}</TableCell>
+                                                            <TableCell
+                                                                onClick={() => handleViewDetails(row.name)}
+                                                                sx={{
+                                                                    whiteSpace: 'nowrap',
+                                                                    fontWeight: 600,
+                                                                    cursor: 'pointer',
+                                                                    color: 'primary.main',
+                                                                    '&:hover': { textDecoration: 'underline' }
+                                                                }}
+                                                            >
+                                                                {row.name}
+                                                            </TableCell>
                                                             <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                                 <Typography variant="subtitle2">{row.employee_name}</Typography>
                                                                 <Typography variant="caption" sx={{ color: 'text.disabled' }}>{row.employee}</Typography>
@@ -1039,15 +1038,6 @@ export function SalarySlipReportView() {
                     />
                 </Card>
             </Stack>
-
-            <SalarySlipDetailsDialog
-                open={openDetails}
-                onClose={() => {
-                    setOpenDetails(false);
-                    setSelectedSlip(null);
-                }}
-                slip={selectedSlip}
-            />
         </DashboardContent>
     );
 }
