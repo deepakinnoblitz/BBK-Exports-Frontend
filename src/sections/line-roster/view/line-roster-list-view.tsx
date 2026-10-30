@@ -462,7 +462,6 @@ export function LineRosterListView({
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>Employee</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>Department</TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>Designation</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>Line</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>Effective From</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>Effective To</TableCell>
@@ -477,7 +476,7 @@ export function LineRosterListView({
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={11} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
                       <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                     </TableCell>
                   </TableRow>
@@ -503,7 +502,7 @@ export function LineRosterListView({
 
                     {empty && (
                       <TableRow>
-                        <TableCell colSpan={11}>
+                        <TableCell colSpan={10}>
                           <EmptyContent
                             title="No line roster assignments found"
                             description="Click 'New Assignment' or 'Bulk Assign' to schedule employee lines."

@@ -51,7 +51,9 @@ import { getStates, getCities } from 'src/api/location';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getBusTravelRoute, fetchBankAccounts } from 'src/api/masters';
 import { getEmployee, createEmployee, updateEmployee, deleteEmployee } from 'src/api/employees';
-import { getHRSettings, getHRPermissions, getDocTypeMetadata, fetchSalaryComponents } from 'src/api/hr-management';
+import { createLineRosterAssignment, deleteOrCancelLineRosterAssignment } from 'src/api/line-roster';
+import { getHRSettings, getHRPermissions, getDocTypeMetadata, fetchSalaryComponents, fetchFrappeList } from 'src/api/hr-management';
+import { createRosterAssignment as createShiftRosterAssignment, deleteOrCancelRosterAssignment as deleteOrCancelShiftRosterAssignment } from 'src/api/shift-roster';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -75,6 +77,8 @@ import EmployeeTableFiltersDrawer from '../employee-table-filters-drawer';
 import { EmployeeTypeCreateDialog } from '../employee-type-create-dialog';
 import { QualificationCreateDialog } from '../qualification-create-dialog';
 import { BankAccountDialog } from '../../master/bank-account/bank-account-dialog';
+import { EmployeeLineChangeConfirmDialog } from '../employee-line-change-confirm-dialog';
+import { EmployeeShiftChangeConfirmDialog } from '../employee-shift-change-confirm-dialog';
 import { SalaryComponentFormDialog } from '../../salary-slips/salary-component-form-dialog';
 // ----------------------------------------------------------------------
 
@@ -320,6 +324,19 @@ export function EmployeeView() {
     const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null);
     const [openDetails, setOpenDetails] = useState(false);
     const [detailsId, setDetailsId] = useState<string | null>(null);
+
+    // Line change confirmation dialog states
+    const [originalEmployeeLine, setOriginalEmployeeLine] = useState('');
+    const [openLineChangeConfirm, setOpenLineChangeConfirm] = useState(false);
+    const [pendingEmployeeData, setPendingEmployeeData] = useState<any>(null);
+    const [employeeLineHistory, setEmployeeLineHistory] = useState<any[]>([]);
+    const [confirmLineLoading, setConfirmLineLoading] = useState(false);
+
+    // Shift change confirmation dialog states
+    const [originalEmployeeShift, setOriginalEmployeeShift] = useState('');
+    const [openShiftChangeConfirm, setOpenShiftChangeConfirm] = useState(false);
+    const [employeeShiftHistory, setEmployeeShiftHistory] = useState<any[]>([]);
+    const [confirmShiftLoading, setConfirmShiftLoading] = useState(false);
 
     // Filter State
     const [filters, setFilters] = useState({
@@ -942,6 +959,13 @@ export function EmployeeView() {
         setStateOptions([]);
         setCityOptions([]);
         setCurrentTab(0);
+        setOriginalEmployeeLine('');
+        setOpenLineChangeConfirm(false);
+        setPendingEmployeeData(null);
+        setEmployeeLineHistory([]);
+        setOriginalEmployeeShift('');
+        setOpenShiftChangeConfirm(false);
+        setEmployeeShiftHistory([]);
     };
 
 
@@ -1178,6 +1202,30 @@ export function EmployeeView() {
             dataToSave.documents = documents;
 
             if (currentEmployeeId) {
+                // Check if shift was changed from default settings
+                const defaultShift = (originalEmployeeShift || '').trim();
+                const newShift = (formData.shift || '').trim();
+                const shiftChanged = newShift !== defaultShift;
+
+                // Check if line_order was changed from default settings
+                const defaultLine = (originalEmployeeLine || '').trim();
+                const newLine = (formData.line_order || '').trim();
+                const lineChanged = newLine !== defaultLine;
+
+                if (shiftChanged) {
+                    setPendingEmployeeData(dataToSave);
+                    setOpenShiftChangeConfirm(true);
+                    setCreating(false);
+                    return;
+                }
+
+                if (lineChanged) {
+                    setPendingEmployeeData(dataToSave);
+                    setOpenLineChangeConfirm(true);
+                    setCreating(false);
+                    return;
+                }
+
                 console.log("Saving Employee", dataToSave);
                 await updateEmployee(currentEmployeeId, dataToSave as any);
                 handleCloseCreate();
@@ -1202,6 +1250,150 @@ export function EmployeeView() {
         }
     };
 
+    const handleConfirmLineChange = async (changeDate: string, changeReason: string) => {
+        if (!currentEmployeeId || !pendingEmployeeData) return;
+
+        try {
+            setConfirmLineLoading(true);
+
+            // 1. Keep the employee's original default line record unchanged in Employee doctype
+            const employeeData = {
+                ...pendingEmployeeData,
+                line_order: originalEmployeeLine,
+            };
+
+            await updateEmployee(currentEmployeeId, employeeData as any);
+
+            // 2. Save only the newly added line assignment record for the selected employee (applies to all future dates)
+            const newAssignmentPayload: any = {
+                employee: currentEmployeeId,
+                line_order: formData.line_order,
+                effective_from: changeDate,
+                effective_to: null, // applies to all subsequent and future dates automatically
+                assignment_type: 'Line Change',
+                status: 'Active',
+                reason: changeReason || `Line changed from default "${originalEmployeeLine || 'None'}" to "${formData.line_order}" via Edit Employee on ${changeDate}`,
+            };
+
+            await createLineRosterAssignment(newAssignmentPayload);
+
+            setOpenLineChangeConfirm(false);
+            handleCloseCreate();
+            setSnackbar({
+                open: true,
+                message: `Employee updated. Line changed to "${formData.line_order}" for ${formData.employee_name || 'employee'} effective ${changeDate} (applied to all future dates).`,
+                severity: 'success',
+            });
+            await refetch();
+        } catch (err: any) {
+            console.error('Failed to update employee line change:', err);
+            setSnackbar({
+                open: true,
+                message: err.message || 'Failed to update employee and line change',
+                severity: 'error',
+            });
+        } finally {
+            setConfirmLineLoading(false);
+        }
+    };
+
+    const handleDeleteLineHistoryItem = async (historyItemName: string) => {
+        try {
+            await deleteOrCancelLineRosterAssignment(historyItemName, 'Deleted by user from Edit Employee dialog', true);
+            setEmployeeLineHistory((prev) => prev.filter((item) => item.name !== historyItemName));
+            setSnackbar({
+                open: true,
+                message: 'Line assignment record deleted. Employee reverted to default settings for those dates.',
+                severity: 'success',
+            });
+            await refetch();
+        } catch (err: any) {
+            console.error('Failed to delete line history item:', err);
+            setSnackbar({
+                open: true,
+                message: err.message || 'Failed to delete line assignment record',
+                severity: 'error',
+            });
+        }
+    };
+
+    const handleConfirmShiftChange = async (changeDate: string, changeReason: string) => {
+        if (!currentEmployeeId || !pendingEmployeeData) return;
+
+        try {
+            setConfirmShiftLoading(true);
+
+            // 1. Keep the employee's original default shift record unchanged in Employee doctype
+            const employeeData = {
+                ...pendingEmployeeData,
+                shift: originalEmployeeShift,
+                line_order: originalEmployeeLine,
+            };
+
+            await updateEmployee(currentEmployeeId, employeeData as any);
+
+            // 2. Save only the newly added shift assignment record for the selected employee (applies to all future dates)
+            const newAssignmentPayload: any = {
+                employee: currentEmployeeId,
+                shift: formData.shift,
+                effective_from: changeDate,
+                effective_to: null, // applies to all subsequent and future dates automatically
+                assignment_type: 'Shift Change',
+                status: 'Active',
+                reason: changeReason || `Shift changed from default "${originalEmployeeShift || 'None'}" to "${formData.shift}" via Edit Employee on ${changeDate}`,
+            };
+
+            await createShiftRosterAssignment(newAssignmentPayload);
+
+            setOpenShiftChangeConfirm(false);
+
+            // Check if line was also changed
+            const defaultLine = (originalEmployeeLine || '').trim();
+            const newLine = (formData.line_order || '').trim();
+            if (newLine !== defaultLine) {
+                setOpenLineChangeConfirm(true);
+                return;
+            }
+
+            handleCloseCreate();
+            setSnackbar({
+                open: true,
+                message: `Employee updated. Shift changed to "${formData.shift}" for ${formData.employee_name || 'employee'} effective ${changeDate} (applied to all future dates).`,
+                severity: 'success',
+            });
+            await refetch();
+        } catch (err: any) {
+            console.error('Failed to update employee shift change:', err);
+            setSnackbar({
+                open: true,
+                message: err.message || 'Failed to update employee and shift change',
+                severity: 'error',
+            });
+        } finally {
+            setConfirmShiftLoading(false);
+        }
+    };
+
+    const handleDeleteShiftHistoryItem = async (historyItemName: string) => {
+        try {
+            await deleteOrCancelShiftRosterAssignment(historyItemName, 'Deleted by user from Edit Employee dialog', true);
+            setEmployeeShiftHistory((prev) => prev.filter((item) => item.name !== historyItemName));
+            setSnackbar({
+                open: true,
+                message: 'Shift assignment record deleted. Employee reverted to default settings for those dates.',
+                severity: 'success',
+            });
+            await refetch();
+        } catch (err: any) {
+            console.error('Failed to delete shift history item:', err);
+            setSnackbar({
+                open: true,
+                message: err.message || 'Failed to delete shift assignment record',
+                severity: 'error',
+            });
+        }
+    };
+
     const handleEditRow = async (id: string) => {
         try {
             setCurrentEmployeeId(id);
@@ -1211,6 +1403,40 @@ export function EmployeeView() {
                 if (cleanedRow.phone) cleanedRow.phone = cleanPhoneNumber(cleanedRow.phone);
                 if (cleanedRow.office_phone_number) cleanedRow.office_phone_number = cleanPhoneNumber(cleanedRow.office_phone_number);
                 setFormData(cleanedRow);
+                setOriginalEmployeeLine(cleanedRow.line_order || '');
+                setOriginalEmployeeShift(cleanedRow.shift || '');
+
+                // Fetch line roster history for this employee
+                try {
+                    const lineHistoryRes: any = await fetchFrappeList('Employee Line Roster', {
+                        page: 1,
+                        page_size: 50,
+                        filters: [['employee', '=', id]],
+                        fields: ['name', 'line_order', 'line_name', 'effective_from', 'effective_to', 'status', 'assignment_type', 'modified', 'creation'],
+                        orderBy: 'effective_from',
+                        order: 'desc',
+                    });
+                    setEmployeeLineHistory(lineHistoryRes?.data || []);
+                } catch (historyErr) {
+                    console.error('Failed to load line roster history:', historyErr);
+                    setEmployeeLineHistory([]);
+                }
+
+                // Fetch shift roster history for this employee
+                try {
+                    const shiftHistoryRes: any = await fetchFrappeList('Employee Shift Roster', {
+                        page: 1,
+                        page_size: 50,
+                        filters: [['employee', '=', id]],
+                        fields: ['name', 'shift', 'shift_name', 'effective_from', 'effective_to', 'status', 'assignment_type', 'modified', 'creation'],
+                        orderBy: 'effective_from',
+                        order: 'desc',
+                    });
+                    setEmployeeShiftHistory(shiftHistoryRes?.data || []);
+                } catch (shiftHistoryErr) {
+                    console.error('Failed to load shift roster history:', shiftHistoryErr);
+                    setEmployeeShiftHistory([]);
+                }
 
                 if (cleanedRow.bus_travel_route) {
                     loadBusRoutePoints(cleanedRow.bus_travel_route);
@@ -3219,6 +3445,40 @@ export function EmployeeView() {
                         Delete
                     </Button>
                 }
+            />
+
+            <EmployeeLineChangeConfirmDialog
+                open={openLineChangeConfirm}
+                onClose={() => setOpenLineChangeConfirm(false)}
+                onConfirm={handleConfirmLineChange}
+                loading={confirmLineLoading}
+                employee={{
+                    id: currentEmployeeId || formData.employee_id || '',
+                    name: formData.employee_name || '',
+                    department: formData.department,
+                    designation: formData.designation,
+                }}
+                defaultLine={originalEmployeeLine}
+                newLine={formData.line_order}
+                existingHistory={employeeLineHistory}
+                onDeleteHistoryItem={handleDeleteLineHistoryItem}
+            />
+
+            <EmployeeShiftChangeConfirmDialog
+                open={openShiftChangeConfirm}
+                onClose={() => setOpenShiftChangeConfirm(false)}
+                onConfirm={handleConfirmShiftChange}
+                loading={confirmShiftLoading}
+                employee={{
+                    id: currentEmployeeId || formData.employee_id || '',
+                    name: formData.employee_name || '',
+                    department: formData.department,
+                    designation: formData.designation,
+                }}
+                defaultShift={originalEmployeeShift}
+                newShift={formData.shift}
+                existingHistory={employeeShiftHistory}
+                onDeleteHistoryItem={handleDeleteShiftHistoryItem}
             />
 
             <Snackbar

@@ -116,6 +116,7 @@ export function LineRosterMonthlyView({
   const [openAssignDialog, setOpenAssignDialog] = useState(false);
   const [targetEmployee, setTargetEmployee] = useState<string | undefined>();
   const [targetDate, setTargetDate] = useState<string | undefined>();
+  const [targetEditData, setTargetEditData] = useState<any | null>(null);
 
   // Drag-scroll horizontal container (zero re-renders)
   const gridScrollRef = useRef<HTMLDivElement>(null);
@@ -245,11 +246,25 @@ export function LineRosterMonthlyView({
     el.scrollLeft = scrollStartLeft.current - dx;
   };
 
-  const handleCellClick = (empId: string, dStr: string) => {
+  const handleCellClick = (empId: string, dStr: string, cell?: any) => {
     if (dragMoved.current > 6) return; // Ignore drag clicks
     if (canEdit) {
       setTargetEmployee(empId);
       setTargetDate(dStr);
+      if (cell?.source === 'ROSTER' && cell?.roster_id) {
+        setTargetEditData({
+          name: cell.roster_id,
+          employee: empId,
+          line_order: cell.line_order,
+          line_name: cell.line_name,
+          effective_from: dStr,
+          effective_to: dStr,
+          assignment_type: cell.assignment_type || 'Line Change',
+          status: 'Active',
+        });
+      } else {
+        setTargetEditData(null);
+      }
       setOpenAssignDialog(true);
     }
   };
@@ -858,7 +873,7 @@ export function LineRosterMonthlyView({
                         <TableCell
                           key={d.date}
                           align="center"
-                          onClick={() => handleCellClick(emp.employee, d.date)}
+                          onClick={() => handleCellClick(emp.employee, d.date, cell)}
                           sx={{
                             px: 0.5,
                             py: 0.8,
@@ -942,8 +957,15 @@ export function LineRosterMonthlyView({
       {openAssignDialog && (
         <LineRosterDialog
           open={openAssignDialog}
-          onClose={() => setOpenAssignDialog(false)}
-          onSuccess={() => refetch()}
+          onClose={() => {
+            setOpenAssignDialog(false);
+            setTargetEditData(null);
+          }}
+          onSuccess={() => {
+            setTargetEditData(null);
+            refetch();
+          }}
+          editData={targetEditData}
           initialEmployee={targetEmployee}
           initialDate={targetDate}
         />

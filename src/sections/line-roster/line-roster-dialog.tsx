@@ -29,6 +29,7 @@ import {
   checkLineRosterConflict,
   createLineRosterAssignment,
   updateLineRosterAssignment,
+  deleteOrCancelLineRosterAssignment,
 } from 'src/api/line-roster';
 
 import { Iconify } from 'src/components/iconify';
@@ -201,6 +202,22 @@ export function LineRosterDialog({
       setErrorMessage(err.message || 'Failed to save line assignment');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!editData?.name) return;
+    try {
+      setDeleting(true);
+      await deleteOrCancelLineRosterAssignment(editData.name, 'Deleted by user', true);
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to delete line assignment');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -402,14 +419,31 @@ export function LineRosterDialog({
           </Stack>
         </DialogContent>
 
-        <DialogActions sx={{ p: 2 }}>
+        <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+          {isEdit ? (
+            <Button
+              onClick={handleDelete}
+              variant="outlined"
+              color="error"
+              disabled={submitting || deleting}
+              startIcon={deleting ? <CircularProgress size={18} color="inherit" /> : <Iconify icon="solar:trash-bin-trash-bold" />}
+            >
+              Delete Assignment
+            </Button>
+          ) : (
+            <Box />
+          )}
+
           <Button
             onClick={handleSubmit}
             variant="contained"
-            fullWidth
-            disabled={submitting}
+            disabled={submitting || deleting}
             startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : null}
-            sx={{ bgcolor: COMMON_COLORS.primaryButton.bg, '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg } }}
+            sx={{
+              bgcolor: COMMON_COLORS.primaryButton.bg,
+              '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+              minWidth: isEdit ? 140 : '100%',
+            }}
           >
             {isEdit ? 'Save Changes' : 'Create'}
           </Button>

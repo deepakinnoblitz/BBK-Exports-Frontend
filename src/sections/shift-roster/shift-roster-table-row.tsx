@@ -54,7 +54,6 @@ export function ShiftRosterTableRow({
     employee,
     employee_name,
     department,
-    designation,
     shift,
     shift_name,
     effective_from,
@@ -70,8 +69,17 @@ export function ShiftRosterTableRow({
 
   const isRange = effective_to && effective_to !== effective_from;
 
+  const getSourceLabel = (type?: string) => {
+    if (!type) return 'Manual';
+    const t = type.replace(/_/g, ' ').trim().toLowerCase();
+    if (t === 'shift change' || t === 'default shift change') {
+      return 'Default Shift Change';
+    }
+    return type;
+  };
+
   const getSourceColor = (type?: string) => {
-    switch (type?.toLowerCase()) {
+    switch (type?.toLowerCase()?.replace(/_/g, ' ')) {
       case 'rotation':
         return 'info';
       case 'bulk':
@@ -79,11 +87,13 @@ export function ShiftRosterTableRow({
       case 'override':
         return 'error';
       case 'shift change':
+      case 'default shift change':
         return 'secondary';
       default:
         return 'default';
     }
   };
+
 
   return (
     <TableRow
@@ -152,12 +162,6 @@ export function ShiftRosterTableRow({
       </TableCell>
 
       <TableCell sx={{ px: 1.5 }}>
-        <Typography variant="body2" noWrap sx={{ color: 'text.secondary' }}>
-          {designation || '-'}
-        </Typography>
-      </TableCell>
-
-      <TableCell sx={{ px: 1.5 }}>
         <Stack direction="row" spacing={1} alignItems="center">
           <Box
             sx={{
@@ -188,7 +192,7 @@ export function ShiftRosterTableRow({
 
       <TableCell sx={{ px: 1.5 }}>
         <Label variant="soft" color={getSourceColor(assignment_type)}>
-          {assignment_type || 'Manual'}
+          {getSourceLabel(assignment_type)}
         </Label>
       </TableCell>
 

@@ -21,11 +21,39 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { COMMON_COLORS } from 'src/theme';
 import { fetchLineRosterHistory } from 'src/api/line-roster';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { Label, LabelColor } from 'src/components/label';
 
 // ----------------------------------------------------------------------
+
+const getSourceLabel = (source?: string) => {
+  if (!source) return 'MANUAL';
+  const s = source.replace(/_/g, ' ').trim().toLowerCase();
+  if (s === 'line change' || s === 'default line change') {
+    return 'Default Line Change';
+  }
+  return source.replace(/_/g, ' ');
+};
+
+const getSourceColor = (type?: string): LabelColor => {
+  switch (type?.toLowerCase()?.replace(/_/g, ' ')) {
+    case 'manual':
+      return 'default';
+    case 'bulk':
+      return 'info';
+    case 'rotation':
+      return 'warning';
+    case 'override':
+      return 'error';
+    case 'line change':
+    case 'default line change':
+      return 'secondary';
+    default:
+      return 'default';
+  }
+};
+
 
 type Props = {
   open: boolean;
@@ -197,8 +225,8 @@ export function LineRosterHistoryDialog({ open, onClose, rosterId, employee }: P
                       </TableCell>
 
                       <TableCell>
-                        <Label variant="soft" color="info">
-                          {row.source || 'MANUAL'}
+                        <Label variant="soft" color={getSourceColor(row.source)}>
+                          {getSourceLabel(row.source)}
                         </Label>
                       </TableCell>
 

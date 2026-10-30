@@ -487,9 +487,6 @@ export function ShiftRosterListView({
                     Department
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>
-                    Designation
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>
                     Shift
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', px: 1.5 }}>
@@ -513,7 +510,7 @@ export function ShiftRosterListView({
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={11} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
                       <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                     </TableCell>
                   </TableRow>
@@ -539,7 +536,7 @@ export function ShiftRosterListView({
 
                     {empty && (
                       <TableRow>
-                        <TableCell colSpan={11}>
+                        <TableCell colSpan={10}>
                           <EmptyContent
                             title="No shift roster assignments found"
                             description="Click 'New Assignment' or 'Bulk Assign' to schedule employee shifts."
