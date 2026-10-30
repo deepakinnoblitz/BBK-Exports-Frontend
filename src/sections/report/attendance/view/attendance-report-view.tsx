@@ -503,7 +503,7 @@ export function AttendanceReportView() {
         setExportingExcel(true);
         try {
             if (viewToExport === 'daily' && fromDate) {
-                const res = await getDailyAttendanceSummary(fromDate.format('YYYY-MM-DD'));
+                const res = await getDailyAttendanceSummary(fromDate.format('YYYY-MM-DD'), true);
                 if (res && res.status === 'success') {
                     await exportDailyReportToExcel(res, fromDate.format('YYYY-MM-DD'));
                     enqueueSnackbar('Daily Report Excel exported successfully!', { variant: 'success' });

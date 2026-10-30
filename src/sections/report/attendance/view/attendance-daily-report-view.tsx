@@ -55,8 +55,7 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
 
     // Filter for Tab 2 (Factory Head Count)
     const [headcountGroupBy, setHeadcountGroupBy] = useState<'department' | 'designation'>('department');
-    const [expandedStaffRows, setExpandedStaffRows] = useState<Record<string, boolean>>({});
-    const [expandedWorkerRows, setExpandedWorkerRows] = useState<Record<string, boolean>>({});
+    const [expandedHeadcountRows, setExpandedHeadcountRows] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         let isMounted = true;
@@ -586,13 +585,30 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
 
             {/* TAB 2: Factory Head Count Report */}
             {activeTab === 'headcount' && (() => {
-                const staffList = headcountGroupBy === 'department'
-                    ? (head_count.staff_departments || head_count.staff || [])
-                    : (head_count.staff_designations || head_count.staff || []);
-
-                const workerList = headcountGroupBy === 'department'
-                    ? (head_count.worker_departments || head_count.workers || [])
-                    : (head_count.worker_designations || head_count.workers || []);
+                const typeGroups = (head_count.employee_types && head_count.employee_types.length > 0)
+                    ? head_count.employee_types
+                    : [
+                        {
+                            employee_type: 'Staff',
+                            category: 'Staff Total',
+                            manpower: head_count.staff_total.manpower,
+                            present: head_count.staff_total.present,
+                            absent: head_count.staff_total.absent,
+                            absent_pct: head_count.staff_total.absent_pct,
+                            departments: head_count.staff_departments || head_count.staff || [],
+                            designations: head_count.staff_designations || [],
+                        },
+                        {
+                            employee_type: "Worker's",
+                            category: "Worker's Total",
+                            manpower: head_count.workers_total.manpower,
+                            present: head_count.workers_total.present,
+                            absent: head_count.workers_total.absent,
+                            absent_pct: head_count.workers_total.absent_pct,
+                            departments: head_count.worker_departments || head_count.workers || [],
+                            designations: head_count.worker_designations || [],
+                        },
+                    ];
 
                 return (
                     <Stack spacing={3}>
@@ -604,7 +620,7 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
                                         Dynamic Head Count Summary
                                     </Typography>
                                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                        Showing real-time counts grouped by {headcountGroupBy} with expandable breakdowns
+                                        Showing real-time counts grouped by Employee Type and {headcountGroupBy}
                                     </Typography>
                                 </div>
                                 <Stack direction="row" spacing={1} sx={{ bgcolor: '#f1f5f9', p: 0.5, borderRadius: 1.5 }}>
@@ -642,214 +658,118 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
                             </Stack>
                         </Card>
 
-                        <Grid container spacing={3}>
-                            {/* Staff Table */}
-                            <Grid size={{ xs: 12, lg: 6 }}>
-                                <Card sx={{ border: '1px solid #e2e8f0', overflow: 'hidden', height: '100%' }}>
-                                    <Box sx={{ p: 2, px: 2.5, bgcolor: '#059669', color: '#ffffff' }}>
-                                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                                                Staff Head Count
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ fontWeight: 600, opacity: 0.9 }}>
-                                                Manpower: {head_count.staff_total.manpower} | Present: {head_count.staff_total.present}
-                                            </Typography>
-                                        </Stack>
-                                    </Box>
+                        <Grid container spacing={3} alignItems="flex-start">
+                            {typeGroups.map((tg) => {
+                                const list = headcountGroupBy === 'department'
+                                    ? (tg.departments || [])
+                                    : (tg.designations || []);
 
-                                    <TableContainer>
-                                        <Table size="small">
-                                            <TableHead>
-                                                <TableRow sx={{ bgcolor: '#f1f5f9' }}>
-                                                    <TableCell sx={{ fontWeight: 700 }}>
-                                                        {headcountGroupBy === 'department' ? 'Staff Department' : 'Staff Designation'}
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Manpower</TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actual - Present</TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Absent</TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Absent %</TableCell>
-                                                </TableRow>
-                                            </TableHead>
-                                            <TableBody>
-                                                {staffList.map((row) => {
-                                                    const isExpanded = !!expandedStaffRows[row.category];
-                                                    const hasSubs = row.sub_items && row.sub_items.length > 0;
-                                                    return (
-                                                        <React.Fragment key={row.category}>
-                                                            <TableRow
-                                                                hover
-                                                                onClick={() => {
-                                                                    if (hasSubs) {
-                                                                        setExpandedStaffRows((prev) => ({ ...prev, [row.category]: !prev[row.category] }));
-                                                                    }
-                                                                }}
-                                                                sx={{ cursor: hasSubs ? 'pointer' : 'default' }}
-                                                            >
-                                                                <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>
-                                                                    <Stack direction="row" alignItems="center" spacing={1}>
-                                                                        {hasSubs && (
-                                                                            <Iconify
-                                                                                icon={isExpanded ? 'eva:arrow-ios-downward-fill' : 'eva:arrow-ios-forward-fill'}
-                                                                                width={16}
-                                                                                sx={{ color: 'text.secondary' }}
-                                                                            />
-                                                                        )}
-                                                                        <span>{row.category}</span>
-                                                                    </Stack>
-                                                                </TableCell>
-                                                                <TableCell align="right" sx={{ fontWeight: 700 }}>{row.manpower}</TableCell>
-                                                                <TableCell align="right" sx={{ color: '#059669', fontWeight: 700 }}>{row.present}</TableCell>
-                                                                <TableCell align="right" sx={{ color: row.absent > 0 ? '#dc2626' : 'text.secondary', fontWeight: 600 }}>
-                                                                    {row.absent}
-                                                                </TableCell>
-                                                                <TableCell align="right" sx={{ fontWeight: 600, color: row.absent_pct > 20 ? '#dc2626' : 'text.primary' }}>
-                                                                    {row.absent_pct.toFixed(1)}%
-                                                                </TableCell>
-                                                            </TableRow>
-                                                            {hasSubs && isExpanded && row.sub_items?.map((sub) => (
-                                                                <TableRow key={sub.category} sx={{ bgcolor: alpha('#059669', 0.03) }}>
-                                                                    <TableCell sx={{ pl: 5, color: 'text.secondary', fontSize: '0.8rem' }}>
-                                                                        ↳ {sub.category}
-                                                                    </TableCell>
-                                                                    <TableCell align="right" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{sub.manpower}</TableCell>
-                                                                    <TableCell align="right" sx={{ fontSize: '0.8rem', color: '#059669' }}>{sub.present}</TableCell>
-                                                                    <TableCell align="right" sx={{ fontSize: '0.8rem', color: sub.absent > 0 ? '#dc2626' : 'text.secondary' }}>
-                                                                        {sub.absent}
-                                                                    </TableCell>
-                                                                    <TableCell align="right" sx={{ fontSize: '0.8rem' }}>{sub.absent_pct.toFixed(1)}%</TableCell>
-                                                                </TableRow>
-                                                            ))}
-                                                        </React.Fragment>
-                                                    );
-                                                })}
+                                return (
+                                    <Grid key={tg.employee_type} size={{ xs: 12, lg: 6 }}>
+                                        <Card sx={{ border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                                            <Box sx={{ p: 2, px: 2.5, bgcolor: '#059669', color: '#ffffff' }}>
+                                                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                                                        {tg.employee_type} Head Count
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ fontWeight: 600, opacity: 0.9 }}>
+                                                        Manpower: {tg.manpower} | Present: {tg.present}
+                                                    </Typography>
+                                                </Stack>
+                                            </Box>
 
-                                                {/* Staff Total Row */}
-                                                <TableRow sx={{ bgcolor: alpha('#059669', 0.08), borderTop: '2px solid #059669' }}>
-                                                    <TableCell sx={{ fontWeight: 800, color: '#064e3b' }}>
-                                                        {head_count.staff_total.category}
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#064e3b' }}>
-                                                        {head_count.staff_total.manpower}
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#059669' }}>
-                                                        {head_count.staff_total.present}
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#dc2626' }}>
-                                                        {head_count.staff_total.absent}
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#064e3b' }}>
-                                                        {head_count.staff_total.absent_pct.toFixed(1)}%
-                                                    </TableCell>
-                                                </TableRow>
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                </Card>
-                            </Grid>
+                                            <TableContainer>
+                                                <Table size="small">
+                                                    <TableHead>
+                                                        <TableRow sx={{ bgcolor: '#f1f5f9' }}>
+                                                            <TableCell sx={{ fontWeight: 700 }}>
+                                                                {headcountGroupBy === 'department' ? 'Department' : 'Designation'}
+                                                            </TableCell>
+                                                            <TableCell align="center" sx={{ fontWeight: 700 }}>Manpower</TableCell>
+                                                            <TableCell align="center" sx={{ fontWeight: 700 }}>Actual - Present</TableCell>
+                                                            <TableCell align="center" sx={{ fontWeight: 700 }}>Absent</TableCell>
+                                                            <TableCell align="center" sx={{ fontWeight: 700 }}>Absent %</TableCell>
+                                                        </TableRow>
+                                                    </TableHead>
+                                                    <TableBody>
+                                                        {list.map((row) => {
+                                                            const rowKey = `${tg.employee_type}-${row.category}`;
+                                                            const isExpanded = !!expandedHeadcountRows[rowKey];
+                                                            const hasSubs = row.sub_items && row.sub_items.length > 0;
+                                                            return (
+                                                                <React.Fragment key={row.category}>
+                                                                    <TableRow
+                                                                        hover
+                                                                        onClick={() => {
+                                                                            if (hasSubs) {
+                                                                                setExpandedHeadcountRows((prev) => ({ ...prev, [rowKey]: !prev[rowKey] }));
+                                                                            }
+                                                                        }}
+                                                                        sx={{ cursor: hasSubs ? 'pointer' : 'default' }}
+                                                                    >
+                                                                        <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>
+                                                                            <Stack direction="row" alignItems="center" spacing={1}>
+                                                                                {hasSubs && (
+                                                                                    <Iconify
+                                                                                        icon={isExpanded ? 'eva:arrow-ios-downward-fill' : 'eva:arrow-ios-forward-fill'}
+                                                                                        width={16}
+                                                                                        sx={{ color: 'text.secondary' }}
+                                                                                    />
+                                                                                )}
+                                                                                <span>{row.category}</span>
+                                                                            </Stack>
+                                                                        </TableCell>
+                                                                        <TableCell align="center" sx={{ fontWeight: 700 }}>{row.manpower}</TableCell>
+                                                                        <TableCell align="center" sx={{ color: '#059669', fontWeight: 700 }}>{row.present}</TableCell>
+                                                                        <TableCell align="center" sx={{ color: row.absent > 0 ? '#dc2626' : 'text.secondary', fontWeight: 600 }}>
+                                                                            {row.absent}
+                                                                        </TableCell>
+                                                                        <TableCell align="center" sx={{ fontWeight: 600, color: row.absent_pct > 20 ? '#dc2626' : 'text.primary' }}>
+                                                                            {row.absent_pct.toFixed(1)}%
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                    {hasSubs && isExpanded && row.sub_items?.map((sub) => (
+                                                                        <TableRow key={sub.category} sx={{ bgcolor: alpha('#059669', 0.03) }}>
+                                                                            <TableCell sx={{ pl: 5, color: 'text.secondary', fontSize: '0.8rem' }}>
+                                                                                ↳ {sub.category}
+                                                                            </TableCell>
+                                                                            <TableCell align="center" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{sub.manpower}</TableCell>
+                                                                            <TableCell align="center" sx={{ fontSize: '0.8rem', color: '#059669' }}>{sub.present}</TableCell>
+                                                                            <TableCell align="center" sx={{ fontSize: '0.8rem', color: sub.absent > 0 ? '#dc2626' : 'text.secondary' }}>
+                                                                                {sub.absent}
+                                                                            </TableCell>
+                                                                            <TableCell align="center" sx={{ fontSize: '0.8rem' }}>{sub.absent_pct.toFixed(1)}%</TableCell>
+                                                                        </TableRow>
+                                                                    ))}
+                                                                </React.Fragment>
+                                                            );
+                                                        })}
 
-                            {/* Worker's Table */}
-                            <Grid size={{ xs: 12, lg: 6 }}>
-                                <Card sx={{ border: '1px solid #e2e8f0', overflow: 'hidden', height: '100%' }}>
-                                    <Box sx={{ p: 2, px: 2.5, bgcolor: '#059669', color: '#ffffff' }}>
-                                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                                                Worker&apos;s Head Count
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ fontWeight: 600, opacity: 0.9 }}>
-                                                Manpower: {head_count.workers_total.manpower} | Present: {head_count.workers_total.present}
-                                            </Typography>
-                                        </Stack>
-                                    </Box>
-
-                                    <TableContainer>
-                                        <Table size="small">
-                                            <TableHead>
-                                                <TableRow sx={{ bgcolor: '#f1f5f9' }}>
-                                                    <TableCell sx={{ fontWeight: 700 }}>
-                                                        {headcountGroupBy === 'department' ? 'Worker Department' : 'Worker Designation'}
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Manpower</TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actual - Present</TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Absent</TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Absent %</TableCell>
-                                                </TableRow>
-                                            </TableHead>
-                                            <TableBody>
-                                                {workerList.map((row) => {
-                                                    const isExpanded = !!expandedWorkerRows[row.category];
-                                                    const hasSubs = row.sub_items && row.sub_items.length > 0;
-                                                    return (
-                                                        <React.Fragment key={row.category}>
-                                                            <TableRow
-                                                                hover
-                                                                onClick={() => {
-                                                                    if (hasSubs) {
-                                                                        setExpandedWorkerRows((prev) => ({ ...prev, [row.category]: !prev[row.category] }));
-                                                                    }
-                                                                }}
-                                                                sx={{ cursor: hasSubs ? 'pointer' : 'default' }}
-                                                            >
-                                                                <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>
-                                                                    <Stack direction="row" alignItems="center" spacing={1}>
-                                                                        {hasSubs && (
-                                                                            <Iconify
-                                                                                icon={isExpanded ? 'eva:arrow-ios-downward-fill' : 'eva:arrow-ios-forward-fill'}
-                                                                                width={16}
-                                                                                sx={{ color: 'text.secondary' }}
-                                                                            />
-                                                                        )}
-                                                                        <span>{row.category}</span>
-                                                                    </Stack>
-                                                                </TableCell>
-                                                                <TableCell align="right" sx={{ fontWeight: 700 }}>{row.manpower}</TableCell>
-                                                                <TableCell align="right" sx={{ color: '#059669', fontWeight: 700 }}>{row.present}</TableCell>
-                                                                <TableCell align="right" sx={{ color: row.absent > 0 ? '#dc2626' : 'text.secondary', fontWeight: 600 }}>
-                                                                    {row.absent}
-                                                                </TableCell>
-                                                                <TableCell align="right" sx={{ fontWeight: 600, color: row.absent_pct > 20 ? '#dc2626' : 'text.primary' }}>
-                                                                    {row.absent_pct.toFixed(1)}%
-                                                                </TableCell>
-                                                            </TableRow>
-                                                            {hasSubs && isExpanded && row.sub_items?.map((sub) => (
-                                                                <TableRow key={sub.category} sx={{ bgcolor: alpha('#059669', 0.03) }}>
-                                                                    <TableCell sx={{ pl: 5, color: 'text.secondary', fontSize: '0.8rem' }}>
-                                                                        ↳ {sub.category}
-                                                                    </TableCell>
-                                                                    <TableCell align="right" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{sub.manpower}</TableCell>
-                                                                    <TableCell align="right" sx={{ fontSize: '0.8rem', color: '#059669' }}>{sub.present}</TableCell>
-                                                                    <TableCell align="right" sx={{ fontSize: '0.8rem', color: sub.absent > 0 ? '#dc2626' : 'text.secondary' }}>
-                                                                        {sub.absent}
-                                                                    </TableCell>
-                                                                    <TableCell align="right" sx={{ fontSize: '0.8rem' }}>{sub.absent_pct.toFixed(1)}%</TableCell>
-                                                                </TableRow>
-                                                            ))}
-                                                        </React.Fragment>
-                                                    );
-                                                })}
-
-                                                {/* Worker's Total Row */}
-                                                <TableRow sx={{ bgcolor: alpha('#059669', 0.08), borderTop: '2px solid #059669' }}>
-                                                    <TableCell sx={{ fontWeight: 800, color: '#064e3b' }}>
-                                                        {head_count.workers_total.category}
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#064e3b' }}>
-                                                        {head_count.workers_total.manpower}
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#059669' }}>
-                                                        {head_count.workers_total.present}
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#dc2626' }}>
-                                                        {head_count.workers_total.absent}
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#064e3b' }}>
-                                                        {head_count.workers_total.absent_pct.toFixed(1)}%
-                                                    </TableCell>
-                                                </TableRow>
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                </Card>
-                            </Grid>
+                                                        {/* Total Row for this Employee Type */}
+                                                        <TableRow sx={{ bgcolor: alpha('#059669', 0.08), borderTop: '2px solid #059669' }}>
+                                                            <TableCell sx={{ fontWeight: 800, color: '#064e3b' }}>
+                                                                {tg.employee_type} Total
+                                                            </TableCell>
+                                                            <TableCell align="center" sx={{ fontWeight: 800, color: '#064e3b' }}>
+                                                                {tg.manpower}
+                                                            </TableCell>
+                                                            <TableCell align="center" sx={{ fontWeight: 800, color: '#059669' }}>
+                                                                {tg.present}
+                                                            </TableCell>
+                                                            <TableCell align="center" sx={{ fontWeight: 800, color: '#dc2626' }}>
+                                                                {tg.absent}
+                                                            </TableCell>
+                                                            <TableCell align="center" sx={{ fontWeight: 800, color: '#064e3b' }}>
+                                                                {tg.absent_pct.toFixed(1)}%
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    </TableBody>
+                                                </Table>
+                                            </TableContainer>
+                                        </Card>
+                                    </Grid>
+                                );
+                            })}
                         </Grid>
 
                         {/* Factory Grand Total Banner */}
@@ -932,38 +852,67 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
                         </Stack>
                     </Box>
 
-                    <TableContainer>
-                        <Table size="small" sx={{ minWidth: 1100 }}>
+                    <TableContainer sx={{ overflowX: 'hidden' }}>
+                        <Table size="small" sx={{ width: '100%', tableLayout: 'fixed' }}>
+                            <colgroup>
+                                <col style={{ width: '8.5%' }} />
+                                <col style={{ width: '11.5%' }} />
+
+                                {/* Existing */}
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+
+                                {/* New Join */}
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+
+                                {/* North Indian */}
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+
+                                {/* Total */}
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+                            </colgroup>
+
                             <TableHead>
                                 {/* Level 1 Group Headers */}
                                 <TableRow>
                                     <TableCell
                                         colSpan={2}
-                                        sx={{ bgcolor: '#334155', color: '#ffffff', fontWeight: 700, textAlign: 'center', py: 1 }}
+                                        sx={{ bgcolor: '#334155', color: '#ffffff', fontWeight: 700, textAlign: 'center', py: 0.75, px: 0.5, fontSize: '0.78rem' }}
                                     >
                                         SECTION & LINE
                                     </TableCell>
                                     <TableCell
                                         colSpan={4}
-                                        sx={{ bgcolor: '#2563eb', color: '#ffffff', fontWeight: 700, textAlign: 'center', py: 1, borderLeft: '1px solid rgba(255,255,255,0.2)' }}
+                                        sx={{ bgcolor: '#2563eb', color: '#ffffff', fontWeight: 700, textAlign: 'center', py: 0.75, px: 0.5, fontSize: '0.78rem', borderLeft: '1px solid rgba(255,255,255,0.2)' }}
                                     >
                                         EXISTING
                                     </TableCell>
                                     <TableCell
                                         colSpan={4}
-                                        sx={{ bgcolor: '#0d9488', color: '#ffffff', fontWeight: 700, textAlign: 'center', py: 1, borderLeft: '1px solid rgba(255,255,255,0.2)' }}
+                                        sx={{ bgcolor: '#0d9488', color: '#ffffff', fontWeight: 700, textAlign: 'center', py: 0.75, px: 0.5, fontSize: '0.78rem', borderLeft: '1px solid rgba(255,255,255,0.2)' }}
                                     >
                                         NEW JOIN
                                     </TableCell>
                                     <TableCell
                                         colSpan={4}
-                                        sx={{ bgcolor: '#7c3aed', color: '#ffffff', fontWeight: 700, textAlign: 'center', py: 1, borderLeft: '1px solid rgba(255,255,255,0.2)' }}
+                                        sx={{ bgcolor: '#7c3aed', color: '#ffffff', fontWeight: 700, textAlign: 'center', py: 0.75, px: 0.5, fontSize: '0.78rem', borderLeft: '1px solid rgba(255,255,255,0.2)' }}
                                     >
                                         NORTH INDIAN
                                     </TableCell>
                                     <TableCell
                                         colSpan={4}
-                                        sx={{ bgcolor: '#059669', color: '#ffffff', fontWeight: 700, textAlign: 'center', py: 1, borderLeft: '1px solid rgba(255,255,255,0.2)' }}
+                                        sx={{ bgcolor: '#059669', color: '#ffffff', fontWeight: 700, textAlign: 'center', py: 0.75, px: 0.5, fontSize: '0.78rem', borderLeft: '1px solid rgba(255,255,255,0.2)' }}
                                     >
                                         TOTAL
                                     </TableCell>
@@ -971,32 +920,32 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
 
                                 {/* Level 2 Columns */}
                                 <TableRow sx={{ bgcolor: '#f1f5f9' }}>
-                                    <TableCell sx={{ fontWeight: 700, width: 140 }}>SECTION</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, minWidth: 200 }}>LINE / DEPARTMENT</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, px: 0.75, py: 0.75, fontSize: '0.72rem', whiteSpace: 'normal', lineHeight: 1.2 }}>SECTION</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, px: 0.75, py: 0.75, fontSize: '0.72rem', borderLeft: '1px solid #e2e8f0', whiteSpace: 'normal', lineHeight: 1.2, maxWidth: 130 }}>LINE / DEPARTMENT</TableCell>
 
                                     {/* Existing */}
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 55, borderLeft: '1px solid #cbd5e1' }}>STR</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 55 }}>PRE</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 55 }}>ABS</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 65 }}>ABS%</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem', borderLeft: '1px solid #cbd5e1' }}>STR</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>PRE</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>ABS</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>ABS%</TableCell>
 
                                     {/* New Join */}
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 55, borderLeft: '1px solid #cbd5e1' }}>STR</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 55 }}>PRE</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 55 }}>ABS</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 65 }}>ABS%</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem', borderLeft: '1px solid #cbd5e1' }}>STR</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>PRE</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>ABS</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>ABS%</TableCell>
 
                                     {/* North Indian */}
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 55, borderLeft: '1px solid #cbd5e1' }}>STR</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 55 }}>PRE</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 55 }}>ABS</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 65 }}>ABS%</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem', borderLeft: '1px solid #cbd5e1' }}>STR</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>PRE</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>ABS</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>ABS%</TableCell>
 
                                     {/* Total */}
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 60, borderLeft: '1px solid #cbd5e1' }}>STR</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 60 }}>PRE</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 60 }}>ABS</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, width: 70 }}>ABS%</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem', borderLeft: '1px solid #cbd5e1' }}>STR</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>PRE</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>ABS</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.72rem' }}>ABS%</TableCell>
                                 </TableRow>
                             </TableHead>
 
@@ -1006,175 +955,179 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
                                     <React.Fragment key={sec.section_name}>
                                         {sec.lines.map((l, idx) => (
                                             <TableRow key={l.line_name} hover>
-                                                <TableCell sx={{ fontWeight: idx === 0 ? 700 : 400, color: idx === 0 ? '#1e293b' : 'text.disabled' }}>
+                                                <TableCell sx={{ fontWeight: idx === 0 ? 700 : 400, color: idx === 0 ? '#1e293b' : 'transparent', px: 0.75, py: 0.65, fontSize: '0.75rem', whiteSpace: 'normal', lineHeight: 1.25 }}>
                                                     {idx === 0 ? sec.section_name : ''}
                                                 </TableCell>
-                                                <TableCell sx={{ fontWeight: 500 }}>{l.line_name}</TableCell>
+                                                <TableCell sx={{ fontWeight: 500, px: 0.75, py: 0.65, fontSize: '0.78rem', borderLeft: '1px solid #f1f5f9', whiteSpace: 'normal', wordBreak: 'normal', lineHeight: 1.25, maxWidth: 130 }}>
+                                                    {l.line_name}
+                                                </TableCell>
 
                                                 {/* Existing */}
-                                                <TableCell align="right" sx={{ borderLeft: '1px solid #e2e8f0' }}>{l.existing.str}</TableCell>
-                                                <TableCell align="right" sx={{ color: '#059669' }}>{l.existing.pre}</TableCell>
-                                                <TableCell align="right" sx={{ color: l.existing.abs > 0 ? '#dc2626' : 'text.secondary' }}>{l.existing.abs}</TableCell>
-                                                <TableCell align="right">{l.existing.abs_pct.toFixed(1)}%</TableCell>
+                                                <TableCell align="center" sx={{ borderLeft: '1px solid #e2e8f0', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.existing.str}</TableCell>
+                                                <TableCell align="center" sx={{ color: '#059669', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.existing.pre}</TableCell>
+                                                <TableCell align="center" sx={{ color: l.existing.abs > 0 ? '#dc2626' : 'text.secondary', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.existing.abs}</TableCell>
+                                                <TableCell align="center" sx={{ px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.existing.abs_pct.toFixed(1)}%</TableCell>
 
                                                 {/* New Join */}
-                                                <TableCell align="right" sx={{ borderLeft: '1px solid #e2e8f0' }}>{l.new_join.str}</TableCell>
-                                                <TableCell align="right" sx={{ color: '#059669' }}>{l.new_join.pre}</TableCell>
-                                                <TableCell align="right" sx={{ color: l.new_join.abs > 0 ? '#dc2626' : 'text.secondary' }}>{l.new_join.abs}</TableCell>
-                                                <TableCell align="right">{l.new_join.abs_pct.toFixed(1)}%</TableCell>
+                                                <TableCell align="center" sx={{ borderLeft: '1px solid #e2e8f0', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.new_join.str}</TableCell>
+                                                <TableCell align="center" sx={{ color: '#059669', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.new_join.pre}</TableCell>
+                                                <TableCell align="center" sx={{ color: l.new_join.abs > 0 ? '#dc2626' : 'text.secondary', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.new_join.abs}</TableCell>
+                                                <TableCell align="center" sx={{ px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.new_join.abs_pct.toFixed(1)}%</TableCell>
 
                                                 {/* North Indian */}
-                                                <TableCell align="right" sx={{ borderLeft: '1px solid #e2e8f0' }}>{l.north_indian.str}</TableCell>
-                                                <TableCell align="right" sx={{ color: '#059669' }}>{l.north_indian.pre}</TableCell>
-                                                <TableCell align="right" sx={{ color: l.north_indian.abs > 0 ? '#dc2626' : 'text.secondary' }}>{l.north_indian.abs}</TableCell>
-                                                <TableCell align="right">{l.north_indian.abs_pct.toFixed(1)}%</TableCell>
+                                                <TableCell align="center" sx={{ borderLeft: '1px solid #e2e8f0', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.north_indian.str}</TableCell>
+                                                <TableCell align="center" sx={{ color: '#059669', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.north_indian.pre}</TableCell>
+                                                <TableCell align="center" sx={{ color: l.north_indian.abs > 0 ? '#dc2626' : 'text.secondary', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.north_indian.abs}</TableCell>
+                                                <TableCell align="center" sx={{ px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.north_indian.abs_pct.toFixed(1)}%</TableCell>
 
                                                 {/* Total */}
-                                                <TableCell align="right" sx={{ borderLeft: '1px solid #e2e8f0', fontWeight: 700 }}>{l.total.str}</TableCell>
-                                                <TableCell align="right" sx={{ color: '#059669', fontWeight: 700 }}>{l.total.pre}</TableCell>
-                                                <TableCell align="right" sx={{ color: l.total.abs > 0 ? '#dc2626' : 'text.secondary', fontWeight: 700 }}>{l.total.abs}</TableCell>
-                                                <TableCell align="right" sx={{ fontWeight: 700 }}>{l.total.abs_pct.toFixed(1)}%</TableCell>
+                                                <TableCell align="center" sx={{ borderLeft: '1px solid #e2e8f0', fontWeight: 700, px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.total.str}</TableCell>
+                                                <TableCell align="center" sx={{ color: '#059669', fontWeight: 700, px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.total.pre}</TableCell>
+                                                <TableCell align="center" sx={{ color: l.total.abs > 0 ? '#dc2626' : 'text.secondary', fontWeight: 700, px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.total.abs}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.total.abs_pct.toFixed(1)}%</TableCell>
                                             </TableRow>
                                         ))}
 
                                         {/* Section Subtotal (only when multiple sections exist) */}
                                         {line_wise.production_sections.length > 1 && (
                                             <TableRow sx={{ bgcolor: alpha('#059669', 0.06), borderBottom: '1px solid #cbd5e1' }}>
-                                                <TableCell sx={{ fontWeight: 700, color: '#064e3b' }}>{sec.section_name}</TableCell>
-                                                <TableCell sx={{ fontWeight: 700, color: '#064e3b' }}>TOTAL</TableCell>
+                                                <TableCell sx={{ fontWeight: 700, color: '#064e3b', px: 1, py: 0.75, fontSize: '0.78rem', whiteSpace: 'normal', lineHeight: 1.25 }}>{sec.section_name}</TableCell>
+                                                <TableCell sx={{ fontWeight: 700, color: '#064e3b', px: 1, py: 0.75, fontSize: '0.78rem', borderLeft: '1px solid #cbd5e1' }}>TOTAL</TableCell>
 
-                                            <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700 }}>{sec.total.existing.str}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#059669' }}>{sec.total.existing.pre}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#dc2626' }}>{sec.total.existing.abs}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700 }}>{sec.total.existing.abs_pct.toFixed(1)}%</TableCell>
+                                                <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.existing.str}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, color: '#059669', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.existing.pre}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, color: '#dc2626', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.existing.abs}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.existing.abs_pct.toFixed(1)}%</TableCell>
 
-                                            <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700 }}>{sec.total.new_join.str}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#059669' }}>{sec.total.new_join.pre}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#dc2626' }}>{sec.total.new_join.abs}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700 }}>{sec.total.new_join.abs_pct.toFixed(1)}%</TableCell>
+                                                <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.new_join.str}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, color: '#059669', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.new_join.pre}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, color: '#dc2626', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.new_join.abs}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.new_join.abs_pct.toFixed(1)}%</TableCell>
 
-                                            <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700 }}>{sec.total.north_indian.str}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#059669' }}>{sec.total.north_indian.pre}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#dc2626' }}>{sec.total.north_indian.abs}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700 }}>{sec.total.north_indian.abs_pct.toFixed(1)}%</TableCell>
+                                                <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.north_indian.str}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, color: '#059669', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.north_indian.pre}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, color: '#dc2626', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.north_indian.abs}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.north_indian.abs_pct.toFixed(1)}%</TableCell>
 
-                                            <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 800, color: '#064e3b' }}>{sec.total.total.str}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 800, color: '#059669' }}>{sec.total.total.pre}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 800, color: '#dc2626' }}>{sec.total.total.abs}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 800, color: '#064e3b' }}>{sec.total.total.abs_pct.toFixed(1)}%</TableCell>
-                                        </TableRow>
+                                                <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 800, color: '#064e3b', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.total.str}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 800, color: '#059669', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.total.pre}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 800, color: '#dc2626', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.total.abs}</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 800, color: '#064e3b', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{sec.total.total.abs_pct.toFixed(1)}%</TableCell>
+                                            </TableRow>
                                         )}
                                     </React.Fragment>
                                 ))}
 
                                 {/* Grand Total of Production */}
                                 <TableRow sx={{ bgcolor: alpha('#1e40af', 0.12), borderTop: '2px solid #1e40af', borderBottom: '2px solid #1e40af' }}>
-                                    <TableCell colSpan={2} sx={{ fontWeight: 800, color: '#1e3a8a', py: 1.2 }}>
+                                    <TableCell colSpan={2} sx={{ fontWeight: 800, color: '#1e3a8a', py: 0.85, px: 1, fontSize: '0.8rem' }}>
                                         {line_wise.production_grand_total.line_name}
                                     </TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 800 }}>{line_wise.production_grand_total.existing.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#059669' }}>{line_wise.production_grand_total.existing.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#dc2626' }}>{line_wise.production_grand_total.existing.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800 }}>{line_wise.production_grand_total.existing.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 800, px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.existing.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: '#059669', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.existing.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: '#dc2626', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.existing.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.existing.abs_pct.toFixed(1)}%</TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 800 }}>{line_wise.production_grand_total.new_join.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#059669' }}>{line_wise.production_grand_total.new_join.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#dc2626' }}>{line_wise.production_grand_total.new_join.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800 }}>{line_wise.production_grand_total.new_join.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 800, px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.new_join.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: '#059669', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.new_join.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: '#dc2626', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.new_join.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.new_join.abs_pct.toFixed(1)}%</TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 800 }}>{line_wise.production_grand_total.north_indian.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#059669' }}>{line_wise.production_grand_total.north_indian.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#dc2626' }}>{line_wise.production_grand_total.north_indian.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800 }}>{line_wise.production_grand_total.north_indian.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 800, px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.north_indian.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: '#059669', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.north_indian.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: '#dc2626', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.north_indian.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.north_indian.abs_pct.toFixed(1)}%</TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 900, color: '#1e3a8a' }}>{line_wise.production_grand_total.total.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#059669' }}>{line_wise.production_grand_total.total.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#dc2626' }}>{line_wise.production_grand_total.total.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#1e3a8a' }}>{line_wise.production_grand_total.total.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 900, color: '#1e3a8a', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.total.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#059669', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.total.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#dc2626', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.total.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#1e3a8a', px: 0.25, py: 0.85, fontSize: '0.8rem' }}>{line_wise.production_grand_total.total.abs_pct.toFixed(1)}%</TableCell>
                                 </TableRow>
 
                                 {/* Non-Production Section */}
                                 {line_wise.non_production_section.lines.map((l, idx) => (
                                     <TableRow key={l.line_name} hover>
-                                        <TableCell sx={{ fontWeight: idx === 0 ? 700 : 400, color: idx === 0 ? '#1e293b' : 'text.disabled' }}>
+                                        <TableCell sx={{ fontWeight: idx === 0 ? 700 : 400, color: idx === 0 ? '#1e293b' : 'transparent', px: 0.75, py: 0.65, fontSize: '0.75rem', whiteSpace: 'normal', lineHeight: 1.25 }}>
                                             {idx === 0 ? line_wise.non_production_section.section_name : ''}
                                         </TableCell>
-                                        <TableCell sx={{ fontWeight: 500 }}>{l.line_name}</TableCell>
+                                        <TableCell sx={{ fontWeight: 500, px: 0.75, py: 0.65, fontSize: '0.78rem', borderLeft: '1px solid #f1f5f9', whiteSpace: 'normal', wordBreak: 'normal', lineHeight: 1.25, maxWidth: 130 }}>
+                                            {l.line_name}
+                                        </TableCell>
 
-                                        <TableCell align="right" sx={{ borderLeft: '1px solid #e2e8f0' }}>{l.existing.str}</TableCell>
-                                        <TableCell align="right" sx={{ color: '#059669' }}>{l.existing.pre}</TableCell>
-                                        <TableCell align="right" sx={{ color: l.existing.abs > 0 ? '#dc2626' : 'text.secondary' }}>{l.existing.abs}</TableCell>
-                                        <TableCell align="right">{l.existing.abs_pct.toFixed(1)}%</TableCell>
+                                        <TableCell align="center" sx={{ borderLeft: '1px solid #e2e8f0', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.existing.str}</TableCell>
+                                        <TableCell align="center" sx={{ color: '#059669', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.existing.pre}</TableCell>
+                                        <TableCell align="center" sx={{ color: l.existing.abs > 0 ? '#dc2626' : 'text.secondary', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.existing.abs}</TableCell>
+                                        <TableCell align="center" sx={{ px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.existing.abs_pct.toFixed(1)}%</TableCell>
 
-                                        <TableCell align="right" sx={{ borderLeft: '1px solid #e2e8f0' }}>{l.new_join.str}</TableCell>
-                                        <TableCell align="right" sx={{ color: '#059669' }}>{l.new_join.pre}</TableCell>
-                                        <TableCell align="right" sx={{ color: l.new_join.abs > 0 ? '#dc2626' : 'text.secondary' }}>{l.new_join.abs}</TableCell>
-                                        <TableCell align="right">{l.new_join.abs_pct.toFixed(1)}%</TableCell>
+                                        <TableCell align="center" sx={{ borderLeft: '1px solid #e2e8f0', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.new_join.str}</TableCell>
+                                        <TableCell align="center" sx={{ color: '#059669', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.new_join.pre}</TableCell>
+                                        <TableCell align="center" sx={{ color: l.new_join.abs > 0 ? '#dc2626' : 'text.secondary', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.new_join.abs}</TableCell>
+                                        <TableCell align="center" sx={{ px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.new_join.abs_pct.toFixed(1)}%</TableCell>
 
-                                        <TableCell align="right" sx={{ borderLeft: '1px solid #e2e8f0' }}>{l.north_indian.str}</TableCell>
-                                        <TableCell align="right" sx={{ color: '#059669' }}>{l.north_indian.pre}</TableCell>
-                                        <TableCell align="right" sx={{ color: l.north_indian.abs > 0 ? '#dc2626' : 'text.secondary' }}>{l.north_indian.abs}</TableCell>
-                                        <TableCell align="right">{l.north_indian.abs_pct.toFixed(1)}%</TableCell>
+                                        <TableCell align="center" sx={{ borderLeft: '1px solid #e2e8f0', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.north_indian.str}</TableCell>
+                                        <TableCell align="center" sx={{ color: '#059669', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.north_indian.pre}</TableCell>
+                                        <TableCell align="center" sx={{ color: l.north_indian.abs > 0 ? '#dc2626' : 'text.secondary', px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.north_indian.abs}</TableCell>
+                                        <TableCell align="center" sx={{ px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.north_indian.abs_pct.toFixed(1)}%</TableCell>
 
-                                        <TableCell align="right" sx={{ borderLeft: '1px solid #e2e8f0', fontWeight: 700 }}>{l.total.str}</TableCell>
-                                        <TableCell align="right" sx={{ color: '#059669', fontWeight: 700 }}>{l.total.pre}</TableCell>
-                                        <TableCell align="right" sx={{ color: l.total.abs > 0 ? '#dc2626' : 'text.secondary', fontWeight: 700 }}>{l.total.abs}</TableCell>
-                                        <TableCell align="right" sx={{ fontWeight: 700 }}>{l.total.abs_pct.toFixed(1)}%</TableCell>
+                                        <TableCell align="center" sx={{ borderLeft: '1px solid #e2e8f0', fontWeight: 700, px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.total.str}</TableCell>
+                                        <TableCell align="center" sx={{ color: '#059669', fontWeight: 700, px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.total.pre}</TableCell>
+                                        <TableCell align="center" sx={{ color: l.total.abs > 0 ? '#dc2626' : 'text.secondary', fontWeight: 700, px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.total.abs}</TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.65, fontSize: '0.78rem' }}>{l.total.abs_pct.toFixed(1)}%</TableCell>
                                     </TableRow>
                                 ))}
 
                                 {/* Non-Production Total */}
                                 <TableRow sx={{ bgcolor: alpha('#059669', 0.06), borderBottom: '1px solid #cbd5e1' }}>
-                                    <TableCell sx={{ fontWeight: 700, color: '#064e3b' }}>Non production</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, color: '#064e3b' }}>TOTAL</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, color: '#064e3b', px: 1, py: 0.75, fontSize: '0.78rem', whiteSpace: 'normal', lineHeight: 1.25 }}>Non production</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, color: '#064e3b', px: 1, py: 0.75, fontSize: '0.78rem', borderLeft: '1px solid #cbd5e1' }}>TOTAL</TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700 }}>{line_wise.non_production_section.total.existing.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, color: '#059669' }}>{line_wise.non_production_section.total.existing.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, color: '#dc2626' }}>{line_wise.non_production_section.total.existing.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700 }}>{line_wise.non_production_section.total.existing.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.existing.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, color: '#059669', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.existing.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, color: '#dc2626', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.existing.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.existing.abs_pct.toFixed(1)}%</TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700 }}>{line_wise.non_production_section.total.new_join.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, color: '#059669' }}>{line_wise.non_production_section.total.new_join.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, color: '#dc2626' }}>{line_wise.non_production_section.total.new_join.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700 }}>{line_wise.non_production_section.total.new_join.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.new_join.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, color: '#059669', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.new_join.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, color: '#dc2626', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.new_join.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.new_join.abs_pct.toFixed(1)}%</TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700 }}>{line_wise.non_production_section.total.north_indian.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, color: '#059669' }}>{line_wise.non_production_section.total.north_indian.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, color: '#dc2626' }}>{line_wise.non_production_section.total.north_indian.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700 }}>{line_wise.non_production_section.total.north_indian.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.north_indian.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, color: '#059669', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.north_indian.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, color: '#dc2626', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.north_indian.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 700, px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.north_indian.abs_pct.toFixed(1)}%</TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 800, color: '#064e3b' }}>{line_wise.non_production_section.total.total.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#059669' }}>{line_wise.non_production_section.total.total.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#dc2626' }}>{line_wise.non_production_section.total.total.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#064e3b' }}>{line_wise.non_production_section.total.total.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #cbd5e1', fontWeight: 800, color: '#064e3b', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.total.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: '#059669', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.total.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: '#dc2626', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.total.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: '#064e3b', px: 0.25, py: 0.75, fontSize: '0.78rem' }}>{line_wise.non_production_section.total.total.abs_pct.toFixed(1)}%</TableCell>
                                 </TableRow>
 
                                 {/* GRAND TOTAL OF FACTORY */}
                                 <TableRow sx={{ bgcolor: '#fffbeb', borderTop: '3px solid #d97706', borderBottom: '3px solid #d97706' }}>
-                                    <TableCell colSpan={2} sx={{ fontWeight: 900, color: '#92400e', py: 1.5, fontSize: '0.95rem' }}>
+                                    <TableCell colSpan={2} sx={{ fontWeight: 900, color: '#92400e', py: 1.1, px: 1, fontSize: '0.88rem' }}>
                                         {line_wise.factory_grand_total.line_name}
                                     </TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #f59e0b', fontWeight: 900, color: '#92400e' }}>{line_wise.factory_grand_total.existing.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#059669' }}>{line_wise.factory_grand_total.existing.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#dc2626' }}>{line_wise.factory_grand_total.existing.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#92400e' }}>{line_wise.factory_grand_total.existing.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #f59e0b', fontWeight: 900, color: '#92400e', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.existing.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#059669', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.existing.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#dc2626', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.existing.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#92400e', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.existing.abs_pct.toFixed(1)}%</TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #f59e0b', fontWeight: 900, color: '#92400e' }}>{line_wise.factory_grand_total.new_join.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#059669' }}>{line_wise.factory_grand_total.new_join.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#dc2626' }}>{line_wise.factory_grand_total.new_join.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#92400e' }}>{line_wise.factory_grand_total.new_join.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #f59e0b', fontWeight: 900, color: '#92400e', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.new_join.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#059669', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.new_join.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#dc2626', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.new_join.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#92400e', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.new_join.abs_pct.toFixed(1)}%</TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #f59e0b', fontWeight: 900, color: '#92400e' }}>{line_wise.factory_grand_total.north_indian.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#059669' }}>{line_wise.factory_grand_total.north_indian.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#dc2626' }}>{line_wise.factory_grand_total.north_indian.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#92400e' }}>{line_wise.factory_grand_total.north_indian.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #f59e0b', fontWeight: 900, color: '#92400e', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.north_indian.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#059669', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.north_indian.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#dc2626', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.north_indian.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#92400e', px: 0.25, py: 1.1, fontSize: '0.85rem' }}>{line_wise.factory_grand_total.north_indian.abs_pct.toFixed(1)}%</TableCell>
 
-                                    <TableCell align="right" sx={{ borderLeft: '1px solid #f59e0b', fontWeight: 900, color: '#92400e', fontSize: '1rem' }}>{line_wise.factory_grand_total.total.str}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#059669', fontSize: '1rem' }}>{line_wise.factory_grand_total.total.pre}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#dc2626', fontSize: '1rem' }}>{line_wise.factory_grand_total.total.abs}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 900, color: '#92400e', fontSize: '1rem' }}>{line_wise.factory_grand_total.total.abs_pct.toFixed(1)}%</TableCell>
+                                    <TableCell align="center" sx={{ borderLeft: '1px solid #f59e0b', fontWeight: 900, color: '#92400e', px: 0.25, py: 1.1, fontSize: '0.9rem' }}>{line_wise.factory_grand_total.total.str}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#059669', px: 0.25, py: 1.1, fontSize: '0.9rem' }}>{line_wise.factory_grand_total.total.pre}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#dc2626', px: 0.25, py: 1.1, fontSize: '0.9rem' }}>{line_wise.factory_grand_total.total.abs}</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 900, color: '#92400e', px: 0.25, py: 1.1, fontSize: '0.9rem' }}>{line_wise.factory_grand_total.total.abs_pct.toFixed(1)}%</TableCell>
                                 </TableRow>
                             </TableBody>
                         </Table>

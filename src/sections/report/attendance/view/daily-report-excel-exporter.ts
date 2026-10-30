@@ -31,6 +31,16 @@ export interface DailyReportData {
         absent: number;
     }>;
     head_count: {
+        employee_types?: Array<{
+            employee_type: string;
+            category: string;
+            manpower: number;
+            present: number;
+            absent: number;
+            absent_pct: number;
+            departments: DynamicHeadCountRow[];
+            designations: DynamicHeadCountRow[];
+        }>;
         staff?: DynamicHeadCountRow[];
         staff_departments?: DynamicHeadCountRow[];
         staff_designations?: DynamicHeadCountRow[];
@@ -129,7 +139,8 @@ export async function exportDailyReportToExcel(data: DailyReportData, formattedD
     wsAttendance.columns = [
         { width: 16 }, // Emp ID
         { width: 32 }, // Name
-        { width: 26 }, // Department
+        { width: 24 }, // Department
+        { width: 18 }, // Line
         { width: 24 }, // Designation
         { width: 14 }, // In Time
         { width: 14 }, // Out Time
@@ -137,13 +148,23 @@ export async function exportDailyReportToExcel(data: DailyReportData, formattedD
     ];
 
     // Title Row
-    const attTitleRow = wsAttendance.addRow(['BBK EXPORTS (P) LTD.,']);
-    attTitleRow.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF1E3A8A' } };
-    wsAttendance.mergeCells('A1:G1');
+    const attTitleRow = wsAttendance.addRow(['BBK EXPORTS PRIVATE LIMITED']);
+    attTitleRow.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF000000' } };
+    attTitleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    wsAttendance.mergeCells('A1:H1');
+    for (let c = 1; c <= 8; c++) {
+        attTitleRow.getCell(c).border = {
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } },
+        };
+    }
 
     const attSubTitleRow = wsAttendance.addRow([`Daily Attendance Report - ${formattedDate}`]);
-    attSubTitleRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF4B5563' } };
-    wsAttendance.mergeCells('A2:G2');
+    attSubTitleRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1E3A8A' } };
+    attSubTitleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    wsAttendance.mergeCells('A2:H2');
     wsAttendance.addRow([]); // Blank spacer
 
     // Header Row
@@ -151,6 +172,7 @@ export async function exportDailyReportToExcel(data: DailyReportData, formattedD
         'Employee ID',
         'Employee Name',
         'Department',
+        'Line',
         'Designation',
         'In Time',
         'Out Time',
@@ -172,6 +194,7 @@ export async function exportDailyReportToExcel(data: DailyReportData, formattedD
             emp.employee,
             emp.employee_name,
             emp.department,
+            emp.line_order || '--',
             emp.designation,
             emp.in_time || '--',
             emp.out_time || '--',
@@ -180,12 +203,13 @@ export async function exportDailyReportToExcel(data: DailyReportData, formattedD
         row.font = { name: 'Calibri', size: 10 };
         row.alignment = { vertical: 'middle' };
         row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-        row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
-        row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
-        row.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' }; // Line
+        row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' }; // In Time
+        row.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' }; // Out Time
+        row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' }; // Status
 
         // Highlight status
-        const statusCell = row.getCell(7);
+        const statusCell = row.getCell(8);
         if (emp.status === 'Present') {
             statusCell.font = { bold: true, color: { argb: 'FF065F46' } };
         } else if (emp.status === 'MP') {
@@ -216,141 +240,107 @@ export async function exportDailyReportToExcel(data: DailyReportData, formattedD
     ];
 
     // Titles
-    const hcTitle = wsHeadCount.addRow(['BBK  EXPORTS  PVT  LTD']);
-    hcTitle.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF1E3A8A' } };
+    const hcTitle = wsHeadCount.addRow(['BBK EXPORTS PRIVATE LIMITED']);
+    hcTitle.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF000000' } };
+    hcTitle.alignment = { vertical: 'middle', horizontal: 'center' };
     wsHeadCount.mergeCells('A1:F1');
+    for (let c = 1; c <= 6; c++) {
+        hcTitle.getCell(c).border = {
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } },
+        };
+    }
 
     const hcSubTitle = wsHeadCount.addRow([`Factory Head Count   -   ${formattedDate}`]);
     hcSubTitle.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF374151' } };
+    hcSubTitle.alignment = { vertical: 'middle', horizontal: 'center' };
     wsHeadCount.mergeCells('A2:F2');
     wsHeadCount.addRow([]); // Blank spacer
 
-    // Staff Table Header
-    const staffHdr = wsHeadCount.addRow(['Staff Department', '', 'Manpower', 'Actual - Present', 'Absent', 'Absent %']);
-    wsHeadCount.mergeCells(`A${staffHdr.number}:B${staffHdr.number}`);
-    staffHdr.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF000000' } };
-    staffHdr.alignment = { vertical: 'middle', horizontal: 'center' };
-    staffHdr.eachCell((cell) => {
-        cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFA9D08E' }, // Soft green as in Excel
-        };
-        cell.border = headerBorder;
-    });
+    // Employee Type Sections
+    const typeGroups = (data.head_count.employee_types && data.head_count.employee_types.length > 0)
+        ? data.head_count.employee_types
+        : [
+            {
+                employee_type: 'Staff',
+                manpower: data.head_count.staff_total.manpower,
+                present: data.head_count.staff_total.present,
+                absent: data.head_count.staff_total.absent,
+                absent_pct: data.head_count.staff_total.absent_pct,
+                departments: data.head_count.staff_departments || data.head_count.staff || [],
+            },
+            {
+                employee_type: "Worker's",
+                manpower: data.head_count.workers_total.manpower,
+                present: data.head_count.workers_total.present,
+                absent: data.head_count.workers_total.absent,
+                absent_pct: data.head_count.workers_total.absent_pct,
+                departments: data.head_count.worker_departments || data.head_count.workers || [],
+            },
+        ];
 
-    // Staff Rows (Dynamic)
-    const staffRows = data.head_count.staff_departments || data.head_count.staff || [];
-    staffRows.forEach((st) => {
-        const r = wsHeadCount.addRow([
-            st.department || st.category,
-            '',
-            st.manpower,
-            st.present,
-            st.absent,
-            `${st.absent_pct.toFixed(1)}%`,
-        ]);
-        wsHeadCount.mergeCells(`A${r.number}:B${r.number}`);
-        r.font = { name: 'Calibri', size: 10 };
-        r.alignment = { vertical: 'middle' };
-        r.getCell(3).alignment = { horizontal: 'right' };
-        r.getCell(4).alignment = { horizontal: 'right' };
-        r.getCell(5).alignment = { horizontal: 'right' };
-        r.getCell(6).alignment = { horizontal: 'right' };
-        r.eachCell((cell) => {
-            cell.border = thinBorder;
+    typeGroups.forEach((tg) => {
+        // Section Header
+        const tgHdr = wsHeadCount.addRow([`${tg.employee_type} Department`, '', 'Manpower', 'Actual - Present', 'Absent', 'Absent %']);
+        wsHeadCount.mergeCells(`A${tgHdr.number}:B${tgHdr.number}`);
+        tgHdr.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF000000' } };
+        tgHdr.alignment = { vertical: 'middle', horizontal: 'center' };
+        tgHdr.eachCell((cell) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFA9D08E' },
+            };
+            cell.border = headerBorder;
         });
-    });
 
-    // Staff Total
-    const stTotal = wsHeadCount.addRow([
-        'Staff Total',
-        '',
-        data.head_count.staff_total.manpower,
-        data.head_count.staff_total.present,
-        data.head_count.staff_total.absent,
-        `${data.head_count.staff_total.absent_pct.toFixed(1)}%`,
-    ]);
-    wsHeadCount.mergeCells(`A${stTotal.number}:B${stTotal.number}`);
-    stTotal.font = { name: 'Calibri', size: 10, bold: true };
-    stTotal.alignment = { vertical: 'middle' };
-    stTotal.getCell(3).alignment = { horizontal: 'right' };
-    stTotal.getCell(4).alignment = { horizontal: 'right' };
-    stTotal.getCell(5).alignment = { horizontal: 'right' };
-    stTotal.getCell(6).alignment = { horizontal: 'right' };
-    stTotal.eachCell((cell) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
-        cell.border = headerBorder;
-    });
-
-    wsHeadCount.addRow([]); // Blank spacer
-
-    // Worker's Section Header
-    const wkrHdr = wsHeadCount.addRow(["Worker's Department", '', 'Manpower', 'Actual - Present', 'Absent', 'Absent %']);
-    wsHeadCount.mergeCells(`A${wkrHdr.number}:B${wkrHdr.number}`);
-    wkrHdr.font = { name: 'Calibri', size: 11, bold: true };
-    wkrHdr.alignment = { vertical: 'middle', horizontal: 'center' };
-    wkrHdr.eachCell((cell) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA9D08E' } };
-        cell.border = headerBorder;
-    });
-
-    // Worker Rows (Dynamic)
-    const workerRows = data.head_count.worker_departments || data.head_count.workers || [];
-    workerRows.forEach((w) => {
-        const r = wsHeadCount.addRow([
-            w.department || w.category,
-            '',
-            w.manpower,
-            w.present,
-            w.absent,
-            `${w.absent_pct.toFixed(1)}%`,
-        ]);
-        wsHeadCount.mergeCells(`A${r.number}:B${r.number}`);
-        r.font = { name: 'Calibri', size: 10 };
-        r.alignment = { vertical: 'middle' };
-        r.getCell(3).alignment = { horizontal: 'right' };
-        r.getCell(4).alignment = { horizontal: 'right' };
-        r.getCell(5).alignment = { horizontal: 'right' };
-        r.getCell(6).alignment = { horizontal: 'right' };
-        r.eachCell((cell) => {
-            cell.border = thinBorder;
+        const rows = tg.departments || [];
+        rows.forEach((st) => {
+            const r = wsHeadCount.addRow([
+                st.department || st.category,
+                '',
+                st.manpower,
+                st.present,
+                st.absent,
+                `${st.absent_pct.toFixed(1)}%`,
+            ]);
+            wsHeadCount.mergeCells(`A${r.number}:B${r.number}`);
+            r.font = { name: 'Calibri', size: 10 };
+            r.alignment = { vertical: 'middle' };
+            r.getCell(3).alignment = { horizontal: 'center' };
+            r.getCell(4).alignment = { horizontal: 'center' };
+            r.getCell(5).alignment = { horizontal: 'center' };
+            r.getCell(6).alignment = { horizontal: 'center' };
+            r.eachCell((cell) => {
+                cell.border = thinBorder;
+            });
         });
-    });
 
-    // Worker's Total
-    const wkrTotalRow = wsHeadCount.addRow([
-        "Worker's Total",
-        '',
-        data.head_count.workers_total.manpower,
-        data.head_count.workers_total.present,
-        data.head_count.workers_total.absent,
-        `${data.head_count.workers_total.absent_pct.toFixed(1)}%`,
-    ]);
-    wsHeadCount.mergeCells(`A${wkrTotalRow.number}:B${wkrTotalRow.number}`);
-    wkrTotalRow.font = { name: 'Calibri', size: 10, bold: true };
-    wkrTotalRow.alignment = { vertical: 'middle' };
-    wkrTotalRow.getCell(3).alignment = { horizontal: 'right' };
-    wkrTotalRow.getCell(4).alignment = { horizontal: 'right' };
-    wkrTotalRow.getCell(5).alignment = { horizontal: 'right' };
-    wkrTotalRow.getCell(6).alignment = { horizontal: 'right' };
-    wkrTotalRow.eachCell((cell) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
-        cell.border = headerBorder;
-    });
-    wsHeadCount.mergeCells(`A${wkrTotalRow.number}:B${wkrTotalRow.number}`);
-    wkrTotalRow.font = { name: 'Calibri', size: 10, bold: true };
-    wkrTotalRow.alignment = { vertical: 'middle' };
-    wkrTotalRow.getCell(3).alignment = { horizontal: 'right' };
-    wkrTotalRow.getCell(4).alignment = { horizontal: 'right' };
-    wkrTotalRow.getCell(5).alignment = { horizontal: 'right' };
-    wkrTotalRow.getCell(6).alignment = { horizontal: 'right' };
-    wkrTotalRow.eachCell((cell) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
-        cell.border = headerBorder;
-    });
+        // Total row for this employee type
+        const tgTotalRow = wsHeadCount.addRow([
+            `${tg.employee_type} Total`,
+            '',
+            tg.manpower,
+            tg.present,
+            tg.absent,
+            `${tg.absent_pct.toFixed(1)}%`,
+        ]);
+        wsHeadCount.mergeCells(`A${tgTotalRow.number}:B${tgTotalRow.number}`);
+        tgTotalRow.font = { name: 'Calibri', size: 10, bold: true };
+        tgTotalRow.alignment = { vertical: 'middle' };
+        tgTotalRow.getCell(3).alignment = { horizontal: 'center' };
+        tgTotalRow.getCell(4).alignment = { horizontal: 'center' };
+        tgTotalRow.getCell(5).alignment = { horizontal: 'center' };
+        tgTotalRow.getCell(6).alignment = { horizontal: 'center' };
+        tgTotalRow.eachCell((cell) => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+            cell.border = headerBorder;
+        });
 
-    wsHeadCount.addRow([]); // Blank spacer
+        wsHeadCount.addRow([]); // Blank spacer
+    });
 
     // Factory Total (Yellow highlight)
     const factTotalRow = wsHeadCount.addRow([
@@ -411,9 +401,18 @@ export async function exportDailyReportToExcel(data: DailyReportData, formattedD
     ];
 
     // Title Row
-    const lwTitle = wsLineWise.addRow(['BBK EXPORTS - DAILY LINE WISE MANPOWER - ATTENDANCE']);
-    lwTitle.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF1E3A8A' } };
+    const lwTitle = wsLineWise.addRow(['BBK EXPORTS PRIVATE LIMITED - DAILY LINE WISE MANPOWER - ATTENDANCE']);
+    lwTitle.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF000000' } };
+    lwTitle.alignment = { vertical: 'middle', horizontal: 'center' };
     wsLineWise.mergeCells('A1:R1');
+    for (let c = 1; c <= 18; c++) {
+        lwTitle.getCell(c).border = {
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } },
+        };
+    }
 
     // Date & Dimension Header Row (Row 3)
     const dimHeader = wsLineWise.addRow([
