@@ -194,14 +194,23 @@ export default function ExpenseTrackerView() {
     };
 
     const handleResetFilters = () => {
+        setFilterName('');
         setFilters({
             type: 'all',
             startDate: null,
             endDate: null,
         });
+        setPage(0);
+        setSelected([]);
     };
 
     const canReset = filters.type !== 'all' || !!filters.startDate || !!filters.endDate || !!filterName;
+
+    const activeFilterCount =
+        (filterName ? 1 : 0) +
+        (filters.type !== 'all' ? 1 : 0) +
+        (filters.startDate ? 1 : 0) +
+        (filters.endDate ? 1 : 0);
 
     const notFound = !loading && !data.length && (!!filterName || canReset);
     const empty = !loading && !data.length && !filterName && !canReset;
@@ -237,6 +246,7 @@ export default function ExpenseTrackerView() {
                     }}
                     onOpenFilter={() => setOpenFilters(true)}
                     canReset={canReset}
+                    filterCount={activeFilterCount}
                     searchPlaceholder="Search by title..."
                     onDelete={() => { }}
                     sortBy={sortBy}

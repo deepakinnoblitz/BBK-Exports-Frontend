@@ -732,50 +732,6 @@ export function EmployeeView() {
         return Math.round(((ctcValue * percent) / 100) * 100) / 100;
     };
 
-    const handleCTCOnBlur = async () => {
-        const ctcValue = parseFloat(formData.ctc) || 0;
-        if (ctcValue <= 0) return;
-
-        try {
-            const components = salaryComponents; // Use pre-fetched components
-
-            const earningComps = components.filter((c: any) => c.type === 'Earning');
-            const deductionComps = components.filter((c: any) => c.type === 'Deduction');
-
-            const earnings: any[] = [];
-            for (const comp of earningComps) {
-                const amount = calculateSalaryComponentAmount(comp, ctcValue, earnings);
-                earnings.push({
-                    component_name: comp.component_name,
-                    amount,
-                    type: comp.type,
-                    percentage: comp.percentage,
-                    percentage_basis: comp.percentage_basis,
-                    selected_components: comp.selected_components,
-                });
-            }
-
-            const deductions: any[] = deductionComps.map((comp: any) => ({
-                component_name: comp.component_name,
-                amount: calculateSalaryComponentAmount(comp, ctcValue, earnings),
-                type: comp.type,
-                percentage: comp.percentage,
-                percentage_basis: comp.percentage_basis,
-                selected_components: comp.selected_components,
-            }));
-
-            setFormData(prev => ({
-                ...prev,
-                earnings,
-                deductions,
-                total_earnings: earnings.reduce((sum, item) => sum + item.amount, 0),
-                total_deductions: deductions.reduce((sum, item) => sum + item.amount, 0),
-                net_salary: earnings.reduce((sum, item) => sum + item.amount, 0) - deductions.reduce((sum, item) => sum + item.amount, 0)
-            }));
-        } catch (error) {
-            console.error('Failed to fetch salary components on blur:', error);
-        }
-    };
 
     const handleAddSalaryRow = (type: 'Earning' | 'Deduction') => {
         const field = type === 'Earning' ? 'earnings' : 'deductions';
@@ -1056,6 +1012,7 @@ export function EmployeeView() {
     };
 
     const handleResetFilters = () => {
+        setFilterName('');
         setFilters({
             department: 'all',
             employee_type: 'all',
@@ -1068,7 +1025,21 @@ export function EmployeeView() {
             state: '',
             city: '',
         });
+        setPage(0);
     };
+
+    const activeFilterCount =
+        (filterName ? 1 : 0) +
+        (filters.department !== 'all' ? 1 : 0) +
+        (filters.employee_type !== 'all' ? 1 : 0) +
+        (filters.production_type !== 'all' ? 1 : 0) +
+        (filters.designation !== 'all' ? 1 : 0) +
+        (filters.skill !== 'all' ? 1 : 0) +
+        (filters.line !== 'all' ? 1 : 0) +
+        (filters.status !== 'all' ? 1 : 0) +
+        (filters.country !== '' ? 1 : 0) +
+        (filters.state !== '' ? 1 : 0) +
+        (filters.city !== '' ? 1 : 0);
 
     const canReset = !!filterName || filters.department !== 'all' || filters.employee_type !== 'all' || filters.production_type !== 'all' || filters.designation !== 'all' || filters.skill !== 'all' || filters.line !== 'all' || filters.status !== 'all' || filters.country !== '' || filters.state !== '' || filters.city !== '';
 
@@ -2912,6 +2883,7 @@ export function EmployeeView() {
                     onSortChange={handleSortChange}
                     onOpenFilter={() => setOpenFilters(true)}
                     canReset={canReset}
+                    filterCount={activeFilterCount}
                 />
 
 
@@ -3137,36 +3109,37 @@ export function EmployeeView() {
 
                                     {/* CTC Field - Full Width */}
                                     <Box sx={{ mb: 3 }}>
-                                        {renderField('ctc', 'CTC (Monthly)', 'number', [], {
-                                            onBlur: handleCTCOnBlur,
-                                            InputProps: {
-                                                endAdornment: (
-                                                    <Button
-                                                        size="small"
-                                                        variant="contained"
-                                                        onClick={handleDefaultSplitting}
-                                                        sx={{
-                                                            whiteSpace: 'nowrap',
-                                                            mx: 1,
-                                                            py: 1.5,
-                                                            px: 3,
-                                                            height: 32,
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 700,
-                                                            bgcolor: COMMON_COLORS.emerald.main,
-                                                            color: 'common.white',
-                                                            boxShadow: (theme) => theme.customShadows.z8,
-                                                            '&:hover': {
-                                                                bgcolor: COMMON_COLORS.emerald.dark,
-                                                                boxShadow: (theme) => theme.customShadows.z16,
-                                                            }
-                                                        }}
-                                                        startIcon={<Iconify icon={"solar:magic-stick-bold" as any} width={16} />}
-                                                    >
-                                                        Default Splitting
-                                                    </Button>
-                                                )
-                                            }
+                                        {renderField('ctc', 'CTC (Yearly)', 'number', [], {
+                                            ...(!currentEmployeeId ? {
+                                                InputProps: {
+                                                    endAdornment: (
+                                                        <Button
+                                                            size="small"
+                                                            variant="contained"
+                                                            onClick={handleDefaultSplitting}
+                                                            sx={{
+                                                                whiteSpace: 'nowrap',
+                                                                mx: 1,
+                                                                py: 1.5,
+                                                                px: 3,
+                                                                height: 32,
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: 700,
+                                                                bgcolor: COMMON_COLORS.emerald.main,
+                                                                color: 'common.white',
+                                                                boxShadow: (theme) => theme.customShadows.z8,
+                                                                '&:hover': {
+                                                                    bgcolor: COMMON_COLORS.emerald.dark,
+                                                                    boxShadow: (theme) => theme.customShadows.z16,
+                                                                }
+                                                            }}
+                                                            startIcon={<Iconify icon={"solar:magic-stick-bold" as any} width={16} />}
+                                                        >
+                                                            Default Splitting
+                                                        </Button>
+                                                    )
+                                                }
+                                            } : {})
                                         }, false)}
                                     </Box>
 

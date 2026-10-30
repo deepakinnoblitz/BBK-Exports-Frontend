@@ -107,7 +107,7 @@ export async function getDocTypeMetadata(doctype: string) {
 
 // Salary Component API
 export async function fetchSalaryComponents() {
-    const res = await frappeRequest(`/api/method/frappe.client.get_list?doctype=Salary Structure Component&fields=${JSON.stringify(["component_name", "type", "percentage", "static_amount", "is_default"])}&limit_page_length=100`);
+    const res = await frappeRequest(`/api/method/frappe.client.get_list?doctype=Salary Structure Component&fields=${JSON.stringify(["name", "component_name", "type", "percentage", "percentage_basis", "static_amount", "is_default"])}&limit_page_length=100`);
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, "Failed to fetch salary components"));
     return json.message || [];

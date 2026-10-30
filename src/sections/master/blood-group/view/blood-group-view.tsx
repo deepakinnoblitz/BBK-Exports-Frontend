@@ -231,10 +231,12 @@ export function BloodGroupView() {
           setOpenForm(false);
           setSelectedId(null);
         }}
-        onSuccess={() => {
-          refetch();
+        onSuccess={async () => {
+          const isEdit = !!selectedId;
+          setPage(0);
+          await refetch({ page: 1 });
           enqueueSnackbar(
-            selectedId ? 'Blood Group updated successfully' : 'Blood Group created successfully',
+            isEdit ? 'Blood Group updated successfully' : 'Blood Group created successfully',
             { variant: 'success' }
           );
         }}

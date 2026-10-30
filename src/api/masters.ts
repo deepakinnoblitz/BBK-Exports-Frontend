@@ -772,12 +772,41 @@ export async function createSalaryStructureComponent(data: Partial<SalaryStructu
     return json.message;
 }
 
+export async function renameSalaryStructureComponent(oldName: string, newName: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.rename_doc", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+            doctype: "Salary Structure Component",
+            old_name: oldName,
+            new_name: newName,
+            merge: false
+        })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to rename salary structure component"));
+    return json.message;
+}
+
 export async function updateSalaryStructureComponent(name: string, data: Partial<SalaryStructureComponent>) {
+    let currentName = name;
+    const newName = data.component_name?.trim();
+    if (newName && newName !== name) {
+        await renameSalaryStructureComponent(name, newName);
+        currentName = newName;
+    }
+
+    const { component_name, ...otherFields } = data;
     const headers = await getAuthHeaders();
     const res = await frappeRequest("/api/method/frappe.client.set_value", {
         method: "POST",
         headers,
-        body: JSON.stringify({ doctype: "Salary Structure Component", name, fieldname: data })
+        body: JSON.stringify({
+            doctype: "Salary Structure Component",
+            name: currentName,
+            fieldname: { component_name: currentName, ...otherFields }
+        })
     });
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update salary structure component"));
@@ -1940,12 +1969,41 @@ export const fetchBloodGroups = (params: any) => {
     });
 };
 
+export async function renameBloodGroup(oldName: string, newName: string) {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest("/api/method/frappe.client.rename_doc", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+            doctype: "Blood Group",
+            old_name: oldName,
+            new_name: newName,
+            merge: false
+        })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to rename blood group"));
+    return json.message;
+}
+
 export async function updateBloodGroup(name: string, data: Partial<BloodGroup>) {
+    let currentName = name;
+    const newName = data.blood_group?.trim();
+    if (newName && newName !== name) {
+        await renameBloodGroup(name, newName);
+        currentName = newName;
+    }
+
+    const { blood_group, ...otherFields } = data;
     const headers = await getAuthHeaders();
     const res = await frappeRequest("/api/method/frappe.client.set_value", {
         method: "POST",
         headers,
-        body: JSON.stringify({ doctype: "Blood Group", name, fieldname: data })
+        body: JSON.stringify({
+            doctype: "Blood Group",
+            name: currentName,
+            fieldname: { blood_group: currentName, ...otherFields }
+        })
     });
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update blood group"));

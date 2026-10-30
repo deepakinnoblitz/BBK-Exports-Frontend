@@ -23,7 +23,7 @@ import { Iconify } from 'src/components/iconify';
 type Props = {
     open: boolean;
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: () => void | Promise<void>;
     id?: string | null;
 };
 
@@ -83,7 +83,7 @@ export function BloodGroupDialog({ open, onClose, onSuccess, id }: Props) {
                 await createBloodGroup(data);
             }
 
-            onSuccess();
+            await onSuccess();
             onClose();
         } catch (err: any) {
             console.error(err);

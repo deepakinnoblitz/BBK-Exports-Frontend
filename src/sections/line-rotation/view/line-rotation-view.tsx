@@ -121,12 +121,20 @@ export function LineRotationView() {
   };
 
   const handleResetFilters = () => {
+    setFilterName('');
     setFilters({
       frequency: 'all',
       department: 'all',
       status: 'all',
     });
+    setPage(0);
   };
+
+  const activeFilterCount =
+    (filterName ? 1 : 0) +
+    (filters.frequency !== 'all' ? 1 : 0) +
+    (filters.department !== 'all' ? 1 : 0) +
+    (filters.status !== 'all' ? 1 : 0);
 
   const canReset =
     !!filterName ||
@@ -282,6 +290,7 @@ export function LineRotationView() {
           onSortChange={handleSortChange}
           onOpenFilter={() => setOpenFilters(true)}
           canReset={canReset}
+          filterCount={activeFilterCount}
         />
 
         <Scrollbar>
