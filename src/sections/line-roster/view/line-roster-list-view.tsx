@@ -180,6 +180,7 @@ export function LineRosterListView({
   };
 
   const handleResetFilters = () => {
+    setSearch('');
     setFilters({
       employees: [],
       line_order: 'all',
@@ -187,9 +188,19 @@ export function LineRosterListView({
       fromDate: null,
       toDate: null,
     });
+    setPage(0);
+    setSelected([]);
     onSelectEmployees?.([]);
     onSelectEmployee?.(null);
   };
+
+  const activeFilterCount =
+    (search ? 1 : 0) +
+    (filters.employees && filters.employees.length > 0 ? 1 : 0) +
+    (filters.line_order !== 'all' ? 1 : 0) +
+    (filters.status !== 'all' ? 1 : 0) +
+    (filters.fromDate ? 1 : 0) +
+    (filters.toDate ? 1 : 0);
 
   const canReset =
     !!search ||
@@ -423,6 +434,7 @@ export function LineRosterListView({
           onSortChange={handleSortChange}
           onOpenFilter={() => setOpenFilters(true)}
           canReset={canReset}
+          filterCount={activeFilterCount}
         />
 
         <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>

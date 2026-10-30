@@ -163,6 +163,7 @@ export function SalarySlipsView() {
     }, []);
 
     const handleResetFilters = useCallback(() => {
+        setFilterName('');
         setFilters({
             employee: 'all',
             department: 'all',
@@ -172,7 +173,17 @@ export function SalarySlipsView() {
             pay_period_end: null,
         });
         setPage(0);
+        setSelected([]);
     }, []);
+
+    const activeFilterCount =
+        (filterName ? 1 : 0) +
+        (filters.employee !== 'all' ? 1 : 0) +
+        (filters.department !== 'all' ? 1 : 0) +
+        (filters.designation !== 'all' ? 1 : 0) +
+        (filters.bank_name && filters.bank_name !== 'all' ? 1 : 0) +
+        (filters.pay_period_start !== null ? 1 : 0) +
+        (filters.pay_period_end !== null ? 1 : 0);
 
     const canReset = filters.employee !== 'all' ||
         filters.department !== 'all' ||
@@ -594,6 +605,7 @@ export function SalarySlipsView() {
                     onOpenFilter={() => setOpenFilters(true)}
 
                     canReset={canReset}
+                    filterCount={activeFilterCount}
                     onDelete={isHR && canDeleteSalarySlip && selected.length > 0 ? () => setConfirmBulkDelete(true) : undefined}
                 />
 

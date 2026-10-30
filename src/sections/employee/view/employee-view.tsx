@@ -1012,6 +1012,7 @@ export function EmployeeView() {
     };
 
     const handleResetFilters = () => {
+        setFilterName('');
         setFilters({
             department: 'all',
             employee_type: 'all',
@@ -1024,7 +1025,21 @@ export function EmployeeView() {
             state: '',
             city: '',
         });
+        setPage(0);
     };
+
+    const activeFilterCount =
+        (filterName ? 1 : 0) +
+        (filters.department !== 'all' ? 1 : 0) +
+        (filters.employee_type !== 'all' ? 1 : 0) +
+        (filters.production_type !== 'all' ? 1 : 0) +
+        (filters.designation !== 'all' ? 1 : 0) +
+        (filters.skill !== 'all' ? 1 : 0) +
+        (filters.line !== 'all' ? 1 : 0) +
+        (filters.status !== 'all' ? 1 : 0) +
+        (filters.country !== '' ? 1 : 0) +
+        (filters.state !== '' ? 1 : 0) +
+        (filters.city !== '' ? 1 : 0);
 
     const canReset = !!filterName || filters.department !== 'all' || filters.employee_type !== 'all' || filters.production_type !== 'all' || filters.designation !== 'all' || filters.skill !== 'all' || filters.line !== 'all' || filters.status !== 'all' || filters.country !== '' || filters.state !== '' || filters.city !== '';
 
@@ -2868,6 +2883,7 @@ export function EmployeeView() {
                     onSortChange={handleSortChange}
                     onOpenFilter={() => setOpenFilters(true)}
                     canReset={canReset}
+                    filterCount={activeFilterCount}
                 />
 
 
