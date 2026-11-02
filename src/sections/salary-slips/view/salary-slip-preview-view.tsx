@@ -446,14 +446,27 @@ export function SalarySlipPreviewView() {
                 </Stack>
             </Box>
 
-            {/* Overtime (OT) Formula Card - Only for eligible Workers/Drivers/North Indian with OT, never for Staff */}
+            {/* Overtime (OT) Formula Card - Only for eligible Workers/Drivers/North Indian or Custom OT Rules with OT */}
             {(() => {
                 const empType = (data.employee_type || '').toLowerCase();
                 const isStaff = empType.includes('staff');
                 const isWorker = empType.includes('worker');
                 const isDriver = empType.includes('driver');
                 const isNorthIndian = empType.includes('north indian');
-                const isOTEligible = (isWorker || isNorthIndian || isDriver) && !isStaff && Number(data.ot_hours || 0) > 0 && Number(data.ot_amount || 0) > 0;
+
+                let matchedOtRule: any = null;
+                try {
+                    const raw = hrSettings.other_overtime_rules;
+                    const rules: any[] = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
+                    matchedOtRule = rules.find((r: any) => 
+                        (r.employee_type || '').trim().toLowerCase() === (data.employee_type || '').trim().toLowerCase() && 
+                        (r.enabled === 1 || r.enabled === true || r.enabled === '1')
+                    );
+                } catch {
+                    matchedOtRule = null;
+                }
+
+                const isOTEligible = (Boolean(matchedOtRule) || ((isWorker || isNorthIndian || isDriver) && !isStaff)) && Number(data.ot_hours || 0) > 0 && Number(data.ot_amount || 0) > 0;
 
                 if (!isOTEligible) return null;
 
@@ -488,7 +501,41 @@ export function SalarySlipPreviewView() {
                             </Typography>
 
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2.5 }}>
-                                {isNorthIndian ? (
+                                {matchedOtRule ? (
+                                    matchedOtRule.calculation_type === 'fixed' ? (
+                                        <>
+                                            <FormulaChip
+                                                label="Fixed OT Rate"
+                                                value={`${hrSettings.currency_symbol}${fNumber(matchedOtRule.fixed_rate ?? 100, { locale: hrSettings.default_locale })}`}
+                                                color="warning"
+                                                currencySymbol={hrSettings.currency_symbol}
+                                            />
+                                            <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                            <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FormulaChip
+                                                label="Gross Pay"
+                                                value={`${hrSettings.currency_symbol}${fNumber(baseGrossPay, { locale: hrSettings.default_locale })}`}
+                                                color="success"
+                                                currencySymbol={hrSettings.currency_symbol}
+                                            />
+                                            <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                            <FormulaChip label="Working Days" value={`${matchedOtRule.working_days_basis || 26}`} color="info" />
+                                            <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                            <FormulaChip label="Shift Hours" value={`${matchedOtRule.shift_hours || 8} hrs`} color="info" />
+                                            <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                            <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                            <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                            <FormulaChip
+                                                label="Multiplier"
+                                                value={`${matchedOtRule.multiplier ?? 2}×`}
+                                                color="warning"
+                                            />
+                                        </>
+                                    )
+                                ) : isNorthIndian ? (
                                     <>
                                         <FormulaChip
                                             label="Fixed OT Rate"

@@ -148,7 +148,28 @@ export function SalarySlipEditView({ id: propId }: Props) {
         const otHours = getNum(data.ot_hours);
         let otAmount = 0;
 
-        if (isStaff) {
+        let matchedOtRule: any = null;
+        try {
+            const raw = hrSettings.other_overtime_rules;
+            const rules: any[] = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
+            matchedOtRule = rules.find((r: any) => 
+                (r.employee_type || '').trim().toLowerCase() === (data.employee_type || '').trim().toLowerCase() && 
+                (r.enabled === 1 || r.enabled === true || r.enabled === '1')
+            );
+        } catch {
+            matchedOtRule = null;
+        }
+
+        if (matchedOtRule) {
+            if (matchedOtRule.calculation_type === 'fixed') {
+                otAmount = round(Number(matchedOtRule.fixed_rate || 0) * otHours);
+            } else {
+                const multiplier = Number(matchedOtRule.multiplier || 2.0);
+                const days = Number(matchedOtRule.working_days_basis || 26);
+                const hours = Number(matchedOtRule.shift_hours || 8);
+                otAmount = Math.round((grossPay / days / hours) * otHours) * multiplier;
+            }
+        } else if (isStaff) {
             otAmount = 0;
         } else if (isWorker) {
             const multiplier = hrSettings.workers_ot_rate_multiplier !== undefined && hrSettings.workers_ot_rate_multiplier !== null && hrSettings.workers_ot_rate_multiplier !== '' 
@@ -170,10 +191,12 @@ export function SalarySlipEditView({ id: propId }: Props) {
             otAmount = round(rate * otHours);
         }
 
-        // Attendance Bonus (Full Present = ₹1,500 for Workers)
+        // Attendance Bonus (Full Present = ₹1,500 for Workers, or Custom OT Rule)
         const lopDays = getNum(data.lop_days);
         let attendanceBonus = 0;
-        if (isWorker && lopDays <= 0) {
+        if (matchedOtRule && Number(matchedOtRule.attendance_bonus || 0) > 0 && lopDays <= 0) {
+            attendanceBonus = Number(matchedOtRule.attendance_bonus);
+        } else if (isWorker && lopDays <= 0) {
             attendanceBonus = hrSettings.workers_attendance_bonus !== undefined && hrSettings.workers_attendance_bonus !== null && hrSettings.workers_attendance_bonus !== '' 
                 ? Number(hrSettings.workers_attendance_bonus) 
                 : 1500;
