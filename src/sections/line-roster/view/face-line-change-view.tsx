@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { useSearchParams } from 'react-router-dom';
 import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
@@ -24,13 +25,11 @@ import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
-import ToggleButton from '@mui/material/ToggleButton';
 import TableContainer from '@mui/material/TableContainer';
 import LinearProgress from '@mui/material/LinearProgress';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { alpha, useTheme, keyframes } from '@mui/material/styles';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -50,6 +49,8 @@ import {
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
+
+import { type LineChangeMode, FaceLineChangeModeDialog } from '../face-line-change-mode-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -121,9 +122,27 @@ interface SessionLogItem {
 export function FaceLineChangeView() {
   const theme = useTheme();
   const router = useRouter();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Mode: 'pre-fixed' (Fast-track) vs 'post-fixed' (Dynamic)
-  const [mode, setMode] = useState<'pre-fixed' | 'post-fixed'>('pre-fixed');
+  const queryMode = searchParams.get('mode') as LineChangeMode | null;
+  const [mode, setMode] = useState<LineChangeMode>(
+    queryMode === 'post-fixed' ? 'post-fixed' : 'pre-fixed'
+  );
+  const [openModeDialog, setOpenModeDialog] = useState(false);
+
+  // Sync mode if query param changes
+  useEffect(() => {
+    if (queryMode && (queryMode === 'pre-fixed' || queryMode === 'post-fixed')) {
+      setMode(queryMode);
+    }
+  }, [queryMode]);
+
+  // If accessed directly without mode query param, open the selection dialog
+  useEffect(() => {
+    if (!searchParams.get('mode')) {
+      setOpenModeDialog(true);
+    }
+  }, [searchParams]);
 
   // Lines & Catalog
   const [lines, setLines] = useState<LiveLineOccupancy[]>([]);
@@ -516,51 +535,38 @@ export function FaceLineChangeView() {
             </Button>
           </Stack>
 
-          {/* Mode Switcher Pill */}
+          {/* Active Mode Badge & Change Mode Action */}
           <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
-            <ToggleButtonGroup
-              size="small"
-              value={mode}
-              exclusive
-              onChange={(_, val) => {
-                if (val) {
-                  setMode(val);
-                  setActiveWorker(null);
-                  setCountdown(0);
-                }
-              }}
+            <Label
+              variant="filled"
+              color={mode === 'pre-fixed' ? 'primary' : 'secondary'}
+              startIcon={
+                <Iconify
+                  icon={(mode === 'pre-fixed' ? 'solar:bolt-bold' : 'solar:target-bold') as any}
+                  width={16}
+                />
+              }
               sx={{
-                p: '3px',
-                borderRadius: '24px',
-                bgcolor: (t) => alpha(t.palette.grey[500], 0.08),
-                border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.14)}`,
-                '& .MuiToggleButton-root': {
-                  px: 2,
-                  py: 0.6,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  borderRadius: '20px',
-                  border: 0,
-                  color: 'text.secondary',
-                  '&.Mui-selected': {
-                    bgcolor: COMMON_COLORS.emerald.main,
-                    color: '#ffffff',
-                    boxShadow: `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.4)}`,
-                    '&:hover': { bgcolor: COMMON_COLORS.emerald.dark },
-                  },
-                },
+                px: 1.5,
+                py: 2,
+                fontSize: 13,
+                fontWeight: 700,
+                borderRadius: '12px',
+                textTransform: 'none',
               }}
             >
-              <ToggleButton value="pre-fixed">
-                <Iconify icon={"solar:bolt-bold" as any} width={16} sx={{ mr: 0.75 }} />
-                Pre-Fixed Line Mode
-              </ToggleButton>
-              <ToggleButton value="post-fixed">
-                <Iconify icon={"solar:target-bold" as any} width={16} sx={{ mr: 0.75 }} />
-                Post-Fixed Line Mode
-              </ToggleButton>
-            </ToggleButtonGroup>
+              {mode === 'pre-fixed' ? 'Pre-Fixed Line Mode' : 'Post-Fixed Line Mode'}
+            </Label>
+
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<Iconify icon={"solar:tuning-bold" as any} width={14} />}
+              onClick={() => setOpenModeDialog(true)}
+              sx={{ borderRadius: '16px', fontSize: 12, fontWeight: 700 }}
+            >
+              Change Mode
+            </Button>
           </Stack>
         </Stack>
       </Box>
@@ -589,7 +595,9 @@ export function FaceLineChangeView() {
                 Face Recognition Line Change
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Real-time biometric worker reassignment with Pre-Fixed & Post-Fixed modes
+                {mode === 'pre-fixed'
+                  ? 'Pre-Fixed Mode: Continuous batch worker reassignment with auto-advance'
+                  : 'Post-Fixed Mode: Dynamic reassignment with live line occupancy monitoring'}
               </Typography>
             </Box>
           </Stack>
@@ -1178,6 +1186,19 @@ export function FaceLineChangeView() {
           </Typography>
         )}
       </Box>
+        {/* Mode Selection Dialog */}
+        <FaceLineChangeModeDialog
+          open={openModeDialog}
+          currentMode={mode}
+          onClose={() => setOpenModeDialog(false)}
+          onSelectMode={(newMode) => {
+            setOpenModeDialog(false);
+            setMode(newMode);
+            setSearchParams({ mode: newMode });
+            setActiveWorker(null);
+            setCountdown(0);
+          }}
+        />
       </Container>
     </Box>
   );
