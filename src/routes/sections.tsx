@@ -521,7 +521,6 @@ export const routesSection: RouteObject[] = [
       { path: 'blood-group', element: <RolePermissionGuard actionKey="master_blood_group"><BloodGroupPage /></RolePermissionGuard> },
       { path: 'line-order', element: <RolePermissionGuard actionKey="master_line_order"><LineOrderPage /></RolePermissionGuard> },
       { path: 'line-roster', element: <RolePermissionGuard actionKey="line_roster"><LineRosterPage /></RolePermissionGuard> },
-      { path: 'face-line-change', element: <RolePermissionGuard actionKey="line_roster"><FaceLineChangePage /></RolePermissionGuard> },
       { path: 'monthly-line-roster', element: <RolePermissionGuard actionKey="line_roster"><MonthlyLineRosterPage /></RolePermissionGuard> },
       { path: 'line-rotation', element: <RolePermissionGuard actionKey="line_rotation"><LineRotationPage /></RolePermissionGuard> },
       { path: 'canteen', element: <CanteenPage /> },
@@ -636,6 +635,18 @@ export const routesSection: RouteObject[] = [
       { path: 'reminders', element: <RolePermissionGuard actionKey="reminders"><RemindersPage /></RolePermissionGuard> },
       { path: 'settings', element: <SettingsPage /> },
     ],
+  },
+  {
+    path: 'face-line-change',
+    element: (
+      <AuthGuard>
+        <RolePermissionGuard actionKey="line_roster">
+          <Suspense fallback={renderFallback()}>
+            <FaceLineChangePage />
+          </Suspense>
+        </RolePermissionGuard>
+      </AuthGuard>
+    ),
   },
   {
     path: 'sign-in',

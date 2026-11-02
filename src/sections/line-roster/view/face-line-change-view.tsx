@@ -18,6 +18,7 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TextField from '@mui/material/TextField';
+import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
@@ -37,7 +38,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { useRouter } from 'src/routes/hooks';
 
 import { COMMON_COLORS } from 'src/theme';
-import { DashboardContent } from 'src/layouts/dashboard';
+import { CONFIG } from 'src/config-global';
 import {
   fetchFaceCatalog,
   type FaceCatalogItem,
@@ -423,11 +424,87 @@ export function FaceLineChangeView() {
   };
 
   return (
-    <DashboardContent maxWidth="xl" sx={{ mt: 2 }}>
-      {/* ── Page Header & Navigation ── */}
-      <Stack spacing={2} sx={{ mb: 3 }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: (t) => (t.palette.mode === 'dark' ? 'grey.950' : '#f8fafc'),
+        pb: 6,
+      }}
+    >
+      {/* ── Standalone Kiosk Header Bar with Logo ── */}
+      <Box
+        sx={{
+          bgcolor: 'background.paper',
+          borderBottom: (t) => `1px solid ${alpha(t.palette.grey[500], 0.14)}`,
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+          px: { xs: 2, sm: 4 },
+          py: 1.5,
+          mb: 3,
+        }}
+      >
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          alignItems={{ xs: 'flex-start', md: 'center' }}
+          justifyContent="space-between"
+          spacing={2}
+        >
+          {/* Brand Logo & Back to Line Assignment */}
+          <Stack direction="row" alignItems="center" spacing={{ xs: 1.5, sm: 2.5 }}>
+            <Box
+              component="button"
+              type="button"
+              onClick={() => router.push('/line-roster')}
+              sx={{
+                all: 'unset',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 1.5,
+                transition: 'opacity 0.2s ease',
+                '&:hover': { opacity: 0.85 },
+              }}
+            >
+              <Box
+                component="img"
+                src={`${CONFIG.assetsDir}/logo/Innoblitz%20Logo%20Full.png`}
+                alt="BBK Logo"
+                sx={{
+                  height: 48,
+                  width: 'auto',
+                  maxWidth: 130,
+                  objectFit: 'contain',
+                }}
+              />
+              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: '0.95rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.14em',
+                    color: '#1e293b',
+                    textTransform: 'uppercase',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  BBK EXPORTS
+                </Typography>
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  Face Biometric Kiosk
+                </Typography>
+              </Box>
+            </Box>
+
+            <Box sx={{ height: 32, width: '1px', bgcolor: 'divider', display: { xs: 'none', sm: 'block' } }} />
+
             <Button
               variant="outlined"
               size="small"
@@ -437,7 +514,62 @@ export function FaceLineChangeView() {
             >
               Back to Line Assignment
             </Button>
+          </Stack>
 
+          {/* Mode Switcher Pill */}
+          <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
+            <ToggleButtonGroup
+              size="small"
+              value={mode}
+              exclusive
+              onChange={(_, val) => {
+                if (val) {
+                  setMode(val);
+                  setActiveWorker(null);
+                  setCountdown(0);
+                }
+              }}
+              sx={{
+                p: '3px',
+                borderRadius: '24px',
+                bgcolor: (t) => alpha(t.palette.grey[500], 0.08),
+                border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.14)}`,
+                '& .MuiToggleButton-root': {
+                  px: 2,
+                  py: 0.6,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  borderRadius: '20px',
+                  border: 0,
+                  color: 'text.secondary',
+                  '&.Mui-selected': {
+                    bgcolor: COMMON_COLORS.emerald.main,
+                    color: '#ffffff',
+                    boxShadow: `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.4)}`,
+                    '&:hover': { bgcolor: COMMON_COLORS.emerald.dark },
+                  },
+                },
+              }}
+            >
+              <ToggleButton value="pre-fixed">
+                <Iconify icon={"solar:bolt-bold" as any} width={16} sx={{ mr: 0.75 }} />
+                Pre-Fixed Line Mode
+              </ToggleButton>
+              <ToggleButton value="post-fixed">
+                <Iconify icon={"solar:target-bold" as any} width={16} sx={{ mr: 0.75 }} />
+                Post-Fixed Line Mode
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
+        </Stack>
+      </Box>
+
+      {/* ── Main Container ── */}
+      <Container maxWidth="xl">
+        {/* Page Title & Status Alerts */}
+        <Stack spacing={2} sx={{ mb: 3 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
             <Box
               sx={{
                 width: 44,
@@ -462,64 +594,18 @@ export function FaceLineChangeView() {
             </Box>
           </Stack>
 
-          {/* Mode Switcher Pill */}
-          <ToggleButtonGroup
-            size="small"
-            value={mode}
-            exclusive
-            onChange={(_, val) => {
-              if (val) {
-                setMode(val);
-                setActiveWorker(null);
-                setCountdown(0);
-              }
-            }}
-            sx={{
-              p: '3px',
-              borderRadius: '24px',
-              bgcolor: (t) => alpha(t.palette.grey[500], 0.08),
-              border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.14)}`,
-              '& .MuiToggleButton-root': {
-                px: 2,
-                py: 0.6,
-                fontSize: 13,
-                fontWeight: 700,
-                textTransform: 'none',
-                borderRadius: '20px',
-                border: 0,
-                color: 'text.secondary',
-                '&.Mui-selected': {
-                  bgcolor: COMMON_COLORS.emerald.main,
-                  color: '#ffffff',
-                  boxShadow: `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.4)}`,
-                  '&:hover': { bgcolor: COMMON_COLORS.emerald.dark },
-                },
-              },
-            }}
-          >
-            <ToggleButton value="pre-fixed">
-              <Iconify icon={"solar:bolt-bold" as any} width={16} sx={{ mr: 0.75 }} />
-              Pre-Fixed Line Mode
-            </ToggleButton>
-            <ToggleButton value="post-fixed">
-              <Iconify icon={"solar:target-bold" as any} width={16} sx={{ mr: 0.75 }} />
-              Post-Fixed Line Mode
-            </ToggleButton>
-          </ToggleButtonGroup>
+          {/* Alerts */}
+          {errorMsg && (
+            <Alert severity="error" onClose={() => setErrorMsg('')}>
+              {errorMsg}
+            </Alert>
+          )}
+          {successMsg && (
+            <Alert severity="success" onClose={() => setSuccessMsg('')}>
+              {successMsg}
+            </Alert>
+          )}
         </Stack>
-
-        {/* Alerts */}
-        {errorMsg && (
-          <Alert severity="error" onClose={() => setErrorMsg('')}>
-            {errorMsg}
-          </Alert>
-        )}
-        {successMsg && (
-          <Alert severity="success" onClose={() => setSuccessMsg('')}>
-            {successMsg}
-          </Alert>
-        )}
-      </Stack>
 
       <Grid container spacing={3}>
         {/* ── LEFT PANEL: Live Camera & Recognition Viewfinder ── */}
@@ -1092,7 +1178,8 @@ export function FaceLineChangeView() {
           </Typography>
         )}
       </Box>
-    </DashboardContent>
+      </Container>
+    </Box>
   );
 }
 
