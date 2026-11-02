@@ -61,35 +61,18 @@ export function FaceLineChangeModeDialog({
       <DialogTitle sx={{ pb: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <Stack spacing={0.5}>
           <Stack direction="row" alignItems="center" spacing={1.25}>
-            <Box
-              sx={{
-                width: 38,
-                height: 38,
-                borderRadius: '10px',
-                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
-                color: COMMON_COLORS.emerald.main,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Iconify icon={"solar:face-scan-circle-bold" as any} width={22} />
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, pt: 1 }}>
               Select Line Change Mode
             </Typography>
           </Stack>
-          <Typography variant="body2" sx={{ color: 'text.secondary', pl: 0.25 }}>
-            Choose the reassignment workflow before entering the biometric kiosk station.
-          </Typography>
         </Stack>
 
-        <IconButton size="small" onClick={onClose} sx={{ color: 'text.disabled' }}>
-          <Iconify icon={"eva:close-fill" as any} width={20} />
+        <IconButton onClick={onClose} sx={{ color: theme.palette.grey[500] }}>
+          <Iconify icon="mingcute:close-line" />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ py: 2 }}>
+      <DialogContent sx={{ py: 2, mt: 2 }}>
         <Stack spacing={2}>
           {/* ── Mode 1: Pre-Fixed Line Mode ── */}
           <Card
@@ -294,9 +277,6 @@ export function FaceLineChangeModeDialog({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2.5, pt: 1, justifyContent: 'space-between' }}>
-        <Button variant="outlined" color="inherit" onClick={onClose} sx={{ borderRadius: 1.5, fontWeight: 600 }}>
-          Cancel
-        </Button>
         <Button
           variant="contained"
           onClick={handleConfirm}
