@@ -377,6 +377,50 @@ export function SalarySlipEditView({ id: propId }: Props) {
             return item;
         });
 
+        const ptCompName = hrSettings?.pt_deduction_component || 'Prof.Tax';
+        const pfCompName = hrSettings?.pf_deduction_component || 'PF';
+        const esiCompName = hrSettings?.esi_deduction_component || 'ESI';
+
+        const hasPf = finalDeductions.some((item: any) => {
+            const name = getCompName(item).toLowerCase();
+            return (name.includes('provident fund') || name.includes('pf') || name.includes('epf')) && !name.includes('employer') && !name.includes('admin');
+        });
+        if (!hasPf && pfAmount > 0) {
+            finalDeductions.push({
+                component_name: pfCompName,
+                salary_component: pfCompName,
+                amount: pfAmount.toFixed(2),
+                standard_amount: '0.00',
+                isManual: false
+            });
+        }
+        const hasEsi = finalDeductions.some((item: any) => {
+            const name = getCompName(item).toLowerCase();
+            return (name.includes('esi') || name.includes('esic')) && !name.includes('employer');
+        });
+        if (!hasEsi && esiAmount > 0) {
+            finalDeductions.push({
+                component_name: esiCompName,
+                salary_component: esiCompName,
+                amount: esiAmount.toFixed(2),
+                standard_amount: '0.00',
+                isManual: false
+            });
+        }
+        const hasPt = finalDeductions.some((item: any) => {
+            const name = getCompName(item).toLowerCase();
+            return name.includes('professional tax') || name.includes('pt') || name.includes('prof tax') || name.includes('prof.tax');
+        });
+        if (!hasPt && ptAmount > 0) {
+            finalDeductions.push({
+                component_name: ptCompName,
+                salary_component: ptCompName,
+                amount: ptAmount.toFixed(2),
+                standard_amount: '0.00',
+                isManual: false
+            });
+        }
+
         const finalGrossPay = round(finalEarnings.reduce((acc: number, curr: any) => acc + getNum(curr.amount), 0));
         const deductionsTotal = round(finalDeductions.reduce((acc: number, curr: any) => acc + getNum(curr.amount), 0));
 

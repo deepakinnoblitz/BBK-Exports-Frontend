@@ -165,6 +165,7 @@ export interface OtherPTRule {
   enabled: number | boolean;
   pt_deduction_frequency: 'Half-Yearly Deduction' | 'Every Month Deduction';
   pt_half_yearly_months: string;
+  pt_deduction_component?: string;
   pt_slabs: PTSlabItem[];
   notes?: string;
 }
@@ -175,6 +176,7 @@ export interface OtherStatutoryRule {
   enabled: number | boolean;
   // Employee PF
   enable_auto_pf: number | boolean;
+  pf_deduction_component?: string;
   apply_pf_ceiling: number | boolean;
   employee_pf_rate: number;
   pf_wage_ceiling: number;
@@ -182,6 +184,7 @@ export interface OtherStatutoryRule {
   pf_wage_basis: string[];
   // Employee ESI
   enable_auto_esi: number | boolean;
+  esi_deduction_component?: string;
   employee_esi_rate: number;
   esi_wage_ceiling: number;
   // Tea Deduction
@@ -394,8 +397,8 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
 
   const deductionComponents = salaryComponents.filter((c) => c.type === 'Deduction');
   const deductionOptions = deductionComponents.length > 0
-    ? Array.from(new Set(['TDS', ...deductionComponents.map((c) => c.component_name || c.name).filter(Boolean)]))
-    : ['TDS', 'PF', 'Prof.Tax', 'LWF', 'ESI/Health Insurance', 'Loan Recovery', 'Canteen', 'Uniform', 'ADV'];
+    ? Array.from(new Set(['Professional Tax', 'Prof.Tax', 'PF', 'ESI', ...deductionComponents.map((c) => c.component_name || c.name).filter(Boolean)]))
+    : ['Professional Tax', 'Prof.Tax', 'PF', 'ESI', 'ESI/Health Insurance', 'TDS', 'LWF', 'Loan Recovery', 'Canteen', 'Uniform', 'ADV'];
 
   const DEFAULT_EMPLOYEE_TYPES = [
     'Staff - CTC',
@@ -726,6 +729,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
           enabled: item.enabled ?? 1,
           pt_deduction_frequency: item.pt_deduction_frequency || 'Half-Yearly Deduction',
           pt_half_yearly_months: item.pt_half_yearly_months || 'April, September',
+          pt_deduction_component: item.pt_deduction_component || 'Prof.Tax',
           pt_slabs: Array.isArray(item.pt_slabs) && item.pt_slabs.length > 0 ? item.pt_slabs : DEFAULT_PT_SLABS,
           notes: item.notes || '',
         }));
@@ -766,6 +770,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       enabled: 1,
       pt_deduction_frequency: 'Half-Yearly Deduction',
       pt_half_yearly_months: 'April, September',
+      pt_deduction_component: 'Prof.Tax',
       pt_slabs: [...DEFAULT_PT_SLABS],
       notes: '',
     };
@@ -839,12 +844,14 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
           employee_type: item.employee_type || '',
           enabled: item.enabled ?? 1,
           enable_auto_pf: item.enable_auto_pf ?? 1,
+          pf_deduction_component: item.pf_deduction_component || 'PF',
           apply_pf_ceiling: item.apply_pf_ceiling ?? 1,
           employee_pf_rate: item.employee_pf_rate !== undefined ? Number(item.employee_pf_rate) : 12,
           pf_wage_ceiling: item.pf_wage_ceiling !== undefined ? Number(item.pf_wage_ceiling) : 15000,
           employee_pf_max_amount: item.employee_pf_max_amount !== undefined ? Number(item.employee_pf_max_amount) : 1800,
           pf_wage_basis: Array.isArray(item.pf_wage_basis) ? item.pf_wage_basis : (earningOptions.length > 0 ? earningOptions : ['Basic Pay', 'DA']),
           enable_auto_esi: item.enable_auto_esi ?? 1,
+          esi_deduction_component: item.esi_deduction_component || 'ESI',
           employee_esi_rate: item.employee_esi_rate !== undefined ? Number(item.employee_esi_rate) : 0.75,
           esi_wage_ceiling: item.esi_wage_ceiling !== undefined ? Number(item.esi_wage_ceiling) : 21000,
           enable_employee_tea_deduction: item.enable_employee_tea_deduction ?? 0,
@@ -889,12 +896,14 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       employee_type: defaultType,
       enabled: 1,
       enable_auto_pf: 1,
+      pf_deduction_component: 'PF',
       apply_pf_ceiling: 1,
       employee_pf_rate: 12,
       pf_wage_ceiling: 15000,
       employee_pf_max_amount: 1800,
       pf_wage_basis: earningOptions.length > 0 ? earningOptions : ['Basic Pay', 'DA'],
       enable_auto_esi: 1,
+      esi_deduction_component: 'ESI',
       employee_esi_rate: 0.75,
       esi_wage_ceiling: 21000,
       enable_employee_tea_deduction: 0,
@@ -1594,7 +1603,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                 <Divider />
 
                 <Grid container spacing={3}>
-                  <Grid size={{ xs: 12, md: ptFreq === 'Half-Yearly Deduction' ? 6 : 12 }}>
+                  <Grid size={{ xs: 12, md: ptFreq === 'Half-Yearly Deduction' ? 4 : 6 }}>
                     <FormControl fullWidth>
                       <InputLabel id={`pt-freq-label-${cat.key}`}>PT Deduction Frequency</InputLabel>
                       <Select
@@ -1623,7 +1632,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   </Grid>
 
                   {ptFreq !== 'Every Month Deduction' && (
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <FormControl fullWidth>
                         <InputLabel id={`pt-months-label-${cat.key}`}>PT Half-Yearly Cycle Months</InputLabel>
                         <Select
@@ -1650,6 +1659,34 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       </FormControl>
                     </Grid>
                   )}
+
+                  <Grid size={{ xs: 12, md: ptFreq === 'Half-Yearly Deduction' ? 4 : 6 }}>
+                    <Autocomplete
+                      freeSolo
+                      openOnFocus
+                      forcePopupIcon
+                      autoHighlight
+                      disabled={!ptEnabled}
+                      options={deductionOptions}
+                      value={getFieldVal(cat.key, 'pt_deduction_component', 'Prof.Tax')}
+                      onChange={(_event, newValue) => {
+                        setFieldVal(cat.key, 'pt_deduction_component', newValue || '');
+                      }}
+                      onInputChange={(_event, newInputValue) => {
+                        if (newInputValue !== undefined) {
+                          setFieldVal(cat.key, 'pt_deduction_component', newInputValue);
+                        }
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="PT Deduction Salary Component"
+                          placeholder="Select or type component name..."
+                          helperText="Salary Component used for PT deduction on salary slips (e.g. Professional Tax)"
+                        />
+                      )}
+                    />
+                  </Grid>
                 </Grid>
 
                 {/* Dynamic PT Slab Configurator */}
@@ -1960,7 +1997,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       {/* Rule Fields */}
                       <Grid container spacing={2.5}>
                         {/* Employee Type Autocomplete */}
-                        <Grid size={{ xs: 12, md: 4 }}>
+                        <Grid size={{ xs: 12, md: 6 }}>
                           <Autocomplete
                             freeSolo
                             options={availableEmployeeTypeOptions}
@@ -1996,8 +2033,37 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                           />
                         </Grid>
 
+                        {/* PT Deduction Salary Component */}
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <Autocomplete
+                            freeSolo
+                            openOnFocus
+                            forcePopupIcon
+                            autoHighlight
+                            disabled={!ptEnabled}
+                            options={deductionOptions}
+                            value={rule.pt_deduction_component || ''}
+                            onChange={(_event, newValue) => {
+                              handleUpdateSingleOtherPTRule(rule.id, 'pt_deduction_component', newValue || '');
+                            }}
+                            onInputChange={(_event, newInputValue) => {
+                              if (newInputValue !== undefined) {
+                                handleUpdateSingleOtherPTRule(rule.id, 'pt_deduction_component', newInputValue);
+                              }
+                            }}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="PT Deduction Salary Component"
+                                placeholder="Select or type component name (e.g. Professional Tax)..."
+                                helperText="Salary Component used for PT deduction on salary slips"
+                              />
+                            )}
+                          />
+                        </Grid>
+
                         {/* PT Deduction Frequency */}
-                        <Grid size={{ xs: 12, md: ptFreq === 'Half-Yearly Deduction' ? 4 : 8 }}>
+                        <Grid size={{ xs: 12, md: ptFreq === 'Half-Yearly Deduction' ? 6 : 12 }}>
                           <FormControl fullWidth disabled={!ptEnabled}>
                             <InputLabel id={`other-pt-freq-${rule.id}`}>PT Deduction Frequency</InputLabel>
                             <Select
@@ -2025,7 +2091,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
 
                         {/* PT Half-Yearly Cycle Months (if Half-Yearly) */}
                         {ptFreq !== 'Every Month Deduction' && (
-                          <Grid size={{ xs: 12, md: 4 }}>
+                          <Grid size={{ xs: 12, md: 6 }}>
                             <FormControl fullWidth disabled={!ptEnabled}>
                               <InputLabel id={`other-pt-months-${rule.id}`}>PT Half-Yearly Cycle Months</InputLabel>
                               <Select
@@ -2263,6 +2329,32 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                     </Stack>
 
                     <Stack spacing={2.5}>
+                      <Autocomplete
+                        freeSolo
+                        openOnFocus
+                        forcePopupIcon
+                        autoHighlight
+                        disabled={!autoPfEnabled}
+                        options={deductionOptions}
+                        value={getFieldVal(cat.key, 'pf_deduction_component', 'PF')}
+                        onChange={(_event, newValue) => {
+                          setFieldVal(cat.key, 'pf_deduction_component', newValue || '');
+                        }}
+                        onInputChange={(_event, newInputValue) => {
+                          if (newInputValue !== undefined) {
+                            setFieldVal(cat.key, 'pf_deduction_component', newInputValue);
+                          }
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Employee PF Deduction Salary Component"
+                            placeholder="Select or type component name (e.g. PF or Provident Fund)..."
+                            helperText="Salary Component used for Employee PF deduction on salary slips"
+                          />
+                        )}
+                      />
+
                       {/* Ceiling Toggle Switch */}
                       <Stack
                         direction="row"
@@ -2478,6 +2570,32 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                     </Stack>
 
                     <Stack spacing={2.5}>
+                      <Autocomplete
+                        freeSolo
+                        openOnFocus
+                        forcePopupIcon
+                        autoHighlight
+                        disabled={!autoEsiEnabled}
+                        options={deductionOptions}
+                        value={getFieldVal(cat.key, 'esi_deduction_component', 'ESI')}
+                        onChange={(_event, newValue) => {
+                          setFieldVal(cat.key, 'esi_deduction_component', newValue || '');
+                        }}
+                        onInputChange={(_event, newInputValue) => {
+                          if (newInputValue !== undefined) {
+                            setFieldVal(cat.key, 'esi_deduction_component', newInputValue);
+                          }
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Employee ESI Deduction Salary Component"
+                            placeholder="Select or type component name (e.g. ESI or ESIC)..."
+                            helperText="Salary Component used for Employee ESI deduction on salary slips"
+                          />
+                        )}
+                      />
+
                       <Grid container spacing={2}>
                         <Grid size={{ xs: 12, sm: 6 }}>
                           <TextField
@@ -2936,6 +3054,32 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             </Stack>
 
                             <Stack spacing={2.5}>
+                              <Autocomplete
+                                freeSolo
+                                openOnFocus
+                                forcePopupIcon
+                                autoHighlight
+                                disabled={!ruleActive || !autoPfEnabled}
+                                options={deductionOptions}
+                                value={rule.pf_deduction_component || ''}
+                                onChange={(_event, newValue) => {
+                                  handleUpdateSingleOtherStatutoryRule(rule.id, 'pf_deduction_component', newValue || '');
+                                }}
+                                onInputChange={(_event, newInputValue) => {
+                                  if (newInputValue !== undefined) {
+                                    handleUpdateSingleOtherStatutoryRule(rule.id, 'pf_deduction_component', newInputValue);
+                                  }
+                                }}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    label="Employee PF Deduction Salary Component"
+                                    placeholder="Select or type component name (e.g. PF or Provident Fund)..."
+                                    helperText="Salary Component used for Employee PF deduction on salary slips"
+                                  />
+                                )}
+                              />
+
                               {/* Ceiling Toggle Switch */}
                               <Stack
                                 direction="row"
@@ -3152,6 +3296,32 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             </Stack>
 
                             <Stack spacing={2.5}>
+                              <Autocomplete
+                                freeSolo
+                                openOnFocus
+                                forcePopupIcon
+                                autoHighlight
+                                disabled={!ruleActive || !autoEsiEnabled}
+                                options={deductionOptions}
+                                value={rule.esi_deduction_component || ''}
+                                onChange={(_event, newValue) => {
+                                  handleUpdateSingleOtherStatutoryRule(rule.id, 'esi_deduction_component', newValue || '');
+                                }}
+                                onInputChange={(_event, newInputValue) => {
+                                  if (newInputValue !== undefined) {
+                                    handleUpdateSingleOtherStatutoryRule(rule.id, 'esi_deduction_component', newInputValue);
+                                  }
+                                }}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    label="Employee ESI Deduction Salary Component"
+                                    placeholder="Select or type component name (e.g. ESI or ESIC)..."
+                                    helperText="Salary Component used for Employee ESI deduction on salary slips"
+                                  />
+                                )}
+                              />
+
                               <Grid container spacing={2}>
                                 <Grid size={{ xs: 12, sm: 6 }}>
                                   <TextField
@@ -4461,30 +4631,6 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                           </Grid>
                         )}
 
-                        {/* Optional Attendance Bonus */}
-                        <Grid size={{ xs: 12, sm: isFixed ? 6 : 12 }}>
-                          <TextField
-                            fullWidth
-                            type="number"
-                            label="Full Attendance Bonus (Optional)"
-                            value={rule.attendance_bonus ?? 0}
-                            onChange={(e) => handleUpdateSingleOtherOvertimeRule(rule.id, 'attendance_bonus', Number(e.target.value))}
-                            placeholder="0"
-                            disabled={!rule.enabled}
-                            helperText="Bonus awarded when employee has full attendance (0 absent days). Leave 0 if not applicable."
-                            slotProps={{
-                              input: {
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                                  </InputAdornment>
-                                ),
-                              },
-                              htmlInput: { min: 0, step: 100 },
-                            }}
-                          />
-                        </Grid>
-
                         {/* Live Formula Preview */}
                         <Grid size={{ xs: 12 }}>
                           <Box
@@ -4502,7 +4648,6 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                             <Typography variant="caption" sx={{ color: 'text.primary', fontWeight: 600 }}>
                               {isGross && `Formula: (${rule.employee_type || 'Employee'} Gross Salary ÷ ${rule.working_days_basis || 26} days ÷ ${rule.shift_hours || 8} hrs) × ${rule.multiplier || 2}× × OT Hours`}
                               {isFixed && `Formula: ₹${rule.fixed_rate || 0} / hr × OT Hours`}
-                              {rule.attendance_bonus ? ` + ₹${rule.attendance_bonus} Full Attendance Bonus` : ''}
                             </Typography>
                           </Box>
                         </Grid>

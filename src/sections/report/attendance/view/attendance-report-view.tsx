@@ -195,6 +195,29 @@ export function AttendanceReportView() {
 
     const visibleReportData = reportData.filter((row) => row.status !== 'Missing');
 
+    const totalOvertimeMinutes = useMemo(
+        () =>
+            reportData.reduce((acc, row) => {
+                const ot = row.official_overtime;
+                if (!ot || ot === '---' || ot === '0:00' || ot === '-') return acc;
+                if (typeof ot === 'string' && ot.includes(':')) {
+                    const parts = ot.split(':').map((p: string) => Number(p));
+                    const h = parts[0] || 0;
+                    const m = parts[1] || 0;
+                    return acc + (isNaN(h) ? 0 : h * 60) + (isNaN(m) ? 0 : m);
+                }
+                const num = Number(ot);
+                return acc + (isNaN(num) ? 0 : Math.round(num * 60));
+            }, 0),
+        [reportData]
+    );
+
+    const totalOtHours = Math.floor(totalOvertimeMinutes / 60);
+    const remainingOtMins = totalOvertimeMinutes % 60;
+    const overtimeDisplay = remainingOtMins > 0
+        ? `${totalOtHours}:${remainingOtMins.toString().padStart(2, '0')}`
+        : `${totalOtHours}`;
+
     const isFilterApplied = !!fromDate && !!toDate;
 
     // Details Dialog
@@ -625,12 +648,13 @@ export function AttendanceReportView() {
 
             sheet.columns = [
                 { header: 'Date', key: 'date', width: 15 },
-                { header: 'Employee ID', key: 'employee', width: 15 },
                 { header: 'Employee', key: 'employee_name', width: 25 },
+                { header: 'Employee ID', key: 'employee', width: 15 },
                 { header: 'Status', key: 'status', width: 15 },
                 { header: 'In Time', key: 'in_time', width: 15 },
                 { header: 'Out Time', key: 'out_time', width: 15 },
                 { header: 'Working Hours', key: 'working_hours', width: 15 },
+                { header: 'Overtime', key: 'official_overtime', width: 15 },
             ];
 
             const columnCount = sheet.columns.length;
@@ -652,7 +676,8 @@ export function AttendanceReportView() {
                     status: row.status,
                     in_time: row.in_time || '---',
                     out_time: row.out_time || '---',
-                    working_hours: row.working_hours_display || '---'
+                    working_hours: row.working_hours_display || '---',
+                    official_overtime: row.official_overtime || '---'
                 });
 
                 // Status coloring
@@ -789,12 +814,12 @@ export function AttendanceReportView() {
 
                     tableData.push([
                         { content: currentDate, rowSpan: span, styles: { valign: 'middle', halign: 'center' } },
-                        { content: currentEmployee, rowSpan: span, styles: { valign: 'middle', halign: 'center' } },
-                        { content: currentEmployeeId, rowSpan: span, styles: { valign: 'middle', halign: 'center' } },
+                        { content: `${currentEmployee}\n(${currentEmployeeId})`, rowSpan: span, styles: { valign: 'middle', halign: 'center' } },
                         row.status,
                         row.in_time || '---',
                         row.out_time || '---',
-                        row.working_hours_display || '---'
+                        row.working_hours_display || '---',
+                        row.official_overtime || '---'
                     ]);
                 } else {
                     tableData.push([
@@ -802,26 +827,27 @@ export function AttendanceReportView() {
                         row.status,
                         row.in_time || '---',
                         row.out_time || '---',
-                        row.working_hours_display || '---'
+                        row.working_hours_display || '---',
+                        row.official_overtime || '---'
                     ]);
                 }
             }
 
             autoTable(doc, {
                 startY: 40,
-                head: [['Date', 'Employee', 'Employee ID', 'Status', 'In Time', 'Out Time', 'Working Hours']],
+                head: [['Date', 'Employee', 'Status', 'In Time', 'Out Time', 'Working Hours', 'Overtime']],
                 body: tableData,
                 theme: 'grid',
                 headStyles: { fillColor: [14, 165, 233], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
                 styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak', lineWidth: 0.15, lineColor: [60, 60, 60], valign: 'middle' },
                 columnStyles: {
-                    0: { cellWidth: 30 },
-                    1: { cellWidth: 50 },
-                    2: { cellWidth: 30 },
-                    3: { halign: 'center' },
-                    4: { halign: 'center' },
-                    5: { halign: 'center' },
-                    6: { halign: 'center' },
+                    0: { cellWidth: 25 },
+                    1: { cellWidth: 45 },
+                    2: { halign: 'center', cellWidth: 25 },
+                    3: { halign: 'center', cellWidth: 20 },
+                    4: { halign: 'center', cellWidth: 20 },
+                    5: { halign: 'center', cellWidth: 25 },
+                    6: { halign: 'center', cellWidth: 22 },
                 },
                 didParseCell: (data) => {
                     const statusVal = data.cell.text[0];
@@ -833,7 +859,7 @@ export function AttendanceReportView() {
                         'Holiday': [24, 119, 242],
                         'Compensatory Off': [139, 92, 246]
                     };
-                    if (data.column.index === 3 && statusColors[statusVal]) {
+                    if (data.column.index === 2 && statusColors[statusVal]) {
                         data.cell.styles.textColor = statusColors[statusVal];
                         data.cell.styles.fontStyle = 'bold';
                     }
@@ -1267,11 +1293,12 @@ export function AttendanceReportView() {
                 <Box
                     sx={{
                         display: 'grid',
-                        gap: 3,
+                        gap: 2,
                         gridTemplateColumns: {
                             xs: 'repeat(1, 1fr)',
                             sm: 'repeat(2, 1fr)',
-                            md: 'repeat(6, 1fr)', // 6 columns for 6 cards
+                            md: 'repeat(4, 1fr)',
+                            lg: 'repeat(7, 1fr)',
                         },
                     }}
                 >
@@ -1281,6 +1308,7 @@ export function AttendanceReportView() {
                     <SummaryCard item={{ label: 'Half Day', value: reportData.filter(d => d.status === 'Half Day').length, indicator: 'orange' }} />
                     <SummaryCard item={{ label: 'Missing', value: reportData.filter(d => d.status === 'Missing').length, indicator: 'orange' }} />
                     <SummaryCard item={{ label: 'Holiday', value: reportData.filter(d => d.status === 'Holiday').length, indicator: 'blue' }} />
+                    <SummaryCard item={{ label: 'Overtime', value: overtimeDisplay, suffix: 'hrs', indicator: 'purple' }} />
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
@@ -1367,11 +1395,11 @@ export function AttendanceReportView() {
                                                     </TableCell>
                                                     <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>Date</TableCell>
                                                     <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>Employee</TableCell>
-                                                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>Employee ID</TableCell>
                                                     <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>Status</TableCell>
                                                     <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>In Time</TableCell>
                                                     <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>Out Time</TableCell>
                                                     <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>Working Hours</TableCell>
+                                                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>Overtime</TableCell>
                                                     <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }} />
                                                 </TableRow>
                                             </TableHead>
@@ -1402,8 +1430,24 @@ export function AttendanceReportView() {
                                                                             />
                                                                         </TableCell>
                                                                         <TableCell>{fDate(row.attendance_date, 'DD-MM-YYYY')}</TableCell>
-                                                                        <TableCell sx={{ fontWeight: 600 }}>{row.employee_name}</TableCell>
-                                                                        <TableCell>{row.employee}</TableCell>
+                                                                        <TableCell>
+                                                                            <Box sx={{ maxWidth: 180 }}>
+                                                                                <Typography
+                                                                                    variant="subtitle2"
+                                                                                    sx={{
+                                                                                        fontWeight: 700,
+                                                                                        whiteSpace: 'normal',
+                                                                                        wordBreak: 'break-word',
+                                                                                        lineHeight: 1.3,
+                                                                                    }}
+                                                                                >
+                                                                                    {row.employee_name}
+                                                                                </Typography>
+                                                                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                                                                                    {row.employee}
+                                                                                </Typography>
+                                                                            </Box>
+                                                                        </TableCell>
                                                                         <TableCell>
                                                                             {(() => {
                                                                                 const rowDate = dayjs(row.attendance_date);
@@ -1458,6 +1502,18 @@ export function AttendanceReportView() {
                                                                         <TableCell>{row.in_time || '---'}</TableCell>
                                                                         <TableCell>{row.out_time || '---'}</TableCell>
                                                                         <TableCell>{row.working_hours_display || '---'}</TableCell>
+                                                                        <TableCell>
+                                                                            <Typography
+                                                                                variant="body2"
+                                                                                noWrap
+                                                                                sx={{
+                                                                                    color: row.official_overtime && row.official_overtime !== '0:00' && row.official_overtime !== '-' ? 'primary.main' : 'text.secondary',
+                                                                                    fontWeight: row.official_overtime && row.official_overtime !== '0:00' && row.official_overtime !== '-' ? 600 : 400
+                                                                                }}
+                                                                            >
+                                                                                {row.official_overtime && row.official_overtime !== '0:00' ? row.official_overtime : '---'}
+                                                                            </Typography>
+                                                                        </TableCell>
                                                                         <TableCell align="right">
                                                                             <IconButton onClick={() => handleViewDetails(row.name)} sx={{ color: 'info.main' }}>
                                                                                 <Iconify icon={"solar:eye-bold" as any} />
@@ -2021,6 +2077,7 @@ function SummaryCard({ item }: { item: any }) {
             case 'green': return theme.palette.success.main;
             case 'orange': return theme.palette.warning.main;
             case 'red': return theme.palette.error.main;
+            case 'purple': return '#8e24aa';
             default: return theme.palette.primary.main;
         }
     };
@@ -2032,6 +2089,7 @@ function SummaryCard({ item }: { item: any }) {
         if (t.includes('half day')) return 'solar:clock-circle-bold-duotone';
         if (t.includes('missing')) return 'solar:danger-circle-bold-duotone';
         if (t.includes('holiday')) return 'solar:cup-star-bold-duotone';
+        if (t.includes('overtime')) return 'solar:stopwatch-bold-duotone';
         if (t.includes('entries')) return 'solar:list-bold-duotone';
         return 'solar:chart-2-bold-duotone';
     };

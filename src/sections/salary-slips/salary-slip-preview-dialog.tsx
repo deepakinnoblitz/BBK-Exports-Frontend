@@ -361,7 +361,15 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                     matchedOtRule = null;
                 }
 
-                const isOTEligible = (Boolean(matchedOtRule) || ((isWorker || isNorthIndian || isDriver) && !isStaff)) && Number(data.ot_hours || 0) > 0 && Number(data.ot_amount || 0) > 0;
+                const otAmount = Number(data.ot_amount || 0) || (() => {
+                    const otRow = (data.earnings || []).find((e: any) => 
+                        (e.component_name || e.salary_component || '').toLowerCase().includes('overtime')
+                    );
+                    return Number(otRow?.amount || 0);
+                })();
+                const otHours = Number(data.ot_hours || 0);
+
+                const isOTEligible = (Boolean(matchedOtRule) || ((isWorker || isNorthIndian || isDriver) && !isStaff)) && (otHours > 0 || otAmount > 0);
 
                 if (!isOTEligible) return null;
 
@@ -406,7 +414,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                                 currencySymbol={hrSettings.currency_symbol}
                                             />
                                             <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                                            <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                            <FormulaChip label="OT Hours" value={`${otHours || data.ot_hours || 0} hrs`} color="info" />
                                         </>
                                     ) : (
                                         <>
@@ -421,7 +429,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                             <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
                                             <FormulaChip label="Shift Hours" value={`${matchedOtRule.shift_hours || 8} hrs`} color="info" />
                                             <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                                            <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                            <FormulaChip label="OT Hours" value={`${otHours || data.ot_hours || 0} hrs`} color="info" />
                                             <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
                                             <FormulaChip
                                                 label="Multiplier"
@@ -439,7 +447,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                             currencySymbol={hrSettings.currency_symbol}
                                         />
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                                        <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                        <FormulaChip label="OT Hours" value={`${otHours || data.ot_hours || 0} hrs`} color="info" />
                                     </>
                                 ) : (
                                     <>
@@ -454,7 +462,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
                                         <FormulaChip label="Shift Hours" value="8 hrs" color="info" />
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                                        <FormulaChip label="OT Hours" value={`${data.ot_hours || 0} hrs`} color="info" />
+                                        <FormulaChip label="OT Hours" value={`${otHours || data.ot_hours || 0} hrs`} color="info" />
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
                                         <FormulaChip
                                             label="Multiplier"
@@ -479,7 +487,7 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                                         <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", ml: 1, mr: 0.5 }}>
                                             {hrSettings.currency_symbol}
                                         </Box>
-                                        {fNumber(data.ot_amount || 0, { locale: hrSettings.default_locale })}
+                                        {fNumber(otAmount || data.ot_amount || 0, { locale: hrSettings.default_locale })}
                                     </Typography>
                                 </Box>
                             </Box>
