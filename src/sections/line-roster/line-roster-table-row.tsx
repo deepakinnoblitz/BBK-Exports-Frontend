@@ -77,6 +77,9 @@ export function LineRosterTableRow({
     if (t === 'line change' || t === 'default line change') {
       return 'Default Line Change';
     }
+    if (t === 'face recognition') {
+      return 'Face Recognition';
+    }
     return type;
   };
 
@@ -91,6 +94,8 @@ export function LineRosterTableRow({
       case 'line change':
       case 'default line change':
         return 'secondary';
+      case 'face recognition':
+        return 'primary';
       default:
         return 'default';
     }

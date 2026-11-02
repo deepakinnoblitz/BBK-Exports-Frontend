@@ -13,12 +13,38 @@ export interface LineRoster {
   line_name: string;
   effective_from: string;
   effective_to?: string;
-  assignment_type: 'Manual' | 'Bulk' | 'Rotation' | 'Override' | 'Line Change';
+  assignment_type: 'Manual' | 'Bulk' | 'Rotation' | 'Override' | 'Line Change' | 'Face Recognition';
   status: 'Active' | 'Cancelled';
   reason?: string;
   owner?: string;
   creation?: string;
   modified?: string;
+}
+
+export interface FaceCatalogItem {
+  name: string;
+  employee_id: string;
+  employee_name: string;
+  department?: string;
+  designation?: string;
+  default_line?: string;
+  current_line?: string;
+  current_line_name?: string;
+  source?: string;
+  profile_picture?: string;
+  face_enrolled: number;
+  face_enrolled_at?: string;
+  face_enrolled_image?: string;
+  face_descriptor?: number[] | null;
+  face_3d_landmarks?: any;
+}
+
+export interface LiveLineOccupancy {
+  name: string;
+  line_name: string;
+  description?: string;
+  assigned_count: number;
+  capacity: number;
 }
 
 export interface MonthlyLineRosterDay {
@@ -262,4 +288,105 @@ export async function fetchLineRosterHistory(params: {
 
   const json = await res.json();
   return json.message || [];
+}
+
+// ----------------------------------------------------------------------
+// Face Recognition Line Change APIs
+// ----------------------------------------------------------------------
+
+export async function fetchFaceCatalog(): Promise<FaceCatalogItem[]> {
+  const headers = await getAuthHeaders();
+  const res = await frappeRequest('/api/method/company.company.line_roster_api.get_face_catalog', {
+    method: 'GET',
+    headers,
+  });
+
+  if (!res.ok) {
+    await handleFrappeError(res, 'Failed to fetch Face Catalog');
+  }
+
+  const json = await res.json();
+  return json.message || [];
+}
+
+export async function fetchLiveLineOccupancy(date?: string): Promise<LiveLineOccupancy[]> {
+  const headers = await getAuthHeaders();
+  const res = await frappeRequest('/api/method/company.company.line_roster_api.get_live_line_occupancy', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ attendance_date: date }),
+  });
+
+  if (!res.ok) {
+    await handleFrappeError(res, 'Failed to fetch Line Occupancy');
+  }
+
+  const json = await res.json();
+  return json.message || [];
+}
+
+export async function executeFaceRecognitionLineChange(params: {
+  employee: string;
+  target_line: string;
+  effective_from?: string;
+  effective_to?: string;
+  source_line?: string;
+  reason?: string;
+  mode?: 'Pre-Fixed' | 'Post-Fixed';
+}) {
+  const headers = await getAuthHeaders();
+  const res = await frappeRequest('/api/method/company.company.line_roster_api.face_recognition_line_change', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(params),
+  });
+
+  if (!res.ok) {
+    await handleFrappeError(res, 'Failed to execute Face Recognition Line Change');
+  }
+
+  const json = await res.json();
+  return json.message;
+}
+
+export async function executeUndoFaceLineChange(params: {
+  roster_id: string;
+  employee?: string;
+  previous_line?: string;
+  effective_from?: string;
+}) {
+  const headers = await getAuthHeaders();
+  const res = await frappeRequest('/api/method/company.company.line_roster_api.undo_face_line_change', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(params),
+  });
+
+  if (!res.ok) {
+    await handleFrappeError(res, 'Failed to undo Face Line Change');
+  }
+
+  const json = await res.json();
+  return json.message;
+}
+
+export async function saveEmployeeFaceEmbedding(params: {
+  employee: string;
+  face_descriptor: number[] | string;
+  face_3d_landmarks?: any;
+  face_image?: string;
+}) {
+  const headers = await getAuthHeaders();
+  const res = await frappeRequest('/api/method/company.company.line_roster_api.save_employee_face_embedding', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(params),
+  });
+
+  if (!res.ok) {
+    await handleFrappeError(res, 'Failed to save Employee Face Embedding');
+  }
+
+  const json = await res.json();
+  return json.message;
 }

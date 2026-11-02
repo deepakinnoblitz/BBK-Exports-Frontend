@@ -33,6 +33,9 @@ const getSourceLabel = (source?: string) => {
   if (s === 'line change' || s === 'default line change') {
     return 'Default Line Change';
   }
+  if (s === 'face recognition') {
+    return 'Face Recognition';
+  }
   return source.replace(/_/g, ' ');
 };
 
@@ -49,6 +52,8 @@ const getSourceColor = (type?: string): LabelColor => {
     case 'line change':
     case 'default line change':
       return 'secondary';
+    case 'face recognition':
+      return 'primary';
     default:
       return 'default';
   }

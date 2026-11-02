@@ -16,6 +16,8 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 
+import { useRouter } from 'src/routes/hooks';
+
 import { useAuth } from 'src/auth/auth-context';
 
 import { LineRosterDialog } from '../line-roster-dialog';
@@ -28,6 +30,7 @@ import { LineRosterCalendarView } from './line-roster-calendar-view';
 
 export function LineRosterView() {
   const theme = useTheme();
+  const router = useRouter();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -126,6 +129,23 @@ export function LineRosterView() {
 
             {canCreate && (
               <>
+                <Button
+                  variant="outlined"
+                  startIcon={<Iconify icon={"solar:face-scan-circle-bold" as any} />}
+                  onClick={() => router.push('/face-line-change')}
+                  sx={{
+                    color: '#8b5cf6',
+                    borderColor: '#8b5cf6',
+                    fontWeight: 700,
+                    '&:hover': {
+                      borderColor: '#7c3aed',
+                      bgcolor: alpha('#8b5cf6', 0.08),
+                    },
+                  }}
+                >
+                  Face Line Change
+                </Button>
+
                 <Button
                   variant="outlined"
                   startIcon={<Iconify icon="solar:users-group-rounded-bold" />}
