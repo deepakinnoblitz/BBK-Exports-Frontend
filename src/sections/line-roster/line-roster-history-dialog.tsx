@@ -208,7 +208,9 @@ export function LineRosterHistoryDialog({ open, onClose, rosterId, employee }: P
                       <TableCell sx={{ whiteSpace: 'nowrap' }}>
                         <Typography variant="body2">
                           {formatDate(row.effective_from)}
-                          {row.effective_to && row.effective_to !== row.effective_from ? ` → ${formatDate(row.effective_to)}` : ''}
+                          {row.effective_to && row.effective_to !== row.effective_from
+                            ? ` → ${formatDate(row.effective_to)}`
+                            : (!row.effective_to ? ' (Ongoing)' : '')}
                         </Typography>
                       </TableCell>
 
