@@ -26,6 +26,7 @@ import { fDate } from 'src/utils/format-time';
 import { fNumber } from 'src/utils/format-number';
 
 import { getHRDoc, getHRSettings } from 'src/api/hr-management';
+import { fetchEffectiveLineForEmployee } from 'src/api/line-roster';
 import { fetchEmployeeSkillHistory, fetchEmployeeSalaryHistory } from 'src/api/masters';
 
 import { Label } from 'src/components/label';
@@ -70,9 +71,16 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: Props) {
     useEffect(() => {
         if (open && employeeId) {
             setLoading(true);
-            getHRDoc('Employee', employeeId)
-                .then((empData) => {
-                    setEmployee(empData);
+            Promise.all([
+                getHRDoc('Employee', employeeId),
+                fetchEffectiveLineForEmployee(employeeId),
+            ])
+                .then(([empData, effectiveLine]) => {
+                    // Override line_order with the currently active assignment if one exists
+                    const resolvedEmployee = effectiveLine
+                        ? { ...empData, line_order: effectiveLine }
+                        : empData;
+                    setEmployee(resolvedEmployee);
 
                     if (empData.bank_account) {
                         getHRDoc('Bank Account', empData.bank_account)

@@ -244,6 +244,35 @@ export async function fetchCalendarLineRoster(params: {
   return json.message || [];
 }
 
+// Fetch the currently effective line order for an employee
+// Returns the active assignment's line_order for today, or null if none
+export async function fetchEffectiveLineForEmployee(employeeId: string): Promise<string | null> {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  try {
+    const res: any = await fetchFrappeList('Employee Line Roster', {
+      page: 1,
+      page_size: 1,
+      filters: [
+        ['employee', '=', employeeId],
+        ['status', '=', 'Active'],
+        ['effective_from', '<=', today],
+      ],
+      fields: ['name', 'line_order', 'line_name', 'effective_from', 'effective_to'],
+      orderBy: 'effective_from',
+      order: 'desc',
+    });
+    const records: any[] = res?.data || [];
+    // Filter out records whose effective_to has already passed
+    const valid = records.filter((r: any) => !r.effective_to || r.effective_to >= today);
+    if (valid.length > 0) {
+      return valid[0].line_order || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // Fetch Roster Audit History
 export async function fetchLineRosterHistory(params: {
   roster_id?: string;
