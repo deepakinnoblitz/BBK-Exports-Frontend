@@ -10,7 +10,6 @@ import Alert from '@mui/material/Alert';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
-import Switch from '@mui/material/Switch';
 import Select from '@mui/material/Select';
 import Tooltip from '@mui/material/Tooltip';
 import TableRow from '@mui/material/TableRow';
@@ -29,7 +28,6 @@ import TableContainer from '@mui/material/TableContainer';
 import LinearProgress from '@mui/material/LinearProgress';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CircularProgress from '@mui/material/CircularProgress';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { alpha, useTheme, keyframes } from '@mui/material/styles';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -195,16 +193,12 @@ export function FaceLineChangeView() {
       setCatalog(catList);
 
       // Auto-set default source and target line if available
-      if (lineList.length >= 2) {
-        if (!sourceLine) setSourceLine(lineList[0].name);
-        if (!targetLine) setTargetLine(lineList[1].name);
-      } else if (lineList.length === 1) {
-        if (!sourceLine) setSourceLine(lineList[0].name);
-      }
+      setSourceLine((prev) => (prev ? prev : lineList[0]?.name || ''));
+      setTargetLine((prev) => (prev ? prev : (lineList[1]?.name || lineList[0]?.name || '')));
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to initialize line data');
     }
-  }, [effectiveDate, sourceLine, targetLine]);
+  }, [effectiveDate]);
 
   useEffect(() => {
     loadInitialData();
@@ -212,9 +206,16 @@ export function FaceLineChangeView() {
 
   // ── Camera Initialization ──────────────────────────────────────────────
   const startCamera = useCallback(async (deviceId?: string) => {
+    setErrorMsg('');
     try {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraActive(false);
+        setErrorMsg('Camera access is not supported by this browser. Ensure you are using HTTPS or localhost.');
+        return;
       }
 
       const constraints: MediaStreamConstraints = {
@@ -229,10 +230,19 @@ export function FaceLineChangeView() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
+        try {
+          await videoRef.current.play();
           setCameraActive(true);
-        };
+        } catch {
+          videoRef.current.onloadedmetadata = async () => {
+            try {
+              await videoRef.current?.play();
+              setCameraActive(true);
+            } catch {
+              setCameraActive(false);
+            }
+          };
+        }
       }
 
       // Enumerate camera devices
@@ -242,9 +252,13 @@ export function FaceLineChangeView() {
       if (!deviceId && videoDevs.length > 0) {
         setSelectedCameraId(videoDevs[0].deviceId);
       }
-    } catch {
+    } catch (err: any) {
       setCameraActive(false);
-      setErrorMsg('Camera access failed. Check browser permissions or use manual search.');
+      setErrorMsg(
+        err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'
+          ? 'Camera permission denied. Please allow camera access in your browser address bar.'
+          : err.message || 'Camera access failed. Check browser permissions or use manual search.'
+      );
     }
   }, []);
 
@@ -286,9 +300,12 @@ export function FaceLineChangeView() {
     [autoAdvance, lines, mode, soundEnabled]
   );
 
-  // Quick Simulation: Pick next worker from source line for testing / demo
+  // Quick Scan: Match worker from enrolled catalog
   const simulateFaceDetection = () => {
-    if (catalog.length === 0) return;
+    if (catalog.length === 0) {
+      setErrorMsg('No enrolled workers found in catalog. Please enroll face biometrics in Employee Records first, or use the manual search below.');
+      return;
+    }
     setIsRecognizing(true);
     setTimeout(() => {
       setIsRecognizing(false);
@@ -700,6 +717,61 @@ export function FaceLineChangeView() {
                 }}
               />
               <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0 }} />
+
+              {/* Inactive Camera Overlay Prompt */}
+              {!cameraActive && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    bgcolor: 'rgba(15, 23, 42, 0.92)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    p: 3,
+                    textAlign: 'center',
+                    zIndex: 6,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      bgcolor: (t) => alpha(t.palette.error.main, 0.15),
+                      color: 'error.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mb: 1.5,
+                    }}
+                  >
+                    <Iconify icon={"solar:videocamera-record-bold" as any} width={28} />
+                  </Box>
+                  <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 800, mb: 0.5 }}>
+                    Camera is Inactive
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, maxWidth: 360, mb: 2 }}>
+                    Please click below to activate your webcam or ensure browser camera permissions are granted.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    onClick={() => startCamera()}
+                    startIcon={<Iconify icon={"solar:camera-bold" as any} />}
+                    sx={{
+                      bgcolor: COMMON_COLORS.emerald.main,
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      borderRadius: '20px',
+                      px: 3,
+                      '&:hover': { bgcolor: COMMON_COLORS.emerald.dark },
+                    }}
+                  >
+                    Activate Camera
+                  </Button>
+                </Box>
+              )}
 
               {/* Animated Biometric Targeting Reticle */}
               <Box
