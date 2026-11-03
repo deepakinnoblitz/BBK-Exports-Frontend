@@ -2013,8 +2013,7 @@ export function FaceLineChangeView() {
                   <Stack direction="row" spacing={1.5} justifyContent="center">
                     <Button
                       variant="contained"
-                      color="warning"
-                      startIcon={<Iconify icon={"solar:camera-bold" as any} />}
+                      color="error"
                       onClick={() => {
                         if (manualSearchVal) {
                           setEnrollWorker(manualSearchVal);
@@ -2030,11 +2029,19 @@ export function FaceLineChangeView() {
                           }
                         }
                       }}
-                      sx={{ borderRadius: '12px', fontWeight: 700 }}
+                      sx={{
+                        borderRadius: '12px',
+                        fontWeight: 700,
+                        bgcolor: 'error.main',
+                        color: '#ffffff',
+                        '&:hover': {
+                          bgcolor: 'error.dark',
+                        },
+                      }}
                     >
                       {manualSearchVal
                         ? `Enroll ${manualSearchVal.employee_name.split(' ')[0]}`
-                        : '📷 Enroll Face Biometrics'}
+                        : 'Enroll Face Biometrics'}
                     </Button>
                     <Button
                       variant="outlined"
