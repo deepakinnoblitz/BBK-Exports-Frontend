@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { useSnackbar } from 'notistack';
 import { useSearchParams } from 'react-router-dom';
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -21,8 +21,6 @@ import TextField from '@mui/material/TextField';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import InputLabel from '@mui/material/InputLabel';
-import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
 import { alpha, useTheme } from '@mui/material/styles';
 import TableContainer from '@mui/material/TableContainer';
@@ -499,6 +497,14 @@ export function FaceLineChangeView() {
   const [targetLine, setTargetLine] = useState('');
   const [effectiveDate, setEffectiveDate] = useState<dayjs.Dayjs | null>(dayjs());
 
+  const sourceLineOptions = useMemo(
+    () => [
+      { name: '', line_name: 'Any Line (Auto-Detect)', assigned_count: 0 } as LiveLineOccupancy,
+      ...lines,
+    ],
+    [lines]
+  );
+
   // Post-Fixed Form
   const [postTargetLine, setPostTargetLine] = useState('');
 
@@ -516,7 +522,7 @@ export function FaceLineChangeView() {
   const candidateMatchRef = useRef<{ worker: FaceCatalogItem; confidence: number } | null>(null);
 
   // Toggles
-  const [autoAdvance, setAutoAdvance] = useState(false);
+  const [autoAdvance] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [countdown, setCountdown] = useState<number>(0);
 
@@ -1370,7 +1376,7 @@ export function FaceLineChangeView() {
             <Box sx={{ height: 32, width: '1px', bgcolor: 'divider', display: { xs: 'none', sm: 'block' } }} />
           </Stack>
           
-            <Box>
+            <Box sx={{ textAlign: 'center', flex: 1 }}>
               <Typography variant="h5" sx={{ fontWeight: 800 }}>
                 Face Recognition Line Change
               </Typography>
@@ -1401,7 +1407,7 @@ export function FaceLineChangeView() {
 
       <Grid container spacing={3}>
         {/* ── LEFT PANEL: Live Camera & Recognition Viewfinder ── */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card
             sx={{
               p: 2.5,
@@ -1463,7 +1469,7 @@ export function FaceLineChangeView() {
               sx={{
                 position: 'relative',
                 width: '100%',
-                height: 380,
+                height: { xs: 400, sm: 460, md: 500 },
                 borderRadius: '16px',
                 overflow: 'hidden',
                 bgcolor: '#0f172a',
@@ -1707,7 +1713,7 @@ export function FaceLineChangeView() {
         </Grid>
 
         {/* ── RIGHT PANEL: Mode Setup & Line Assignment Action ── */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Stack spacing={2.5}>
             {/* Effective Date Selector */}
             <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -1735,42 +1741,35 @@ export function FaceLineChangeView() {
                   </Typography>
                 </Stack>
 
-                <Grid container spacing={2}>
+                <Grid container spacing={1.5}>
                   <Grid size={{ xs: 6 }}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>From Line (Source)</InputLabel>
-                      <Select
-                        label="From Line (Source)"
-                        value={sourceLine}
-                        size='medium'
-                        onChange={(e) => setSourceLine(e.target.value)}
-                      >
-                        <MenuItem value="">Any Line (Auto-Detect)</MenuItem>
-                        {lines.map((l) => (
-                          <MenuItem key={l.name} value={l.name}>
-                            {l.line_name} ({l.assigned_count} workers)
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                    <Autocomplete
+                      fullWidth
+                      size="small"
+                      options={sourceLineOptions}
+                      value={sourceLineOptions.find((l) => l.name === sourceLine) || sourceLineOptions[0]}
+                      onChange={(_, val) => setSourceLine(val ? val.name : '')}
+                      getOptionLabel={(option) =>
+                        option.name
+                          ? `${option.line_name} (${option.assigned_count} workers)`
+                          : option.line_name
+                      }
+                      isOptionEqualToValue={(option, val) => option.name === val.name}
+                      renderInput={(params) => <TextField {...params} label="From Line (Source)" />}
+                    />
                   </Grid>
 
                   <Grid size={{ xs: 6 }}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>To Line (Target)</InputLabel>
-                      <Select
-                        label="To Line (Target)"
-                        value={targetLine}
-                        size='medium'
-                        onChange={(e) => setTargetLine(e.target.value)}
-                      >
-                        {lines.map((l) => (
-                          <MenuItem key={l.name} value={l.name}>
-                            {l.line_name} ({l.assigned_count} workers)
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                    <Autocomplete
+                      fullWidth
+                      size="small"
+                      options={lines}
+                      value={lines.find((l) => l.name === targetLine) || null}
+                      onChange={(_, val) => setTargetLine(val ? val.name : '')}
+                      getOptionLabel={(option) => `${option.line_name} (${option.assigned_count} workers)`}
+                      isOptionEqualToValue={(option, val) => option.name === val.name}
+                      renderInput={(params) => <TextField {...params} label="To Line (Target)" />}
+                    />
                   </Grid>
                 </Grid>
               </Card>
@@ -1787,11 +1786,11 @@ export function FaceLineChangeView() {
                   boxShadow: '0 8px 30px 0 rgba(0, 0, 0, 0.08)',
                 }}
               >
-                <Stack direction="row" spacing={2.5} alignItems="center">
+                <Stack direction="row" spacing={2} alignItems="center">
                   <Avatar
                     src={activeWorker.profile_picture || activeWorker.face_enrolled_image}
                     alt={activeWorker.employee_name}
-                    sx={{ width: 72, height: 72, borderRadius: '18px', bgcolor: 'primary.light' }}
+                    sx={{ width: 64, height: 64, borderRadius: '16px', bgcolor: 'primary.light', flexShrink: 0 }}
                   >
                     {activeWorker.employee_name?.charAt(0)}
                   </Avatar>
@@ -1803,7 +1802,7 @@ export function FaceLineChangeView() {
                     <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                       ID: {activeWorker.employee_id || activeWorker.name} • {activeWorker.designation || 'Worker'}
                     </Typography>
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 0.75 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center', mt: 1 }}>
                       <Label variant="soft" color="info">
                         Dept: {activeWorker.department || 'Production'}
                       </Label>
@@ -1825,7 +1824,7 @@ export function FaceLineChangeView() {
                           Enroll Face
                         </Button>
                       )}
-                    </Stack>
+                    </Box>
                   </Box>
                 </Stack>
 
@@ -1877,7 +1876,7 @@ export function FaceLineChangeView() {
                         const isSelected = postTargetLine === line.name;
                         const isCurrent = line.name === (activeWorker.current_line || activeWorker.default_line);
                         return (
-                          <Grid size={{ xs: 6, sm: 4 }} key={line.name}>
+                          <Grid size={{ xs: 6 }} key={line.name}>
                             <Card
                               onClick={() => !isCurrent && setPostTargetLine(line.name)}
                               sx={{
