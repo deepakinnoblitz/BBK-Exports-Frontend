@@ -145,17 +145,24 @@ export function matchFaceDescriptor<T extends { name: string; face_enrolled: num
       continue;
     }
 
-    const raw = Array.isArray(item.face_descriptor)
-      ? item.face_descriptor
-      : typeof item.face_descriptor === 'string'
-      ? JSON.parse(item.face_descriptor)
-      : null;
+    let workerDesc: Float32Array;
+    if ((item as any)._normalizedDesc instanceof Float32Array) {
+      workerDesc = (item as any)._normalizedDesc;
+    } else {
+      const raw = Array.isArray(item.face_descriptor)
+        ? item.face_descriptor
+        : typeof item.face_descriptor === 'string'
+        ? JSON.parse(item.face_descriptor)
+        : null;
 
-    if (!raw || raw.length !== 128) {
-      continue;
+      if (!raw || raw.length !== 128) {
+        continue;
+      }
+
+      workerDesc = normalizeEmbedding(raw);
+      (item as any)._normalizedDesc = workerDesc;
     }
 
-    const workerDesc = normalizeEmbedding(raw);
     const dist = faceapi.euclideanDistance(targetDesc, workerDesc);
     const cosSim = cosineSimilarity(targetDesc, workerDesc);
 
