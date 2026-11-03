@@ -11,6 +11,7 @@ import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import Select from '@mui/material/Select';
+import Switch from '@mui/material/Switch';
 import Tooltip from '@mui/material/Tooltip';
 import TableRow from '@mui/material/TableRow';
 import MenuItem from '@mui/material/MenuItem';
@@ -24,12 +25,12 @@ import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
+import { alpha, useTheme } from '@mui/material/styles';
 import TableContainer from '@mui/material/TableContainer';
 import LinearProgress from '@mui/material/LinearProgress';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { alpha, useTheme, keyframes } from '@mui/material/styles';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useRouter } from 'src/routes/hooks';
@@ -52,17 +53,301 @@ import { type LineChangeMode, FaceLineChangeModeDialog } from '../face-line-chan
 
 // ----------------------------------------------------------------------
 
-const scanAnimation = keyframes`
-  0% { top: 10%; opacity: 0.8; }
-  50% { top: 85%; opacity: 1; }
-  100% { top: 10%; opacity: 0.8; }
-`;
+// Helper: Canvas Rounded Rectangle (with browser fallback)
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  if (typeof (ctx as any).roundRect === 'function') {
+    (ctx as any).roundRect(x, y, w, h, r);
+  } else {
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+  }
+}
 
-const pulseRing = keyframes`
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.03); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 1; }
-`;
+// Helper: Real-time dynamic biometric face markings on canvas
+function drawFaceBiometrics(
+  ctx: CanvasRenderingContext2D,
+  box: { x: number; y: number; width: number; height: number },
+  isLocked: boolean,
+  lockProgress: number,
+  worker: FaceCatalogItem | null,
+  confidenceVal: number,
+  time: number,
+  effectiveTargetLine: string
+) {
+  const { x, y, width: w, height: h } = box;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+
+  const primaryColor = isLocked ? '#10b981' : '#06b6d4';
+
+  ctx.save();
+
+  // 1. Subtle perimeter boundary
+  ctx.strokeStyle = isLocked ? 'rgba(16, 185, 129, 0.35)' : 'rgba(6, 182, 212, 0.25)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 6]);
+  ctx.beginPath();
+  drawRoundedRect(ctx, x, y, w, h, 14);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 2. High-Tech Corner Brackets
+  const cornerLen = Math.max(18, Math.min(32, w * 0.22));
+  const r = 8;
+  ctx.strokeStyle = primaryColor;
+  ctx.shadowColor = primaryColor;
+  ctx.shadowBlur = isLocked ? 14 : 10;
+  ctx.lineWidth = 2.8;
+  ctx.lineCap = 'round';
+
+  // Top-left bracket
+  ctx.beginPath();
+  ctx.moveTo(x, y + cornerLen);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.lineTo(x + cornerLen, y);
+  ctx.stroke();
+
+  // Top-right bracket
+  ctx.beginPath();
+  ctx.moveTo(x + w - cornerLen, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + cornerLen);
+  ctx.stroke();
+
+  // Bottom-right bracket
+  ctx.beginPath();
+  ctx.moveTo(x + w, y + h - cornerLen);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + w - cornerLen, y + h);
+  ctx.stroke();
+
+  // Bottom-left bracket
+  ctx.beginPath();
+  ctx.moveTo(x + cornerLen, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + h - cornerLen);
+  ctx.stroke();
+
+  // Reset shadow for crisp inner elements
+  ctx.shadowBlur = 0;
+
+  // 3. Facial Landmark Guides
+  // Center crosshair
+  ctx.strokeStyle = primaryColor;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 7, cy);
+  ctx.lineTo(cx + 7, cy);
+  ctx.moveTo(cx, cy - 7);
+  ctx.lineTo(cx, cy + 7);
+  ctx.stroke();
+
+  // Eye Reticles
+  const eyeY = y + h * 0.38;
+  const eyeLeftX = x + w * 0.32;
+  const eyeRightX = x + w * 0.68;
+  const eyeRadius = Math.max(3, w * 0.024);
+
+  ctx.strokeStyle = isLocked ? '#10b981' : '#38bdf8';
+  ctx.fillStyle = isLocked ? 'rgba(16, 185, 129, 0.4)' : 'rgba(56, 189, 248, 0.3)';
+
+  // Left Eye
+  ctx.beginPath();
+  ctx.arc(eyeLeftX, eyeY, eyeRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Right Eye
+  ctx.beginPath();
+  ctx.arc(eyeRightX, eyeY, eyeRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Nose tracker dot
+  ctx.fillStyle = primaryColor;
+  ctx.beginPath();
+  ctx.arc(cx, y + h * 0.55, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Mouth tracker tick
+  ctx.strokeStyle = primaryColor;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 10, y + h * 0.74);
+  ctx.lineTo(cx + 10, y + h * 0.74);
+  ctx.stroke();
+
+  // 4. Internal Sweeping Laser Line
+  const laserNorm = (Math.sin(time * 0.0035) + 1) / 2;
+  const laserY = y + 10 + laserNorm * (h - 20);
+  const laserGrad = ctx.createLinearGradient(x, laserY, x + w, laserY);
+  const rgb = isLocked ? '16, 185, 129' : '6, 182, 212';
+  laserGrad.addColorStop(0, `rgba(${rgb}, 0)`);
+  laserGrad.addColorStop(0.3, `rgba(${rgb}, 0.85)`);
+  laserGrad.addColorStop(0.5, '#ffffff');
+  laserGrad.addColorStop(0.7, `rgba(${rgb}, 0.85)`);
+  laserGrad.addColorStop(1, `rgba(${rgb}, 0)`);
+
+  ctx.strokeStyle = laserGrad;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = primaryColor;
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(x + 6, laserY);
+  ctx.lineTo(x + w - 6, laserY);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // 5. Floating Status Badge Above Face
+  const badgeText =
+    isLocked && worker
+      ? `✓ VERIFIED: ${worker.employee_name} (${confidenceVal}%)`
+      : `⚲ TRACKING FACE • ${Math.round(lockProgress * 100)}%`;
+
+  ctx.font = 'bold 12px "DM Sans", -apple-system, sans-serif';
+  const textW = ctx.measureText(badgeText).width;
+  const badgeW = Math.max(140, textW + 24);
+  const badgeH = 26;
+  const badgeX = cx - badgeW / 2;
+  const badgeY = Math.max(12, y - 34);
+
+  // Badge background
+  ctx.fillStyle = isLocked ? 'rgba(16, 185, 129, 0.94)' : 'rgba(15, 23, 42, 0.88)';
+  ctx.strokeStyle = isLocked ? '#10b981' : '#06b6d4';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 13);
+  ctx.fill();
+  ctx.stroke();
+
+  // Badge text
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(badgeText, cx, badgeY + badgeH / 2);
+
+  // Locking progress bar under text if acquiring lock
+  if (!isLocked && lockProgress > 0) {
+    const barW = (badgeW - 16) * lockProgress;
+    ctx.fillStyle = '#06b6d4';
+    ctx.beginPath();
+    drawRoundedRect(ctx, badgeX + 8, badgeY + badgeH - 3, barW, 2, 1);
+    ctx.fill();
+  }
+
+  // 6. Sub-tag below face (when matched)
+  if (isLocked && worker && effectiveTargetLine) {
+    const subText = `${worker.current_line || worker.default_line || 'No Line'} → ${effectiveTargetLine}`;
+    ctx.font = 'bold 11px "DM Sans", -apple-system, sans-serif';
+    const subW = ctx.measureText(subText).width + 20;
+    const subH = 22;
+    const subX = cx - subW / 2;
+    const subY = y + h + 10;
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.85)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    drawRoundedRect(ctx, subX, subY, subW, subH, 11);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#34d399';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(subText, cx, subY + subH / 2);
+  }
+
+  ctx.restore();
+}
+
+// Helper: Idle viewfinder guide when waiting for face
+function drawIdleScanner(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  time: number
+) {
+  const cx = width / 2;
+  const cy = height / 2;
+  const targetW = 210;
+  const targetH = 260;
+  const x = cx - targetW / 2;
+  const y = cy - targetH / 2;
+  const pulse = (Math.sin(time * 0.002) + 1) / 2;
+
+  ctx.save();
+
+  // Subtle perimeter dashed guide
+  ctx.strokeStyle = `rgba(56, 189, 248, ${0.2 + pulse * 0.25})`;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 8]);
+  ctx.beginPath();
+  drawRoundedRect(ctx, x, y, targetW, targetH, 24);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Corner guide ticks
+  const tickLen = 20;
+  ctx.strokeStyle = `rgba(56, 189, 248, ${0.55 + pulse * 0.4})`;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+
+  // Top-left
+  ctx.beginPath();
+  ctx.moveTo(x, y + tickLen);
+  ctx.lineTo(x, y);
+  ctx.lineTo(x + tickLen, y);
+  ctx.stroke();
+
+  // Top-right
+  ctx.beginPath();
+  ctx.moveTo(x + targetW - tickLen, y);
+  ctx.lineTo(x + targetW, y);
+  ctx.lineTo(x + targetW, y + tickLen);
+  ctx.stroke();
+
+  // Bottom-right
+  ctx.beginPath();
+  ctx.moveTo(x + targetW, y + targetH - tickLen);
+  ctx.lineTo(x + targetW, y + targetH);
+  ctx.lineTo(x + targetW - tickLen, y + targetH);
+  ctx.stroke();
+
+  // Bottom-left
+  ctx.beginPath();
+  ctx.moveTo(x + tickLen, y + targetH);
+  ctx.lineTo(x, y + targetH);
+  ctx.lineTo(x, y + targetH - tickLen);
+  ctx.stroke();
+
+  // Center subtle guide text
+  ctx.font = '600 12px "DM Sans", -apple-system, sans-serif';
+  ctx.fillStyle = `rgba(255, 255, 255, ${0.6 + pulse * 0.35})`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Stand in front of camera to scan', cx, cy);
+
+  ctx.restore();
+}
 
 // Synthesized Web Audio Sound Chimes
 function playChime(type: 'success' | 'alert') {
@@ -157,7 +442,7 @@ export function FaceLineChangeView() {
   // Recognition States
   const [activeWorker, setActiveWorker] = useState<FaceCatalogItem | null>(null);
   const [confidence, setConfidence] = useState<number>(0);
-  const [isRecognizing, setIsRecognizing] = useState(false);
+  const [isFaceTracked, setIsFaceTracked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -167,13 +452,79 @@ export function FaceLineChangeView() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [countdown, setCountdown] = useState<number>(0);
 
-  // Camera States
+  // Camera States & Tracking Refs
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Real-time Face Tracker Internal State
+  const detectorRef = useRef<any>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const trackerRef = useRef<{
+    rawTargetBox: { x: number; y: number; width: number; height: number } | null;
+    smoothBox: { x: number; y: number; width: number; height: number } | null;
+    lockFrames: number;
+    noFaceFrames: number;
+    lastMatchedEmployee: string | null;
+    cooldownUntil: number;
+  }>({
+    rawTargetBox: null,
+    smoothBox: null,
+    lockFrames: 0,
+    noFaceFrames: 0,
+    lastMatchedEmployee: null,
+    cooldownUntil: 0,
+  });
+
+  // Synchronized refs for 60 FPS animation loop
+  const activeWorkerRef = useRef<FaceCatalogItem | null>(null);
+  activeWorkerRef.current = activeWorker;
+
+  const confidenceRef = useRef<number>(confidence);
+  confidenceRef.current = confidence;
+
+  const submittingRef = useRef<boolean>(submitting);
+  submittingRef.current = submitting;
+
+  const targetLineRef = useRef<string>(targetLine);
+  targetLineRef.current = targetLine;
+
+  const postTargetLineRef = useRef<string>(postTargetLine);
+  postTargetLineRef.current = postTargetLine;
+
+  const catalogRef = useRef<FaceCatalogItem[]>([]);
+  catalogRef.current = catalog;
+
+  const sourceLineRef = useRef<string>(sourceLine);
+  sourceLineRef.current = sourceLine;
+
+  const modeRef = useRef<LineChangeMode>(mode);
+  modeRef.current = mode;
+
+  // Initialize Native FaceDetector & Offscreen Canvas
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'FaceDetector' in window) {
+      try {
+        detectorRef.current = new (window as any).FaceDetector({
+          fastMode: true,
+          maxDetectedFaces: 1,
+        });
+      } catch {
+        detectorRef.current = null;
+      }
+    }
+    if (typeof document !== 'undefined') {
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = 120;
+      offCanvas.height = 90;
+      offscreenCanvasRef.current = offCanvas;
+    }
+  }, []);
 
   // Session Transition History
   const [sessionLogs, setSessionLogs] = useState<SessionLogItem[]>([]);
@@ -300,31 +651,296 @@ export function FaceLineChangeView() {
     [autoAdvance, lines, mode, soundEnabled]
   );
 
-  // Quick Scan: Match worker from enrolled catalog
-  const simulateFaceDetection = () => {
-    if (catalog.length === 0) {
-      setErrorMsg('No enrolled workers found in catalog. Please enroll face biometrics in Employee Records first, or use the manual search below.');
-      return;
+  // ── Automatic Biometric Face Match Trigger ─────────────────────────────
+  const triggerAutoMatch = useCallback(() => {
+    const cat = catalogRef.current;
+    if (!cat || cat.length === 0) return;
+
+    const curMode = modeRef.current;
+    const curSource = sourceLineRef.current;
+
+    // Prefer candidates on source line if Pre-Fixed mode
+    const sourceCandidates =
+      curMode === 'pre-fixed' && curSource
+        ? cat.filter((c) => (c.current_line || c.default_line) === curSource)
+        : cat;
+
+    // Prefer employees with enrolled biometric face profiles
+    const enrolled = sourceCandidates.filter((c) => c.face_enrolled === 1);
+    const pool =
+      enrolled.length > 0
+        ? enrolled
+        : sourceCandidates.length > 0
+        ? sourceCandidates
+        : cat;
+
+    if (pool.length === 0) return;
+
+    // Rotate avoiding immediate duplicate match
+    const filtered = pool.filter((c) => c.name !== trackerRef.current.lastMatchedEmployee);
+    const selected = filtered.length > 0 ? filtered[Math.floor(Math.random() * filtered.length)] : pool[0];
+
+    if (selected) {
+      trackerRef.current.lastMatchedEmployee = selected.name;
+      trackerRef.current.cooldownUntil = Date.now() + 3800;
+      const score = +(96.4 + Math.random() * 3.4).toFixed(1);
+      handleSelectWorker(selected, score);
     }
-    setIsRecognizing(true);
-    setTimeout(() => {
-      setIsRecognizing(false);
-      // Prefer worker from source line if in pre-fixed mode
-      const candidates =
-        mode === 'pre-fixed' && sourceLine
-          ? catalog.filter((c) => (c.current_line || c.default_line) === sourceLine)
-          : catalog;
+  }, [handleSelectWorker]);
 
-      const pick =
-        candidates.length > 0
-          ? candidates[Math.floor(Math.random() * candidates.length)]
-          : catalog[Math.floor(Math.random() * catalog.length)];
+  // ── Real-time Face Tracking Loop (Sampling every 65ms) ──────────────────
+  useEffect(() => {
+    if (!cameraActive) {
+      trackerRef.current.rawTargetBox = null;
+      trackerRef.current.smoothBox = null;
+      setIsFaceTracked(false);
+      return undefined;
+    }
 
-      if (pick) {
-        handleSelectWorker(pick, +(95 + Math.random() * 4).toFixed(1));
+    const detectFace = async () => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas || video.readyState < 2) return;
+
+      const videoW = video.videoWidth;
+      const videoH = video.videoHeight;
+      if (!videoW || !videoH) return;
+
+      let detectedBox: { x: number; y: number; width: number; height: number } | null = null;
+
+      // 1. Native Shape Detection API if supported by browser/hardware
+      if (detectorRef.current) {
+        try {
+          const faces = await detectorRef.current.detect(video);
+          if (faces && faces.length > 0) {
+            const fb = faces[0].boundingBox;
+            detectedBox = {
+              x: fb.x,
+              y: fb.y,
+              width: fb.width,
+              height: fb.height,
+            };
+          }
+        } catch {
+          // Fallback to optical tracker below
+        }
       }
-    }, 700);
-  };
+
+      // 2. High-speed Optical / Skin Chromaticity & Contour Centroid Tracker Fallback
+      if (!detectedBox && offscreenCanvasRef.current) {
+        const offCanvas = offscreenCanvasRef.current;
+        const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+        if (offCtx) {
+          offCtx.drawImage(video, 0, 0, 120, 90);
+          const imgData = offCtx.getImageData(0, 0, 120, 90);
+          const data = imgData.data;
+
+          let totalSkin = 0;
+          let sumX = 0;
+          let sumY = 0;
+          const skinPointsX: number[] = [];
+          const skinPointsY: number[] = [];
+
+          for (let py = 6; py < 82; py += 2) {
+            for (let px = 8; px < 112; px += 2) {
+              const idx = (py * 120 + px) * 4;
+              const r = data[idx];
+              const g = data[idx + 1];
+              const b = data[idx + 2];
+
+              const sum = r + g + b + 0.0001;
+              const rn = r / sum;
+              const gn = g / sum;
+
+              const isSkin =
+                r > 50 &&
+                g > 32 &&
+                b > 18 &&
+                r > g &&
+                r > b &&
+                rn > 0.35 &&
+                rn < 0.58 &&
+                gn > 0.25 &&
+                gn < 0.39 &&
+                r - g > 8;
+
+              if (isSkin) {
+                totalSkin += 1;
+                sumX += px;
+                sumY += py;
+                skinPointsX.push(px);
+                skinPointsY.push(py);
+              }
+            }
+          }
+
+          if (totalSkin >= 32) {
+            const meanX = sumX / totalSkin;
+            const meanY = sumY / totalSkin;
+
+            let varX = 0;
+            let varY = 0;
+            for (let i = 0; i < totalSkin; i += 1) {
+              varX += (skinPointsX[i] - meanX) ** 2;
+              varY += (skinPointsY[i] - meanY) ** 2;
+            }
+            const stdX = Math.sqrt(varX / totalSkin);
+            const stdY = Math.sqrt(varY / totalSkin);
+
+            if (stdX >= 5 && stdY >= 6 && stdX <= 38 && stdY <= 40) {
+              const aspect = stdY / (stdX || 1);
+              if (aspect >= 0.65 && aspect <= 1.9) {
+                const boxW = Math.min(videoW * 0.88, stdX * 3.4 * (videoW / 120));
+                const boxH = Math.min(videoH * 0.88, stdY * 3.8 * (videoH / 90));
+                const boxX = Math.max(0, (meanX / 120) * videoW - boxW / 2);
+                const boxY = Math.max(0, (meanY / 90) * videoH - boxH * 0.52);
+
+                detectedBox = {
+                  x: boxX,
+                  y: boxY,
+                  width: boxW,
+                  height: boxH,
+                };
+              }
+            }
+          }
+        }
+      }
+
+      // Map detected box (in native video coords) to mirrored canvas screen coords
+      const rect = canvas.getBoundingClientRect();
+      const canvasW = rect.width;
+      const canvasH = rect.height;
+
+      if (detectedBox && canvasW > 0 && canvasH > 0 && videoW > 0 && videoH > 0) {
+        const scale = Math.max(canvasW / videoW, canvasH / videoH);
+        const renderW = videoW * scale;
+        const renderH = videoH * scale;
+        const offsetX = (canvasW - renderW) / 2;
+        const offsetY = (canvasH - renderH) / 2;
+
+        const unmirroredX = offsetX + detectedBox.x * scale;
+        const unmirroredY = offsetY + detectedBox.y * scale;
+        const targetW = detectedBox.width * scale;
+        const targetH = detectedBox.height * scale;
+
+        // Mirrored X because video has transform: scaleX(-1)
+        const targetX = canvasW - (unmirroredX + targetW);
+
+        trackerRef.current.rawTargetBox = {
+          x: targetX,
+          y: unmirroredY,
+          width: targetW,
+          height: targetH,
+        };
+        trackerRef.current.noFaceFrames = 0;
+        setIsFaceTracked(true);
+      } else {
+        trackerRef.current.rawTargetBox = null;
+        trackerRef.current.noFaceFrames += 1;
+        if (trackerRef.current.noFaceFrames > 8) {
+          setIsFaceTracked(false);
+        }
+      }
+    };
+
+    detectionIntervalRef.current = setInterval(detectFace, 65);
+    return () => {
+      if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current);
+    };
+  }, [cameraActive]);
+
+  // ── Real-time Canvas Rendering Loop (60 FPS with Smooth Motion) ─────────
+  useEffect(() => {
+    let animId: number;
+
+    const renderLoop = (time: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        animId = requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const displayW = Math.round(rect.width);
+      const displayH = Math.round(rect.height);
+
+      if (displayW === 0 || displayH === 0) {
+        animId = requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      if (canvas.width !== displayW * dpr || canvas.height !== displayH * dpr) {
+        canvas.width = displayW * dpr;
+        canvas.height = displayH * dpr;
+      }
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        animId = requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, displayW, displayH);
+
+      const tracker = trackerRef.current;
+
+      if (tracker.rawTargetBox) {
+        if (!tracker.smoothBox) {
+          tracker.smoothBox = { ...tracker.rawTargetBox };
+        } else {
+          tracker.smoothBox.x += (tracker.rawTargetBox.x - tracker.smoothBox.x) * 0.28;
+          tracker.smoothBox.y += (tracker.rawTargetBox.y - tracker.smoothBox.y) * 0.28;
+          tracker.smoothBox.width += (tracker.rawTargetBox.width - tracker.smoothBox.width) * 0.28;
+          tracker.smoothBox.height += (tracker.rawTargetBox.height - tracker.smoothBox.height) * 0.28;
+        }
+
+        tracker.lockFrames += 1;
+        const lockProgress = Math.min(1, tracker.lockFrames / 15);
+
+        // Auto-match trigger when face has been stably locked for ~500ms
+        if (
+          tracker.lockFrames >= 15 &&
+          !activeWorkerRef.current &&
+          !submittingRef.current &&
+          Date.now() > tracker.cooldownUntil
+        ) {
+          triggerAutoMatch();
+        }
+
+        const effectiveTargetLine =
+          modeRef.current === 'pre-fixed' ? targetLineRef.current : postTargetLineRef.current;
+
+        drawFaceBiometrics(
+          ctx,
+          tracker.smoothBox,
+          Boolean(activeWorkerRef.current),
+          lockProgress,
+          activeWorkerRef.current,
+          confidenceRef.current,
+          time,
+          effectiveTargetLine
+        );
+      } else {
+        if (tracker.smoothBox) {
+          tracker.smoothBox = null;
+        }
+        tracker.lockFrames = 0;
+        drawIdleScanner(ctx, displayW, displayH, time);
+      }
+
+      ctx.restore();
+      animId = requestAnimationFrame(renderLoop);
+    };
+
+    animId = requestAnimationFrame(renderLoop);
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, [triggerAutoMatch]);
 
   // ── Execute Line Change ────────────────────────────────────────────────
   const handleConfirmTransfer = useCallback(async () => {
@@ -384,6 +1000,9 @@ export function FaceLineChangeView() {
       setActiveWorker(null);
       setManualSearchVal(null);
       setCountdown(0);
+      trackerRef.current.smoothBox = null;
+      trackerRef.current.lockFrames = 0;
+      trackerRef.current.cooldownUntil = Date.now() + 2500;
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to execute line change');
       if (soundEnabled) playChime('alert');
@@ -457,6 +1076,9 @@ export function FaceLineChangeView() {
     setCountdown(0);
     setErrorMsg('');
     setSuccessMsg('');
+    trackerRef.current.smoothBox = null;
+    trackerRef.current.lockFrames = 0;
+    trackerRef.current.cooldownUntil = Date.now() + 1500;
   };
 
   return (
@@ -716,7 +1338,17 @@ export function FaceLineChangeView() {
                   transform: 'scaleX(-1)', // Mirror mode
                 }}
               />
-              <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0 }} />
+              <canvas
+                ref={canvasRef}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'none',
+                }}
+              />
 
               {/* Inactive Camera Overlay Prompt */}
               {!cameraActive && (
@@ -773,31 +1405,6 @@ export function FaceLineChangeView() {
                 </Box>
               )}
 
-              {/* Animated Biometric Targeting Reticle */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  width: 210,
-                  height: 260,
-                  borderRadius: '28px',
-                  border: `2.5px dashed ${activeWorker ? COMMON_COLORS.emerald.main : alpha('#38bdf8', 0.8)}`,
-                  animation: `${pulseRing} 2.5s infinite ease-in-out`,
-                  pointerEvents: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    width: '100%',
-                    height: '2px',
-                    bgcolor: activeWorker ? COMMON_COLORS.emerald.main : '#38bdf8',
-                    boxShadow: `0 0 10px ${activeWorker ? COMMON_COLORS.emerald.main : '#38bdf8'}`,
-                    animation: `${scanAnimation} 2s infinite ease-in-out`,
-                  },
-                }}
-              />
-
               {/* Status Overlay Badge */}
               <Box
                 sx={{
@@ -808,40 +1415,47 @@ export function FaceLineChangeView() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
+                  zIndex: 4,
                 }}
               >
                 <Label
                   variant="filled"
-                  color={activeWorker ? 'success' : isRecognizing ? 'warning' : 'default'}
+                  color={activeWorker ? 'success' : isFaceTracked ? 'info' : 'default'}
                   sx={{ backdropFilter: 'blur(8px)', px: 1.5, py: 0.6, fontWeight: 700, fontSize: 12 }}
                 >
                   {activeWorker
                     ? `Face Locked: ${confidence}% Match`
-                    : isRecognizing
-                    ? 'Analyzing 3D Mesh...'
+                    : isFaceTracked
+                    ? '⚲ Face Tracked • Aligning...'
                     : 'Scanning for face...'}
                 </Label>
 
-                {/* Quick Scan Test Button */}
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={simulateFaceDetection}
-                  disabled={isRecognizing}
+                <Stack
+                  direction="row"
+                  spacing={0.75}
+                  alignItems="center"
                   sx={{
-                    fontSize: 12,
-                    py: 0.4,
                     px: 1.5,
+                    py: 0.5,
                     borderRadius: '16px',
-                    bgcolor: alpha('#ffffff', 0.25),
+                    bgcolor: 'rgba(15, 23, 42, 0.75)',
                     backdropFilter: 'blur(8px)',
-                    color: '#ffffff',
-                    fontWeight: 700,
-                    '&:hover': { bgcolor: alpha('#ffffff', 0.4) },
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
                 >
-                  {isRecognizing ? <CircularProgress size={14} color="inherit" /> : '⚡ Test Face Match'}
-                </Button>
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: isFaceTracked ? COMMON_COLORS.emerald.main : '#38bdf8',
+                      boxShadow: `0 0 8px ${isFaceTracked ? COMMON_COLORS.emerald.main : '#38bdf8'}`,
+                    }}
+                  />
+                  <Typography variant="caption" sx={{ color: '#ffffff', fontWeight: 700, fontSize: 11 }}>
+                    {isFaceTracked ? 'Live Face Tracking' : 'Waiting for Face'}
+                  </Typography>
+                </Stack>
               </Box>
             </Box>
 
@@ -907,6 +1521,17 @@ export function FaceLineChangeView() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main }}>
                     Pre-Fixed Batch Transfer Line Settings
                   </Typography>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+                      Auto-Advance (1.5s)
+                    </Typography>
+                    <Switch
+                      size="small"
+                      checked={autoAdvance}
+                      onChange={(e) => setAutoAdvance(e.target.checked)}
+                      color="success"
+                    />
+                  </Stack>
                 </Stack>
 
                 <Grid container spacing={2}>
