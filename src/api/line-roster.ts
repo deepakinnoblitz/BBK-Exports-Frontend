@@ -301,11 +301,11 @@ export async function fetchFaceCatalog(): Promise<FaceCatalogItem[]> {
     headers,
   });
 
+  const json = await res.json();
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to fetch Face Catalog');
+    throw new Error(handleFrappeError(json, 'Failed to fetch Face Catalog'));
   }
 
-  const json = await res.json();
   return json.message || [];
 }
 
@@ -317,11 +317,11 @@ export async function fetchLiveLineOccupancy(date?: string): Promise<LiveLineOcc
     body: JSON.stringify({ attendance_date: date }),
   });
 
+  const json = await res.json();
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to fetch Line Occupancy');
+    throw new Error(handleFrappeError(json, 'Failed to fetch Line Occupancy'));
   }
 
-  const json = await res.json();
   return json.message || [];
 }
 
@@ -341,11 +341,11 @@ export async function executeFaceRecognitionLineChange(params: {
     body: JSON.stringify(params),
   });
 
+  const json = await res.json();
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to execute Face Recognition Line Change');
+    throw new Error(handleFrappeError(json, 'Failed to execute Face Recognition Line Change'));
   }
 
-  const json = await res.json();
   return json.message;
 }
 
@@ -362,11 +362,11 @@ export async function executeUndoFaceLineChange(params: {
     body: JSON.stringify(params),
   });
 
+  const json = await res.json();
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to undo Face Line Change');
+    throw new Error(handleFrappeError(json, 'Failed to undo Face Line Change'));
   }
 
-  const json = await res.json();
   return json.message;
 }
 
@@ -383,11 +383,11 @@ export async function saveEmployeeFaceEmbedding(params: {
     body: JSON.stringify(params),
   });
 
+  const json = await res.json();
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to save Employee Face Embedding');
+    throw new Error(handleFrappeError(json, 'Failed to save Employee Face Embedding'));
   }
 
-  const json = await res.json();
   return json.message;
 }
 
@@ -399,10 +399,10 @@ export async function clearEmployeeFaceEmbedding(employee: string): Promise<{ su
     body: JSON.stringify({ employee }),
   });
 
+  const json = await res.json();
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to clear Employee Face Biometrics');
+    throw new Error(handleFrappeError(json, 'Failed to clear Employee Face Biometrics'));
   }
 
-  const json = await res.json();
   return json.message;
 }

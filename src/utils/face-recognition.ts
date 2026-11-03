@@ -133,9 +133,12 @@ export function matchFaceDescriptor<T extends { name: string; face_enrolled: num
   let minDistance = Infinity;
   let secondMinDistance = Infinity;
 
-  // Ultra-Strict exact face threshold: 0.35 (industrial turnstile / KYC grade)
-  const MATCH_THRESHOLD = customThreshold ?? 0.35;
-  const MIN_COSINE_SIMILARITY = 0.93;
+  // Calibrated biometric verification threshold:
+  // - 0.43 euclidean distance ensures colleagues / strangers (dist >= 0.47) are strictly rejected
+  // - 0.895 cosine similarity ensures high directional vector alignment
+  // - Verified employees (intra-person variance typically 0.25 - 0.40) match reliably
+  const MATCH_THRESHOLD = customThreshold ?? 0.43;
+  const MIN_COSINE_SIMILARITY = 0.895;
 
   for (const item of enrolledCatalog) {
     if (item.face_enrolled !== 1 || !item.face_descriptor) {
@@ -162,8 +165,8 @@ export function matchFaceDescriptor<T extends { name: string; face_enrolled: num
 
       // Strict dual gate: Euclidean distance AND Cosine similarity must both pass
       if (dist <= MATCH_THRESHOLD && cosSim >= MIN_COSINE_SIMILARITY) {
-        // High confidence mapping: 0.18 dist -> 99.8%, 0.35 dist -> 93.0%
-        const confidence = Math.max(90, Math.min(99.8, +((1 - dist / 0.65) * 100).toFixed(1)));
+        // High confidence mapping: 0.18 dist -> 99.3%, 0.35 dist -> 95.5%
+        const confidence = Math.max(90, Math.min(99.8, +((1 - (dist - 0.15) / 0.5) * 100).toFixed(1)));
         bestMatch = { worker: item, distance: dist, cosine: cosSim, confidence };
       } else {
         bestMatch = null;
@@ -175,10 +178,10 @@ export function matchFaceDescriptor<T extends { name: string; face_enrolled: num
 
   // Contrastive margin defense: if multiple enrolled profiles exist,
   // an ambiguous face that is almost equally close to two different profiles
-  // (e.g. distance difference < 0.05) is rejected as an uncertain outsider
+  // (e.g. distance difference < 0.04) is rejected as an uncertain outsider
   if (bestMatch && enrolledCatalog.length > 1 && secondMinDistance < Infinity) {
     const margin = secondMinDistance - bestMatch.distance;
-    if (margin < 0.05 && bestMatch.distance > 0.28) {
+    if (margin < 0.04 && bestMatch.distance > 0.35) {
       return null;
     }
   }

@@ -55,13 +55,13 @@ export function LineRosterTableRow({
     employee,
     employee_name,
     department,
-    designation,
     line_order,
     line_name,
     effective_from,
     effective_to,
     assignment_type,
     status,
+    reason,
   } = row;
 
   const formatDate = (d?: string) => {
@@ -71,19 +71,27 @@ export function LineRosterTableRow({
 
   const isRange = effective_to && effective_to !== effective_from;
 
+  const isFaceBiometric =
+    assignment_type?.toLowerCase() === 'face biometric change' ||
+    assignment_type?.toLowerCase() === 'face recognition' ||
+    Boolean(reason && (reason.toLowerCase().includes('face recognition') || reason.toLowerCase().includes('face biometric')));
+
   const getSourceLabel = (type?: string) => {
+    if (isFaceBiometric) {
+      return 'Face Biometric Change';
+    }
     if (!type) return 'Manual';
     const t = type.replace(/_/g, ' ').trim().toLowerCase();
     if (t === 'line change' || t === 'default line change') {
       return 'Default Line Change';
     }
-    if (t === 'face recognition') {
-      return 'Face Recognition';
-    }
     return type;
   };
 
   const getSourceColor = (type?: string) => {
+    if (isFaceBiometric) {
+      return 'primary';
+    }
     switch (type?.toLowerCase()?.replace(/_/g, ' ')) {
       case 'rotation':
         return 'info';
@@ -94,8 +102,6 @@ export function LineRosterTableRow({
       case 'line change':
       case 'default line change':
         return 'secondary';
-      case 'face recognition':
-        return 'primary';
       default:
         return 'default';
     }
@@ -199,9 +205,15 @@ export function LineRosterTableRow({
       </TableCell>
 
       <TableCell sx={{ px: 1.5 }}>
-        <Label variant="soft" color={getSourceColor(assignment_type)}>
-          {getSourceLabel(assignment_type)}
-        </Label>
+        <Tooltip
+          title={reason || (isFaceBiometric ? 'Face Biometric Line Change' : getSourceLabel(assignment_type))}
+          arrow
+          placement="top"
+        >
+          <Label variant="soft" color={getSourceColor(assignment_type)}>
+            {getSourceLabel(assignment_type)}
+          </Label>
+        </Tooltip>
       </TableCell>
 
       <TableCell sx={{ px: 1.5 }}>

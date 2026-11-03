@@ -23,23 +23,32 @@ import { fetchLineRosterHistory } from 'src/api/line-roster';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
-import { Label, LabelColor } from 'src/components/label';
+import { Label, type LabelColor } from 'src/components/label';
 
 // ----------------------------------------------------------------------
 
-const getSourceLabel = (source?: string) => {
+const getSourceLabel = (source?: string, reason?: string) => {
+  const isFaceBiometric =
+    source?.toLowerCase()?.includes('face') ||
+    Boolean(reason && (reason.toLowerCase().includes('face recognition') || reason.toLowerCase().includes('face biometric')));
+  if (isFaceBiometric) {
+    return 'Face Biometric Change';
+  }
   if (!source) return 'MANUAL';
   const s = source.replace(/_/g, ' ').trim().toLowerCase();
   if (s === 'line change' || s === 'default line change') {
     return 'Default Line Change';
   }
-  if (s === 'face recognition') {
-    return 'Face Recognition';
-  }
   return source.replace(/_/g, ' ');
 };
 
-const getSourceColor = (type?: string): LabelColor => {
+const getSourceColor = (type?: string, reason?: string): LabelColor => {
+  const isFaceBiometric =
+    type?.toLowerCase()?.includes('face') ||
+    Boolean(reason && (reason.toLowerCase().includes('face recognition') || reason.toLowerCase().includes('face biometric')));
+  if (isFaceBiometric) {
+    return 'primary';
+  }
   switch (type?.toLowerCase()?.replace(/_/g, ' ')) {
     case 'manual':
       return 'default';
@@ -52,8 +61,6 @@ const getSourceColor = (type?: string): LabelColor => {
     case 'line change':
     case 'default line change':
       return 'secondary';
-    case 'face recognition':
-      return 'primary';
     default:
       return 'default';
   }
@@ -230,8 +237,8 @@ export function LineRosterHistoryDialog({ open, onClose, rosterId, employee }: P
                       </TableCell>
 
                       <TableCell>
-                        <Label variant="soft" color={getSourceColor(row.source)}>
-                          {getSourceLabel(row.source)}
+                        <Label variant="soft" color={getSourceColor(row.source, row.reason)}>
+                          {getSourceLabel(row.source, row.reason)}
                         </Label>
                       </TableCell>
 

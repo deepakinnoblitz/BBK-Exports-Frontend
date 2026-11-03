@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { useSnackbar } from 'notistack';
 import { useSearchParams } from 'react-router-dom';
 import { useRef, useState, useEffect, useCallback } from 'react';
 
@@ -6,12 +7,10 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
-import Alert from '@mui/material/Alert';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import Select from '@mui/material/Select';
-import Switch from '@mui/material/Switch';
 import Tooltip from '@mui/material/Tooltip';
 import TableRow from '@mui/material/TableRow';
 import MenuItem from '@mui/material/MenuItem';
@@ -468,6 +467,7 @@ interface SessionLogItem {
 export function FaceLineChangeView() {
   const theme = useTheme();
   const router = useRouter();
+  const { enqueueSnackbar } = useSnackbar();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const queryMode = searchParams.get('mode') as LineChangeMode | null;
@@ -509,8 +509,6 @@ export function FaceLineChangeView() {
   const [unrecognizedFace, setUnrecognizedFace] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
   const [enrollWorker, setEnrollWorker] = useState<FaceCatalogItem | null>(null);
 
   const isMatchingRef = useRef(false);
@@ -635,9 +633,9 @@ export function FaceLineChangeView() {
         });
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to initialize line data');
+      enqueueSnackbar(err.message || 'Failed to initialize line data', { variant: 'error' });
     }
-  }, [effectiveDate]);
+  }, [effectiveDate, enqueueSnackbar]);
 
   useEffect(() => {
     loadInitialData();
@@ -645,7 +643,6 @@ export function FaceLineChangeView() {
 
   // ── Camera Initialization ──────────────────────────────────────────────
   const startCamera = useCallback(async (deviceId?: string) => {
-    setErrorMsg('');
     try {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -653,7 +650,9 @@ export function FaceLineChangeView() {
 
       if (!navigator.mediaDevices?.getUserMedia) {
         setCameraActive(false);
-        setErrorMsg('Camera access is not supported by this browser. Ensure you are using HTTPS or localhost.');
+        enqueueSnackbar('Camera access is not supported by this browser. Ensure you are using HTTPS or localhost.', {
+          variant: 'error',
+        });
         return;
       }
 
@@ -693,13 +692,14 @@ export function FaceLineChangeView() {
       }
     } catch (err: any) {
       setCameraActive(false);
-      setErrorMsg(
+      enqueueSnackbar(
         err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'
           ? 'Camera permission denied. Please allow camera access in your browser address bar.'
-          : err.message || 'Camera access failed. Check browser permissions or use manual search.'
+          : err.message || 'Camera access failed. Check browser permissions or use manual search.',
+        { variant: 'error' }
       );
     }
-  }, []);
+  }, [enqueueSnackbar]);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -721,8 +721,6 @@ export function FaceLineChangeView() {
     (worker: FaceCatalogItem, matchConfidence = 98.4) => {
       setActiveWorker(worker);
       setConfidence(matchConfidence);
-      setErrorMsg('');
-      setSuccessMsg('');
       if (soundEnabled) playChime('success');
 
       // In Post-Fixed mode, default postTargetLine to a line different from their current line
@@ -731,112 +729,138 @@ export function FaceLineChangeView() {
         if (otherLine) setPostTargetLine(otherLine.name);
       }
 
-      // If Auto-advance is on in Pre-Fixed mode, trigger countdown
-      if (mode === 'pre-fixed' && autoAdvance) {
-        setCountdown(1.5);
+      // If in Pre-Fixed mode, handle auto-advance or target conflict
+      if (mode === 'pre-fixed') {
+        const workerLine = worker.current_line || worker.default_line || '';
+        if (targetLine && targetLine === workerLine) {
+          enqueueSnackbar(`${worker.employee_name} is already assigned to ${targetLine}.`, { variant: 'warning' });
+          setCountdown(0);
+        } else if (sourceLine && workerLine && workerLine !== sourceLine) {
+          enqueueSnackbar(`Identified ${worker.employee_name} (Current: ${workerLine}). Reassigning to ${targetLine}.`, { variant: 'info' });
+          if (autoAdvance && targetLine) {
+            setCountdown(1.5);
+          }
+        } else if (autoAdvance && targetLine) {
+          setCountdown(1.5);
+        }
       }
     },
-    [autoAdvance, lines, mode, soundEnabled]
+    [autoAdvance, enqueueSnackbar, lines, mode, soundEnabled, sourceLine, targetLine]
   );
 
-  // ── Real Deep-Learning Face Recognition Match Trigger (3-Sec Cycle) ────
-  const triggerAutoMatch = useCallback(async () => {
-    // Concurrency lock: only 1 scan in flight at any time
-    if (isMatchingRef.current) return;
+  // ── Real Deep-Learning Face Recognition Match Trigger (3-Sec Cycle or Manual) ────
+  const triggerAutoMatch = useCallback(
+    async (isManual = false) => {
+      // Concurrency lock: only 1 scan in flight at any time
+      if (isMatchingRef.current) return;
 
-    const video = videoRef.current;
-    if (!video || video.readyState < 2) return;
-
-    const cat = catalogRef.current;
-    if (!cat || cat.length === 0) return;
-
-    // In Pre-Fixed mode, filter strictly for workers currently assigned to the source line!
-    const currentSource = sourceLineRef.current;
-    const enrolledWorkers = cat.filter((c) => {
-      if (c.face_enrolled !== 1) return false;
-      if (modeRef.current === 'pre-fixed' && currentSource) {
-        return c.current_line === currentSource || c.default_line === currentSource;
-      }
-      return true;
-    });
-
-    isMatchingRef.current = true;
-    setIsScanning(true);
-
-    try {
-      if (enrolledWorkers.length === 0) {
-        // Zero workers on this line have enrolled face biometrics yet!
-        setUnrecognizedFace(true);
-        setActiveWorker(null);
-        candidateMatchRef.current = null;
-        if (soundEnabled) playChime('alert');
-        // Wait 3.0 seconds before next scan
-        trackerRef.current.cooldownUntil = Date.now() + 3000;
+      const video = videoRef.current;
+      if (!video || video.readyState < 2) {
+        if (isManual) {
+          enqueueSnackbar('Camera is not ready yet. Please wait a moment.', { variant: 'warning' });
+        }
         return;
       }
 
-      // 1. Run real neural-net feature extraction from live camera
-      const extracted = await extractFaceDescriptorFromMedia(video);
+      const cat = catalogRef.current;
+      if (!cat || cat.length === 0) return;
 
-      if (!extracted || !extracted.descriptor) {
-        matchAttemptsRef.current += 1;
-        // If face has been tracked for 2+ attempts without finding descriptor
-        // (e.g. overhead lighting flare, backlighting, or harsh angle), mark as unrecognized and wait 3s
-        if (matchAttemptsRef.current >= 2) {
+      // Search ALL enrolled workers across the company biometric dataset
+      const enrolledWorkers = cat.filter((c) => c.face_enrolled === 1 && c.face_descriptor);
+
+      isMatchingRef.current = true;
+      setIsScanning(true);
+
+      try {
+        if (enrolledWorkers.length === 0) {
           setUnrecognizedFace(true);
           setActiveWorker(null);
           candidateMatchRef.current = null;
           if (soundEnabled) playChime('alert');
           trackerRef.current.cooldownUntil = Date.now() + 3000;
-        } else {
-          // Retry in 1.2s
-          trackerRef.current.cooldownUntil = Date.now() + 1200;
+          if (isManual) {
+            enqueueSnackbar('No enrolled face biometrics found in catalog.', { variant: 'warning' });
+          }
+          return;
         }
-        return;
-      }
 
-      // Reset attempts once descriptor is found
-      matchAttemptsRef.current = 0;
+        // 1. Run real neural-net feature extraction from live camera
+        const extracted = await extractFaceDescriptorFromMedia(video);
 
-      // 2. Perform Ultra-Strict Dual-Gate Biometric Comparison (Euclidean dist <= 0.35 AND Cosine >= 0.93)
-      const matchResult = matchFaceDescriptor(extracted.descriptor, enrolledWorkers);
+        if (!extracted || !extracted.descriptor) {
+          matchAttemptsRef.current += 1;
+          if (isManual) {
+            enqueueSnackbar('No face clearly detected. Please face the camera directly.', { variant: 'info' });
+          }
+          if (matchAttemptsRef.current >= 2) {
+            setUnrecognizedFace(true);
+            setActiveWorker(null);
+            candidateMatchRef.current = null;
+            if (soundEnabled) playChime('alert');
+            trackerRef.current.cooldownUntil = Date.now() + 3000;
+          } else {
+            trackerRef.current.cooldownUntil = Date.now() + 1200;
+          }
+          return;
+        }
 
-      if (matchResult) {
-        // Multi-Frame Temporal Double-Confirmation:
-        // Ensure the same candidate matches across 2 consecutive checks ~180ms apart
-        if (candidateMatchRef.current?.worker.name === matchResult.worker.name) {
-          // Double-confirmed! Real employee identity verified!
+        // Reset attempts once descriptor is found
+        matchAttemptsRef.current = 0;
+
+        // 2. Perform Biometric Comparison against enrolled dataset
+        const matchResult = matchFaceDescriptor(extracted.descriptor, enrolledWorkers);
+
+        if (matchResult) {
+          if (isManual || candidateMatchRef.current?.worker.name === matchResult.worker.name) {
+            // Double-confirmed or manual trigger! Real employee identity verified!
+            candidateMatchRef.current = null;
+            trackerRef.current.lastMatchedEmployee = matchResult.worker.name;
+            trackerRef.current.cooldownUntil = Date.now() + 4000;
+            setUnrecognizedFace(false);
+            handleSelectWorker(matchResult.worker, matchResult.confidence);
+          } else {
+            // First candidate frame matched! Queue instant confirmation pass in 180ms
+            candidateMatchRef.current = { worker: matchResult.worker, confidence: matchResult.confidence };
+            trackerRef.current.cooldownUntil = Date.now() + 180;
+          }
+        } else {
+          // Did not meet exact match threshold: Colleague / Unauthorized Person
           candidateMatchRef.current = null;
-          trackerRef.current.lastMatchedEmployee = matchResult.worker.name;
-          trackerRef.current.cooldownUntil = Date.now() + 4000;
-          setUnrecognizedFace(false);
-          handleSelectWorker(matchResult.worker, matchResult.confidence);
-        } else {
-          // First candidate frame matched! Queue instant confirmation pass in 180ms
-          candidateMatchRef.current = { worker: matchResult.worker, confidence: matchResult.confidence };
-          trackerRef.current.cooldownUntil = Date.now() + 180;
+          setUnrecognizedFace(true);
+          setActiveWorker(null);
+          if (soundEnabled) playChime('alert');
+          trackerRef.current.cooldownUntil = Date.now() + 3000;
+          if (isManual) {
+            enqueueSnackbar('Face not recognized in enrolled dataset.', { variant: 'warning' });
+          }
         }
-      } else {
-        // Did not meet ultra-strict exact match threshold (distance > 0.35 or cosine < 0.93)
-        // STRICT REJECTION: Colleague / Unauthorized Person
+      } catch (err) {
+        console.warn('Real-time face recognition matching error:', err);
         candidateMatchRef.current = null;
         setUnrecognizedFace(true);
         setActiveWorker(null);
-        if (soundEnabled) playChime('alert');
-        // Wait 3.0 seconds before next scan
         trackerRef.current.cooldownUntil = Date.now() + 3000;
+        if (isManual) {
+          enqueueSnackbar('Face recognition scan error. Please try again.', { variant: 'error' });
+        }
+      } finally {
+        isMatchingRef.current = false;
+        setIsScanning(false);
       }
-    } catch (err) {
-      console.warn('Real-time face recognition matching error:', err);
-      candidateMatchRef.current = null;
-      setUnrecognizedFace(true);
-      setActiveWorker(null);
-      trackerRef.current.cooldownUntil = Date.now() + 3000;
-    } finally {
-      isMatchingRef.current = false;
-      setIsScanning(false);
-    }
-  }, [handleSelectWorker, soundEnabled]);
+    },
+    [handleSelectWorker, soundEnabled, enqueueSnackbar]
+  );
+
+  // ── Manual Scan Trigger ────────────────────────────────────────────────
+  const handleManualScanNow = useCallback(async () => {
+    if (isMatchingRef.current) return;
+    trackerRef.current.cooldownUntil = 0;
+    trackerRef.current.lockFrames = 0;
+    matchAttemptsRef.current = 0;
+    candidateMatchRef.current = null;
+    setUnrecognizedFace(false);
+    await triggerAutoMatch(true);
+  }, [triggerAutoMatch]);
 
   // ── Real-time Face Tracking Loop (Sampling every 65ms) ──────────────────
   useEffect(() => {
@@ -1130,19 +1154,18 @@ export function FaceLineChangeView() {
     const workerCurrentLine = activeWorker.current_line || activeWorker.default_line || '';
 
     if (!chosenTargetLine) {
-      setErrorMsg('Please select a target line.');
+      enqueueSnackbar('Please select a target line.', { variant: 'warning' });
       if (soundEnabled) playChime('alert');
       return;
     }
 
     if (chosenTargetLine === workerCurrentLine) {
-      setErrorMsg(`${activeWorker.employee_name} is already assigned to ${chosenTargetLine}.`);
+      enqueueSnackbar(`${activeWorker.employee_name} is already assigned to ${chosenTargetLine}.`, { variant: 'warning' });
       if (soundEnabled) playChime('alert');
       return;
     }
 
     setSubmitting(true);
-    setErrorMsg('');
 
     try {
       const res = await executeFaceRecognitionLineChange({
@@ -1154,11 +1177,11 @@ export function FaceLineChangeView() {
       });
 
       if (soundEnabled) playChime('success');
-      setSuccessMsg(res.message || `Transferred to ${chosenTargetLine}`);
+      enqueueSnackbar(res?.message || `Transferred to ${chosenTargetLine}`, { variant: 'success' });
 
       // Append to session logs
       const logItem: SessionLogItem = {
-        roster_id: res.roster_name,
+        roster_id: res?.roster_name || '',
         employee_id: activeWorker.employee_id || activeWorker.name,
         employee_name: activeWorker.employee_name,
         previous_line: workerCurrentLine,
@@ -1186,12 +1209,13 @@ export function FaceLineChangeView() {
       trackerRef.current.lockFrames = 0;
       trackerRef.current.cooldownUntil = Date.now() + 2500;
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to execute line change');
+      const msg = typeof err === 'string' ? err : err?.message || err?.error || 'Failed to execute line change';
+      enqueueSnackbar(msg, { variant: 'error' });
       if (soundEnabled) playChime('alert');
     } finally {
       setSubmitting(false);
     }
-  }, [activeWorker, mode, targetLine, postTargetLine, soundEnabled, effectiveDate]);
+  }, [activeWorker, mode, targetLine, postTargetLine, soundEnabled, effectiveDate, enqueueSnackbar]);
 
   // Auto-advance Countdown Timer
   useEffect(() => {
@@ -1231,7 +1255,7 @@ export function FaceLineChangeView() {
 
       // Remove from session logs
       setSessionLogs((prev) => prev.filter((item) => item.roster_id !== log.roster_id));
-      setSuccessMsg(`Undone! ${log.employee_name} restored to ${log.previous_line || 'default'}.`);
+      enqueueSnackbar(`Undone! ${log.employee_name} restored to ${log.previous_line || 'default'}.`, { variant: 'success' });
       if (soundEnabled) playChime('success');
 
       // Update local catalog
@@ -1246,7 +1270,8 @@ export function FaceLineChangeView() {
       // Refresh live lines occupancy
       fetchLiveLineOccupancy(effectiveDate?.format('YYYY-MM-DD')).then(setLines).catch(() => {});
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to undo assignment');
+      const msg = typeof err === 'string' ? err : err?.message || err?.error || 'Failed to undo assignment';
+      enqueueSnackbar(msg, { variant: 'error' });
     } finally {
       setUndoingId(null);
     }
@@ -1257,8 +1282,6 @@ export function FaceLineChangeView() {
     setManualSearchVal(null);
     candidateMatchRef.current = null;
     setCountdown(0);
-    setErrorMsg('');
-    setSuccessMsg('');
     setUnrecognizedFace(false);
     trackerRef.current.smoothBox = null;
     trackerRef.current.lockFrames = 0;
@@ -1423,18 +1446,6 @@ export function FaceLineChangeView() {
               </Typography>
             </Box>
           </Stack>
-
-          {/* Alerts */}
-          {errorMsg && (
-            <Alert severity="error" onClose={() => setErrorMsg('')}>
-              {errorMsg}
-            </Alert>
-          )}
-          {successMsg && (
-            <Alert severity="success" onClose={() => setSuccessMsg('')}>
-              {successMsg}
-            </Alert>
-          )}
         </Stack>
 
       <Grid container spacing={3}>
@@ -1620,7 +1631,7 @@ export function FaceLineChangeView() {
                   {activeWorker
                     ? `✓ Verified: ${activeWorker.employee_name} (${confidence}%)`
                     : unrecognizedFace
-                    ? '❌ Employee Not Found • Unassigned'
+                    ? 'Employee Not Found • Unassigned'
                     : isScanning
                     ? '⚲ Scanning Face Biometrics...'
                     : isFaceTracked
@@ -1656,6 +1667,55 @@ export function FaceLineChangeView() {
                 </Stack>
               </Box>
             </Box>
+
+            {/* Scan Now Manual Trigger Button */}
+            <Stack direction="row" spacing={1.5} sx={{ mt: 2 }}>
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
+                disabled={!cameraActive || isScanning}
+                onClick={handleManualScanNow}
+                startIcon={
+                  isScanning ? (
+                    <CircularProgress size={18} color="inherit" />
+                  ) : (
+                    <Iconify icon={"solar:face-scan-circle-bold" as any} width={22} />
+                  )
+                }
+                sx={{
+                  bgcolor: COMMON_COLORS.emerald.main,
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  py: 1.25,
+                  borderRadius: '12px',
+                  boxShadow: `0 4px 14px ${alpha(COMMON_COLORS.emerald.main, 0.35)}`,
+                  '&:hover': {
+                    bgcolor: COMMON_COLORS.emerald.dark,
+                  },
+                }}
+              >
+                {isScanning ? 'Scanning Face...' : 'Scan Now'}
+              </Button>
+
+              {activeWorker && (
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  onClick={handleSkipWorker}
+                  startIcon={<Iconify icon={"solar:restart-bold" as any} width={18} />}
+                  sx={{
+                    px: 2.5,
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Rescan
+                </Button>
+              )}
+            </Stack>
 
             {/* Manual Search Fallback */}
             <Box sx={{ mt: 2.5 }}>
@@ -1722,17 +1782,6 @@ export function FaceLineChangeView() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main }}>
                     Pre-Fixed Batch Transfer Line Settings
                   </Typography>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
-                      Auto-Advance (1.5s)
-                    </Typography>
-                    <Switch
-                      size="small"
-                      checked={autoAdvance}
-                      onChange={(e) => setAutoAdvance(e.target.checked)}
-                      color="success"
-                    />
-                  </Stack>
                 </Stack>
 
                 <Grid container spacing={2}>
@@ -1745,6 +1794,7 @@ export function FaceLineChangeView() {
                         size='medium'
                         onChange={(e) => setSourceLine(e.target.value)}
                       >
+                        <MenuItem value="">Any Line (Auto-Detect)</MenuItem>
                         {lines.map((l) => (
                           <MenuItem key={l.name} value={l.name}>
                             {l.line_name} ({l.assigned_count} workers)
@@ -2210,7 +2260,9 @@ export function FaceLineChangeView() {
                 const ref = updated.find((c) => c.name === enrollWorker.name);
                 if (ref) setActiveWorker(ref);
               });
-              setSuccessMsg(`Face biometrics enrolled successfully for ${enrollWorker.employee_name}!`);
+              enqueueSnackbar(`Face biometrics enrolled successfully for ${enrollWorker.employee_name}!`, {
+                variant: 'success',
+              });
             }}
           />
         )}
