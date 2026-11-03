@@ -1368,7 +1368,21 @@ export function FaceLineChangeView() {
             </Box>
 
             <Box sx={{ height: 32, width: '1px', bgcolor: 'divider', display: { xs: 'none', sm: 'block' } }} />
+          </Stack>
+          
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                Face Recognition Line Change
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {mode === 'pre-fixed'
+                  ? 'Pre-Fixed Mode: Continuous batch worker reassignment with auto-advance'
+                  : 'Post-Fixed Mode: Dynamic reassignment with live line occupancy monitoring'}
+              </Typography>
+            </Box>
 
+          {/* Active Mode Badge & Change Mode Action */}
+          <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
             <Button
               variant="outlined"
               size="small"
@@ -1379,74 +1393,11 @@ export function FaceLineChangeView() {
               Back to Line Assignment
             </Button>
           </Stack>
-
-          {/* Active Mode Badge & Change Mode Action */}
-          <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
-            <Label
-              variant="filled"
-              color={mode === 'pre-fixed' ? 'primary' : 'secondary'}
-              startIcon={
-                <Iconify
-                  icon={(mode === 'pre-fixed' ? 'solar:bolt-bold' : 'solar:target-bold') as any}
-                  width={16}
-                />
-              }
-              sx={{
-                px: 1.5,
-                py: 2,
-                fontSize: 13,
-                fontWeight: 700,
-                borderRadius: '12px',
-                textTransform: 'none',
-              }}
-            >
-              {mode === 'pre-fixed' ? 'Pre-Fixed Line Mode' : 'Post-Fixed Line Mode'}
-            </Label>
-
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<Iconify icon={"solar:tuning-bold" as any} width={14} />}
-              onClick={() => setOpenModeDialog(true)}
-              sx={{ borderRadius: '16px', fontSize: 12, fontWeight: 700 }}
-            >
-              Change Mode
-            </Button>
-          </Stack>
         </Stack>
       </Box>
 
       {/* ── Main Container ── */}
       <Container maxWidth="xl">
-        {/* Page Title & Status Alerts */}
-        <Stack spacing={2} sx={{ mb: 3 }}>
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box
-              sx={{
-                width: 44,
-                height: 44,
-                borderRadius: '12px',
-                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
-                color: COMMON_COLORS.emerald.main,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Iconify icon={"solar:face-scan-circle-bold" as any} width={26} />
-            </Box>
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: 800 }}>
-                Face Recognition Line Change
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {mode === 'pre-fixed'
-                  ? 'Pre-Fixed Mode: Continuous batch worker reassignment with auto-advance'
-                  : 'Post-Fixed Mode: Dynamic reassignment with live line occupancy monitoring'}
-              </Typography>
-            </Box>
-          </Stack>
-        </Stack>
 
       <Grid container spacing={3}>
         {/* ── LEFT PANEL: Live Camera & Recognition Viewfinder ── */}
