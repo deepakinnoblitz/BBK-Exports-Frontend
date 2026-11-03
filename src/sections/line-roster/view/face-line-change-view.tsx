@@ -500,7 +500,6 @@ export function FaceLineChangeView() {
                   sx={{
                     fontSize: '0.95rem',
                     fontWeight: 800,
-                    letterSpacing: '0.14em',
                     color: '#1e293b',
                     textTransform: 'uppercase',
                     lineHeight: 1.2,
@@ -818,7 +817,7 @@ export function FaceLineChangeView() {
                 label="Effective Date"
                 value={effectiveDate}
                 onChange={(val) => setEffectiveDate(val)}
-                slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                slotProps={{ textField: { size: 'medium', fullWidth: true } }}
               />
             </LocalizationProvider>
 
@@ -836,22 +835,6 @@ export function FaceLineChangeView() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main }}>
                     Pre-Fixed Batch Transfer Line Settings
                   </Typography>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        size="small"
-                        checked={autoAdvance}
-                        onChange={(e) => setAutoAdvance(e.target.checked)}
-                        color="success"
-                      />
-                    }
-                    label={
-                      <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                        Auto-Advance (1.5s)
-                      </Typography>
-                    }
-                    sx={{ m: 0 }}
-                  />
                 </Stack>
 
                 <Grid container spacing={2}>
@@ -861,6 +844,7 @@ export function FaceLineChangeView() {
                       <Select
                         label="From Line (Source)"
                         value={sourceLine}
+                        size='medium'
                         onChange={(e) => setSourceLine(e.target.value)}
                       >
                         {lines.map((l) => (
@@ -878,6 +862,7 @@ export function FaceLineChangeView() {
                       <Select
                         label="To Line (Target)"
                         value={targetLine}
+                        size='medium'
                         onChange={(e) => setTargetLine(e.target.value)}
                       >
                         {lines.map((l) => (
