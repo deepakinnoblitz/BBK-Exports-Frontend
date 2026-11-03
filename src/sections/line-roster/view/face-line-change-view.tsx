@@ -96,15 +96,20 @@ function drawFaceBiometrics(
   worker: FaceCatalogItem | null,
   confidenceVal: number,
   time: number,
-  effectiveTargetLine: string
+  effectiveTargetLine: string,
+  isManualSelection = false
 ) {
   const { x, y, width: w, height: h } = box;
   const cx = x + w / 2;
   const cy = y + h / 2;
 
+  const isLowConfidence = Boolean(isLocked && worker && (confidenceVal < 50 || isManualSelection));
+
   const primaryColor =
     isLocked && worker
-      ? '#10b981'
+      ? isLowConfidence
+        ? '#f59e0b'
+        : '#10b981'
       : isUnrecognized
       ? '#ef4444'
       : isScanning
@@ -116,7 +121,9 @@ function drawFaceBiometrics(
   // 1. Subtle perimeter boundary
   ctx.strokeStyle =
     isLocked && worker
-      ? 'rgba(16, 185, 129, 0.35)'
+      ? isLowConfidence
+        ? 'rgba(245, 158, 11, 0.45)'
+        : 'rgba(16, 185, 129, 0.35)'
       : isUnrecognized
       ? 'rgba(239, 68, 68, 0.4)'
       : 'rgba(6, 182, 212, 0.25)';
@@ -188,10 +195,19 @@ function drawFaceBiometrics(
   const eyeRightX = x + w * 0.68;
   const eyeRadius = Math.max(3, w * 0.024);
 
-  ctx.strokeStyle = isLocked && worker ? '#10b981' : isUnrecognized ? '#f59e0b' : '#38bdf8';
+  ctx.strokeStyle =
+    isLocked && worker
+      ? isLowConfidence
+        ? '#f59e0b'
+        : '#10b981'
+      : isUnrecognized
+      ? '#f59e0b'
+      : '#38bdf8';
   ctx.fillStyle =
     isLocked && worker
-      ? 'rgba(16, 185, 129, 0.4)'
+      ? isLowConfidence
+        ? 'rgba(245, 158, 11, 0.4)'
+        : 'rgba(16, 185, 129, 0.4)'
       : isUnrecognized
       ? 'rgba(245, 158, 11, 0.35)'
       : 'rgba(56, 189, 248, 0.3)';
@@ -222,31 +238,35 @@ function drawFaceBiometrics(
   ctx.lineTo(cx + 10, y + h * 0.74);
   ctx.stroke();
 
-  // 4. Internal Sweeping Laser Line
-  const laserNorm = (Math.sin(time * 0.0035) + 1) / 2;
-  const laserY = y + 10 + laserNorm * (h - 20);
-  const laserGrad = ctx.createLinearGradient(x, laserY, x + w, laserY);
-  const rgb = isLocked && worker ? '16, 185, 129' : isUnrecognized ? '245, 158, 11' : '6, 182, 212';
-  laserGrad.addColorStop(0, `rgba(${rgb}, 0)`);
-  laserGrad.addColorStop(0.3, `rgba(${rgb}, 0.85)`);
-  laserGrad.addColorStop(0.5, '#ffffff');
-  laserGrad.addColorStop(0.7, `rgba(${rgb}, 0.85)`);
-  laserGrad.addColorStop(1, `rgba(${rgb}, 0)`);
+  // 4. Internal Sweeping Laser Line (Active only while scanning/tracking, disabled once verified)
+  if (!isLocked || !worker) {
+    const laserNorm = (Math.sin(time * 0.0035) + 1) / 2;
+    const laserY = y + 10 + laserNorm * (h - 20);
+    const laserGrad = ctx.createLinearGradient(x, laserY, x + w, laserY);
+    const rgb = isUnrecognized ? '245, 158, 11' : '6, 182, 212';
+    laserGrad.addColorStop(0, `rgba(${rgb}, 0)`);
+    laserGrad.addColorStop(0.3, `rgba(${rgb}, 0.85)`);
+    laserGrad.addColorStop(0.5, '#ffffff');
+    laserGrad.addColorStop(0.7, `rgba(${rgb}, 0.85)`);
+    laserGrad.addColorStop(1, `rgba(${rgb}, 0)`);
 
-  ctx.strokeStyle = laserGrad;
-  ctx.lineWidth = 2;
-  ctx.shadowColor = primaryColor;
-  ctx.shadowBlur = 8;
-  ctx.beginPath();
-  ctx.moveTo(x + 6, laserY);
-  ctx.lineTo(x + w - 6, laserY);
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+    ctx.strokeStyle = laserGrad;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = primaryColor;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(x + 6, laserY);
+    ctx.lineTo(x + w - 6, laserY);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
 
   // 5. Floating Status Badge Above Face
   const badgeText =
     isLocked && worker
-      ? `✓ VERIFIED: ${worker.employee_name} (${confidenceVal}%)`
+      ? isManualSelection
+        ? `✎ MANUAL: ${worker.employee_name} (Manual Fallback)`
+        : `✓ VERIFIED: ${worker.employee_name} (${confidenceVal}%)`
       : isUnrecognized
       ? nextScanSecs > 0
         ? `❌ EMPLOYEE NOT FOUND (Rescan in ${nextScanSecs.toFixed(0)}s)`
@@ -267,7 +287,9 @@ function drawFaceBiometrics(
   // Badge background
   ctx.fillStyle =
     isLocked && worker
-      ? 'rgba(16, 185, 129, 0.94)'
+      ? isLowConfidence
+        ? 'rgba(217, 119, 6, 0.95)'
+        : 'rgba(16, 185, 129, 0.94)'
       : isUnrecognized
       ? 'rgba(220, 38, 38, 0.95)'
       : 'rgba(15, 23, 42, 0.88)';
@@ -303,14 +325,14 @@ function drawFaceBiometrics(
     const subY = y + h + 10;
 
     ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-    ctx.strokeStyle = 'rgba(16, 185, 129, 0.85)';
+    ctx.strokeStyle = isLowConfidence ? 'rgba(245, 158, 11, 0.85)' : 'rgba(16, 185, 129, 0.85)';
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     drawRoundedRect(ctx, subX, subY, subW, subH, 11);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = '#34d399';
+    ctx.fillStyle = isLowConfidence ? '#fbbf24' : '#34d399';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(subText, cx, subY + subH / 2);
@@ -495,7 +517,8 @@ export function FaceLineChangeView() {
   // Pre-Fixed Form
   const [sourceLine, setSourceLine] = useState('');
   const [targetLine, setTargetLine] = useState('');
-  const [effectiveDate, setEffectiveDate] = useState<dayjs.Dayjs | null>(dayjs());
+  const [effectiveFrom, setEffectiveFrom] = useState<dayjs.Dayjs | null>(dayjs());
+  const [effectiveTo, setEffectiveTo] = useState<dayjs.Dayjs | null>(dayjs());
 
   const sourceLineOptions = useMemo(
     () => [
@@ -516,6 +539,7 @@ export function FaceLineChangeView() {
   const [isScanning, setIsScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [enrollWorker, setEnrollWorker] = useState<FaceCatalogItem | null>(null);
+  const [isManualSelection, setIsManualSelection] = useState(false);
 
   const isMatchingRef = useRef(false);
   const matchAttemptsRef = useRef(0);
@@ -574,6 +598,9 @@ export function FaceLineChangeView() {
   const postTargetLineRef = useRef<string>(postTargetLine);
   postTargetLineRef.current = postTargetLine;
 
+  const isManualSelectionRef = useRef<boolean>(false);
+  isManualSelectionRef.current = isManualSelection;
+
   const catalogRef = useRef<FaceCatalogItem[]>([]);
   catalogRef.current = catalog;
 
@@ -616,7 +643,7 @@ export function FaceLineChangeView() {
   const loadInitialData = useCallback(async () => {
     try {
       const [lineList, catList] = await Promise.all([
-        fetchLiveLineOccupancy(effectiveDate?.format('YYYY-MM-DD')),
+        fetchLiveLineOccupancy(effectiveFrom?.format('YYYY-MM-DD')),
         fetchFaceCatalog(),
       ]);
       setLines(lineList);
@@ -641,7 +668,7 @@ export function FaceLineChangeView() {
     } catch (err: any) {
       enqueueSnackbar(err.message || 'Failed to initialize line data', { variant: 'error' });
     }
-  }, [effectiveDate, enqueueSnackbar]);
+  }, [effectiveFrom, enqueueSnackbar]);
 
   useEffect(() => {
     loadInitialData();
@@ -823,6 +850,7 @@ export function FaceLineChangeView() {
             trackerRef.current.lastMatchedEmployee = matchResult.worker.name;
             trackerRef.current.cooldownUntil = Date.now() + 4000;
             setUnrecognizedFace(false);
+            setIsManualSelection(false);
             handleSelectWorker(matchResult.worker, matchResult.confidence);
           } else {
             // First candidate frame matched! Queue instant confirmation pass in 180ms
@@ -860,11 +888,17 @@ export function FaceLineChangeView() {
   // ── Manual Scan Trigger ────────────────────────────────────────────────
   const handleManualScanNow = useCallback(async () => {
     if (isMatchingRef.current) return;
+    // Clear previous verified worker state so UI immediately resets/refreshes
+    setActiveWorker(null);
+    setManualSearchVal(null);
+    setCountdown(0);
+    setUnrecognizedFace(false);
+    setIsManualSelection(false);
+    candidateMatchRef.current = null;
+    matchAttemptsRef.current = 0;
     trackerRef.current.cooldownUntil = 0;
     trackerRef.current.lockFrames = 0;
-    matchAttemptsRef.current = 0;
-    candidateMatchRef.current = null;
-    setUnrecognizedFace(false);
+    trackerRef.current.lastMatchedEmployee = null;
     await triggerAutoMatch(true);
   }, [triggerAutoMatch]);
 
@@ -1132,7 +1166,8 @@ export function FaceLineChangeView() {
           activeWorkerRef.current,
           confidenceRef.current,
           time,
-          effectiveTargetLine
+          effectiveTargetLine,
+          isManualSelectionRef.current
         );
       } else {
         if (tracker.smoothBox) {
@@ -1177,7 +1212,8 @@ export function FaceLineChangeView() {
       const res = await executeFaceRecognitionLineChange({
         employee: activeWorker.name,
         target_line: chosenTargetLine,
-        effective_from: effectiveDate?.format('YYYY-MM-DD'),
+        effective_from: effectiveFrom?.format('YYYY-MM-DD'),
+        effective_to: effectiveTo?.format('YYYY-MM-DD'),
         source_line: workerCurrentLine,
         mode: mode === 'pre-fixed' ? 'Pre-Fixed' : 'Post-Fixed',
       });
@@ -1203,11 +1239,12 @@ export function FaceLineChangeView() {
       );
 
       // Refresh live lines occupancy
-      fetchLiveLineOccupancy(effectiveDate?.format('YYYY-MM-DD')).then(setLines).catch(() => {});
+      fetchLiveLineOccupancy(effectiveFrom?.format('YYYY-MM-DD')).then(setLines).catch(() => {});
 
       // Clear active worker to scan next
       setActiveWorker(null);
       setManualSearchVal(null);
+      setIsManualSelection(false);
       candidateMatchRef.current = null;
       setCountdown(0);
       setUnrecognizedFace(false);
@@ -1221,7 +1258,7 @@ export function FaceLineChangeView() {
     } finally {
       setSubmitting(false);
     }
-  }, [activeWorker, mode, targetLine, postTargetLine, soundEnabled, effectiveDate, enqueueSnackbar]);
+  }, [activeWorker, mode, targetLine, postTargetLine, soundEnabled, effectiveFrom, effectiveTo, enqueueSnackbar]);
 
   // Auto-advance Countdown Timer
   useEffect(() => {
@@ -1256,7 +1293,7 @@ export function FaceLineChangeView() {
         roster_id: log.roster_id,
         employee: log.employee_id,
         previous_line: log.previous_line,
-        effective_from: effectiveDate?.format('YYYY-MM-DD'),
+        effective_from: effectiveFrom?.format('YYYY-MM-DD'),
       });
 
       // Remove from session logs
@@ -1274,7 +1311,7 @@ export function FaceLineChangeView() {
       );
 
       // Refresh live lines occupancy
-      fetchLiveLineOccupancy(effectiveDate?.format('YYYY-MM-DD')).then(setLines).catch(() => {});
+      fetchLiveLineOccupancy(effectiveFrom?.format('YYYY-MM-DD')).then(setLines).catch(() => {});
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err?.message || err?.error || 'Failed to undo assignment';
       enqueueSnackbar(msg, { variant: 'error' });
@@ -1286,6 +1323,7 @@ export function FaceLineChangeView() {
   const handleSkipWorker = () => {
     setActiveWorker(null);
     setManualSearchVal(null);
+    setIsManualSelection(false);
     candidateMatchRef.current = null;
     setCountdown(0);
     setUnrecognizedFace(false);
@@ -1574,7 +1612,9 @@ export function FaceLineChangeView() {
                   variant="filled"
                   color={
                     activeWorker
-                      ? 'success'
+                      ? isManualSelection || confidence < 50
+                        ? 'warning'
+                        : 'success'
                       : unrecognizedFace
                       ? 'error'
                       : isScanning
@@ -1586,7 +1626,9 @@ export function FaceLineChangeView() {
                   sx={{ backdropFilter: 'blur(8px)', px: 1.5, py: 0.6, fontWeight: 700, fontSize: 12 }}
                 >
                   {activeWorker
-                    ? `✓ Verified: ${activeWorker.employee_name} (${confidence}%)`
+                    ? isManualSelection
+                      ? `✎ Manual Selection: ${activeWorker.employee_name} (Fallback)`
+                      : `✓ Verified: ${activeWorker.employee_name} (${confidence}%)`
                     : unrecognizedFace
                     ? 'Employee Not Found • Unassigned'
                     : isScanning
@@ -1688,7 +1730,10 @@ export function FaceLineChangeView() {
                   setManualSearchVal(val);
                   if (val) {
                     setUnrecognizedFace(false);
-                    handleSelectWorker(val, val.face_enrolled === 1 ? 100 : 0);
+                    setIsManualSelection(true);
+                    handleSelectWorker(val, 0);
+                  } else {
+                    setIsManualSelection(false);
                   }
                 }}
                 renderInput={(params) => (
@@ -1715,14 +1760,32 @@ export function FaceLineChangeView() {
         {/* ── RIGHT PANEL: Mode Setup & Line Assignment Action ── */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Stack spacing={2.5}>
-            {/* Effective Date Selector */}
+            {/* Effective Date Range Selectors */}
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker
-                label="Effective Date"
-                value={effectiveDate}
-                onChange={(val) => setEffectiveDate(val)}
-                slotProps={{ textField: { size: 'medium', fullWidth: true } }}
-              />
+              <Grid container spacing={1.5}>
+                <Grid size={{ xs: 6 }}>
+                  <DatePicker
+                    label="Effective From"
+                    value={effectiveFrom}
+                    onChange={(val) => {
+                      setEffectiveFrom(val);
+                      if (effectiveTo && val && val.isAfter(effectiveTo)) {
+                        setEffectiveTo(val);
+                      }
+                    }}
+                    slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <DatePicker
+                    label="Effective To"
+                    value={effectiveTo}
+                    minDate={effectiveFrom || undefined}
+                    onChange={(val) => setEffectiveTo(val)}
+                    slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                  />
+                </Grid>
+              </Grid>
             </LocalizationProvider>
 
             {/* ── PRE-FIXED MODE CONFIGURATION ── */}
