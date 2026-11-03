@@ -17,7 +17,11 @@ import DialogContent from '@mui/material/DialogContent';
 import CircularProgress from '@mui/material/CircularProgress';
 import { alpha, useTheme, keyframes } from '@mui/material/styles';
 
-import { loadFaceRecognitionModels, extractFaceDescriptorFromMedia } from 'src/utils/face-recognition';
+import {
+  normalizeEmbedding,
+  loadFaceRecognitionModels,
+  extractFaceDescriptorFromMedia,
+} from 'src/utils/face-recognition';
 
 import { COMMON_COLORS } from 'src/theme';
 import { saveEmployeeFaceEmbedding } from 'src/api/line-roster';
@@ -234,14 +238,21 @@ export function EmployeeFaceEnrollmentDialog({
       });
 
       const extracted = await extractFaceDescriptorFromMedia(img);
-      if (extracted) {
-        realDescriptor = extracted.descriptor;
-        landmarksData = extracted.landmarks;
+      if (!extracted || !extracted.descriptor) {
+        setStatusMsg({
+          severity: 'error',
+          text: 'No clear face detected in the photo. Please ensure face is centered with good lighting and try again.',
+        });
+        setSubmitting(false);
+        return;
       }
+
+      realDescriptor = Array.from(normalizeEmbedding(extracted.descriptor));
+      landmarksData = extracted.landmarks;
 
       const res = await saveEmployeeFaceEmbedding({
         employee: employeeId,
-        face_descriptor: realDescriptor || Array.from({ length: 128 }, () => +(Math.random() * 2 - 1).toFixed(4)),
+        face_descriptor: realDescriptor,
         face_3d_landmarks: landmarksData,
         face_image: capturedImage,
       });

@@ -515,6 +515,7 @@ export function FaceLineChangeView() {
 
   const isMatchingRef = useRef(false);
   const matchAttemptsRef = useRef(0);
+  const candidateMatchRef = useRef<{ worker: FaceCatalogItem; confidence: number } | null>(null);
 
   // Toggles
   const [autoAdvance, setAutoAdvance] = useState(false);
@@ -786,17 +787,27 @@ export function FaceLineChangeView() {
       // Reset attempts once descriptor is found
       matchAttemptsRef.current = 0;
 
-      // 2. Perform Euclidean distance biometric comparison against enrolled workers
+      // 2. Perform Strict Dual-Gate Biometric Comparison (Euclidean dist <= 0.44 AND Cosine >= 0.76)
       const matchResult = matchFaceDescriptor(extracted.descriptor, enrolledWorkers);
 
       if (matchResult) {
-        // Real biometric match verified!
-        trackerRef.current.lastMatchedEmployee = matchResult.worker.name;
-        trackerRef.current.cooldownUntil = Date.now() + 4000;
-        setUnrecognizedFace(false);
-        handleSelectWorker(matchResult.worker, matchResult.confidence);
+        // Multi-Frame Temporal Double-Confirmation:
+        // Ensure the same candidate matches across 2 consecutive checks ~180ms apart
+        if (candidateMatchRef.current?.worker.name === matchResult.worker.name) {
+          // Double-confirmed! Real employee identity verified!
+          candidateMatchRef.current = null;
+          trackerRef.current.lastMatchedEmployee = matchResult.worker.name;
+          trackerRef.current.cooldownUntil = Date.now() + 4000;
+          setUnrecognizedFace(false);
+          handleSelectWorker(matchResult.worker, matchResult.confidence);
+        } else {
+          // First candidate frame matched! Queue instant confirmation pass in 180ms
+          candidateMatchRef.current = { worker: matchResult.worker, confidence: matchResult.confidence };
+          trackerRef.current.cooldownUntil = Date.now() + 180;
+        }
       } else {
-        // Face is present, but does not match any enrolled face descriptor (< 0.58 threshold)
+        // Did not meet strict biometric match threshold (distance > 0.44 or cosine < 0.76)
+        candidateMatchRef.current = null;
         setUnrecognizedFace(true);
         setActiveWorker(null);
         // Wait 3.0 seconds before next scan
@@ -984,6 +995,7 @@ export function FaceLineChangeView() {
           setIsFaceTracked(false);
           setUnrecognizedFace(false);
           matchAttemptsRef.current = 0;
+          candidateMatchRef.current = null;
           trackerRef.current.cooldownUntil = 0;
         }
       }
@@ -1151,6 +1163,7 @@ export function FaceLineChangeView() {
       // Clear active worker to scan next
       setActiveWorker(null);
       setManualSearchVal(null);
+      candidateMatchRef.current = null;
       setCountdown(0);
       setUnrecognizedFace(false);
       trackerRef.current.smoothBox = null;
@@ -1226,6 +1239,7 @@ export function FaceLineChangeView() {
   const handleSkipWorker = () => {
     setActiveWorker(null);
     setManualSearchVal(null);
+    candidateMatchRef.current = null;
     setCountdown(0);
     setErrorMsg('');
     setSuccessMsg('');

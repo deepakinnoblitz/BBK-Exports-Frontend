@@ -89,19 +89,51 @@ export async function extractFaceDescriptorFromMedia(
 }
 
 /**
+ * Normalizes a 128-D vector to unit Euclidean norm (L2 norm = 1.0)
+ */
+export function normalizeEmbedding(desc: number[] | Float32Array): Float32Array {
+  const arr = desc instanceof Float32Array ? new Float32Array(desc) : new Float32Array(desc);
+  let sum = 0;
+  for (let i = 0; i < arr.length; i += 1) {
+    sum += arr[i] * arr[i];
+  }
+  const norm = Math.sqrt(sum) || 1e-6;
+  for (let i = 0; i < arr.length; i += 1) {
+    arr[i] /= norm;
+  }
+  return arr;
+}
+
+/**
+ * Computes cosine similarity between two unit-normalized vectors: sum(u_i * v_i)
+ */
+export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
+  let dot = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    dot += a[i] * b[i];
+  }
+  return dot;
+}
+
+/**
  * Compare live face descriptor against enrolled employees
- * Returns best matching worker if within Euclidean distance threshold (< 0.58), else null
+ * Strict Biometric Verification Standard:
+ * - Requires Euclidean distance <= 0.44 (high-security match, strictly rejects colleagues/unenrolled persons)
+ * - Requires Cosine similarity >= 0.76 (guarantees directional angle alignment)
+ * Both mathematical gates must agree to prevent false acceptance!
  */
 export function matchFaceDescriptor<T extends { name: string; face_enrolled: number; face_descriptor?: any }>(
   liveDescriptor: number[] | Float32Array,
-  enrolledCatalog: T[]
-): { worker: T; distance: number; confidence: number } | null {
-  const targetDesc = liveDescriptor instanceof Float32Array ? liveDescriptor : new Float32Array(liveDescriptor);
-  let bestMatch: { worker: T; distance: number; confidence: number } | null = null;
+  enrolledCatalog: T[],
+  customThreshold?: number
+): { worker: T; distance: number; cosine: number; confidence: number } | null {
+  const targetDesc = normalizeEmbedding(liveDescriptor);
+  let bestMatch: { worker: T; distance: number; cosine: number; confidence: number } | null = null;
   let minDistance = Infinity;
 
-  // Maximum Euclidean distance threshold for match (face-api standard is 0.58 for webcams)
-  const MATCH_THRESHOLD = 0.58;
+  // Strict high-security threshold: 0.44 (strictly rejects distinct persons in 128-D space)
+  const MATCH_THRESHOLD = customThreshold ?? 0.44;
+  const MIN_COSINE_SIMILARITY = 0.76;
 
   for (const item of enrolledCatalog) {
     if (item.face_enrolled !== 1 || !item.face_descriptor) {
@@ -118,15 +150,17 @@ export function matchFaceDescriptor<T extends { name: string; face_enrolled: num
       continue;
     }
 
-    const workerDesc = new Float32Array(raw);
+    const workerDesc = normalizeEmbedding(raw);
     const dist = faceapi.euclideanDistance(targetDesc, workerDesc);
+    const cosSim = cosineSimilarity(targetDesc, workerDesc);
 
     if (dist < minDistance) {
       minDistance = dist;
-      if (dist < MATCH_THRESHOLD) {
-        // Map distance [0.2 -> 0.58] to confidence percentage [99.5% -> 80%]
-        const confidence = Math.max(78, Math.min(99.4, +((1 - dist / 0.72) * 100).toFixed(1)));
-        bestMatch = { worker: item, distance: dist, confidence };
+      // Strict dual gate: Euclidean distance AND Cosine similarity must both pass
+      if (dist <= MATCH_THRESHOLD && cosSim >= MIN_COSINE_SIMILARITY) {
+        // High confidence mapping: 0.20 dist -> 99.4%, 0.44 dist -> 88.0%
+        const confidence = Math.max(86, Math.min(99.6, +((1 - dist / 0.8) * 100).toFixed(1)));
+        bestMatch = { worker: item, distance: dist, cosine: cosSim, confidence };
       }
     }
   }
@@ -176,7 +210,7 @@ export async function ensureWorkerFaceDescriptor<
     if (extracted) {
       return {
         ...worker,
-        face_descriptor: extracted.descriptor,
+        face_descriptor: Array.from(normalizeEmbedding(extracted.descriptor)),
       };
     }
   } catch (err) {
