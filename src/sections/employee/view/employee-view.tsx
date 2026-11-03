@@ -51,9 +51,14 @@ import { getStates, getCities } from 'src/api/location';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getBusTravelRoute, fetchBankAccounts } from 'src/api/masters';
 import { getEmployee, createEmployee, updateEmployee, deleteEmployee } from 'src/api/employees';
-import { createLineRosterAssignment, clearEmployeeFaceEmbedding, deleteOrCancelLineRosterAssignment } from 'src/api/line-roster';
 import { getHRSettings, fetchFrappeList, getHRPermissions, getDocTypeMetadata, fetchSalaryComponents } from 'src/api/hr-management';
 import { createRosterAssignment as createShiftRosterAssignment, deleteOrCancelRosterAssignment as deleteOrCancelShiftRosterAssignment } from 'src/api/shift-roster';
+import {
+  saveEmployeeFaceEmbedding,
+  createLineRosterAssignment,
+  clearEmployeeFaceEmbedding,
+  deleteOrCancelLineRosterAssignment,
+} from 'src/api/line-roster';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -1245,6 +1250,31 @@ export function EmployeeView() {
                     return;
                 }
 
+                // Commit pending face biometrics only when user clicks Update Employee
+                if (dataToSave._faceBiometricsPendingClear) {
+                    try {
+                        await clearEmployeeFaceEmbedding(currentEmployeeId);
+                    } catch (clearErr) {
+                        console.error('Failed to clear biometrics:', clearErr);
+                    }
+                } else if (dataToSave._faceBiometricsPendingSave && dataToSave.face_descriptor) {
+                    try {
+                        const bioRes = await saveEmployeeFaceEmbedding({
+                            employee: currentEmployeeId,
+                            face_descriptor: dataToSave.face_descriptor,
+                            face_3d_landmarks: dataToSave.face_3d_landmarks,
+                            face_image: dataToSave.face_enrolled_image,
+                        });
+                        if (bioRes?.face_enrolled_image) {
+                            dataToSave.face_enrolled_image = bioRes.face_enrolled_image;
+                        }
+                    } catch (bioErr) {
+                        console.error('Failed to save face biometrics:', bioErr);
+                    }
+                }
+                delete dataToSave._faceBiometricsPendingSave;
+                delete dataToSave._faceBiometricsPendingClear;
+
                 console.log("Saving Employee", dataToSave);
                 await updateEmployee(currentEmployeeId, dataToSave as any);
                 handleCloseCreate();
@@ -1280,6 +1310,30 @@ export function EmployeeView() {
                 ...pendingEmployeeData,
                 line_order: originalEmployeeLine,
             };
+
+            if (employeeData._faceBiometricsPendingClear) {
+                try {
+                    await clearEmployeeFaceEmbedding(currentEmployeeId);
+                } catch (clearErr) {
+                    console.error('Failed to clear biometrics:', clearErr);
+                }
+            } else if (employeeData._faceBiometricsPendingSave && employeeData.face_descriptor) {
+                try {
+                    const bioRes = await saveEmployeeFaceEmbedding({
+                        employee: currentEmployeeId,
+                        face_descriptor: employeeData.face_descriptor,
+                        face_3d_landmarks: employeeData.face_3d_landmarks,
+                        face_image: employeeData.face_enrolled_image,
+                    });
+                    if (bioRes?.face_enrolled_image) {
+                        employeeData.face_enrolled_image = bioRes.face_enrolled_image;
+                    }
+                } catch (bioErr) {
+                    console.error('Failed to save face biometrics:', bioErr);
+                }
+            }
+            delete employeeData._faceBiometricsPendingSave;
+            delete employeeData._faceBiometricsPendingClear;
 
             await updateEmployee(currentEmployeeId, employeeData as any);
 
@@ -1349,6 +1403,30 @@ export function EmployeeView() {
                 line_order: originalEmployeeLine,
             };
 
+            if (employeeData._faceBiometricsPendingClear) {
+                try {
+                    await clearEmployeeFaceEmbedding(currentEmployeeId);
+                } catch (clearErr) {
+                    console.error('Failed to clear biometrics:', clearErr);
+                }
+            } else if (employeeData._faceBiometricsPendingSave && employeeData.face_descriptor) {
+                try {
+                    const bioRes = await saveEmployeeFaceEmbedding({
+                        employee: currentEmployeeId,
+                        face_descriptor: employeeData.face_descriptor,
+                        face_3d_landmarks: employeeData.face_3d_landmarks,
+                        face_image: employeeData.face_enrolled_image,
+                    });
+                    if (bioRes?.face_enrolled_image) {
+                        employeeData.face_enrolled_image = bioRes.face_enrolled_image;
+                    }
+                } catch (bioErr) {
+                    console.error('Failed to save face biometrics:', bioErr);
+                }
+            }
+            delete employeeData._faceBiometricsPendingSave;
+            delete employeeData._faceBiometricsPendingClear;
+
             await updateEmployee(currentEmployeeId, employeeData as any);
 
             // 2. Save only the newly added shift assignment record for the selected employee (applies to all future dates)
@@ -1413,33 +1491,22 @@ export function EmployeeView() {
         }
     };
 
-    const handleClearBiometrics = async () => {
-        if (!currentEmployeeId) return;
-
-        try {
-            await clearEmployeeFaceEmbedding(currentEmployeeId);
-            setFormData((prev) => ({
-                ...prev,
-                face_enrolled: 0,
-                face_enrolled_at: '',
-                face_enrolled_image: '',
-                face_descriptor: null,
-                face_3d_landmarks: null,
-            }));
-            await refetch();
-            setSnackbar({
-                open: true,
-                message: 'Face biometrics removed successfully.',
-                severity: 'success',
-            });
-        } catch (err: any) {
-            console.error('Failed to clear biometrics:', err);
-            setSnackbar({
-                open: true,
-                message: err.message || 'Failed to remove face biometrics.',
-                severity: 'error',
-            });
-        }
+    const handleClearBiometrics = () => {
+        setFormData((prev) => ({
+            ...prev,
+            face_enrolled: 0,
+            face_enrolled_at: '',
+            face_enrolled_image: '',
+            face_descriptor: null,
+            face_3d_landmarks: null,
+            _faceBiometricsPendingClear: true,
+            _faceBiometricsPendingSave: false,
+        }));
+        setSnackbar({
+            open: true,
+            message: 'Face biometrics removed! Click "Update Employee" to save changes.',
+            severity: 'info',
+        });
     };
 
     const handleEditRow = async (id: string) => {
@@ -1514,9 +1581,6 @@ export function EmployeeView() {
             setSnackbar({ open: true, message: 'Failed to load employee details', severity: 'error' });
         }
     };
-
-
-
 
     const onChangePage = (event: unknown, newPage: number) => {
         setPage(newPage);
@@ -3749,19 +3813,23 @@ export function EmployeeView() {
                     department={enrollModal.department}
                     designation={enrollModal.designation}
                     currentPhoto={enrollModal.currentPhoto}
+                    saveImmediately={false}
                     onSuccess={(res) => {
-                        refetch();
                         if (currentEmployeeId && currentEmployeeId === enrollModal.employeeId) {
                             setFormData((prev) => ({
                                 ...prev,
                                 face_enrolled: 1,
                                 face_enrolled_image: res.face_enrolled_image || prev.face_enrolled_image,
                                 face_enrolled_at: res.face_enrolled_at || dayjs().format('YYYY-MM-DD HH:mm:ss'),
+                                face_descriptor: res.face_descriptor || prev.face_descriptor,
+                                face_3d_landmarks: res.face_3d_landmarks || prev.face_3d_landmarks,
+                                _faceBiometricsPendingSave: true,
+                                _faceBiometricsPendingClear: false,
                             }));
                         }
                         setSnackbar({
                             open: true,
-                            message: 'Face biometrics enrolled successfully!',
+                            message: 'Face biometrics captured! Click "Update Employee" to save changes.',
                             severity: 'success',
                         });
                     }}
