@@ -24,6 +24,7 @@ type Props = {
         department: string;
         designation: string;
         status: string;
+        faceEnrolled?: boolean | number;
     };
     selected: boolean;
     onSelectRow: VoidFunction;
@@ -153,6 +154,28 @@ export function EmployeeTableRow({
 
             <TableCell>
                 <Label color={(row.status === 'Active' && 'success') || 'error'}>{row.status}</Label>
+            </TableCell>
+
+            <TableCell>
+                {row.faceEnrolled ? (
+                    <Label
+                        variant="soft"
+                        color="success"
+                        startIcon={<Iconify icon={"solar:check-circle-bold" as any} width={14} />}
+                        sx={{ fontSize: 11, fontWeight: 700 }}
+                    >
+                        Enrolled
+                    </Label>
+                ) : (
+                    <Label
+                        variant="soft"
+                        color="default"
+                        startIcon={<Iconify icon={"solar:shield-warning-bold" as any} width={14} />}
+                        sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary' }}
+                    >
+                        Pending
+                    </Label>
+                )}
             </TableCell>
 
             <TableCell align="right">
