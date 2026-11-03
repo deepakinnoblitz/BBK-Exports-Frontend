@@ -35,6 +35,12 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useRouter } from 'src/routes/hooks';
 
+import {
+  faceapi,
+  matchFaceDescriptor,
+  loadFaceRecognitionModels,
+} from 'src/utils/face-recognition';
+
 import { COMMON_COLORS } from 'src/theme';
 import { CONFIG } from 'src/config-global';
 import {
@@ -48,6 +54,8 @@ import {
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
+
+import { EmployeeFaceEnrollmentDialog } from 'src/sections/employee/employee-face-enrollment-dialog';
 
 import { type LineChangeMode, FaceLineChangeModeDialog } from '../face-line-change-mode-dialog';
 
@@ -82,6 +90,7 @@ function drawFaceBiometrics(
   ctx: CanvasRenderingContext2D,
   box: { x: number; y: number; width: number; height: number },
   isLocked: boolean,
+  isUnrecognized: boolean,
   lockProgress: number,
   worker: FaceCatalogItem | null,
   confidenceVal: number,
@@ -92,12 +101,17 @@ function drawFaceBiometrics(
   const cx = x + w / 2;
   const cy = y + h / 2;
 
-  const primaryColor = isLocked ? '#10b981' : '#06b6d4';
+  const primaryColor = isLocked && worker ? '#10b981' : isUnrecognized ? '#f59e0b' : '#06b6d4';
 
   ctx.save();
 
   // 1. Subtle perimeter boundary
-  ctx.strokeStyle = isLocked ? 'rgba(16, 185, 129, 0.35)' : 'rgba(6, 182, 212, 0.25)';
+  ctx.strokeStyle =
+    isLocked && worker
+      ? 'rgba(16, 185, 129, 0.35)'
+      : isUnrecognized
+      ? 'rgba(245, 158, 11, 0.35)'
+      : 'rgba(6, 182, 212, 0.25)';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 6]);
   ctx.beginPath();
@@ -110,7 +124,7 @@ function drawFaceBiometrics(
   const r = 8;
   ctx.strokeStyle = primaryColor;
   ctx.shadowColor = primaryColor;
-  ctx.shadowBlur = isLocked ? 14 : 10;
+  ctx.shadowBlur = isLocked ? 14 : isUnrecognized ? 10 : 8;
   ctx.lineWidth = 2.8;
   ctx.lineCap = 'round';
 
@@ -166,8 +180,13 @@ function drawFaceBiometrics(
   const eyeRightX = x + w * 0.68;
   const eyeRadius = Math.max(3, w * 0.024);
 
-  ctx.strokeStyle = isLocked ? '#10b981' : '#38bdf8';
-  ctx.fillStyle = isLocked ? 'rgba(16, 185, 129, 0.4)' : 'rgba(56, 189, 248, 0.3)';
+  ctx.strokeStyle = isLocked && worker ? '#10b981' : isUnrecognized ? '#f59e0b' : '#38bdf8';
+  ctx.fillStyle =
+    isLocked && worker
+      ? 'rgba(16, 185, 129, 0.4)'
+      : isUnrecognized
+      ? 'rgba(245, 158, 11, 0.35)'
+      : 'rgba(56, 189, 248, 0.3)';
 
   // Left Eye
   ctx.beginPath();
@@ -199,7 +218,7 @@ function drawFaceBiometrics(
   const laserNorm = (Math.sin(time * 0.0035) + 1) / 2;
   const laserY = y + 10 + laserNorm * (h - 20);
   const laserGrad = ctx.createLinearGradient(x, laserY, x + w, laserY);
-  const rgb = isLocked ? '16, 185, 129' : '6, 182, 212';
+  const rgb = isLocked && worker ? '16, 185, 129' : isUnrecognized ? '245, 158, 11' : '6, 182, 212';
   laserGrad.addColorStop(0, `rgba(${rgb}, 0)`);
   laserGrad.addColorStop(0.3, `rgba(${rgb}, 0.85)`);
   laserGrad.addColorStop(0.5, '#ffffff');
@@ -220,6 +239,8 @@ function drawFaceBiometrics(
   const badgeText =
     isLocked && worker
       ? `✓ VERIFIED: ${worker.employee_name} (${confidenceVal}%)`
+      : isUnrecognized
+      ? '⚠️ UNENROLLED FACE • BIOMETRICS PENDING'
       : `⚲ TRACKING FACE • ${Math.round(lockProgress * 100)}%`;
 
   ctx.font = 'bold 12px "DM Sans", -apple-system, sans-serif';
@@ -230,8 +251,13 @@ function drawFaceBiometrics(
   const badgeY = Math.max(12, y - 34);
 
   // Badge background
-  ctx.fillStyle = isLocked ? 'rgba(16, 185, 129, 0.94)' : 'rgba(15, 23, 42, 0.88)';
-  ctx.strokeStyle = isLocked ? '#10b981' : '#06b6d4';
+  ctx.fillStyle =
+    isLocked && worker
+      ? 'rgba(16, 185, 129, 0.94)'
+      : isUnrecognized
+      ? 'rgba(180, 83, 9, 0.95)'
+      : 'rgba(15, 23, 42, 0.88)';
+  ctx.strokeStyle = primaryColor;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 13);
@@ -245,7 +271,7 @@ function drawFaceBiometrics(
   ctx.fillText(badgeText, cx, badgeY + badgeH / 2);
 
   // Locking progress bar under text if acquiring lock
-  if (!isLocked && lockProgress > 0) {
+  if (!isLocked && !isUnrecognized && lockProgress > 0) {
     const barW = (badgeW - 16) * lockProgress;
     ctx.fillStyle = '#06b6d4';
     ctx.beginPath();
@@ -253,7 +279,7 @@ function drawFaceBiometrics(
     ctx.fill();
   }
 
-  // 6. Sub-tag below face (when matched)
+  // 6. Sub-tag below face (when matched or unrecognized)
   if (isLocked && worker && effectiveTargetLine) {
     const subText = `${worker.current_line || worker.default_line || 'No Line'} → ${effectiveTargetLine}`;
     ctx.font = 'bold 11px "DM Sans", -apple-system, sans-serif';
@@ -271,6 +297,26 @@ function drawFaceBiometrics(
     ctx.stroke();
 
     ctx.fillStyle = '#34d399';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(subText, cx, subY + subH / 2);
+  } else if (isUnrecognized) {
+    const subText = 'Face Not Enrolled — Use Manual Search or Enroll Below';
+    ctx.font = 'bold 11px "DM Sans", -apple-system, sans-serif';
+    const subW = ctx.measureText(subText).width + 20;
+    const subH = 22;
+    const subX = cx - subW / 2;
+    const subY = y + h + 10;
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.85)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    drawRoundedRect(ctx, subX, subY, subW, subH, 11);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fbbf24';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(subText, cx, subY + subH / 2);
@@ -443,9 +489,11 @@ export function FaceLineChangeView() {
   const [activeWorker, setActiveWorker] = useState<FaceCatalogItem | null>(null);
   const [confidence, setConfidence] = useState<number>(0);
   const [isFaceTracked, setIsFaceTracked] = useState(false);
+  const [unrecognizedFace, setUnrecognizedFace] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [enrollWorker, setEnrollWorker] = useState<FaceCatalogItem | null>(null);
 
   // Toggles
   const [autoAdvance, setAutoAdvance] = useState(false);
@@ -485,6 +533,9 @@ export function FaceLineChangeView() {
   const activeWorkerRef = useRef<FaceCatalogItem | null>(null);
   activeWorkerRef.current = activeWorker;
 
+  const unrecognizedFaceRef = useRef<boolean>(false);
+  unrecognizedFaceRef.current = unrecognizedFace;
+
   const confidenceRef = useRef<number>(confidence);
   confidenceRef.current = confidence;
 
@@ -506,8 +557,10 @@ export function FaceLineChangeView() {
   const modeRef = useRef<LineChangeMode>(mode);
   modeRef.current = mode;
 
-  // Initialize Native FaceDetector & Offscreen Canvas
+  // Initialize Face Models (face-api.js), Native FaceDetector & Offscreen Canvas
   useEffect(() => {
+    loadFaceRecognitionModels('/models').catch(() => {});
+
     if (typeof window !== 'undefined' && 'FaceDetector' in window) {
       try {
         detectorRef.current = new (window as any).FaceDetector({
@@ -651,40 +704,54 @@ export function FaceLineChangeView() {
     [autoAdvance, lines, mode, soundEnabled]
   );
 
-  // ── Automatic Biometric Face Match Trigger ─────────────────────────────
-  const triggerAutoMatch = useCallback(() => {
+  // ── Real Deep-Learning Face Recognition Match Trigger ──────────────────
+  const triggerAutoMatch = useCallback(async () => {
+    const video = videoRef.current;
+    if (!video || video.readyState < 2) return;
+
     const cat = catalogRef.current;
     if (!cat || cat.length === 0) return;
 
-    const curMode = modeRef.current;
-    const curSource = sourceLineRef.current;
+    // Filter STRICTLY for enrolled workers (face_enrolled === 1)
+    const enrolledWorkers = cat.filter((c) => c.face_enrolled === 1);
 
-    // Prefer candidates on source line if Pre-Fixed mode
-    const sourceCandidates =
-      curMode === 'pre-fixed' && curSource
-        ? cat.filter((c) => (c.current_line || c.default_line) === curSource)
-        : cat;
+    if (enrolledWorkers.length === 0) {
+      // Zero workers on this line/system have enrolled face biometrics yet!
+      setUnrecognizedFace(true);
+      setActiveWorker(null);
+      return;
+    }
 
-    // Prefer employees with enrolled biometric face profiles
-    const enrolled = sourceCandidates.filter((c) => c.face_enrolled === 1);
-    const pool =
-      enrolled.length > 0
-        ? enrolled
-        : sourceCandidates.length > 0
-        ? sourceCandidates
-        : cat;
+    try {
+      // 1. Run real neural-net feature extraction from live camera
+      const detection = await faceapi
+        .detectSingleFace(
+          video,
+          new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })
+        )
+        .withFaceLandmarks(true)
+        .withFaceDescriptor();
 
-    if (pool.length === 0) return;
+      if (!detection || !detection.descriptor) {
+        return;
+      }
 
-    // Rotate avoiding immediate duplicate match
-    const filtered = pool.filter((c) => c.name !== trackerRef.current.lastMatchedEmployee);
-    const selected = filtered.length > 0 ? filtered[Math.floor(Math.random() * filtered.length)] : pool[0];
+      // 2. Perform Euclidean distance biometric comparison against enrolled workers
+      const matchResult = matchFaceDescriptor(detection.descriptor, enrolledWorkers);
 
-    if (selected) {
-      trackerRef.current.lastMatchedEmployee = selected.name;
-      trackerRef.current.cooldownUntil = Date.now() + 3800;
-      const score = +(96.4 + Math.random() * 3.4).toFixed(1);
-      handleSelectWorker(selected, score);
+      if (matchResult) {
+        // Real biometric match verified!
+        trackerRef.current.lastMatchedEmployee = matchResult.worker.name;
+        trackerRef.current.cooldownUntil = Date.now() + 4000;
+        setUnrecognizedFace(false);
+        handleSelectWorker(matchResult.worker, matchResult.confidence);
+      } else {
+        // Face is present, but does not match any enrolled face descriptor (< 0.55 threshold)
+        setUnrecognizedFace(true);
+        setActiveWorker(null);
+      }
+    } catch (err) {
+      console.warn('Real-time face recognition matching error:', err);
     }
   }, [handleSelectWorker]);
 
@@ -694,6 +761,7 @@ export function FaceLineChangeView() {
       trackerRef.current.rawTargetBox = null;
       trackerRef.current.smoothBox = null;
       setIsFaceTracked(false);
+      setUnrecognizedFace(false);
       return undefined;
     }
 
@@ -708,8 +776,26 @@ export function FaceLineChangeView() {
 
       let detectedBox: { x: number; y: number; width: number; height: number } | null = null;
 
-      // 1. Native Shape Detection API if supported by browser/hardware
-      if (detectorRef.current) {
+      // 1. Try real neural network TinyFaceDetector
+      try {
+        const detection = await faceapi.detectSingleFace(
+          video,
+          new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 })
+        );
+        if (detection && detection.box) {
+          detectedBox = {
+            x: detection.box.x,
+            y: detection.box.y,
+            width: detection.box.width,
+            height: detection.box.height,
+          };
+        }
+      } catch {
+        // Fallback below
+      }
+
+      // 2. Native Shape Detection API if supported by browser/hardware
+      if (!detectedBox && detectorRef.current) {
         try {
           const faces = await detectorRef.current.detect(video);
           if (faces && faces.length > 0) {
@@ -726,7 +812,7 @@ export function FaceLineChangeView() {
         }
       }
 
-      // 2. High-speed Optical / Skin Chromaticity & Contour Centroid Tracker Fallback
+      // 3. High-speed Optical / Skin Chromaticity & Contour Centroid Tracker Fallback
       if (!detectedBox && offscreenCanvasRef.current) {
         const offCanvas = offscreenCanvasRef.current;
         const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
@@ -840,6 +926,7 @@ export function FaceLineChangeView() {
         trackerRef.current.noFaceFrames += 1;
         if (trackerRef.current.noFaceFrames > 8) {
           setIsFaceTracked(false);
+          setUnrecognizedFace(false);
         }
       }
     };
@@ -918,6 +1005,7 @@ export function FaceLineChangeView() {
           ctx,
           tracker.smoothBox,
           Boolean(activeWorkerRef.current),
+          unrecognizedFaceRef.current,
           lockProgress,
           activeWorkerRef.current,
           confidenceRef.current,
@@ -1000,6 +1088,7 @@ export function FaceLineChangeView() {
       setActiveWorker(null);
       setManualSearchVal(null);
       setCountdown(0);
+      setUnrecognizedFace(false);
       trackerRef.current.smoothBox = null;
       trackerRef.current.lockFrames = 0;
       trackerRef.current.cooldownUntil = Date.now() + 2500;
@@ -1076,6 +1165,7 @@ export function FaceLineChangeView() {
     setCountdown(0);
     setErrorMsg('');
     setSuccessMsg('');
+    setUnrecognizedFace(false);
     trackerRef.current.smoothBox = null;
     trackerRef.current.lockFrames = 0;
     trackerRef.current.cooldownUntil = Date.now() + 1500;
@@ -1420,11 +1510,13 @@ export function FaceLineChangeView() {
               >
                 <Label
                   variant="filled"
-                  color={activeWorker ? 'success' : isFaceTracked ? 'info' : 'default'}
+                  color={activeWorker ? 'success' : unrecognizedFace ? 'warning' : isFaceTracked ? 'info' : 'default'}
                   sx={{ backdropFilter: 'blur(8px)', px: 1.5, py: 0.6, fontWeight: 700, fontSize: 12 }}
                 >
                   {activeWorker
                     ? `Face Locked: ${confidence}% Match`
+                    : unrecognizedFace
+                    ? '⚠️ Face Detected: Not Enrolled'
                     : isFaceTracked
                     ? '⚲ Face Tracked • Aligning...'
                     : 'Scanning for face...'}
@@ -1471,7 +1563,10 @@ export function FaceLineChangeView() {
                 value={manualSearchVal}
                 onChange={(_, val) => {
                   setManualSearchVal(val);
-                  if (val) handleSelectWorker(val, 100);
+                  if (val) {
+                    setUnrecognizedFace(false);
+                    handleSelectWorker(val, val.face_enrolled === 1 ? 100 : 0);
+                  }
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -1601,13 +1696,28 @@ export function FaceLineChangeView() {
                     <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                       ID: {activeWorker.employee_id || activeWorker.name} • {activeWorker.designation || 'Worker'}
                     </Typography>
-                    <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 0.75 }}>
                       <Label variant="soft" color="info">
                         Dept: {activeWorker.department || 'Production'}
                       </Label>
                       <Label variant="soft" color="secondary">
                         Current: {activeWorker.current_line_name || activeWorker.current_line || activeWorker.default_line || 'Unassigned'}
                       </Label>
+                      <Label variant="soft" color={activeWorker.face_enrolled === 1 ? 'success' : 'warning'}>
+                        {activeWorker.face_enrolled === 1 ? 'Biometrics Enrolled' : 'Biometrics Pending'}
+                      </Label>
+                      {activeWorker.face_enrolled !== 1 && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="warning"
+                          startIcon={<Iconify icon={"solar:camera-bold" as any} width={14} />}
+                          onClick={() => setEnrollWorker(activeWorker)}
+                          sx={{ fontSize: 11, py: 0.2, px: 1, borderRadius: '12px' }}
+                        >
+                          Enroll Face
+                        </Button>
+                      )}
                     </Stack>
                   </Box>
                 </Stack>
@@ -1746,6 +1856,71 @@ export function FaceLineChangeView() {
                   </Button>
                 </Stack>
               </Card>
+            ) : unrecognizedFace ? (
+              /* Unenrolled Worker Detected Alert Card */
+              <Card
+                sx={{
+                  p: 4,
+                  textAlign: 'center',
+                  borderRadius: '20px',
+                  border: (t) => `1.5px solid ${alpha(theme.palette.warning.main, 0.4)}`,
+                  bgcolor: (t) => alpha(theme.palette.warning.main, 0.04),
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: '50%',
+                    bgcolor: alpha(theme.palette.warning.main, 0.14),
+                    color: 'warning.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 2,
+                  }}
+                >
+                  <Iconify icon={"solar:shield-warning-bold" as any} width={34} />
+                </Box>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: 'warning.darker', mb: 0.5 }}>
+                  Worker Face Not Enrolled
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 380, mx: 'auto', mb: 2.5, fontSize: 13 }}>
+                  This worker does not have face biometrics registered in the system (Status: <strong>PENDING</strong>). Only employees with enrolled biometrics can be automatically recognized.
+                </Typography>
+
+                <Stack spacing={1.5} alignItems="center">
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                    Select worker in Manual Search below to assign line or enroll:
+                  </Typography>
+                  <Stack direction="row" spacing={1.5} justifyContent="center">
+                    {manualSearchVal && manualSearchVal.face_enrolled !== 1 && (
+                      <Button
+                        variant="contained"
+                        color="warning"
+                        startIcon={<Iconify icon={"solar:camera-bold" as any} />}
+                        onClick={() => setEnrollWorker(manualSearchVal)}
+                        sx={{ borderRadius: '12px', fontWeight: 700 }}
+                      >
+                        Enroll {manualSearchVal.employee_name.split(' ')[0]}
+                      </Button>
+                    )}
+                    <Button
+                      variant="outlined"
+                      color="inherit"
+                      onClick={() => {
+                        setUnrecognizedFace(false);
+                        trackerRef.current.lockFrames = 0;
+                        trackerRef.current.cooldownUntil = Date.now() + 1500;
+                      }}
+                      sx={{ borderRadius: '12px' }}
+                    >
+                      Dismiss
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Card>
             ) : (
               /* Waiting state */
               <Card
@@ -1881,6 +2056,27 @@ export function FaceLineChangeView() {
             setCountdown(0);
           }}
         />
+
+        {/* ── Direct Kiosk Employee Face Enrollment Dialog ── */}
+        {enrollWorker && (
+          <EmployeeFaceEnrollmentDialog
+            open={Boolean(enrollWorker)}
+            onClose={() => setEnrollWorker(null)}
+            employeeId={enrollWorker.name}
+            employeeName={enrollWorker.employee_name}
+            department={enrollWorker.department}
+            designation={enrollWorker.designation}
+            currentPhoto={enrollWorker.face_enrolled_image || enrollWorker.profile_picture}
+            onSuccess={() => {
+              fetchFaceCatalog().then((updated) => {
+                setCatalog(updated);
+                const ref = updated.find((c) => c.name === enrollWorker.name);
+                if (ref) setActiveWorker(ref);
+              });
+              setSuccessMsg(`Face biometrics enrolled successfully for ${enrollWorker.employee_name}!`);
+            }}
+          />
+        )}
       </Container>
     </Box>
   );

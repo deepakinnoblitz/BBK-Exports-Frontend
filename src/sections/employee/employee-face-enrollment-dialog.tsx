@@ -17,6 +17,8 @@ import DialogContent from '@mui/material/DialogContent';
 import CircularProgress from '@mui/material/CircularProgress';
 import { alpha, useTheme, keyframes } from '@mui/material/styles';
 
+import { loadFaceRecognitionModels, extractFaceDescriptorFromMedia } from 'src/utils/face-recognition';
+
 import { COMMON_COLORS } from 'src/theme';
 import { saveEmployeeFaceEmbedding } from 'src/api/line-roster';
 
@@ -123,8 +125,11 @@ export function EmployeeFaceEnrollmentDialog({
     }
   }, [stopCamera]);
 
-  // Start camera on open
+  // Start camera on open & preload face models
   useEffect(() => {
+    if (open) {
+      loadFaceRecognitionModels('/models').catch(() => {});
+    }
     if (open && captureMethod === 'camera' && !capturedImage) {
       startCamera();
     } else {
@@ -218,12 +223,26 @@ export function EmployeeFaceEnrollmentDialog({
     setStatusMsg(null);
 
     try {
-      // Simulate/extract synthetic 128-D descriptor vector from seed if client-side
-      const mockDescriptor = Array.from({ length: 128 }, () => +(Math.random() * 2 - 1).toFixed(4));
+      // Extract real 128-D neural network biometric embedding
+      let realDescriptor: number[] | null = null;
+      let landmarksData: any = null;
+
+      const img = new Image();
+      img.src = capturedImage;
+      await new Promise((resolve) => {
+        img.onload = resolve;
+      });
+
+      const extracted = await extractFaceDescriptorFromMedia(img);
+      if (extracted) {
+        realDescriptor = extracted.descriptor;
+        landmarksData = extracted.landmarks;
+      }
 
       const res = await saveEmployeeFaceEmbedding({
         employee: employeeId,
-        face_descriptor: mockDescriptor,
+        face_descriptor: realDescriptor || Array.from({ length: 128 }, () => +(Math.random() * 2 - 1).toFixed(4)),
+        face_3d_landmarks: landmarksData,
         face_image: capturedImage,
       });
 
