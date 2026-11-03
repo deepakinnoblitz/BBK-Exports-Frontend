@@ -3216,16 +3216,6 @@ export function EmployeeView() {
                                                 onView={() => handleOpenDetails(row.name)}
                                                 onEdit={() => handleEditRow(row.name)}
                                                 onDelete={() => handleDeleteClick(row.name)}
-                                                onEnrollFace={() =>
-                                                    setEnrollModal({
-                                                        open: true,
-                                                        employeeId: row.name,
-                                                        employeeName: row.employee_name || '',
-                                                        department: row.department,
-                                                        designation: row.designation,
-                                                        currentPhoto: row.face_enrolled_image || row.profile_picture,
-                                                    })
-                                                }
                                                 canEdit={permissions.write}
                                                 canDelete={permissions.delete}
                                             />

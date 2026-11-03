@@ -1,6 +1,5 @@
 
 import Box from '@mui/material/Box';
-import Tooltip from '@mui/material/Tooltip';
 import TableRow from '@mui/material/TableRow';
 import Checkbox from '@mui/material/Checkbox';
 import TableCell from '@mui/material/TableCell';
@@ -32,7 +31,6 @@ type Props = {
     onView: VoidFunction;
     onEdit: VoidFunction;
     onDelete: VoidFunction;
-    onEnrollFace?: VoidFunction;
     canEdit?: boolean;
     canDelete?: boolean;
     hideCheckbox?: boolean;
@@ -46,7 +44,6 @@ export function EmployeeTableRow({
     onView,
     onEdit,
     onDelete,
-    onEnrollFace,
     canEdit,
     canDelete,
     hideCheckbox = false,
@@ -186,13 +183,6 @@ export function EmployeeTableRow({
                     <IconButton size="small" onClick={onView} sx={{ color: 'info.main' }}>
                         <Iconify icon="solar:eye-bold" />
                     </IconButton>
-                    {displayEdit && onEnrollFace && (
-                        <Tooltip title={row.faceEnrolled ? 'Re-enroll Face Biometrics' : 'Enroll Face Biometrics'}>
-                            <IconButton size="small" onClick={onEnrollFace} sx={{ color: '#8b5cf6' }}>
-                                <Iconify icon={"solar:face-scan-circle-bold" as any} />
-                            </IconButton>
-                        </Tooltip>
-                    )}
                     {displayEdit && (
                         <IconButton size="small" onClick={onEdit} sx={{ color: 'primary.main' }}>
                             <Iconify icon="solar:pen-bold" />
