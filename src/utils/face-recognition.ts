@@ -113,4 +113,53 @@ export function matchFaceDescriptor<T extends { name: string; face_enrolled: num
   return bestMatch;
 }
 
+/**
+ * Ensures an enrolled employee has a 128-D descriptor by extracting it from their enrolled photo if needed
+ */
+export async function ensureWorkerFaceDescriptor<
+  T extends { name: string; face_enrolled: number; face_descriptor?: any; face_enrolled_image?: string }
+>(worker: T): Promise<T> {
+  if (worker.face_enrolled !== 1 || !worker.face_enrolled_image) {
+    return worker;
+  }
+
+  // Check if valid 128-D descriptor is already present
+  try {
+    const raw = Array.isArray(worker.face_descriptor)
+      ? worker.face_descriptor
+      : typeof worker.face_descriptor === 'string'
+      ? JSON.parse(worker.face_descriptor)
+      : null;
+
+    if (raw && raw.length === 128) {
+      return worker;
+    }
+  } catch {
+    // Needs re-extraction
+  }
+
+  try {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = worker.face_enrolled_image;
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+    });
+
+    const extracted = await extractFaceDescriptorFromMedia(img);
+    if (extracted) {
+      return {
+        ...worker,
+        face_descriptor: extracted.descriptor,
+      };
+    }
+  } catch (err) {
+    console.warn(`Could not extract descriptor for worker ${worker.name}:`, err);
+  }
+
+  return worker;
+}
+
 export { faceapi };
+

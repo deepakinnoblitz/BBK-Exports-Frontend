@@ -39,6 +39,7 @@ import {
   faceapi,
   matchFaceDescriptor,
   loadFaceRecognitionModels,
+  ensureWorkerFaceDescriptor,
 } from 'src/utils/face-recognition';
 
 import { COMMON_COLORS } from 'src/theme';
@@ -599,6 +600,19 @@ export function FaceLineChangeView() {
       // Auto-set default source and target line if available
       setSourceLine((prev) => (prev ? prev : lineList[0]?.name || ''));
       setTargetLine((prev) => (prev ? prev : (lineList[1]?.name || lineList[0]?.name || '')));
+
+      // Auto-extract and cache real 128-D descriptors for enrolled workers with photos in background
+      const enrolledWithPhotos = catList.filter((c) => c.face_enrolled === 1 && c.face_enrolled_image);
+      if (enrolledWithPhotos.length > 0) {
+        Promise.all(enrolledWithPhotos.map(ensureWorkerFaceDescriptor)).then((updated) => {
+          setCatalog((prev) =>
+            prev.map((c) => {
+              const matched = updated.find((u) => u.name === c.name);
+              return matched ? matched : c;
+            })
+          );
+        });
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to initialize line data');
     }
