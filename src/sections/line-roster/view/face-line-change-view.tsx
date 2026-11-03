@@ -109,7 +109,7 @@ function drawFaceBiometrics(
     isLocked && worker
       ? '#10b981'
       : isUnrecognized
-      ? '#f59e0b'
+      ? '#ef4444'
       : isScanning
       ? '#38bdf8'
       : '#06b6d4';
@@ -121,7 +121,7 @@ function drawFaceBiometrics(
     isLocked && worker
       ? 'rgba(16, 185, 129, 0.35)'
       : isUnrecognized
-      ? 'rgba(245, 158, 11, 0.35)'
+      ? 'rgba(239, 68, 68, 0.4)'
       : 'rgba(6, 182, 212, 0.25)';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 6]);
@@ -252,8 +252,8 @@ function drawFaceBiometrics(
       ? `✓ VERIFIED: ${worker.employee_name} (${confidenceVal}%)`
       : isUnrecognized
       ? nextScanSecs > 0
-        ? `⚠️ UNENROLLED FACE (Rescan in ${nextScanSecs.toFixed(0)}s)`
-        : '⚠️ UNENROLLED FACE • BIOMETRICS PENDING'
+        ? `❌ EMPLOYEE NOT FOUND (Rescan in ${nextScanSecs.toFixed(0)}s)`
+        : '❌ EMPLOYEE NOT FOUND • UNAUTHORIZED'
       : isScanning
       ? '⚲ SCANNING FACE BIOMETRICS...'
       : nextScanSecs > 0
@@ -272,7 +272,7 @@ function drawFaceBiometrics(
     isLocked && worker
       ? 'rgba(16, 185, 129, 0.94)'
       : isUnrecognized
-      ? 'rgba(180, 83, 9, 0.95)'
+      ? 'rgba(220, 38, 38, 0.95)'
       : 'rgba(15, 23, 42, 0.88)';
   ctx.strokeStyle = primaryColor;
   ctx.lineWidth = 1.5;
@@ -318,7 +318,7 @@ function drawFaceBiometrics(
     ctx.textBaseline = 'middle';
     ctx.fillText(subText, cx, subY + subH / 2);
   } else if (isUnrecognized) {
-    const subText = 'Face Not Enrolled — Use Manual Search or Enroll Below';
+    const subText = '❌ Unassigned / Employee Not Found in Line Dataset';
     ctx.font = 'bold 11px "DM Sans", -apple-system, sans-serif';
     const subW = ctx.measureText(subText).width + 20;
     const subH = 22;
@@ -326,14 +326,14 @@ function drawFaceBiometrics(
     const subY = y + h + 10;
 
     ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.85)';
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     drawRoundedRect(ctx, subX, subY, subW, subH, 11);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = '#fbbf24';
+    ctx.fillStyle = '#f87171';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(subText, cx, subY + subH / 2);
@@ -750,17 +750,26 @@ export function FaceLineChangeView() {
     const cat = catalogRef.current;
     if (!cat || cat.length === 0) return;
 
-    // Filter STRICTLY for enrolled workers (face_enrolled === 1)
-    const enrolledWorkers = cat.filter((c) => c.face_enrolled === 1);
+    // In Pre-Fixed mode, filter strictly for workers currently assigned to the source line!
+    const currentSource = sourceLineRef.current;
+    const enrolledWorkers = cat.filter((c) => {
+      if (c.face_enrolled !== 1) return false;
+      if (modeRef.current === 'pre-fixed' && currentSource) {
+        return c.current_line === currentSource || c.default_line === currentSource;
+      }
+      return true;
+    });
 
     isMatchingRef.current = true;
     setIsScanning(true);
 
     try {
       if (enrolledWorkers.length === 0) {
-        // Zero workers on this line/system have enrolled face biometrics yet!
+        // Zero workers on this line have enrolled face biometrics yet!
         setUnrecognizedFace(true);
         setActiveWorker(null);
+        candidateMatchRef.current = null;
+        if (soundEnabled) playChime('alert');
         // Wait 3.0 seconds before next scan
         trackerRef.current.cooldownUntil = Date.now() + 3000;
         return;
@@ -776,10 +785,12 @@ export function FaceLineChangeView() {
         if (matchAttemptsRef.current >= 2) {
           setUnrecognizedFace(true);
           setActiveWorker(null);
+          candidateMatchRef.current = null;
+          if (soundEnabled) playChime('alert');
           trackerRef.current.cooldownUntil = Date.now() + 3000;
         } else {
-          // Retry in 1.5s
-          trackerRef.current.cooldownUntil = Date.now() + 1500;
+          // Retry in 1.2s
+          trackerRef.current.cooldownUntil = Date.now() + 1200;
         }
         return;
       }
@@ -787,7 +798,7 @@ export function FaceLineChangeView() {
       // Reset attempts once descriptor is found
       matchAttemptsRef.current = 0;
 
-      // 2. Perform Strict Dual-Gate Biometric Comparison (Euclidean dist <= 0.44 AND Cosine >= 0.76)
+      // 2. Perform Ultra-Strict Dual-Gate Biometric Comparison (Euclidean dist <= 0.35 AND Cosine >= 0.93)
       const matchResult = matchFaceDescriptor(extracted.descriptor, enrolledWorkers);
 
       if (matchResult) {
@@ -806,21 +817,26 @@ export function FaceLineChangeView() {
           trackerRef.current.cooldownUntil = Date.now() + 180;
         }
       } else {
-        // Did not meet strict biometric match threshold (distance > 0.44 or cosine < 0.76)
+        // Did not meet ultra-strict exact match threshold (distance > 0.35 or cosine < 0.93)
+        // STRICT REJECTION: Colleague / Unauthorized Person
         candidateMatchRef.current = null;
         setUnrecognizedFace(true);
         setActiveWorker(null);
+        if (soundEnabled) playChime('alert');
         // Wait 3.0 seconds before next scan
         trackerRef.current.cooldownUntil = Date.now() + 3000;
       }
     } catch (err) {
       console.warn('Real-time face recognition matching error:', err);
+      candidateMatchRef.current = null;
+      setUnrecognizedFace(true);
+      setActiveWorker(null);
       trackerRef.current.cooldownUntil = Date.now() + 3000;
     } finally {
       isMatchingRef.current = false;
       setIsScanning(false);
     }
-  }, [handleSelectWorker]);
+  }, [handleSelectWorker, soundEnabled]);
 
   // ── Real-time Face Tracking Loop (Sampling every 65ms) ──────────────────
   useEffect(() => {
@@ -1592,7 +1608,7 @@ export function FaceLineChangeView() {
                     activeWorker
                       ? 'success'
                       : unrecognizedFace
-                      ? 'warning'
+                      ? 'error'
                       : isScanning
                       ? 'secondary'
                       : isFaceTracked
@@ -1602,13 +1618,13 @@ export function FaceLineChangeView() {
                   sx={{ backdropFilter: 'blur(8px)', px: 1.5, py: 0.6, fontWeight: 700, fontSize: 12 }}
                 >
                   {activeWorker
-                    ? `Face Locked: ${confidence}% Match`
+                    ? `✓ Verified: ${activeWorker.employee_name} (${confidence}%)`
                     : unrecognizedFace
-                    ? '⚠️ Face Detected: Not Enrolled'
+                    ? '❌ Employee Not Found • Unassigned'
                     : isScanning
                     ? '⚲ Scanning Face Biometrics...'
                     : isFaceTracked
-                    ? '⚲ Face Tracked • 3s Scan Cycle'
+                    ? '⚲ Face Tracked • Ready'
                     : 'Scanning for face...'}
                 </Label>
 
@@ -1947,23 +1963,24 @@ export function FaceLineChangeView() {
                 </Stack>
               </Card>
             ) : unrecognizedFace ? (
-              /* Unenrolled Worker Detected Alert Card */
+              /* Unauthorized Person / Employee Not Found Alert Card */
               <Card
                 sx={{
                   p: 4,
                   textAlign: 'center',
                   borderRadius: '20px',
-                  border: (t) => `1.5px solid ${alpha(theme.palette.warning.main, 0.4)}`,
-                  bgcolor: (t) => alpha(theme.palette.warning.main, 0.04),
+                  border: (t) => `1.5px solid ${alpha(theme.palette.error.main, 0.45)}`,
+                  bgcolor: (t) => alpha(theme.palette.error.main, 0.04),
+                  boxShadow: (t) => `0 8px 24px ${alpha(theme.palette.error.main, 0.08)}`,
                 }}
               >
                 <Box
                   sx={{
-                    width: 60,
-                    height: 60,
+                    width: 64,
+                    height: 64,
                     borderRadius: '50%',
-                    bgcolor: alpha(theme.palette.warning.main, 0.14),
-                    color: 'warning.main',
+                    bgcolor: alpha(theme.palette.error.main, 0.14),
+                    color: 'error.main',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1971,18 +1988,27 @@ export function FaceLineChangeView() {
                     mb: 2,
                   }}
                 >
-                  <Iconify icon={"solar:shield-warning-bold" as any} width={34} />
+                  <Iconify icon={"solar:shield-cross-bold" as any} width={36} />
                 </Box>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: 'warning.darker', mb: 0.5 }}>
-                  Worker Face Not Enrolled
+
+                <Stack direction="row" spacing={1} justifyContent="center" sx={{ mb: 1 }}>
+                  <Label variant="soft" color="error" sx={{ fontWeight: 800 }}>
+                    UNAUTHORIZED / UNASSIGNED
+                  </Label>
+                </Stack>
+
+                <Typography variant="h5" sx={{ fontWeight: 800, color: 'error.darker', mb: 1 }}>
+                  Employee Not Found
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 380, mx: 'auto', mb: 2.5, fontSize: 13 }}>
-                  This worker does not have face biometrics registered in the system (Status: <strong>PENDING</strong>). Only employees with enrolled biometrics can be automatically recognized.
+
+                <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 420, mx: 'auto', mb: 3, fontSize: 13.5 }}>
+                  This face does not match any authorized employee in the selected line dataset.
+                  Only exact enrolled biometric profiles are permitted to proceed.
                 </Typography>
 
                 <Stack spacing={1.5} alignItems="center">
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                    Select worker in Manual Search below to assign line or enroll:
+                    If this is a valid employee, select them in Manual Search below to assign or enroll:
                   </Typography>
                   <Stack direction="row" spacing={1.5} justifyContent="center">
                     <Button
@@ -2008,7 +2034,7 @@ export function FaceLineChangeView() {
                     >
                       {manualSearchVal
                         ? `Enroll ${manualSearchVal.employee_name.split(' ')[0]}`
-                        : '📷 Enroll Worker Face'}
+                        : '📷 Enroll Face Biometrics'}
                     </Button>
                     <Button
                       variant="outlined"
@@ -2020,7 +2046,7 @@ export function FaceLineChangeView() {
                       }}
                       sx={{ borderRadius: '12px' }}
                     >
-                      Dismiss (3s Rescan)
+                      Dismiss (Rescan in 3s)
                     </Button>
                   </Stack>
                 </Stack>
