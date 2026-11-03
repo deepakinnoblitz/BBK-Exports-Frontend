@@ -197,6 +197,69 @@ export function matchFaceDescriptor<T extends { name: string; face_enrolled: num
 }
 
 /**
+ * 1:1 Targeted Face Verification
+ * Compares a live face descriptor specifically against a single target employee's enrolled biometric profile.
+ * Computes exact Euclidean distance, Cosine similarity, and a calibrated Match Percentage (0% - 100%).
+ * 
+ * Score semantics:
+ * - >= 50%: Face matches target employee (Euclidean distance <= 0.43, Cosine >= 0.895) -> GREEN
+ * - < 50%: Face does NOT match target employee -> YELLOW/AMBER (e.g. colleague or stranger in front of camera)
+ */
+export function compareTargetFace<T extends { name: string; face_enrolled: number; face_descriptor?: any }>(
+  liveDescriptor: number[] | Float32Array,
+  targetWorker: T,
+  customThreshold = 0.43
+): {
+  matched: boolean;
+  distance: number;
+  cosine: number;
+  matchPercent: number;
+} | null {
+  if (Number(targetWorker.face_enrolled) !== 1 || !targetWorker.face_descriptor) {
+    return null;
+  }
+
+  let workerDesc: Float32Array;
+  if ((targetWorker as any)._normalizedDesc instanceof Float32Array) {
+    workerDesc = (targetWorker as any)._normalizedDesc;
+  } else {
+    const raw = Array.isArray(targetWorker.face_descriptor)
+      ? targetWorker.face_descriptor
+      : typeof targetWorker.face_descriptor === 'string'
+      ? JSON.parse(targetWorker.face_descriptor)
+      : null;
+
+    if (!raw || raw.length !== 128) {
+      return null;
+    }
+
+    workerDesc = normalizeEmbedding(raw);
+    (targetWorker as any)._normalizedDesc = workerDesc;
+  }
+
+  const targetDesc = normalizeEmbedding(liveDescriptor);
+  const dist = faceapi.euclideanDistance(targetDesc, workerDesc);
+  const cosSim = cosineSimilarity(targetDesc, workerDesc);
+
+  // Calibrated match percentage formula:
+  // dist = 0.20 -> 100%
+  // dist = 0.35 -> 67%
+  // dist = 0.43 -> 49% ~ 50%
+  // dist = 0.47 (colleague mismatch) -> 40% (< 50%)
+  // dist = 0.55 -> 22%
+  // dist >= 0.65 -> 0%
+  const matchPercent = Math.max(0, Math.min(100, Math.round(((0.65 - dist) / 0.45) * 100)));
+  const matched = dist <= customThreshold && cosSim >= 0.895;
+
+  return {
+    matched,
+    distance: dist,
+    cosine: cosSim,
+    matchPercent,
+  };
+}
+
+/**
  * Ensures an enrolled employee has a 128-D descriptor by extracting it from their enrolled photo if needed
  */
 export async function ensureWorkerFaceDescriptor<

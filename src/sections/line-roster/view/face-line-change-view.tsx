@@ -34,6 +34,7 @@ import { useRouter } from 'src/routes/hooks';
 
 import {
   faceapi,
+  compareTargetFace,
   matchFaceDescriptor,
   loadFaceRecognitionModels,
   ensureWorkerFaceDescriptor,
@@ -97,13 +98,17 @@ function drawFaceBiometrics(
   confidenceVal: number,
   time: number,
   effectiveTargetLine: string,
-  isManualSelection = false
+  isTargeted1to1 = false
 ) {
   const { x, y, width: w, height: h } = box;
   const cx = x + w / 2;
   const cy = y + h / 2;
 
-  const isLowConfidence = Boolean(isLocked && worker && (confidenceVal < 50 || isManualSelection));
+  const isTargetWorkerUnenrolled =
+    isTargeted1to1 && (Number(worker?.face_enrolled) !== 1 || !worker?.face_descriptor);
+  const isLowConfidence = Boolean(
+    isLocked && worker && (confidenceVal < 50 || isTargetWorkerUnenrolled)
+  );
 
   const primaryColor =
     isLocked && worker
@@ -262,20 +267,36 @@ function drawFaceBiometrics(
   }
 
   // 5. Floating Status Badge Above Face
-  const badgeText =
-    isLocked && worker
-      ? isManualSelection
-        ? `✎ MANUAL: ${worker.employee_name} (Manual Fallback)`
-        : `✓ VERIFIED: ${worker.employee_name} (${confidenceVal}%)`
-      : isUnrecognized
-      ? nextScanSecs > 0
+  let badgeText = '';
+  if (isLocked && worker) {
+    if (isTargeted1to1) {
+      if (isTargetWorkerUnenrolled) {
+        badgeText = `✎ MANUAL: ${worker.employee_name} (Biometrics Pending)`;
+      } else if (confidenceVal >= 50) {
+        badgeText = `✓ VERIFIED: ${worker.employee_name} (${confidenceVal}%)`;
+      } else {
+        badgeText = `⚠ MISMATCH: ${worker.employee_name} (${confidenceVal}% match)`;
+      }
+    } else if (confidenceVal < 50) {
+      badgeText = `⚠ LOW MATCH: ${worker.employee_name} (${confidenceVal}%)`;
+    } else {
+      badgeText = `✓ VERIFIED: ${worker.employee_name} (${confidenceVal}%)`;
+    }
+  } else if (isUnrecognized) {
+    badgeText =
+      nextScanSecs > 0
         ? `❌ EMPLOYEE NOT FOUND (Rescan in ${nextScanSecs.toFixed(0)}s)`
-        : '❌ EMPLOYEE NOT FOUND • UNAUTHORIZED'
-      : isScanning
-      ? '⚲ SCANNING FACE BIOMETRICS...'
-      : nextScanSecs > 0
-      ? `⚲ NEXT SCAN IN ${nextScanSecs.toFixed(1)}s`
-      : `⚲ TRACKING FACE • ${Math.round(lockProgress * 100)}%`;
+        : '❌ EMPLOYEE NOT FOUND • UNAUTHORIZED';
+  } else if (isScanning) {
+    badgeText =
+      isTargeted1to1 && worker
+        ? `⚲ VERIFYING ${worker.employee_name}...`
+        : '⚲ SCANNING FACE BIOMETRICS...';
+  } else if (nextScanSecs > 0) {
+    badgeText = `⚲ NEXT SCAN IN ${nextScanSecs.toFixed(1)}s`;
+  } else {
+    badgeText = `⚲ TRACKING FACE • ${Math.round(lockProgress * 100)}%`;
+  }
 
   ctx.font = 'bold 12px "DM Sans", -apple-system, sans-serif';
   const textW = ctx.measureText(badgeText).width;
@@ -316,26 +337,36 @@ function drawFaceBiometrics(
   }
 
   // 6. Sub-tag below face (when matched or unrecognized)
-  if (isLocked && worker && effectiveTargetLine) {
-    const subText = `${worker.current_line || worker.default_line || 'No Line'} → ${effectiveTargetLine}`;
-    ctx.font = 'bold 11px "DM Sans", -apple-system, sans-serif';
-    const subW = ctx.measureText(subText).width + 20;
-    const subH = 22;
-    const subX = cx - subW / 2;
-    const subY = y + h + 10;
+  if (isLocked && worker) {
+    let subText = '';
+    if (isTargeted1to1 && !isTargetWorkerUnenrolled && confidenceVal < 50) {
+      subText = `⚠ Live face does not match ${worker.employee_name} (${confidenceVal}%)`;
+    } else if (isTargetWorkerUnenrolled) {
+      subText = `⚠ Face biometrics not enrolled for ${worker.employee_name}`;
+    } else if (effectiveTargetLine) {
+      subText = `${worker.current_line || worker.default_line || 'No Line'} → ${effectiveTargetLine}`;
+    }
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-    ctx.strokeStyle = isLowConfidence ? 'rgba(245, 158, 11, 0.85)' : 'rgba(16, 185, 129, 0.85)';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    drawRoundedRect(ctx, subX, subY, subW, subH, 11);
-    ctx.fill();
-    ctx.stroke();
+    if (subText) {
+      ctx.font = 'bold 11px "DM Sans", -apple-system, sans-serif';
+      const subW = ctx.measureText(subText).width + 20;
+      const subH = 22;
+      const subX = cx - subW / 2;
+      const subY = y + h + 10;
 
-    ctx.fillStyle = isLowConfidence ? '#fbbf24' : '#34d399';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(subText, cx, subY + subH / 2);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.strokeStyle = isLowConfidence ? 'rgba(245, 158, 11, 0.85)' : 'rgba(16, 185, 129, 0.85)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      drawRoundedRect(ctx, subX, subY, subW, subH, 11);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = isLowConfidence ? '#fbbf24' : '#34d399';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(subText, cx, subY + subH / 2);
+    }
   } else if (isUnrecognized) {
     const subText = '❌ Unassigned / Employee Not Found in Line Dataset';
     ctx.font = 'bold 11px "DM Sans", -apple-system, sans-serif';
@@ -539,7 +570,7 @@ export function FaceLineChangeView() {
   const [isScanning, setIsScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [enrollWorker, setEnrollWorker] = useState<FaceCatalogItem | null>(null);
-  const [isManualSelection, setIsManualSelection] = useState(false);
+  const [targetedWorker, setTargetedWorker] = useState<FaceCatalogItem | null>(null);
 
   const isMatchingRef = useRef(false);
   const matchAttemptsRef = useRef(0);
@@ -598,8 +629,8 @@ export function FaceLineChangeView() {
   const postTargetLineRef = useRef<string>(postTargetLine);
   postTargetLineRef.current = postTargetLine;
 
-  const isManualSelectionRef = useRef<boolean>(false);
-  isManualSelectionRef.current = isManualSelection;
+  const targetedWorkerRef = useRef<FaceCatalogItem | null>(null);
+  targetedWorkerRef.current = targetedWorker;
 
   const catalogRef = useRef<FaceCatalogItem[]>([]);
   catalogRef.current = catalog;
@@ -754,7 +785,7 @@ export function FaceLineChangeView() {
     (worker: FaceCatalogItem, matchConfidence = 98.4) => {
       setActiveWorker(worker);
       setConfidence(matchConfidence);
-      if (soundEnabled) playChime('success');
+      if (soundEnabled && matchConfidence >= 50) playChime('success');
 
       // In Post-Fixed mode, default postTargetLine to a line different from their current line
       if (mode === 'post-fixed') {
@@ -770,10 +801,10 @@ export function FaceLineChangeView() {
           setCountdown(0);
         } else if (sourceLine && workerLine && workerLine !== sourceLine) {
           enqueueSnackbar(`Identified ${worker.employee_name} (Current: ${workerLine}). Reassigning to ${targetLine}.`, { variant: 'info' });
-          if (autoAdvance && targetLine) {
+          if (autoAdvance && targetLine && matchConfidence >= 50) {
             setCountdown(1.5);
           }
-        } else if (autoAdvance && targetLine) {
+        } else if (autoAdvance && targetLine && matchConfidence >= 50) {
           setCountdown(1.5);
         }
       }
@@ -850,7 +881,8 @@ export function FaceLineChangeView() {
             trackerRef.current.lastMatchedEmployee = matchResult.worker.name;
             trackerRef.current.cooldownUntil = Date.now() + 4000;
             setUnrecognizedFace(false);
-            setIsManualSelection(false);
+            setTargetedWorker(null);
+            setManualSearchVal(null);
             handleSelectWorker(matchResult.worker, matchResult.confidence);
           } else {
             // First candidate frame matched! Queue instant confirmation pass in 180ms
@@ -885,22 +917,112 @@ export function FaceLineChangeView() {
     [handleSelectWorker, soundEnabled, enqueueSnackbar]
   );
 
+  // ── 1:1 Targeted Face Biometric Verification Trigger (Manual Search Fallback) ──
+  const trigger1to1TargetMatch = useCallback(
+    async (targetWorker: FaceCatalogItem, isManual = false) => {
+      if (isMatchingRef.current) return;
+
+      const video = videoRef.current;
+      if (!video || video.readyState < 2) {
+        if (isManual) {
+          enqueueSnackbar('Camera is not ready yet. Please wait a moment.', { variant: 'warning' });
+        }
+        return;
+      }
+
+      // Ensure worker has a valid 128-D descriptor if enrolled with image
+      let readyWorker = targetWorker;
+      if (
+        readyWorker.face_enrolled === 1 &&
+        readyWorker.face_enrolled_image &&
+        (!readyWorker.face_descriptor ||
+          (Array.isArray(readyWorker.face_descriptor) && readyWorker.face_descriptor.length !== 128))
+      ) {
+        try {
+          readyWorker = await ensureWorkerFaceDescriptor(readyWorker);
+          setCatalog((prev) => prev.map((c) => (c.name === readyWorker.name ? readyWorker : c)));
+        } catch {
+          // Fall through
+        }
+      }
+
+      if (readyWorker.face_enrolled !== 1 || !readyWorker.face_descriptor) {
+        setConfidence(0);
+        if (isManual) {
+          enqueueSnackbar(`Biometrics pending for ${readyWorker.employee_name}. Manual fallback active.`, {
+            variant: 'info',
+          });
+        }
+        return;
+      }
+
+      isMatchingRef.current = true;
+      setIsScanning(true);
+
+      try {
+        const extracted = await extractFaceDescriptorFromMedia(video);
+
+        if (!extracted || !extracted.descriptor) {
+          if (isManual) {
+            enqueueSnackbar('No face clearly detected in camera. Please face the camera directly.', {
+              variant: 'info',
+            });
+          }
+          trackerRef.current.cooldownUntil = Date.now() + 1200;
+          return;
+        }
+
+        // Run 1:1 biometric comparison strictly against target employee
+        const matchResult = compareTargetFace(extracted.descriptor, readyWorker);
+
+        if (matchResult) {
+          setConfidence(matchResult.matchPercent);
+
+          if (matchResult.matchPercent >= 50) {
+            if (soundEnabled) playChime('success');
+            trackerRef.current.cooldownUntil = Date.now() + 4000;
+          } else {
+            // Live face does not match the target employee (Colleague / Impersonation Mismatch)
+            trackerRef.current.cooldownUntil = Date.now() + 1500;
+          }
+        }
+      } catch (err) {
+        console.warn('1:1 Face verification scan error:', err);
+        trackerRef.current.cooldownUntil = Date.now() + 2000;
+        if (isManual) {
+          enqueueSnackbar('Face verification scan error. Please try again.', { variant: 'error' });
+        }
+      } finally {
+        isMatchingRef.current = false;
+        setIsScanning(false);
+      }
+    },
+    [enqueueSnackbar, soundEnabled]
+  );
+
   // ── Manual Scan Trigger ────────────────────────────────────────────────
   const handleManualScanNow = useCallback(async () => {
     if (isMatchingRef.current) return;
-    // Clear previous verified worker state so UI immediately resets/refreshes
-    setActiveWorker(null);
-    setManualSearchVal(null);
-    setCountdown(0);
-    setUnrecognizedFace(false);
-    setIsManualSelection(false);
-    candidateMatchRef.current = null;
-    matchAttemptsRef.current = 0;
-    trackerRef.current.cooldownUntil = 0;
-    trackerRef.current.lockFrames = 0;
-    trackerRef.current.lastMatchedEmployee = null;
-    await triggerAutoMatch(true);
-  }, [triggerAutoMatch]);
+    if (targetedWorkerRef.current) {
+      setConfidence(0);
+      trackerRef.current.cooldownUntil = 0;
+      trackerRef.current.lockFrames = 0;
+      await trigger1to1TargetMatch(targetedWorkerRef.current, true);
+    } else {
+      // Clear previous verified worker state so UI immediately resets/refreshes
+      setActiveWorker(null);
+      setManualSearchVal(null);
+      setTargetedWorker(null);
+      setCountdown(0);
+      setUnrecognizedFace(false);
+      candidateMatchRef.current = null;
+      matchAttemptsRef.current = 0;
+      trackerRef.current.cooldownUntil = 0;
+      trackerRef.current.lockFrames = 0;
+      trackerRef.current.lastMatchedEmployee = null;
+      await triggerAutoMatch(true);
+    }
+  }, [trigger1to1TargetMatch, triggerAutoMatch]);
 
   // ── Real-time Face Tracking Loop (Sampling every 65ms) ──────────────────
   useEffect(() => {
@@ -1144,12 +1266,18 @@ export function FaceLineChangeView() {
         // Auto-match trigger: fires every 3 seconds while face is stably tracked!
         if (
           tracker.lockFrames >= 12 &&
-          !activeWorkerRef.current &&
           !submittingRef.current &&
           !isMatchingRef.current &&
           now > tracker.cooldownUntil
         ) {
-          triggerAutoMatch();
+          if (targetedWorkerRef.current) {
+            // Continuous 1:1 verification when worker is targeted in manual search
+            if (confidenceRef.current < 50) {
+              trigger1to1TargetMatch(targetedWorkerRef.current, false);
+            }
+          } else if (!activeWorkerRef.current) {
+            triggerAutoMatch();
+          }
         }
 
         const effectiveTargetLine =
@@ -1167,7 +1295,7 @@ export function FaceLineChangeView() {
           confidenceRef.current,
           time,
           effectiveTargetLine,
-          isManualSelectionRef.current
+          Boolean(targetedWorkerRef.current)
         );
       } else {
         if (tracker.smoothBox) {
@@ -1185,7 +1313,7 @@ export function FaceLineChangeView() {
     return () => {
       cancelAnimationFrame(animId);
     };
-  }, [triggerAutoMatch]);
+  }, [triggerAutoMatch, trigger1to1TargetMatch]);
 
   // ── Execute Line Change ────────────────────────────────────────────────
   const handleConfirmTransfer = useCallback(async () => {
@@ -1244,7 +1372,7 @@ export function FaceLineChangeView() {
       // Clear active worker to scan next
       setActiveWorker(null);
       setManualSearchVal(null);
-      setIsManualSelection(false);
+      setTargetedWorker(null);
       candidateMatchRef.current = null;
       setCountdown(0);
       setUnrecognizedFace(false);
@@ -1323,7 +1451,7 @@ export function FaceLineChangeView() {
   const handleSkipWorker = () => {
     setActiveWorker(null);
     setManualSearchVal(null);
-    setIsManualSelection(false);
+    setTargetedWorker(null);
     candidateMatchRef.current = null;
     setCountdown(0);
     setUnrecognizedFace(false);
@@ -1612,7 +1740,13 @@ export function FaceLineChangeView() {
                   variant="filled"
                   color={
                     activeWorker
-                      ? isManualSelection || confidence < 50
+                      ? targetedWorker
+                        ? Number(targetedWorker.face_enrolled) !== 1 || !targetedWorker.face_descriptor
+                          ? 'warning'
+                          : confidence < 50
+                          ? 'warning'
+                          : 'success'
+                        : confidence < 50
                         ? 'warning'
                         : 'success'
                       : unrecognizedFace
@@ -1626,8 +1760,12 @@ export function FaceLineChangeView() {
                   sx={{ backdropFilter: 'blur(8px)', px: 1.5, py: 0.6, fontWeight: 700, fontSize: 12 }}
                 >
                   {activeWorker
-                    ? isManualSelection
-                      ? `✎ Manual Selection: ${activeWorker.employee_name} (Fallback)`
+                    ? targetedWorker
+                      ? Number(targetedWorker.face_enrolled) !== 1 || !targetedWorker.face_descriptor
+                        ? `✎ Biometrics Pending: ${activeWorker.employee_name}`
+                        : confidence >= 50
+                        ? `✓ 1:1 Verified: ${activeWorker.employee_name} (${confidence}%)`
+                        : `⚠ Face Mismatch: ${activeWorker.employee_name} (${confidence}% match)`
                       : `✓ Verified: ${activeWorker.employee_name} (${confidence}%)`
                     : unrecognizedFace
                     ? 'Employee Not Found • Unassigned'
@@ -1661,7 +1799,15 @@ export function FaceLineChangeView() {
                     }}
                   />
                   <Typography variant="caption" sx={{ color: '#ffffff', fontWeight: 700, fontSize: 11 }}>
-                    {isFaceTracked ? 'Live Face Tracking' : 'Waiting for Face'}
+                    {targetedWorker
+                      ? Number(targetedWorker.face_enrolled) !== 1 || !targetedWorker.face_descriptor
+                        ? 'Manual Search Mode'
+                        : confidence >= 50
+                        ? '1:1 Verified'
+                        : '1:1 Live Verification'
+                      : isFaceTracked
+                      ? 'Live Face Tracking'
+                      : 'Waiting for Face'}
                   </Typography>
                 </Stack>
               </Box>
@@ -1726,14 +1872,17 @@ export function FaceLineChangeView() {
                 options={catalog}
                 getOptionLabel={(option) => `${option.employee_name} (${option.employee_id || option.name})`}
                 value={manualSearchVal}
-                onChange={(_, val) => {
+                onChange={async (_, val) => {
                   setManualSearchVal(val);
                   if (val) {
                     setUnrecognizedFace(false);
-                    setIsManualSelection(true);
+                    setTargetedWorker(val);
                     handleSelectWorker(val, 0);
+                    await trigger1to1TargetMatch(val, true);
                   } else {
-                    setIsManualSelection(false);
+                    setTargetedWorker(null);
+                    setActiveWorker(null);
+                    setConfidence(0);
                   }
                 }}
                 renderInput={(params) => (
@@ -1844,7 +1993,10 @@ export function FaceLineChangeView() {
                 sx={{
                   p: 3,
                   borderRadius: '20px',
-                  border: (t) => `1.5px solid ${alpha(theme.palette.primary.main, 0.35)}`,
+                  border: (t) =>
+                    targetedWorker && confidence < 50
+                      ? '1.5px solid #f59e0b'
+                      : `1.5px solid ${alpha(theme.palette.primary.main, 0.35)}`,
                   bgcolor: 'background.paper',
                   boxShadow: '0 8px 30px 0 rgba(0, 0, 0, 0.08)',
                 }}
@@ -1875,6 +2027,17 @@ export function FaceLineChangeView() {
                       <Label variant="soft" color={activeWorker.face_enrolled === 1 ? 'success' : 'warning'}>
                         {activeWorker.face_enrolled === 1 ? 'Biometrics Enrolled' : 'Biometrics Pending'}
                       </Label>
+                      {targetedWorker && activeWorker.face_enrolled === 1 && (
+                        <Label
+                          variant="filled"
+                          color={confidence >= 50 ? 'success' : 'warning'}
+                          sx={{ fontWeight: 700 }}
+                        >
+                          {confidence >= 50
+                            ? `✓ Match: ${confidence}%`
+                            : `⚠ Mismatch: ${confidence}% match`}
+                        </Label>
+                      )}
                       {activeWorker.face_enrolled !== 1 && (
                         <Button
                           size="small"
