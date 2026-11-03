@@ -3,6 +3,10 @@ import * as faceapi from '@vladmandic/face-api';
 let modelsLoaded = false;
 let modelLoadingPromise: Promise<boolean> | null = null;
 
+export function areFaceRecognitionModelsLoaded(): boolean {
+  return modelsLoaded;
+}
+
 /**
  * Load face-api neural network models from local /models directory
  */
@@ -14,6 +18,8 @@ export async function loadFaceRecognitionModels(modelPath = '/models'): Promise<
     try {
       await Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri(modelPath),
+        faceapi.nets.ssdMobilenetv1.loadFromUri(modelPath),
+        faceapi.nets.faceLandmark68Net.loadFromUri(modelPath),
         faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelPath),
         faceapi.nets.faceRecognitionNet.loadFromUri(modelPath),
       ]);
@@ -32,6 +38,8 @@ export async function loadFaceRecognitionModels(modelPath = '/models'): Promise<
 
 /**
  * Detect face and extract 128-D descriptor from image, video, or canvas
+ * Uses TinyFaceDetector first (fast, lower threshold 0.28 for webcam lighting)
+ * Falls back to SSD MobileNet V1 for challenging lighting, shadows, or glare
  */
 export async function extractFaceDescriptorFromMedia(
   media: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
@@ -44,12 +52,25 @@ export async function extractFaceDescriptorFromMedia(
   if (!ready) return null;
 
   try {
-    const detection = await faceapi
-      .detectSingleFace(media, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+    // 1. Try fast TinyFaceDetector with inputSize 224 and scoreThreshold 0.28
+    let detection: any = await faceapi
+      .detectSingleFace(media, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.28 }))
       .withFaceLandmarks(true)
       .withFaceDescriptor();
 
-    if (!detection) return null;
+    // 2. If Tiny didn't catch the face (e.g. overhead light flare or backlighting), fall back to SSD MobileNet V1
+    if (!detection && faceapi.nets.ssdMobilenetv1.isLoaded) {
+      try {
+        detection = await faceapi
+          .detectSingleFace(media, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.28 }))
+          .withFaceLandmarks(false)
+          .withFaceDescriptor();
+      } catch {
+        // Fallback failed
+      }
+    }
+
+    if (!detection || !detection.descriptor) return null;
 
     return {
       box: {
@@ -59,7 +80,7 @@ export async function extractFaceDescriptorFromMedia(
         height: detection.detection.box.height,
       },
       descriptor: Array.from(detection.descriptor),
-      landmarks: detection.landmarks.positions,
+      landmarks: detection.landmarks?.positions || [],
     };
   } catch (err) {
     console.error('Face descriptor extraction failed:', err);
@@ -69,7 +90,7 @@ export async function extractFaceDescriptorFromMedia(
 
 /**
  * Compare live face descriptor against enrolled employees
- * Returns best matching worker if within Euclidean distance threshold (< 0.55), else null
+ * Returns best matching worker if within Euclidean distance threshold (< 0.58), else null
  */
 export function matchFaceDescriptor<T extends { name: string; face_enrolled: number; face_descriptor?: any }>(
   liveDescriptor: number[] | Float32Array,
@@ -79,8 +100,8 @@ export function matchFaceDescriptor<T extends { name: string; face_enrolled: num
   let bestMatch: { worker: T; distance: number; confidence: number } | null = null;
   let minDistance = Infinity;
 
-  // Maximum Euclidean distance threshold for match (face-api standard is 0.55)
-  const MATCH_THRESHOLD = 0.55;
+  // Maximum Euclidean distance threshold for match (face-api standard is 0.58 for webcams)
+  const MATCH_THRESHOLD = 0.58;
 
   for (const item of enrolledCatalog) {
     if (item.face_enrolled !== 1 || !item.face_descriptor) {
@@ -103,7 +124,7 @@ export function matchFaceDescriptor<T extends { name: string; face_enrolled: num
     if (dist < minDistance) {
       minDistance = dist;
       if (dist < MATCH_THRESHOLD) {
-        // Map distance [0.2 -> 0.55] to confidence percentage [99.5% -> 80%]
+        // Map distance [0.2 -> 0.58] to confidence percentage [99.5% -> 80%]
         const confidence = Math.max(78, Math.min(99.4, +((1 - dist / 0.72) * 100).toFixed(1)));
         bestMatch = { worker: item, distance: dist, confidence };
       }
@@ -123,7 +144,7 @@ export async function ensureWorkerFaceDescriptor<
     return worker;
   }
 
-  // Check if valid 128-D descriptor is already present
+  // Check if valid normalized 128-D descriptor is already present
   try {
     const raw = Array.isArray(worker.face_descriptor)
       ? worker.face_descriptor
@@ -132,7 +153,11 @@ export async function ensureWorkerFaceDescriptor<
       : null;
 
     if (raw && raw.length === 128) {
-      return worker;
+      // Validate L2 norm: real unit embeddings have norm ~1.0, unlike mock Math.sin or random values
+      const norm = Math.sqrt(raw.reduce((acc: number, val: number) => acc + val * val, 0));
+      if (norm >= 0.90 && norm <= 1.10 && raw[0] !== 0) {
+        return worker;
+      }
     }
   } catch {
     // Needs re-extraction

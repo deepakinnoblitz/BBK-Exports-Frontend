@@ -40,6 +40,7 @@ import {
   matchFaceDescriptor,
   loadFaceRecognitionModels,
   ensureWorkerFaceDescriptor,
+  extractFaceDescriptorFromMedia,
 } from 'src/utils/face-recognition';
 
 import { COMMON_COLORS } from 'src/theme';
@@ -92,6 +93,8 @@ function drawFaceBiometrics(
   box: { x: number; y: number; width: number; height: number },
   isLocked: boolean,
   isUnrecognized: boolean,
+  isScanning: boolean,
+  nextScanSecs: number,
   lockProgress: number,
   worker: FaceCatalogItem | null,
   confidenceVal: number,
@@ -102,7 +105,14 @@ function drawFaceBiometrics(
   const cx = x + w / 2;
   const cy = y + h / 2;
 
-  const primaryColor = isLocked && worker ? '#10b981' : isUnrecognized ? '#f59e0b' : '#06b6d4';
+  const primaryColor =
+    isLocked && worker
+      ? '#10b981'
+      : isUnrecognized
+      ? '#f59e0b'
+      : isScanning
+      ? '#38bdf8'
+      : '#06b6d4';
 
   ctx.save();
 
@@ -241,7 +251,13 @@ function drawFaceBiometrics(
     isLocked && worker
       ? `✓ VERIFIED: ${worker.employee_name} (${confidenceVal}%)`
       : isUnrecognized
-      ? '⚠️ UNENROLLED FACE • BIOMETRICS PENDING'
+      ? nextScanSecs > 0
+        ? `⚠️ UNENROLLED FACE (Rescan in ${nextScanSecs.toFixed(0)}s)`
+        : '⚠️ UNENROLLED FACE • BIOMETRICS PENDING'
+      : isScanning
+      ? '⚲ SCANNING FACE BIOMETRICS...'
+      : nextScanSecs > 0
+      ? `⚲ NEXT SCAN IN ${nextScanSecs.toFixed(1)}s`
       : `⚲ TRACKING FACE • ${Math.round(lockProgress * 100)}%`;
 
   ctx.font = 'bold 12px "DM Sans", -apple-system, sans-serif';
@@ -491,10 +507,14 @@ export function FaceLineChangeView() {
   const [confidence, setConfidence] = useState<number>(0);
   const [isFaceTracked, setIsFaceTracked] = useState(false);
   const [unrecognizedFace, setUnrecognizedFace] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [enrollWorker, setEnrollWorker] = useState<FaceCatalogItem | null>(null);
+
+  const isMatchingRef = useRef(false);
+  const matchAttemptsRef = useRef(0);
 
   // Toggles
   const [autoAdvance, setAutoAdvance] = useState(false);
@@ -718,8 +738,11 @@ export function FaceLineChangeView() {
     [autoAdvance, lines, mode, soundEnabled]
   );
 
-  // ── Real Deep-Learning Face Recognition Match Trigger ──────────────────
+  // ── Real Deep-Learning Face Recognition Match Trigger (3-Sec Cycle) ────
   const triggerAutoMatch = useCallback(async () => {
+    // Concurrency lock: only 1 scan in flight at any time
+    if (isMatchingRef.current) return;
+
     const video = videoRef.current;
     if (!video || video.readyState < 2) return;
 
@@ -729,29 +752,42 @@ export function FaceLineChangeView() {
     // Filter STRICTLY for enrolled workers (face_enrolled === 1)
     const enrolledWorkers = cat.filter((c) => c.face_enrolled === 1);
 
-    if (enrolledWorkers.length === 0) {
-      // Zero workers on this line/system have enrolled face biometrics yet!
-      setUnrecognizedFace(true);
-      setActiveWorker(null);
-      return;
-    }
+    isMatchingRef.current = true;
+    setIsScanning(true);
 
     try {
-      // 1. Run real neural-net feature extraction from live camera
-      const detection = await faceapi
-        .detectSingleFace(
-          video,
-          new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })
-        )
-        .withFaceLandmarks(true)
-        .withFaceDescriptor();
-
-      if (!detection || !detection.descriptor) {
+      if (enrolledWorkers.length === 0) {
+        // Zero workers on this line/system have enrolled face biometrics yet!
+        setUnrecognizedFace(true);
+        setActiveWorker(null);
+        // Wait 3.0 seconds before next scan
+        trackerRef.current.cooldownUntil = Date.now() + 3000;
         return;
       }
 
+      // 1. Run real neural-net feature extraction from live camera
+      const extracted = await extractFaceDescriptorFromMedia(video);
+
+      if (!extracted || !extracted.descriptor) {
+        matchAttemptsRef.current += 1;
+        // If face has been tracked for 2+ attempts without finding descriptor
+        // (e.g. overhead lighting flare, backlighting, or harsh angle), mark as unrecognized and wait 3s
+        if (matchAttemptsRef.current >= 2) {
+          setUnrecognizedFace(true);
+          setActiveWorker(null);
+          trackerRef.current.cooldownUntil = Date.now() + 3000;
+        } else {
+          // Retry in 1.5s
+          trackerRef.current.cooldownUntil = Date.now() + 1500;
+        }
+        return;
+      }
+
+      // Reset attempts once descriptor is found
+      matchAttemptsRef.current = 0;
+
       // 2. Perform Euclidean distance biometric comparison against enrolled workers
-      const matchResult = matchFaceDescriptor(detection.descriptor, enrolledWorkers);
+      const matchResult = matchFaceDescriptor(extracted.descriptor, enrolledWorkers);
 
       if (matchResult) {
         // Real biometric match verified!
@@ -760,12 +796,18 @@ export function FaceLineChangeView() {
         setUnrecognizedFace(false);
         handleSelectWorker(matchResult.worker, matchResult.confidence);
       } else {
-        // Face is present, but does not match any enrolled face descriptor (< 0.55 threshold)
+        // Face is present, but does not match any enrolled face descriptor (< 0.58 threshold)
         setUnrecognizedFace(true);
         setActiveWorker(null);
+        // Wait 3.0 seconds before next scan
+        trackerRef.current.cooldownUntil = Date.now() + 3000;
       }
     } catch (err) {
       console.warn('Real-time face recognition matching error:', err);
+      trackerRef.current.cooldownUntil = Date.now() + 3000;
+    } finally {
+      isMatchingRef.current = false;
+      setIsScanning(false);
     }
   }, [handleSelectWorker]);
 
@@ -941,6 +983,8 @@ export function FaceLineChangeView() {
         if (trackerRef.current.noFaceFrames > 8) {
           setIsFaceTracked(false);
           setUnrecognizedFace(false);
+          matchAttemptsRef.current = 0;
+          trackerRef.current.cooldownUntil = 0;
         }
       }
     };
@@ -1000,14 +1044,18 @@ export function FaceLineChangeView() {
         }
 
         tracker.lockFrames += 1;
-        const lockProgress = Math.min(1, tracker.lockFrames / 15);
+        const lockProgress = Math.min(1, tracker.lockFrames / 12);
 
-        // Auto-match trigger when face has been stably locked for ~500ms
+        const now = Date.now();
+        const nextScanSecs = Math.max(0, (tracker.cooldownUntil - now) / 1000);
+
+        // Auto-match trigger: fires every 3 seconds while face is stably tracked!
         if (
-          tracker.lockFrames >= 15 &&
+          tracker.lockFrames >= 12 &&
           !activeWorkerRef.current &&
           !submittingRef.current &&
-          Date.now() > tracker.cooldownUntil
+          !isMatchingRef.current &&
+          now > tracker.cooldownUntil
         ) {
           triggerAutoMatch();
         }
@@ -1020,6 +1068,8 @@ export function FaceLineChangeView() {
           tracker.smoothBox,
           Boolean(activeWorkerRef.current),
           unrecognizedFaceRef.current,
+          isMatchingRef.current,
+          nextScanSecs,
           lockProgress,
           activeWorkerRef.current,
           confidenceRef.current,
@@ -1524,15 +1574,27 @@ export function FaceLineChangeView() {
               >
                 <Label
                   variant="filled"
-                  color={activeWorker ? 'success' : unrecognizedFace ? 'warning' : isFaceTracked ? 'info' : 'default'}
+                  color={
+                    activeWorker
+                      ? 'success'
+                      : unrecognizedFace
+                      ? 'warning'
+                      : isScanning
+                      ? 'secondary'
+                      : isFaceTracked
+                      ? 'info'
+                      : 'default'
+                  }
                   sx={{ backdropFilter: 'blur(8px)', px: 1.5, py: 0.6, fontWeight: 700, fontSize: 12 }}
                 >
                   {activeWorker
                     ? `Face Locked: ${confidence}% Match`
                     : unrecognizedFace
                     ? '⚠️ Face Detected: Not Enrolled'
+                    : isScanning
+                    ? '⚲ Scanning Face Biometrics...'
                     : isFaceTracked
-                    ? '⚲ Face Tracked • Aligning...'
+                    ? '⚲ Face Tracked • 3s Scan Cycle'
                     : 'Scanning for face...'}
                 </Label>
 
@@ -1909,28 +1971,42 @@ export function FaceLineChangeView() {
                     Select worker in Manual Search below to assign line or enroll:
                   </Typography>
                   <Stack direction="row" spacing={1.5} justifyContent="center">
-                    {manualSearchVal && manualSearchVal.face_enrolled !== 1 && (
-                      <Button
-                        variant="contained"
-                        color="warning"
-                        startIcon={<Iconify icon={"solar:camera-bold" as any} />}
-                        onClick={() => setEnrollWorker(manualSearchVal)}
-                        sx={{ borderRadius: '12px', fontWeight: 700 }}
-                      >
-                        Enroll {manualSearchVal.employee_name.split(' ')[0]}
-                      </Button>
-                    )}
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      startIcon={<Iconify icon={"solar:camera-bold" as any} />}
+                      onClick={() => {
+                        if (manualSearchVal) {
+                          setEnrollWorker(manualSearchVal);
+                        } else {
+                          const unenrolled =
+                            catalog.find(
+                              (c) =>
+                                (c.current_line === sourceLine || c.default_line === sourceLine) &&
+                                c.face_enrolled !== 1
+                            ) || catalog.find((c) => c.face_enrolled !== 1);
+                          if (unenrolled) {
+                            setEnrollWorker(unenrolled);
+                          }
+                        }
+                      }}
+                      sx={{ borderRadius: '12px', fontWeight: 700 }}
+                    >
+                      {manualSearchVal
+                        ? `Enroll ${manualSearchVal.employee_name.split(' ')[0]}`
+                        : '📷 Enroll Worker Face'}
+                    </Button>
                     <Button
                       variant="outlined"
                       color="inherit"
                       onClick={() => {
                         setUnrecognizedFace(false);
                         trackerRef.current.lockFrames = 0;
-                        trackerRef.current.cooldownUntil = Date.now() + 1500;
+                        trackerRef.current.cooldownUntil = Date.now() + 3000;
                       }}
                       sx={{ borderRadius: '12px' }}
                     >
-                      Dismiss
+                      Dismiss (3s Rescan)
                     </Button>
                   </Stack>
                 </Stack>
