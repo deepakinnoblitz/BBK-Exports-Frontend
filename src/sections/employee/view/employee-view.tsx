@@ -51,10 +51,11 @@ import { getStates, getCities } from 'src/api/location';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getBusTravelRoute, fetchBankAccounts } from 'src/api/masters';
 import { getEmployee, createEmployee, updateEmployee, deleteEmployee } from 'src/api/employees';
-import { createLineRosterAssignment, deleteOrCancelLineRosterAssignment } from 'src/api/line-roster';
-import { getHRSettings, getHRPermissions, getDocTypeMetadata, fetchSalaryComponents, fetchFrappeList } from 'src/api/hr-management';
+import { createLineRosterAssignment, clearEmployeeFaceEmbedding, deleteOrCancelLineRosterAssignment } from 'src/api/line-roster';
+import { getHRSettings, fetchFrappeList, getHRPermissions, getDocTypeMetadata, fetchSalaryComponents } from 'src/api/hr-management';
 import { createRosterAssignment as createShiftRosterAssignment, deleteOrCancelRosterAssignment as deleteOrCancelShiftRosterAssignment } from 'src/api/shift-roster';
 
+import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
@@ -76,6 +77,7 @@ import { DesignationCreateDialog } from '../designation-create-dialog';
 import EmployeeTableFiltersDrawer from '../employee-table-filters-drawer';
 import { EmployeeTypeCreateDialog } from '../employee-type-create-dialog';
 import { QualificationCreateDialog } from '../qualification-create-dialog';
+import { EmployeeFaceEnrollmentDialog } from '../employee-face-enrollment-dialog';
 import { BankAccountDialog } from '../../master/bank-account/bank-account-dialog';
 import { EmployeeLineChangeConfirmDialog } from '../employee-line-change-confirm-dialog';
 import { EmployeeShiftChangeConfirmDialog } from '../employee-shift-change-confirm-dialog';
@@ -443,6 +445,23 @@ export function EmployeeView() {
     const [uploading, setUploading] = useState(false);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [currentTab, setCurrentTab] = useState(0);
+
+    // Face Enrollment Modal State
+    const [enrollModal, setEnrollModal] = useState<{
+        open: boolean;
+        employeeId: string;
+        employeeName: string;
+        department?: string;
+        designation?: string;
+        currentPhoto?: string;
+    }>({
+        open: false,
+        employeeId: '',
+        employeeName: '',
+        department: '',
+        designation: '',
+        currentPhoto: '',
+    });
 
     // Permissions State
     const [permissions, setPermissions] = useState<{ read: boolean; write: boolean; delete: boolean }>({
@@ -1389,6 +1408,35 @@ export function EmployeeView() {
             setSnackbar({
                 open: true,
                 message: err.message || 'Failed to delete shift assignment record',
+                severity: 'error',
+            });
+        }
+    };
+
+    const handleClearBiometrics = async () => {
+        if (!currentEmployeeId) return;
+
+        try {
+            await clearEmployeeFaceEmbedding(currentEmployeeId);
+            setFormData((prev) => ({
+                ...prev,
+                face_enrolled: 0,
+                face_enrolled_at: '',
+                face_enrolled_image: '',
+                face_descriptor: null,
+                face_3d_landmarks: null,
+            }));
+            await refetch();
+            setSnackbar({
+                open: true,
+                message: 'Face biometrics removed successfully.',
+                severity: 'success',
+            });
+        } catch (err: any) {
+            console.error('Failed to clear biometrics:', err);
+            setSnackbar({
+                open: true,
+                message: err.message || 'Failed to remove face biometrics.',
                 severity: 'error',
             });
         }
@@ -3133,6 +3181,7 @@ export function EmployeeView() {
                                     { id: 'department', label: 'Department', minWidth: 120 },
                                     { id: 'designation', label: 'Designation', minWidth: 120 },
                                     { id: 'status', label: 'Status', minWidth: 100 },
+                                    { id: 'face_enrolled', label: 'Face Biometrics', minWidth: 130 },
                                     { id: '', label: 'Actions', align: 'right' },
                                 ]}
                             />
@@ -3140,7 +3189,7 @@ export function EmployeeView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
@@ -3160,12 +3209,23 @@ export function EmployeeView() {
                                                     department: row.department,
                                                     designation: row.designation,
                                                     status: row.status,
+                                                    faceEnrolled: row.face_enrolled,
                                                 }}
                                                 selected={selected.includes(row.name)}
                                                 onSelectRow={() => handleSelectRow(row.name)}
                                                 onView={() => handleOpenDetails(row.name)}
                                                 onEdit={() => handleEditRow(row.name)}
                                                 onDelete={() => handleDeleteClick(row.name)}
+                                                onEnrollFace={() =>
+                                                    setEnrollModal({
+                                                        open: true,
+                                                        employeeId: row.name,
+                                                        employeeName: row.employee_name || '',
+                                                        department: row.department,
+                                                        designation: row.designation,
+                                                        currentPhoto: row.face_enrolled_image || row.profile_picture,
+                                                    })
+                                                }
                                                 canEdit={permissions.write}
                                                 canDelete={permissions.delete}
                                             />
@@ -3175,7 +3235,7 @@ export function EmployeeView() {
 
                                         {empty && (
                                             <TableRow>
-                                                <TableCell colSpan={8}>
+                                                <TableCell colSpan={10}>
                                                     <EmptyContent
                                                         title="No employees found"
                                                         description="Click 'New Employee' to add your first team member."
@@ -3260,6 +3320,11 @@ export function EmployeeView() {
                         <Tab
                             label="Documents"
                             icon={<GrDocumentLocked size={20} />}
+                            iconPosition="start"
+                        />
+                        <Tab
+                            label="Face Biometrics"
+                            icon={<Iconify icon={"solar:face-scan-circle-bold" as any} width={20} />}
                             iconPosition="start"
                         />
                     </Tabs>
@@ -3418,6 +3483,210 @@ export function EmployeeView() {
                                     {renderDocumentsTable()}
                                 </Box>
                             )}
+
+                            {currentTab === 3 && (
+                                <Box sx={{ py: 1 }}>
+                                    {!currentEmployeeId ? (
+                                        <Card sx={{ p: 4, textAlign: 'center', borderRadius: 2, bgcolor: (t) => alpha(t.palette.grey[500], 0.04), border: (t) => `1px dashed ${alpha(t.palette.grey[500], 0.25)}` }}>
+                                            <Box
+                                                sx={{
+                                                    width: 64,
+                                                    height: 64,
+                                                    borderRadius: '50%',
+                                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                                                    color: COMMON_COLORS.emerald.main,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    mx: 'auto',
+                                                    mb: 2,
+                                                }}
+                                            >
+                                                <Iconify icon={"solar:face-scan-circle-bold" as any} width={34} />
+                                            </Box>
+                                            <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
+                                                Create Employee Profile First
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 440, mx: 'auto', mb: 3 }}>
+                                                Face biometrics are linked to an active Employee record. Please save basic employee details first, then you can immediately capture their biometric face scan.
+                                            </Typography>
+                                        </Card>
+                                    ) : formData.face_enrolled ? (
+                                        <Card sx={{ p: 3, borderRadius: 2, border: (t) => `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.3)}`, bgcolor: (t) => alpha(COMMON_COLORS.emerald.main, 0.02) }}>
+                                            <Stack spacing={3}>
+                                                <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
+                                                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                                                        <Box
+                                                            sx={{
+                                                                width: 40,
+                                                                height: 40,
+                                                                borderRadius: '10px',
+                                                                bgcolor: alpha(COMMON_COLORS.emerald.main, 0.15),
+                                                                color: COMMON_COLORS.emerald.main,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                            }}
+                                                        >
+                                                            <Iconify icon={"solar:shield-check-bold" as any} width={24} />
+                                                        </Box>
+                                                        <Box>
+                                                            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                                                                Face Biometrics Enrolled & Verified
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                                Enrolled on: {formData.face_enrolled_at ? dayjs(formData.face_enrolled_at).format('DD MMM YYYY, hh:mm A') : 'Recorded in database'}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Stack>
+
+                                                    <Label color="success" variant="filled" startIcon={<Iconify icon={"solar:check-circle-bold" as any} width={14} />}>
+                                                        Kiosk Ready
+                                                    </Label>
+                                                </Stack>
+
+                                                <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '200px 1fr' }} gap={3} alignItems="center">
+                                                    <Box sx={{ position: 'relative', width: { xs: 180, sm: 200 }, height: 220, mx: { xs: 'auto', sm: 0 }, borderRadius: 2, overflow: 'hidden', border: (t) => `2px solid ${COMMON_COLORS.emerald.main}`, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>
+                                                        <Box
+                                                            component="img"
+                                                            src={formData.face_enrolled_image || formData.profile_picture || '/assets/placeholder.svg'}
+                                                            alt={formData.employee_name}
+                                                            sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        />
+                                                        <Box
+                                                            sx={{
+                                                                position: 'absolute',
+                                                                bottom: 0,
+                                                                left: 0,
+                                                                right: 0,
+                                                                py: 0.5,
+                                                                textAlign: 'center',
+                                                                bgcolor: 'rgba(0,0,0,0.65)',
+                                                                color: '#ffffff',
+                                                                fontSize: 10,
+                                                                fontWeight: 700,
+                                                                backdropFilter: 'blur(4px)',
+                                                            }}
+                                                        >
+                                                            Enrolled Reference Photo
+                                                        </Box>
+                                                    </Box>
+
+                                                    <Stack spacing={1.5}>
+                                                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                                            Biometric Verification Status
+                                                        </Typography>
+
+                                                        <Stack spacing={1}>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, typography: 'body2', color: 'text.secondary' }}>
+                                                                <Iconify icon={"solar:check-circle-bold" as any} width={16} sx={{ color: COMMON_COLORS.emerald.main }} />
+                                                                128-D facial vector embedding generated and stored
+                                                            </Box>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, typography: 'body2', color: 'text.secondary' }}>
+                                                                <Iconify icon={"solar:check-circle-bold" as any} width={16} sx={{ color: COMMON_COLORS.emerald.main }} />
+                                                                Live kiosk matching enabled for line changes & attendance
+                                                            </Box>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, typography: 'body2', color: 'text.secondary' }}>
+                                                                <Iconify icon={"solar:check-circle-bold" as any} width={16} sx={{ color: COMMON_COLORS.emerald.main }} />
+                                                                Biometric identifier: {currentEmployeeId}
+                                                            </Box>
+                                                        </Stack>
+
+                                                        <Stack direction="row" spacing={1.5} sx={{ pt: 2 }} flexWrap="wrap">
+                                                            <Button
+                                                                variant="contained"
+                                                                size="small"
+                                                                startIcon={<Iconify icon={"solar:camera-bold" as any} />}
+                                                                onClick={() =>
+                                                                    setEnrollModal({
+                                                                        open: true,
+                                                                        employeeId: currentEmployeeId,
+                                                                        employeeName: formData.employee_name || '',
+                                                                        department: formData.department,
+                                                                        designation: formData.designation,
+                                                                        currentPhoto: formData.face_enrolled_image || formData.profile_picture,
+                                                                    })
+                                                                }
+                                                                sx={{
+                                                                    bgcolor: COMMON_COLORS.emerald.main,
+                                                                    color: '#ffffff',
+                                                                    borderRadius: 1.5,
+                                                                    fontWeight: 700,
+                                                                    '&:hover': { bgcolor: COMMON_COLORS.emerald.dark },
+                                                                }}
+                                                            >
+                                                                Re-enroll Face Photo
+                                                            </Button>
+
+                                                            <Button
+                                                                variant="outlined"
+                                                                size="small"
+                                                                color="error"
+                                                                startIcon={<Iconify icon={"solar:trash-bin-trash-bold" as any} />}
+                                                                onClick={handleClearBiometrics}
+                                                                sx={{ borderRadius: 1.5, fontWeight: 700 }}
+                                                            >
+                                                                Remove Biometrics
+                                                            </Button>
+                                                        </Stack>
+                                                    </Stack>
+                                                </Box>
+                                            </Stack>
+                                        </Card>
+                                    ) : (
+                                        <Card sx={{ p: 4, textAlign: 'center', borderRadius: 2, bgcolor: (t) => alpha(t.palette.grey[500], 0.04), border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.16)}` }}>
+                                            <Box
+                                                sx={{
+                                                    width: 64,
+                                                    height: 64,
+                                                    borderRadius: '50%',
+                                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                                                    color: COMMON_COLORS.emerald.main,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    mx: 'auto',
+                                                    mb: 2,
+                                                }}
+                                            >
+                                                <Iconify icon={"solar:face-scan-circle-bold" as any} width={34} />
+                                            </Box>
+                                            <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
+                                                Biometrics Not Enrolled
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 480, mx: 'auto', mb: 3 }}>
+                                                This employee does not have facial recognition biometrics on file yet. Enrolling their face allows automated hands-free worker line reassignments at the Face Line Change Kiosk.
+                                            </Typography>
+                                            <Button
+                                                variant="contained"
+                                                startIcon={<Iconify icon={"solar:face-scan-circle-bold" as any} />}
+                                                onClick={() =>
+                                                    setEnrollModal({
+                                                        open: true,
+                                                        employeeId: currentEmployeeId,
+                                                        employeeName: formData.employee_name || '',
+                                                        department: formData.department,
+                                                        designation: formData.designation,
+                                                        currentPhoto: formData.profile_picture,
+                                                    })
+                                                }
+                                                sx={{
+                                                    bgcolor: COMMON_COLORS.emerald.main,
+                                                    color: '#ffffff',
+                                                    fontWeight: 700,
+                                                    px: 3,
+                                                    py: 1,
+                                                    borderRadius: 2,
+                                                    boxShadow: (t) => `0 4px 14px ${alpha(COMMON_COLORS.emerald.main, 0.35)}`,
+                                                    '&:hover': { bgcolor: COMMON_COLORS.emerald.dark },
+                                                }}
+                                            >
+                                                Enroll Face Biometrics Now
+                                            </Button>
+                                        </Card>
+                                    )}
+                                </Box>
+                            )}
                         </Box>
                     </LocalizationProvider>
                 </DialogContent>
@@ -3480,6 +3749,34 @@ export function EmployeeView() {
                 existingHistory={employeeShiftHistory}
                 onDeleteHistoryItem={handleDeleteShiftHistoryItem}
             />
+
+            {enrollModal.open && (
+                <EmployeeFaceEnrollmentDialog
+                    open={enrollModal.open}
+                    onClose={() => setEnrollModal((prev) => ({ ...prev, open: false }))}
+                    employeeId={enrollModal.employeeId}
+                    employeeName={enrollModal.employeeName}
+                    department={enrollModal.department}
+                    designation={enrollModal.designation}
+                    currentPhoto={enrollModal.currentPhoto}
+                    onSuccess={(res) => {
+                        refetch();
+                        if (currentEmployeeId && currentEmployeeId === enrollModal.employeeId) {
+                            setFormData((prev) => ({
+                                ...prev,
+                                face_enrolled: 1,
+                                face_enrolled_image: res.face_enrolled_image || prev.face_enrolled_image,
+                                face_enrolled_at: res.face_enrolled_at || dayjs().format('YYYY-MM-DD HH:mm:ss'),
+                            }));
+                        }
+                        setSnackbar({
+                            open: true,
+                            message: 'Face biometrics enrolled successfully!',
+                            severity: 'success',
+                        });
+                    }}
+                />
+            )}
 
             <Snackbar
                 open={snackbar.open}

@@ -1,5 +1,6 @@
 
 import Box from '@mui/material/Box';
+import Tooltip from '@mui/material/Tooltip';
 import TableRow from '@mui/material/TableRow';
 import Checkbox from '@mui/material/Checkbox';
 import TableCell from '@mui/material/TableCell';
@@ -24,12 +25,14 @@ type Props = {
         department: string;
         designation: string;
         status: string;
+        faceEnrolled?: boolean | number;
     };
     selected: boolean;
     onSelectRow: VoidFunction;
     onView: VoidFunction;
     onEdit: VoidFunction;
     onDelete: VoidFunction;
+    onEnrollFace?: VoidFunction;
     canEdit?: boolean;
     canDelete?: boolean;
     hideCheckbox?: boolean;
@@ -43,6 +46,7 @@ export function EmployeeTableRow({
     onView,
     onEdit,
     onDelete,
+    onEnrollFace,
     canEdit,
     canDelete,
     hideCheckbox = false,
@@ -155,11 +159,40 @@ export function EmployeeTableRow({
                 <Label color={(row.status === 'Active' && 'success') || 'error'}>{row.status}</Label>
             </TableCell>
 
+            <TableCell>
+                {row.faceEnrolled ? (
+                    <Label
+                        variant="soft"
+                        color="success"
+                        startIcon={<Iconify icon={"solar:check-circle-bold" as any} width={14} />}
+                        sx={{ fontSize: 11, fontWeight: 700 }}
+                    >
+                        Enrolled
+                    </Label>
+                ) : (
+                    <Label
+                        variant="soft"
+                        color="default"
+                        startIcon={<Iconify icon={"solar:shield-warning-bold" as any} width={14} />}
+                        sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary' }}
+                    >
+                        Pending
+                    </Label>
+                )}
+            </TableCell>
+
             <TableCell align="right">
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
                     <IconButton size="small" onClick={onView} sx={{ color: 'info.main' }}>
                         <Iconify icon="solar:eye-bold" />
                     </IconButton>
+                    {displayEdit && onEnrollFace && (
+                        <Tooltip title={row.faceEnrolled ? 'Re-enroll Face Biometrics' : 'Enroll Face Biometrics'}>
+                            <IconButton size="small" onClick={onEnrollFace} sx={{ color: '#8b5cf6' }}>
+                                <Iconify icon={"solar:face-scan-circle-bold" as any} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
                     {displayEdit && (
                         <IconButton size="small" onClick={onEdit} sx={{ color: 'primary.main' }}>
                             <Iconify icon="solar:pen-bold" />

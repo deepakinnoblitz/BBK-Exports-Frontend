@@ -372,10 +372,10 @@ export async function executeUndoFaceLineChange(params: {
 
 export async function saveEmployeeFaceEmbedding(params: {
   employee: string;
-  face_descriptor: number[] | string;
+  face_descriptor?: number[] | string | null;
   face_3d_landmarks?: any;
   face_image?: string;
-}) {
+}): Promise<{ success: boolean; message: string; face_enrolled_image?: string; face_enrolled_at?: string }> {
   const headers = await getAuthHeaders();
   const res = await frappeRequest('/api/method/company.company.line_roster_api.save_employee_face_embedding', {
     method: 'POST',
@@ -385,6 +385,22 @@ export async function saveEmployeeFaceEmbedding(params: {
 
   if (!res.ok) {
     await handleFrappeError(res, 'Failed to save Employee Face Embedding');
+  }
+
+  const json = await res.json();
+  return json.message;
+}
+
+export async function clearEmployeeFaceEmbedding(employee: string): Promise<{ success: boolean; message: string }> {
+  const headers = await getAuthHeaders();
+  const res = await frappeRequest('/api/method/company.company.line_roster_api.clear_employee_face_embedding', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ employee }),
+  });
+
+  if (!res.ok) {
+    await handleFrappeError(res, 'Failed to clear Employee Face Biometrics');
   }
 
   const json = await res.json();
