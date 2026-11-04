@@ -1281,6 +1281,13 @@ export function EmployeeView() {
                 delete dataToSave._faceBiometricsPendingSave;
                 delete dataToSave._faceBiometricsPendingClear;
 
+                if (dataToSave.face_descriptor && typeof dataToSave.face_descriptor === 'object') {
+                    dataToSave.face_descriptor = JSON.stringify(dataToSave.face_descriptor);
+                }
+                if (dataToSave.face_3d_landmarks && typeof dataToSave.face_3d_landmarks === 'object') {
+                    dataToSave.face_3d_landmarks = JSON.stringify(dataToSave.face_3d_landmarks);
+                }
+
                 console.log("Saving Employee", dataToSave);
                 await updateEmployee(currentEmployeeId, dataToSave as any);
                 handleCloseCreate();
@@ -1346,6 +1353,13 @@ export function EmployeeView() {
             }
             delete employeeData._faceBiometricsPendingSave;
             delete employeeData._faceBiometricsPendingClear;
+
+            if (employeeData.face_descriptor && typeof employeeData.face_descriptor === 'object') {
+                employeeData.face_descriptor = JSON.stringify(employeeData.face_descriptor);
+            }
+            if (employeeData.face_3d_landmarks && typeof employeeData.face_3d_landmarks === 'object') {
+                employeeData.face_3d_landmarks = JSON.stringify(employeeData.face_3d_landmarks);
+            }
 
             await updateEmployee(currentEmployeeId, employeeData as any);
 
@@ -1444,6 +1458,13 @@ export function EmployeeView() {
             }
             delete employeeData._faceBiometricsPendingSave;
             delete employeeData._faceBiometricsPendingClear;
+
+            if (employeeData.face_descriptor && typeof employeeData.face_descriptor === 'object') {
+                employeeData.face_descriptor = JSON.stringify(employeeData.face_descriptor);
+            }
+            if (employeeData.face_3d_landmarks && typeof employeeData.face_3d_landmarks === 'object') {
+                employeeData.face_3d_landmarks = JSON.stringify(employeeData.face_3d_landmarks);
+            }
 
             await updateEmployee(currentEmployeeId, employeeData as any);
 

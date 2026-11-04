@@ -58,13 +58,24 @@ export const fetchEmployees = (params: any) => {
     });
 };
 
+function sanitizeEmployeeDoc<T extends Record<string, any>>(data: T): T {
+    const doc: any = { ...data };
+    if (doc.face_descriptor && typeof doc.face_descriptor === 'object') {
+        doc.face_descriptor = JSON.stringify(doc.face_descriptor);
+    }
+    if (doc.face_3d_landmarks && typeof doc.face_3d_landmarks === 'object') {
+        doc.face_3d_landmarks = JSON.stringify(doc.face_3d_landmarks);
+    }
+    return doc;
+}
+
 export async function createEmployee(data: Partial<Employee>) {
     const headers = await getAuthHeaders();
 
     const res = await frappeRequest("/api/method/frappe.client.insert", {
         method: "POST",
         headers,
-        body: JSON.stringify({ doc: { doctype: "Employee", ...data } })
+        body: JSON.stringify({ doc: sanitizeEmployeeDoc({ doctype: "Employee", ...data }) })
     });
     const json = await res.json();
     if (!res.ok) throw new Error(handleFrappeError(json, "Failed to create employee"));
@@ -74,16 +85,16 @@ export async function createEmployee(data: Partial<Employee>) {
 export async function updateEmployee(name: string, data: Partial<Employee>) {
     const headers = await getAuthHeaders();
 
+    const payloadDoc = sanitizeEmployeeDoc({
+        doctype: "Employee",
+        ...data,
+        name
+    });
+
     let res = await frappeRequest("/api/method/frappe.client.save", {
         method: "POST",
         headers,
-        body: JSON.stringify({
-            doc: {
-                doctype: "Employee",
-                ...data,
-                name
-            }
-        })
+        body: JSON.stringify({ doc: payloadDoc })
     });
     let json = await res.json();
     if (!res.ok) {
@@ -96,12 +107,12 @@ export async function updateEmployee(name: string, data: Partial<Employee>) {
                     method: "POST",
                     headers,
                     body: JSON.stringify({
-                        doc: {
+                        doc: sanitizeEmployeeDoc({
                             doctype: "Employee",
                             ...data,
                             modified: latest.modified,
                             name
-                        }
+                        })
                     })
                 });
                 json = await res.json();
