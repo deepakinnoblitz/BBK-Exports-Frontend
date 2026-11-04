@@ -675,7 +675,7 @@ export function FaceLineChangeView() {
     try {
       const [lineList, catList] = await Promise.all([
         fetchLiveLineOccupancy(effectiveFrom?.format('YYYY-MM-DD')),
-        fetchFaceCatalog(),
+        fetchFaceCatalog(effectiveFrom?.format('YYYY-MM-DD')),
       ]);
       setLines(lineList);
       setCatalog(catList);
@@ -2431,7 +2431,7 @@ export function FaceLineChangeView() {
             designation={enrollWorker.designation}
             currentPhoto={enrollWorker.face_enrolled_image || enrollWorker.profile_picture}
             onSuccess={() => {
-              fetchFaceCatalog().then((updated) => {
+              fetchFaceCatalog(effectiveFrom?.format('YYYY-MM-DD')).then((updated) => {
                 setCatalog(updated);
                 const ref = updated.find((c) => c.name === enrollWorker.name);
                 if (ref) setActiveWorker(ref);
