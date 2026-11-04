@@ -33,8 +33,8 @@ import { fNumber } from 'src/utils/format-number';
 import { COMMON_COLORS } from 'src/theme';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRDoc, getHRSettings } from 'src/api/hr-management';
-import { clearEmployeeFaceEmbedding } from 'src/api/line-roster';
 import { fetchEmployeeSkillHistory, fetchEmployeeSalaryHistory } from 'src/api/masters';
+import { fetchEffectiveLineForEmployee, clearEmployeeFaceEmbedding } from 'src/api/line-roster';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -103,9 +103,16 @@ export function EmployeeDetailsView() {
     useEffect(() => {
         if (employeeId) {
             setLoading(true);
-            getHRDoc('Employee', employeeId)
-                .then((empData) => {
-                    setEmployee(empData);
+            Promise.all([
+                getHRDoc('Employee', employeeId),
+                fetchEffectiveLineForEmployee(employeeId),
+            ])
+                .then(([empData, effectiveLine]) => {
+                    // Override line_order with the currently active assignment if one exists
+                    const resolvedEmployee = effectiveLine
+                        ? { ...empData, line_order: effectiveLine }
+                        : empData;
+                    setEmployee(resolvedEmployee);
 
                     if (empData.bank_account) {
                         getHRDoc('Bank Account', empData.bank_account)
