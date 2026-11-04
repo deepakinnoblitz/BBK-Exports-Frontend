@@ -712,6 +712,19 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
             return Math.max(0, Number(slip.gross_pay || 0) - Number(slip.ot_amount || 0) - Number(slip.attendance_bonus || 0));
         })();
 
+    const matchedOtRule = (() => {
+        try {
+            const raw = hrSettings.other_overtime_rules;
+            const rules: any[] = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
+            return rules.find((r: any) => 
+                (r.employee_type || '').trim().toLowerCase() === (slip?.employee_type || '').trim().toLowerCase() && 
+                (r.enabled === 1 || r.enabled === true || r.enabled === '1')
+            );
+        } catch {
+            return null;
+        }
+    })();
+
     const renderDetailedSummary = (
         <Box sx={{ mb: 4 }}>
             <SectionHeader title="Calculation Logic & Breakdown" icon="solar:programming-bold" color="info.main" />
@@ -796,14 +809,23 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                 </Stack>
             </Box>
 
-            {/* Overtime (OT) Formula Card - Only for eligible Workers/Drivers/North Indian with OT, never for Staff */}
+            {/* Overtime (OT) Formula Card - Only for eligible Workers/Drivers/North Indian or Custom OT Rules with OT */}
             {(() => {
                 const empType = (slip.employee_type || '').toLowerCase();
                 const isStaff = empType.includes('staff');
                 const isWorker = empType.includes('worker');
                 const isDriver = empType.includes('driver');
                 const isNorthIndian = empType.includes('north indian');
-                const isOTEligible = (isWorker || isNorthIndian || isDriver) && !isStaff && Number(slip.ot_hours || 0) > 0 && Number(slip.ot_amount || 0) > 0;
+
+                const otAmount = Number(slip.ot_amount || 0) || (() => {
+                    const otRow = (slip.earnings || []).find((e: any) => 
+                        (e.component_name || e.salary_component || '').toLowerCase().includes('overtime')
+                    );
+                    return Number(otRow?.amount || 0);
+                })();
+                const otHours = Number(slip.ot_hours || 0);
+
+                const isOTEligible = (Boolean(matchedOtRule) || ((isWorker || isNorthIndian || isDriver) && !isStaff)) && (otHours > 0 || otAmount > 0);
 
                 if (!isOTEligible) return null;
 
@@ -838,7 +860,41 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             </Typography>
 
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2.5 }}>
-                                {isNorthIndian ? (
+                                {matchedOtRule ? (
+                                    matchedOtRule.calculation_type === 'fixed' ? (
+                                        <>
+                                            <FormulaChip
+                                                label="Fixed OT Rate"
+                                                value={`${hrSettings.currency_symbol}${fNumber(matchedOtRule.fixed_rate ?? 100, { locale: hrSettings.default_locale })}`}
+                                                color="warning"
+                                                currencySymbol={hrSettings.currency_symbol}
+                                            />
+                                            <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                            <FormulaChip label="OT Hours" value={`${otHours || slip.ot_hours || 0} hrs`} color="info" />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FormulaChip
+                                                label="Gross Pay"
+                                                value={`${hrSettings.currency_symbol}${fNumber(baseGrossPay, { locale: hrSettings.default_locale })}`}
+                                                color="success"
+                                                currencySymbol={hrSettings.currency_symbol}
+                                            />
+                                            <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                            <FormulaChip label="Working Days" value={`${matchedOtRule.working_days_basis || 26}`} color="info" />
+                                            <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
+                                            <FormulaChip label="Shift Hours" value={`${matchedOtRule.shift_hours || 8} hrs`} color="info" />
+                                            <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                            <FormulaChip label="OT Hours" value={`${otHours || slip.ot_hours || 0} hrs`} color="info" />
+                                            <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
+                                            <FormulaChip
+                                                label="Multiplier"
+                                                value={`${matchedOtRule.multiplier ?? 2}×`}
+                                                color="warning"
+                                            />
+                                        </>
+                                    )
+                                ) : isNorthIndian ? (
                                     <>
                                         <FormulaChip
                                             label="Fixed OT Rate"
@@ -847,7 +903,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                             currencySymbol={hrSettings.currency_symbol}
                                         />
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                                        <FormulaChip label="OT Hours" value={`${slip.ot_hours || 0} hrs`} color="info" />
+                                        <FormulaChip label="OT Hours" value={`${otHours || slip.ot_hours || 0} hrs`} color="info" />
                                     </>
                                 ) : (
                                     <>
@@ -862,7 +918,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>÷</Typography>
                                         <FormulaChip label="Shift Hours" value="8 hrs" color="info" />
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
-                                        <FormulaChip label="OT Hours" value={`${slip.ot_hours || 0} hrs`} color="info" />
+                                        <FormulaChip label="OT Hours" value={`${otHours || slip.ot_hours || 0} hrs`} color="info" />
                                         <Typography variant="h5" sx={{ color: 'text.disabled', fontWeight: 300 }}>×</Typography>
                                         <FormulaChip
                                             label="Multiplier"
@@ -887,7 +943,7 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                                         <Box component="span" sx={{ fontFamily: "Arial, 'sans-serif'", ml: 1, mr: 0.5 }}>
                                             {hrSettings.currency_symbol}
                                         </Box>
-                                        {fNumber(slip.ot_amount || 0, { locale: hrSettings.default_locale })}
+                                        {fNumber(otAmount || slip.ot_amount || 0, { locale: hrSettings.default_locale })}
                                     </Typography>
                                 </Box>
                             </Box>

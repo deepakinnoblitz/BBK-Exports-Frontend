@@ -49,6 +49,7 @@
     "@mui/x-charts": "^9.0.2",
     "@mui/x-date-pickers": "^8.22.1",
     "@types/file-saver": "^2.0.7",
+    "@vladmandic/face-api": "^1.7.15",
     "apexcharts": "^4.5.0",
     "dayjs": "^1.11.19",
     "echarts": "^6.1.0",

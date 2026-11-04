@@ -9,6 +9,8 @@ import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 
+import { useRouter } from 'src/routes/hooks';
+
 import { useLineRoster } from 'src/hooks/use-line-roster';
 
 import { COMMON_COLORS } from 'src/theme';
@@ -23,11 +25,13 @@ import { LineRosterListView } from './line-roster-list-view';
 import { LineRosterBulkDialog } from '../line-roster-bulk-dialog';
 import { LineRosterMonthlyView } from './line-roster-monthly-view';
 import { LineRosterCalendarView } from './line-roster-calendar-view';
+import { FaceLineChangeModeDialog } from '../face-line-change-mode-dialog';
 
 // ----------------------------------------------------------------------
 
 export function LineRosterView() {
   const theme = useTheme();
+  const router = useRouter();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -67,6 +71,7 @@ export function LineRosterView() {
   // Dialog State
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openBulkDialog, setOpenBulkDialog] = useState(false);
+  const [openFaceModeDialog, setOpenFaceModeDialog] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const { refetch } = useLineRoster(1, 100);
@@ -126,6 +131,23 @@ export function LineRosterView() {
 
             {canCreate && (
               <>
+                <Button
+                  variant="outlined"
+                  startIcon={<Iconify icon={"solar:face-scan-circle-bold" as any} />}
+                  onClick={() => setOpenFaceModeDialog(true)}
+                  sx={{
+                    color: '#8b5cf6',
+                    borderColor: '#8b5cf6',
+                    fontWeight: 700,
+                    '&:hover': {
+                      borderColor: '#7c3aed',
+                      bgcolor: alpha('#8b5cf6', 0.08),
+                    },
+                  }}
+                >
+                  Face Line Change
+                </Button>
+
                 <Button
                   variant="outlined"
                   startIcon={<Iconify icon="solar:users-group-rounded-bold" />}
@@ -247,6 +269,18 @@ export function LineRosterView() {
           open={openBulkDialog}
           onClose={() => setOpenBulkDialog(false)}
           onSuccess={handleBulkSuccess}
+        />
+      )}
+
+      {/* Face Line Change Mode Selection Dialog */}
+      {openFaceModeDialog && (
+        <FaceLineChangeModeDialog
+          open={openFaceModeDialog}
+          onClose={() => setOpenFaceModeDialog(false)}
+          onSelectMode={(mode) => {
+            setOpenFaceModeDialog(false);
+            router.push(`/face-line-change?mode=${mode}`);
+          }}
         />
       )}
 

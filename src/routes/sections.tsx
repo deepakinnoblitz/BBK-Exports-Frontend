@@ -233,6 +233,7 @@ export const HRDocumentCategoryPage = lazy(() => import('src/pages/hr-document-c
 export const BloodGroupPage = lazy(() => import('src/pages/blood-group'));
 export const LineOrderPage = lazy(() => import('src/pages/line-order'));
 export const LineRosterPage = lazy(() => import('src/pages/line-roster'));
+export const FaceLineChangePage = lazy(() => import('src/pages/face-line-change'));
 export const MonthlyLineRosterPage = lazy(() => import('src/pages/monthly-line-roster'));
 export const LineRotationPage = lazy(() => import('src/pages/line-rotation'));
 export const CanteenPage = lazy(() => import('src/pages/canteen'));
@@ -634,6 +635,18 @@ export const routesSection: RouteObject[] = [
       { path: 'reminders', element: <RolePermissionGuard actionKey="reminders"><RemindersPage /></RolePermissionGuard> },
       { path: 'settings', element: <SettingsPage /> },
     ],
+  },
+  {
+    path: 'face-line-change',
+    element: (
+      <AuthGuard>
+        <RolePermissionGuard actionKey="line_roster">
+          <Suspense fallback={renderFallback()}>
+            <FaceLineChangePage />
+          </Suspense>
+        </RolePermissionGuard>
+      </AuthGuard>
+    ),
   },
   {
     path: 'sign-in',

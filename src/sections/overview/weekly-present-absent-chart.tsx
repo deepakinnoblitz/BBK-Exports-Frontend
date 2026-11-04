@@ -1,4 +1,5 @@
 import type { CardProps } from '@mui/material/Card';
+import type { ChartOptions } from 'src/components/chart';
 
 import { FaFilter } from 'react-icons/fa';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -16,8 +17,10 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { fNumber } from 'src/utils/format-number';
+
 import { Iconify } from 'src/components/iconify';
-import { EChartsBarChart, type ChartConfig } from 'src/components/evilcharts/charts/echarts-bar-chart';
+import { Chart, useChart } from 'src/components/chart';
 
 // ----------------------------------------------------------------------
 
@@ -38,22 +41,9 @@ const FILTER_LABELS: Record<string, string> = {
     Custom: 'Custom Range',
 };
 
-const chartConfig = {
-    present: {
-        label: 'Present',
-        colors: {
-            light: ['#047857', '#10b981'],
-            dark: ['#10b981', '#34d399'],
-        },
-    },
-    absent: {
-        label: 'Absent',
-        colors: {
-            light: ['#be123c', '#f43f5e'],
-            dark: ['#f43f5e', '#fb7185'],
-        },
-    },
-} satisfies ChartConfig;
+// Vibrant Emerald Green and Cherry Red matching Line-Wise Workforce chart
+const EMERALD_GREEN = '#10b981';
+const CHERRY_RED = '#e11d48';
 
 // ----------------------------------------------------------------------
 
@@ -123,18 +113,79 @@ export function WeeklyPresentAbsentChart({
     const totalPresent = useMemo(() => data.reduce((s, d) => s + (d.present || 0), 0), [data]);
     const totalAbsent = useMemo(() => data.reduce((s, d) => s + (d.absent || 0), 0), [data]);
 
-    // Transform API data for EChartsBarChart
-    const chartData = useMemo(() => data.map((item) => {
-        const date = new Date(item.date);
-        const dateStr = !Number.isNaN(date.getTime())
-            ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-            : item.date;
-        return {
-            label: `${dateStr} ${item.day}`,
-            present: item.present || 0,
-            absent: item.absent || 0,
-        };
-    }), [data]);
+    // Categories and series for ApexCharts
+    const categories = useMemo(
+        () =>
+            data.map((item) => {
+                const date = new Date(item.date);
+                const dateStr = !Number.isNaN(date.getTime())
+                    ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    : item.date;
+                return `${dateStr} ${item.day}`;
+            }),
+        [data]
+    );
+
+    const series = useMemo(
+        () => [
+            {
+                name: 'Present',
+                data: data.map((d) => d.present || 0),
+            },
+            {
+                name: 'Absent',
+                data: data.map((d) => d.absent || 0),
+            },
+        ],
+        [data]
+    );
+
+    const chartOptions: ChartOptions = useChart({
+        colors: [EMERALD_GREEN, CHERRY_RED],
+        stroke: { show: true, width: 2, colors: ['transparent'] },
+        xaxis: {
+            categories,
+            labels: {
+                style: {
+                    fontSize: '12px',
+                    fontWeight: 600,
+                },
+            },
+        },
+        yaxis: {
+            labels: {
+                formatter: (val: number) => `${fNumber(val)}`,
+            },
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            y: {
+                formatter: (val: number) => `${fNumber(val)} ${Math.abs(val) === 1 ? 'employee' : 'employees'}`,
+            },
+        },
+        plotOptions: {
+            bar: {
+                columnWidth: data.length > 15 ? '55%' : '38%',
+                borderRadius: 4,
+                dataLabels: {
+                    position: 'top',
+                },
+            },
+        },
+        legend: {
+            show: false,
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: (val: number) => (val > 0 ? fNumber(val) : ''),
+            offsetY: -20,
+            style: {
+                fontSize: '11px',
+                colors: [theme.palette.text.secondary],
+            },
+        },
+    });
 
     const handleFilterChange = useCallback(
         (value: string) => {
@@ -239,8 +290,8 @@ export function WeeklyPresentAbsentChart({
                                         width: 8,
                                         height: 8,
                                         borderRadius: '50%',
-                                        bgcolor: '#047857',
-                                        boxShadow: '0 0 6px rgba(16, 185, 129, 0.6)',
+                                        bgcolor: EMERALD_GREEN,
+                                        boxShadow: `0 0 6px ${alpha(EMERALD_GREEN, 0.6)}`,
                                     }}
                                 />
                                 <Typography variant="caption" fontWeight={600} color="text.secondary">
@@ -249,15 +300,15 @@ export function WeeklyPresentAbsentChart({
                                 <Typography
                                     variant="caption"
                                     fontWeight={700}
-                                    color="#047857"
+                                    color={EMERALD_GREEN}
                                     sx={{
-                                        bgcolor: alpha('#10b981', 0.12),
+                                        bgcolor: alpha(EMERALD_GREEN, 0.12),
                                         px: 0.8,
                                         py: 0.2,
                                         borderRadius: '6px',
                                     }}
                                 >
-                                    {totalPresent}
+                                    {fNumber(totalPresent)}
                                 </Typography>
                             </Stack>
 
@@ -267,8 +318,8 @@ export function WeeklyPresentAbsentChart({
                                         width: 8,
                                         height: 8,
                                         borderRadius: '50%',
-                                        bgcolor: '#be123c',
-                                        boxShadow: '0 0 6px rgba(244, 63, 94, 0.6)',
+                                        bgcolor: CHERRY_RED,
+                                        boxShadow: `0 0 6px ${alpha(CHERRY_RED, 0.6)}`,
                                     }}
                                 />
                                 <Typography variant="caption" fontWeight={600} color="text.secondary">
@@ -277,15 +328,15 @@ export function WeeklyPresentAbsentChart({
                                 <Typography
                                     variant="caption"
                                     fontWeight={700}
-                                    color="#be123c"
+                                    color={CHERRY_RED}
                                     sx={{
-                                        bgcolor: alpha('#f43f5e', 0.12),
+                                        bgcolor: alpha(CHERRY_RED, 0.12),
                                         px: 0.8,
                                         py: 0.2,
                                         borderRadius: '6px',
                                     }}
                                 >
-                                    {totalAbsent}
+                                    {fNumber(totalAbsent)}
                                 </Typography>
                             </Stack>
                         </Stack>
@@ -378,25 +429,13 @@ export function WeeklyPresentAbsentChart({
                 </Box>
             ) : data.length > 0 ? (
                 <Box sx={{ width: '100%', height: 320 }}>
-                    <EChartsBarChart data={chartData} config={chartConfig} height={320}>
-                        <EChartsBarChart.Grid />
-                        <EChartsBarChart.XAxis dataKey="label" />
-                        <EChartsBarChart.YAxis label="Employees" />
-                        <EChartsBarChart.Tooltip />
-                        <EChartsBarChart.Bar
-                            dataKey="present"
-                            variant="default"
-                            isClickable
-                            radius={[6, 6, 0, 0]}
-                        />
-                        <EChartsBarChart.Bar
-                            dataKey="absent"
-                            variant="default"
-                            glowing
-                            isClickable
-                            radius={[6, 6, 0, 0]}
-                        />
-                    </EChartsBarChart>
+                    <Chart
+                        type="bar"
+                        series={series}
+                        options={chartOptions}
+                        slotProps={{ loading: { p: 2.5 } }}
+                        sx={{ height: 320 }}
+                    />
                 </Box>
             ) : (
                 <EmptyState />
