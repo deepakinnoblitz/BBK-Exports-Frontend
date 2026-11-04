@@ -251,15 +251,19 @@ export function LineRosterMonthlyView({
     if (canEdit) {
       setTargetEmployee(empId);
       setTargetDate(dStr);
+      // Always open in CREATE mode from the monthly view.
+      // We pre-fill the currently shown line so the user can change it,
+      // but we never pass a roster `name` — that would update the original
+      // record (which may span many dates) and corrupt all other date cells.
       if (cell?.source === 'ROSTER' && cell?.roster_id) {
         setTargetEditData({
-          name: cell.roster_id,
+          // No `name` field → dialog treats this as a new assignment
           employee: empId,
           line_order: cell.line_order,
           line_name: cell.line_name,
           effective_from: dStr,
           effective_to: dStr,
-          assignment_type: cell.assignment_type || 'Line Change',
+          assignment_type: 'Override',
           status: 'Active',
         });
       } else {
