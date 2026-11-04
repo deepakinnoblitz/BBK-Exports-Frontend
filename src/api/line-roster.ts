@@ -404,7 +404,7 @@ export async function saveEmployeeFaceEmbedding(params: {
   face_descriptor?: number[] | string | null;
   face_3d_landmarks?: any;
   face_image?: string;
-}): Promise<{ success: boolean; message: string; face_enrolled_image?: string; face_enrolled_at?: string }> {
+}): Promise<{ success: boolean; message: string; face_enrolled_image?: string; face_enrolled_at?: string; modified?: string }> {
   const headers = await getAuthHeaders();
   const res = await frappeRequest('/api/method/company.company.line_roster_api.save_employee_face_embedding', {
     method: 'POST',
@@ -420,7 +420,7 @@ export async function saveEmployeeFaceEmbedding(params: {
   return json.message;
 }
 
-export async function clearEmployeeFaceEmbedding(employee: string): Promise<{ success: boolean; message: string }> {
+export async function clearEmployeeFaceEmbedding(employee: string): Promise<{ success: boolean; message: string; modified?: string }> {
   const headers = await getAuthHeaders();
   const res = await frappeRequest('/api/method/company.company.line_roster_api.clear_employee_face_embedding', {
     method: 'POST',

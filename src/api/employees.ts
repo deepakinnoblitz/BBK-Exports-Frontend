@@ -74,7 +74,7 @@ export async function createEmployee(data: Partial<Employee>) {
 export async function updateEmployee(name: string, data: Partial<Employee>) {
     const headers = await getAuthHeaders();
 
-    const res = await frappeRequest("/api/method/frappe.client.save", {
+    let res = await frappeRequest("/api/method/frappe.client.save", {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -85,8 +85,31 @@ export async function updateEmployee(name: string, data: Partial<Employee>) {
             }
         })
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to update employee"));
+    let json = await res.json();
+    if (!res.ok) {
+        // If a timestamp mismatch occurs (e.g. background save touched the document), fetch latest modified and retry once
+        const errMsg = JSON.stringify(json);
+        if (json.exc_type === "TimestampMismatchError" || errMsg.includes("modified after you have opened it")) {
+            const latest = await getEmployee(name);
+            if (latest?.modified) {
+                res = await frappeRequest("/api/method/frappe.client.save", {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({
+                        doc: {
+                            doctype: "Employee",
+                            ...data,
+                            modified: latest.modified,
+                            name
+                        }
+                    })
+                });
+                json = await res.json();
+                if (res.ok) return json.message;
+            }
+        }
+        throw new Error(handleFrappeError(json, "Failed to update employee"));
+    }
     return json.message;
 }
 
