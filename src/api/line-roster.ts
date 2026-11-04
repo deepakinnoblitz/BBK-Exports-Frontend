@@ -115,7 +115,8 @@ export async function createLineRosterAssignment(data: Partial<LineRoster>) {
   });
 
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to create Line Roster assignment');
+    const errorData = await res.json().catch(() => null);
+    throw new Error(handleFrappeError(errorData, 'Failed to create Line Roster assignment'));
   }
 
   const json = await res.json();
@@ -132,7 +133,8 @@ export async function updateLineRosterAssignment(name: string, data: Partial<Lin
   });
 
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to update Line Roster assignment');
+    const errorData = await res.json().catch(() => null);
+    throw new Error(handleFrappeError(errorData, 'Failed to update Line Roster assignment'));
   }
 
   const json = await res.json();
@@ -149,7 +151,8 @@ export async function deleteOrCancelLineRosterAssignment(name: string, reason?: 
   });
 
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to delete Line Roster assignment');
+    const errorData = await res.json().catch(() => null);
+    throw new Error(handleFrappeError(errorData, 'Failed to delete Line Roster assignment'));
   }
 
   const json = await res.json();
@@ -166,7 +169,8 @@ export async function checkLineRosterConflict(employee: string, effective_from: 
   });
 
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to check conflicts');
+    const errorData = await res.json().catch(() => null);
+    throw new Error(handleFrappeError(errorData, 'Failed to check conflicts'));
   }
 
   const json = await res.json();
@@ -190,7 +194,8 @@ export async function previewBulkAssignLines(params: {
   });
 
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to preview bulk line assignments');
+    const errorData = await res.json().catch(() => null);
+    throw new Error(handleFrappeError(errorData, 'Failed to preview bulk line assignments'));
   }
 
   const json = await res.json();
@@ -217,7 +222,8 @@ export async function bulkAssignLines(params: {
   });
 
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to execute bulk line assignment');
+    const errorData = await res.json().catch(() => null);
+    throw new Error(handleFrappeError(errorData, 'Failed to execute bulk line assignment'));
   }
 
   const json = await res.json();
@@ -241,7 +247,8 @@ export async function fetchMonthlyLineRoster(params: {
   });
 
   if (!res.ok) {
-    await handleFrappeError(res, 'Failed to fetch Monthly Line Roster');
+    const errorData = await res.json().catch(() => null);
+    throw new Error(handleFrappeError(errorData, 'Failed to fetch Monthly Line Roster'));
   }
 
   const json = await res.json();

@@ -250,8 +250,24 @@ export function LineRosterDialog({
             )}
 
             {conflictWarning && (
-              <Alert severity="warning">
-                {conflictWarning}
+              <Alert
+                severity={assignmentType === 'Override' ? 'info' : 'warning'}
+                action={
+                  assignmentType !== 'Override' ? (
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={() => setAssignmentType('Override')}
+                      sx={{ textTransform: 'none', fontWeight: 700 }}
+                    >
+                      Set to Override
+                    </Button>
+                  ) : null
+                }
+              >
+                {assignmentType === 'Override'
+                  ? 'Override active: This assignment will replace conflicting assignment(s) for the selected dates.'
+                  : conflictWarning}
               </Alert>
             )}
 
@@ -389,8 +405,21 @@ export function LineRosterDialog({
               />
             </Box>
 
-            {/* Status */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 2 }}>
+            {/* Assignment Type & Status */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <TextField
+                select
+                fullWidth
+                label="Assignment Type"
+                value={assignmentType}
+                onChange={(e) => setAssignmentType(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              >
+                <MenuItem value="Manual">Manual</MenuItem>
+                <MenuItem value="Override">Override</MenuItem>
+                <MenuItem value="Line Change">Line Change</MenuItem>
+              </TextField>
+
               <TextField
                 select
                 fullWidth
@@ -419,8 +448,8 @@ export function LineRosterDialog({
           </Stack>
         </DialogContent>
 
-        <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-          {isEdit ? (
+        <DialogActions sx={{ p: 2, display: 'flex', justifyContent: isEdit ? 'space-between' : 'flex-end', gap: 1 }}>
+          {isEdit && (
             <Button
               onClick={handleDelete}
               variant="outlined"
@@ -430,8 +459,6 @@ export function LineRosterDialog({
             >
               Delete Assignment
             </Button>
-          ) : (
-            <Box />
           )}
 
           <Button
@@ -442,7 +469,8 @@ export function LineRosterDialog({
             sx={{
               bgcolor: COMMON_COLORS.primaryButton.bg,
               '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
-              minWidth: isEdit ? 140 : '100%',
+              minWidth: 140,
+              px: 4,
             }}
           >
             {isEdit ? 'Save Changes' : 'Create'}
