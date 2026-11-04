@@ -1253,7 +1253,10 @@ export function EmployeeView() {
                 // Commit pending face biometrics only when user clicks Update Employee
                 if (dataToSave._faceBiometricsPendingClear) {
                     try {
-                        await clearEmployeeFaceEmbedding(currentEmployeeId);
+                        const clearRes = await clearEmployeeFaceEmbedding(currentEmployeeId);
+                        if (clearRes?.modified) {
+                            dataToSave.modified = clearRes.modified;
+                        }
                     } catch (clearErr) {
                         console.error('Failed to clear biometrics:', clearErr);
                     }
@@ -1268,12 +1271,22 @@ export function EmployeeView() {
                         if (bioRes?.face_enrolled_image) {
                             dataToSave.face_enrolled_image = bioRes.face_enrolled_image;
                         }
+                        if (bioRes?.modified) {
+                            dataToSave.modified = bioRes.modified;
+                        }
                     } catch (bioErr) {
                         console.error('Failed to save face biometrics:', bioErr);
                     }
                 }
                 delete dataToSave._faceBiometricsPendingSave;
                 delete dataToSave._faceBiometricsPendingClear;
+
+                if (dataToSave.face_descriptor && typeof dataToSave.face_descriptor === 'object') {
+                    dataToSave.face_descriptor = JSON.stringify(dataToSave.face_descriptor);
+                }
+                if (dataToSave.face_3d_landmarks && typeof dataToSave.face_3d_landmarks === 'object') {
+                    dataToSave.face_3d_landmarks = JSON.stringify(dataToSave.face_3d_landmarks);
+                }
 
                 console.log("Saving Employee", dataToSave);
                 await updateEmployee(currentEmployeeId, dataToSave as any);
@@ -1313,7 +1326,10 @@ export function EmployeeView() {
 
             if (employeeData._faceBiometricsPendingClear) {
                 try {
-                    await clearEmployeeFaceEmbedding(currentEmployeeId);
+                    const clearRes = await clearEmployeeFaceEmbedding(currentEmployeeId);
+                    if (clearRes?.modified) {
+                        employeeData.modified = clearRes.modified;
+                    }
                 } catch (clearErr) {
                     console.error('Failed to clear biometrics:', clearErr);
                 }
@@ -1328,12 +1344,22 @@ export function EmployeeView() {
                     if (bioRes?.face_enrolled_image) {
                         employeeData.face_enrolled_image = bioRes.face_enrolled_image;
                     }
+                    if (bioRes?.modified) {
+                        employeeData.modified = bioRes.modified;
+                    }
                 } catch (bioErr) {
                     console.error('Failed to save face biometrics:', bioErr);
                 }
             }
             delete employeeData._faceBiometricsPendingSave;
             delete employeeData._faceBiometricsPendingClear;
+
+            if (employeeData.face_descriptor && typeof employeeData.face_descriptor === 'object') {
+                employeeData.face_descriptor = JSON.stringify(employeeData.face_descriptor);
+            }
+            if (employeeData.face_3d_landmarks && typeof employeeData.face_3d_landmarks === 'object') {
+                employeeData.face_3d_landmarks = JSON.stringify(employeeData.face_3d_landmarks);
+            }
 
             await updateEmployee(currentEmployeeId, employeeData as any);
 
@@ -1405,7 +1431,10 @@ export function EmployeeView() {
 
             if (employeeData._faceBiometricsPendingClear) {
                 try {
-                    await clearEmployeeFaceEmbedding(currentEmployeeId);
+                    const clearRes = await clearEmployeeFaceEmbedding(currentEmployeeId);
+                    if (clearRes?.modified) {
+                        employeeData.modified = clearRes.modified;
+                    }
                 } catch (clearErr) {
                     console.error('Failed to clear biometrics:', clearErr);
                 }
@@ -1420,12 +1449,22 @@ export function EmployeeView() {
                     if (bioRes?.face_enrolled_image) {
                         employeeData.face_enrolled_image = bioRes.face_enrolled_image;
                     }
+                    if (bioRes?.modified) {
+                        employeeData.modified = bioRes.modified;
+                    }
                 } catch (bioErr) {
                     console.error('Failed to save face biometrics:', bioErr);
                 }
             }
             delete employeeData._faceBiometricsPendingSave;
             delete employeeData._faceBiometricsPendingClear;
+
+            if (employeeData.face_descriptor && typeof employeeData.face_descriptor === 'object') {
+                employeeData.face_descriptor = JSON.stringify(employeeData.face_descriptor);
+            }
+            if (employeeData.face_3d_landmarks && typeof employeeData.face_3d_landmarks === 'object') {
+                employeeData.face_3d_landmarks = JSON.stringify(employeeData.face_3d_landmarks);
+            }
 
             await updateEmployee(currentEmployeeId, employeeData as any);
 
