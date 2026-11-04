@@ -345,124 +345,83 @@ export function LineRosterMonthlyView({
             borderRadius: 2,
           }}
         >
-          <Stack direction="row" spacing={2} alignItems="center" flexGrow={1} sx={{ minWidth: 260, maxWidth: { xs: '100%', md: 480 } }}>
-            <OutlinedInput
-              fullWidth
+          {/* Month Navigator — left side */}
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={{
+              p: 0.5,
+              px: 1,
+              borderRadius: 1,
+              bgcolor: 'background.paper',
+              border: (t) => `1px solid ${t.palette.divider}`,
+            }}
+          >
+            <Button
+              variant="text"
               size="small"
-              value={searchEmployee}
-              onChange={(e) => setSearchEmployee(e.target.value)}
-              placeholder="Search employee, department..."
-              startAdornment={
-                <InputAdornment position="start">
-                  <Iconify width={18} icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
-                </InputAdornment>
-              }
-              endAdornment={
-                searchEmployee ? (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      onClick={() => setSearchEmployee('')}
-                      edge="end"
-                      aria-label="clear search"
-                      sx={{ p: 0.5, color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
-                    >
-                      <Iconify icon="solar:close-circle-bold" width={18} />
-                    </IconButton>
-                  </InputAdornment>
-                ) : null
-              }
-              sx={{
-                height: 44,
-                borderRadius: 1.25,
-                bgcolor: 'background.paper',
-                '& .MuiOutlinedInput-input': { py: 0, fontSize: '0.875rem' },
-                '& fieldset': { borderColor: 'divider' },
-                '&:hover fieldset': { borderColor: 'text.secondary' },
-                '&.Mui-focused fieldset': { borderColor: COMMON_COLORS.emerald.main },
-              }}
-            />
+              onClick={handleToday}
+              sx={{ fontWeight: 700, color: COMMON_COLORS.emerald.main, px: 1 }}
+            >
+              Current Month
+            </Button>
+
+            <IconButton size="small" onClick={handlePrevMonth}>
+              <Iconify icon={"solar:alt-arrow-left-linear" as any} width={18} />
+            </IconButton>
+
+            <Typography variant="subtitle2" sx={{ minWidth: 140, textAlign: 'center', fontWeight: 800 }}>
+              {currentDate.format('MMMM YYYY')}
+            </Typography>
+
+            <IconButton size="small" onClick={handleNextMonth}>
+              <Iconify icon={"solar:alt-arrow-right-linear" as any} width={18} />
+            </IconButton>
           </Stack>
 
-          <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
-            {/* Month Navigator */}
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={1}
-              sx={{
-                p: 0.5,
-                px: 1,
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-                border: (t) => `1px solid ${t.palette.divider}`,
-              }}
-            >
-              <Button
-                variant="text"
-                size="small"
-                onClick={handleToday}
-                sx={{ fontWeight: 700, color: COMMON_COLORS.emerald.main, px: 1 }}
-              >
-                Current Month
-              </Button>
-
-              <IconButton size="small" onClick={handlePrevMonth}>
-                <Iconify icon={"solar:alt-arrow-left-linear" as any} width={18} />
-              </IconButton>
-
-              <Typography variant="subtitle2" sx={{ minWidth: 140, textAlign: 'center', fontWeight: 800 }}>
-                {currentDate.format('MMMM YYYY')}
-              </Typography>
-
-              <IconButton size="small" onClick={handleNextMonth}>
-                <Iconify icon={"solar:alt-arrow-right-linear" as any} width={18} />
-              </IconButton>
-            </Stack>
-
-            {/* Filter Drawer Trigger Button */}
-            <Button
-              disableRipple
-              onClick={() => setOpenFilters(true)}
-              sx={{
-                height: 42,
-                px: 2,
-                bgcolor: COMMON_COLORS.filterButton.bg,
-                color: COMMON_COLORS.filterButton.color,
-                borderRadius: 1.25,
-                fontWeight: 700,
-                fontSize: '0.875rem',
-                textTransform: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 1,
+          {/* Filter Drawer Trigger Button — right side */}
+          <Button
+            disableRipple
+            onClick={() => setOpenFilters(true)}
+            sx={{
+              height: 42,
+              px: 2,
+              bgcolor: COMMON_COLORS.filterButton.bg,
+              color: COMMON_COLORS.filterButton.color,
+              borderRadius: 1.25,
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              textTransform: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1,
+              boxShadow: 'none',
+              border: 'none',
+              transition: 'all 0.15s ease',
+              '&:hover': {
+                bgcolor: COMMON_COLORS.filterButton.hoverBg,
                 boxShadow: 'none',
-                border: 'none',
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: COMMON_COLORS.filterButton.hoverBg,
-                  boxShadow: 'none',
+              },
+            }}
+          >
+            <Badge
+              color="error"
+              variant="dot"
+              invisible={activeFilterCount === 0}
+              sx={{
+                '& .MuiBadge-badge': {
+                  top: 2,
+                  right: 2,
                 },
               }}
             >
-              <Badge
-                color="error"
-                variant="dot"
-                invisible={activeFilterCount === 0}
-                sx={{
-                  '& .MuiBadge-badge': {
-                    top: 2,
-                    right: 2,
-                  },
-                }}
-              >
-                <Iconify icon={"solar:filter-linear" as any} width={18} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
-              </Badge>
-              <Box component="span" sx={{ whiteSpace: 'nowrap', display: 'inline', fontWeight: 700 }}>
-                Filters
-              </Box>
-            </Button>
-          </Stack>
+              <Iconify icon={"solar:filter-linear" as any} width={18} sx={{ color: COMMON_COLORS.filterButton.color, flexShrink: 0 }} />
+            </Badge>
+            <Box component="span" sx={{ whiteSpace: 'nowrap', display: 'inline', fontWeight: 700 }}>
+              Filters
+            </Box>
+          </Button>
         </Card>
       ) : (
         /* Top Filter Card styled like Leave Allocation Report (Inline) */

@@ -419,8 +419,8 @@ export function LineRosterDialog({
           </Stack>
         </DialogContent>
 
-        <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-          {isEdit ? (
+        <DialogActions sx={{ p: 2, display: 'flex', justifyContent: isEdit ? 'space-between' : 'flex-end', gap: 1 }}>
+          {isEdit && (
             <Button
               onClick={handleDelete}
               variant="outlined"
@@ -430,8 +430,6 @@ export function LineRosterDialog({
             >
               Delete Assignment
             </Button>
-          ) : (
-            <Box />
           )}
 
           <Button
@@ -442,7 +440,8 @@ export function LineRosterDialog({
             sx={{
               bgcolor: COMMON_COLORS.primaryButton.bg,
               '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
-              minWidth: isEdit ? 140 : '100%',
+              minWidth: 140,
+              px: 4,
             }}
           >
             {isEdit ? 'Save Changes' : 'Create'}
