@@ -1948,38 +1948,49 @@ export function FaceLineChangeView() {
               }}
             >
               <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-                <Stack direction="row" alignItems="center" spacing={1.25} sx={{ minWidth: 0, flex: 1, flexWrap: 'wrap' }}>
+                <Stack direction="row" alignItems={mode === 'pre-fixed' ? 'flex-start' : 'center'} spacing={1.25} sx={{ minWidth: 0, flex: 1 }}>
                   <Label
                     variant="soft"
                     color={mode === 'pre-fixed' ? 'success' : 'secondary'}
-                    sx={{ fontWeight: 800, fontSize: 12 }}
+                    sx={{ fontWeight: 800, fontSize: 12, mt: mode === 'pre-fixed' ? 0.25 : 0 }}
                   >
                     {mode === 'pre-fixed' ? 'Pre-Fixed Mode' : 'Post-Fixed Mode'}
                   </Label>
 
-                  {mode === 'pre-fixed' && (
+                  {mode === 'pre-fixed' ? (
+                    <Stack spacing={0.35} sx={{ minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Target:
+                        </Typography>
+                        <Typography
+                          variant="subtitle2"
+                          noWrap
+                          sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main }}
+                        >
+                          {lines.find((l) => l.name === targetLine)?.line_name || targetLine || 'Not selected'}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Iconify icon={"solar:calendar-date-bold" as any} width={15} sx={{ color: 'text.secondary' }} />
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          {effectiveFrom?.format('DD-MM-YYYY') === effectiveTo?.format('DD-MM-YYYY')
+                            ? effectiveFrom?.format('DD-MM-YYYY')
+                            : `${effectiveFrom?.format('DD-MM-YYYY')} - ${effectiveTo?.format('DD-MM-YYYY')}`}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  ) : (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Iconify icon={"solar:calendar-date-bold" as any} width={15} sx={{ color: 'text.secondary' }} />
                       <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                        Target:
-                      </Typography>
-                      <Typography
-                        variant="subtitle2"
-                        noWrap
-                        sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main }}
-                      >
-                        {lines.find((l) => l.name === targetLine)?.line_name || targetLine || 'Not selected'}
+                        {effectiveFrom?.format('DD-MM-YYYY') === effectiveTo?.format('DD-MM-YYYY')
+                          ? effectiveFrom?.format('DD-MM-YYYY')
+                          : `${effectiveFrom?.format('DD-MM-YYYY')} - ${effectiveTo?.format('DD-MM-YYYY')}`}
                       </Typography>
                     </Box>
                   )}
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Iconify icon={"solar:calendar-date-bold" as any} width={15} sx={{ color: 'text.secondary' }} />
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                      {effectiveFrom?.format('DD-MM-YYYY') === effectiveTo?.format('DD-MM-YYYY')
-                        ? effectiveFrom?.format('DD-MM-YYYY')
-                        : `${effectiveFrom?.format('DD-MM-YYYY')} - ${effectiveTo?.format('DD-MM-YYYY')}`}
-                    </Typography>
-                  </Box>
                 </Stack>
 
                 <Button
@@ -2058,18 +2069,6 @@ export function FaceLineChangeView() {
                             ? `✓ Match: ${confidence}%`
                             : `⚠ Low Match: ${confidence}% (Min ${MANUAL_VERIFICATION_THRESHOLD_PERCENT}% req.)`}
                         </Label>
-                      )}
-                      {activeWorker.face_enrolled !== 1 && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="warning"
-                          startIcon={<Iconify icon={"solar:camera-bold" as any} width={14} />}
-                          onClick={() => setEnrollWorker(activeWorker)}
-                          sx={{ fontSize: 11, py: 0.2, px: 1, borderRadius: '12px' }}
-                        >
-                          Enroll Face
-                        </Button>
                       )}
                     </Box>
                   </Box>
@@ -2279,41 +2278,9 @@ export function FaceLineChangeView() {
 
                 <Stack spacing={1.5} alignItems="center">
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                    If this is a valid employee, select them in Manual Search below to assign or enroll:
+                    If this is a valid employee, select them in Manual Search below to assign line:
                   </Typography>
                   <Stack direction="row" spacing={1.5} justifyContent="center">
-                    <Button
-                      variant="contained"
-                      color="error"
-                      onClick={() => {
-                        if (manualSearchVal) {
-                          setEnrollWorker(manualSearchVal);
-                        } else {
-                          const unenrolled =
-                            catalog.find(
-                              (c) =>
-                                (c.current_line === sourceLine || c.default_line === sourceLine) &&
-                                c.face_enrolled !== 1
-                            ) || catalog.find((c) => c.face_enrolled !== 1);
-                          if (unenrolled) {
-                            setEnrollWorker(unenrolled);
-                          }
-                        }
-                      }}
-                      sx={{
-                        borderRadius: '12px',
-                        fontWeight: 700,
-                        bgcolor: 'error.main',
-                        color: '#ffffff',
-                        '&:hover': {
-                          bgcolor: 'error.dark',
-                        },
-                      }}
-                    >
-                      {manualSearchVal
-                        ? `Enroll ${manualSearchVal.employee_name.split(' ')[0]}`
-                        : 'Enroll Face Biometrics'}
-                    </Button>
                     <Button
                       variant="outlined"
                       color="inherit"
