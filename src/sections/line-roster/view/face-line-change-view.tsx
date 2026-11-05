@@ -36,6 +36,7 @@ import {
   loadFaceRecognitionModels,
   ensureWorkerFaceDescriptor,
   extractFaceDescriptorFromMedia,
+  MANUAL_VERIFICATION_THRESHOLD_PERCENT,
 } from 'src/utils/face-recognition';
 
 import { COMMON_COLORS } from 'src/theme';
@@ -104,7 +105,11 @@ function drawFaceBiometrics(
   const isTargetWorkerUnenrolled =
     isTargeted1to1 && (Number(worker?.face_enrolled) !== 1 || !worker?.face_descriptor);
   const isLowConfidence = Boolean(
-    isLocked && worker && (confidenceVal < 50 || isTargetWorkerUnenrolled)
+    isLocked &&
+      worker &&
+      ((isTargeted1to1 && confidenceVal < MANUAL_VERIFICATION_THRESHOLD_PERCENT) ||
+        (!isTargeted1to1 && confidenceVal < 50) ||
+        isTargetWorkerUnenrolled)
   );
 
   const primaryColor =
@@ -269,10 +274,10 @@ function drawFaceBiometrics(
     if (isTargeted1to1) {
       if (isTargetWorkerUnenrolled) {
         badgeText = `✎ MANUAL: ${worker.employee_name} (Biometrics Pending)`;
-      } else if (confidenceVal >= 50) {
+      } else if (confidenceVal >= MANUAL_VERIFICATION_THRESHOLD_PERCENT) {
         badgeText = `✓ VERIFIED: ${worker.employee_name} (${confidenceVal}%)`;
       } else {
-        badgeText = `⚠ MISMATCH: ${worker.employee_name} (${confidenceVal}% match)`;
+        badgeText = `⚠ LOW MATCH: ${worker.employee_name} (${confidenceVal}% • Min ${MANUAL_VERIFICATION_THRESHOLD_PERCENT}% req.)`;
       }
     } else if (confidenceVal < 50) {
       badgeText = `⚠ LOW MATCH: ${worker.employee_name} (${confidenceVal}%)`;
@@ -336,8 +341,8 @@ function drawFaceBiometrics(
   // 6. Sub-tag below face (when matched or unrecognized)
   if (isLocked && worker) {
     let subText = '';
-    if (isTargeted1to1 && !isTargetWorkerUnenrolled && confidenceVal < 50) {
-      subText = `⚠ Live face does not match ${worker.employee_name} (${confidenceVal}%)`;
+    if (isTargeted1to1 && !isTargetWorkerUnenrolled && confidenceVal < MANUAL_VERIFICATION_THRESHOLD_PERCENT) {
+      subText = `⚠ Match ${confidenceVal}% is below ${MANUAL_VERIFICATION_THRESHOLD_PERCENT}% verification threshold`;
     } else if (isTargetWorkerUnenrolled) {
       subText = `⚠ Face biometrics not enrolled for ${worker.employee_name}`;
     } else if (effectiveTargetLine) {
@@ -788,7 +793,7 @@ export function FaceLineChangeView() {
     (worker: FaceCatalogItem, matchConfidence = 98.4) => {
       setActiveWorker(worker);
       setConfidence(matchConfidence);
-      if (soundEnabled && matchConfidence >= 50) playChime('success');
+      if (soundEnabled && matchConfidence >= MANUAL_VERIFICATION_THRESHOLD_PERCENT) playChime('success');
 
       // In Post-Fixed mode, default postTargetLine to a line different from their current line
       if (mode === 'post-fixed') {
@@ -804,10 +809,10 @@ export function FaceLineChangeView() {
           setCountdown(0);
         } else if (sourceLine && workerLine && workerLine !== sourceLine) {
           enqueueSnackbar(`Identified ${worker.employee_name} (Current: ${workerLine}). Reassigning to ${targetLine}.`, { variant: 'info' });
-          if (autoAdvance && targetLine && matchConfidence >= 50) {
+          if (autoAdvance && targetLine && matchConfidence >= MANUAL_VERIFICATION_THRESHOLD_PERCENT) {
             setCountdown(1.5);
           }
-        } else if (autoAdvance && targetLine && matchConfidence >= 50) {
+        } else if (autoAdvance && targetLine && matchConfidence >= MANUAL_VERIFICATION_THRESHOLD_PERCENT) {
           setCountdown(1.5);
         }
       }
@@ -981,11 +986,11 @@ export function FaceLineChangeView() {
         if (matchResult) {
           setConfidence(matchResult.matchPercent);
 
-          if (matchResult.matchPercent >= 50) {
+          if (matchResult.matchPercent >= MANUAL_VERIFICATION_THRESHOLD_PERCENT) {
             if (soundEnabled) playChime('success');
             trackerRef.current.cooldownUntil = Date.now() + 4000;
           } else {
-            // Live face does not match the target employee (Colleague / Impersonation Mismatch)
+            // Live face does not meet 80% verification threshold
             trackerRef.current.cooldownUntil = Date.now() + 1500;
           }
         }
@@ -1275,7 +1280,7 @@ export function FaceLineChangeView() {
         ) {
           if (targetedWorkerRef.current) {
             // Continuous 1:1 verification when worker is targeted in manual search
-            if (confidenceRef.current < 50) {
+            if (confidenceRef.current < MANUAL_VERIFICATION_THRESHOLD_PERCENT) {
               trigger1to1TargetMatch(targetedWorkerRef.current, false);
             }
           } else if (!activeWorkerRef.current) {
@@ -1337,6 +1342,19 @@ export function FaceLineChangeView() {
       return;
     }
 
+    if (
+      targetedWorker &&
+      targetedWorker.face_enrolled === 1 &&
+      confidence < MANUAL_VERIFICATION_THRESHOLD_PERCENT
+    ) {
+      enqueueSnackbar(
+        `Biometric match is ${confidence}%. Minimum ${MANUAL_VERIFICATION_THRESHOLD_PERCENT}% match is required to verify line transfer.`,
+        { variant: 'warning' }
+      );
+      if (soundEnabled) playChime('alert');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -1389,7 +1407,7 @@ export function FaceLineChangeView() {
     } finally {
       setSubmitting(false);
     }
-  }, [activeWorker, mode, targetLine, postTargetLine, soundEnabled, effectiveFrom, effectiveTo, enqueueSnackbar]);
+  }, [activeWorker, mode, targetLine, postTargetLine, soundEnabled, effectiveFrom, effectiveTo, enqueueSnackbar, targetedWorker, confidence]);
 
   // Auto-advance Countdown Timer
   useEffect(() => {
@@ -1746,7 +1764,7 @@ export function FaceLineChangeView() {
                       ? targetedWorker
                         ? Number(targetedWorker.face_enrolled) !== 1 || !targetedWorker.face_descriptor
                           ? 'warning'
-                          : confidence < 50
+                          : confidence < MANUAL_VERIFICATION_THRESHOLD_PERCENT
                           ? 'warning'
                           : 'success'
                         : confidence < 50
@@ -1766,9 +1784,9 @@ export function FaceLineChangeView() {
                     ? targetedWorker
                       ? Number(targetedWorker.face_enrolled) !== 1 || !targetedWorker.face_descriptor
                         ? `✎ Biometrics Pending: ${activeWorker.employee_name}`
-                        : confidence >= 50
+                        : confidence >= MANUAL_VERIFICATION_THRESHOLD_PERCENT
                         ? `✓ 1:1 Verified: ${activeWorker.employee_name} (${confidence}%)`
-                        : `⚠ Face Mismatch: ${activeWorker.employee_name} (${confidence}% match)`
+                        : `⚠ Low Match: ${activeWorker.employee_name} (${confidence}% • Needs ≥ ${MANUAL_VERIFICATION_THRESHOLD_PERCENT}%)`
                       : `✓ Verified: ${activeWorker.employee_name} (${confidence}%)`
                     : unrecognizedFace
                     ? 'Employee Not Found • Unassigned'
@@ -1805,9 +1823,9 @@ export function FaceLineChangeView() {
                     {targetedWorker
                       ? Number(targetedWorker.face_enrolled) !== 1 || !targetedWorker.face_descriptor
                         ? 'Manual Search Mode'
-                        : confidence >= 50
+                        : confidence >= MANUAL_VERIFICATION_THRESHOLD_PERCENT
                         ? '1:1 Verified'
-                        : '1:1 Live Verification'
+                        : `Min ${MANUAL_VERIFICATION_THRESHOLD_PERCENT}% Required`
                       : isFaceTracked
                       ? 'Live Face Tracking'
                       : 'Waiting for Face'}
@@ -1997,7 +2015,7 @@ export function FaceLineChangeView() {
                   p: 3,
                   borderRadius: '20px',
                   border: (t) =>
-                    targetedWorker && confidence < 50
+                    targetedWorker && confidence < MANUAL_VERIFICATION_THRESHOLD_PERCENT
                       ? '1.5px solid #f59e0b'
                       : `1.5px solid ${alpha(theme.palette.primary.main, 0.35)}`,
                   bgcolor: 'background.paper',
@@ -2033,12 +2051,12 @@ export function FaceLineChangeView() {
                       {targetedWorker && activeWorker.face_enrolled === 1 && (
                         <Label
                           variant="filled"
-                          color={confidence >= 50 ? 'success' : 'warning'}
+                          color={confidence >= MANUAL_VERIFICATION_THRESHOLD_PERCENT ? 'success' : 'warning'}
                           sx={{ fontWeight: 700 }}
                         >
-                          {confidence >= 50
+                          {confidence >= MANUAL_VERIFICATION_THRESHOLD_PERCENT
                             ? `✓ Match: ${confidence}%`
-                            : `⚠ Mismatch: ${confidence}% match`}
+                            : `⚠ Low Match: ${confidence}% (Min ${MANUAL_VERIFICATION_THRESHOLD_PERCENT}% req.)`}
                         </Label>
                       )}
                       {activeWorker.face_enrolled !== 1 && (
@@ -2151,7 +2169,15 @@ export function FaceLineChangeView() {
                     fullWidth
                     variant="contained"
                     size="large"
-                    disabled={submitting || (mode === 'post-fixed' && !postTargetLine)}
+                    disabled={
+                      submitting ||
+                      (mode === 'post-fixed' && !postTargetLine) ||
+                      Boolean(
+                        targetedWorker &&
+                          activeWorker?.face_enrolled === 1 &&
+                          confidence < MANUAL_VERIFICATION_THRESHOLD_PERCENT
+                      )
+                    }
                     onClick={handleConfirmTransfer}
                     startIcon={
                       submitting ? (
@@ -2172,6 +2198,10 @@ export function FaceLineChangeView() {
                   >
                     {submitting
                       ? 'Assigning Line...'
+                      : targetedWorker &&
+                        activeWorker?.face_enrolled === 1 &&
+                        confidence < MANUAL_VERIFICATION_THRESHOLD_PERCENT
+                      ? `Verify Face (≥ ${MANUAL_VERIFICATION_THRESHOLD_PERCENT}%)`
                       : mode === 'pre-fixed'
                       ? '✓ Confirm & Next (Space)'
                       : '✓ Assign Line & Next'}
@@ -2181,6 +2211,27 @@ export function FaceLineChangeView() {
                     Skip
                   </Button>
                 </Stack>
+
+                {targetedWorker &&
+                  activeWorker?.face_enrolled === 1 &&
+                  confidence < MANUAL_VERIFICATION_THRESHOLD_PERCENT && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        color: 'warning.main',
+                        fontWeight: 700,
+                        mt: 1.25,
+                        textAlign: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Iconify icon={"solar:danger-triangle-bold" as any} width={15} />
+                      Live camera face must achieve ≥ {MANUAL_VERIFICATION_THRESHOLD_PERCENT}% match to confirm transfer.
+                    </Typography>
+                  )}
               </Card>
             ) : unrecognizedFace ? (
               /* Unauthorized Person / Employee Not Found Alert Card */

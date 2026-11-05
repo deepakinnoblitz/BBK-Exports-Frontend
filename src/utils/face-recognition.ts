@@ -196,14 +196,16 @@ export function matchFaceDescriptor<T extends { name: string; face_enrolled: num
   return bestMatch;
 }
 
+export const MANUAL_VERIFICATION_THRESHOLD_PERCENT = 80;
+
 /**
  * 1:1 Targeted Face Verification
  * Compares a live face descriptor specifically against a single target employee's enrolled biometric profile.
  * Computes exact Euclidean distance, Cosine similarity, and a calibrated Match Percentage (0% - 100%).
  * 
  * Score semantics:
- * - >= 50%: Face matches target employee (Euclidean distance <= 0.43, Cosine >= 0.895) -> GREEN
- * - < 50%: Face does NOT match target employee -> YELLOW/AMBER (e.g. colleague or stranger in front of camera)
+ * - >= 80%: Face verified matching target employee (Euclidean distance <= 0.43, Cosine >= 0.895, Match >= 80%) -> GREEN
+ * - < 80%: Face does NOT meet 80% verification threshold -> YELLOW/AMBER (e.g. colleague, stranger, or poor visibility)
  */
 export function compareTargetFace<T extends { name: string; face_enrolled: number; face_descriptor?: any }>(
   liveDescriptor: number[] | Float32Array,
@@ -249,7 +251,7 @@ export function compareTargetFace<T extends { name: string; face_enrolled: numbe
   // dist = 0.55 -> 22%
   // dist >= 0.65 -> 0%
   const matchPercent = Math.max(0, Math.min(100, Math.round(((0.65 - dist) / 0.45) * 100)));
-  const matched = dist <= customThreshold && cosSim >= 0.895;
+  const matched = dist <= customThreshold && cosSim >= 0.895 && matchPercent >= MANUAL_VERIFICATION_THRESHOLD_PERCENT;
 
   return {
     matched,
