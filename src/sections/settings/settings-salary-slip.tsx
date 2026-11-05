@@ -189,9 +189,11 @@ export interface OtherStatutoryRule {
   esi_wage_ceiling: number;
   // Tea Deduction
   enable_employee_tea_deduction: number | boolean;
+  tea_deduction_component?: string;
   employee_tea_deduction_per_day: number;
   // Canteen Deduction
   enable_employee_canteen_deduction: number | boolean;
+  canteen_deduction_component?: string;
   employee_canteen_deduction_per_meal: number;
   notes?: string;
 }
@@ -855,8 +857,10 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
           employee_esi_rate: item.employee_esi_rate !== undefined ? Number(item.employee_esi_rate) : 0.75,
           esi_wage_ceiling: item.esi_wage_ceiling !== undefined ? Number(item.esi_wage_ceiling) : 21000,
           enable_employee_tea_deduction: item.enable_employee_tea_deduction ?? 0,
+          tea_deduction_component: item.tea_deduction_component || 'Tea Deduction',
           employee_tea_deduction_per_day: item.employee_tea_deduction_per_day !== undefined ? Number(item.employee_tea_deduction_per_day) : 0,
           enable_employee_canteen_deduction: item.enable_employee_canteen_deduction ?? 0,
+          canteen_deduction_component: item.canteen_deduction_component || 'Canteen Deduction',
           employee_canteen_deduction_per_meal: item.employee_canteen_deduction_per_meal !== undefined ? Number(item.employee_canteen_deduction_per_meal) : 0,
           notes: item.notes || '',
         }));
@@ -907,8 +911,10 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
       employee_esi_rate: 0.75,
       esi_wage_ceiling: 21000,
       enable_employee_tea_deduction: 0,
+      tea_deduction_component: 'Tea Deduction',
       employee_tea_deduction_per_day: 0,
       enable_employee_canteen_deduction: 0,
+      canteen_deduction_component: 'Canteen Deduction',
       employee_canteen_deduction_per_meal: 0,
       notes: '',
     };
@@ -2687,35 +2693,71 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       </Stack>
 
                       {empTeaEnabled && (
-                        <TextField
-                          fullWidth
-                          size="medium"
-                          type="number"
-                          label="Tea Deduction Rate (₹/day)"
-                          value={getFieldVal(cat.key, 'employee_tea_deduction_per_day', defaultTeaRate)}
-                          onChange={(e) => setFieldVal(cat.key, 'employee_tea_deduction_per_day', e.target.value)}
-                          placeholder={cat.key === 'general' ? '0' : defaultTeaRate}
-                          helperText={
-                            cat.key === 'general'
-                              ? 'Default baseline deducted from Gross Pay (Present Days × ₹/day).'
-                              : `Deducted from Employee Gross Pay (Present Days × ₹/day). ${
-                                  data[`${cat.key}_employee_tea_deduction_per_day`] === undefined || data[`${cat.key}_employee_tea_deduction_per_day`] === ''
-                                    ? `(Inheriting Company Default: ₹${defaultTeaRate}/day)`
-                                    : ''
-                                }`
-                          }
-                          slotProps={{
-                            input: {
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                                </InputAdornment>
-                              ),
-                              endAdornment: <InputAdornment position="end">/day</InputAdornment>,
-                            },
-                            htmlInput: { min: 0, step: 1 },
-                          }}
-                        />
+                        <Stack spacing={2.5}>
+                          <Autocomplete
+                            freeSolo
+                            openOnFocus
+                            forcePopupIcon
+                            autoHighlight
+                            disabled={!empTeaEnabled}
+                            options={deductionOptions}
+                            value={getFieldVal(cat.key, 'tea_deduction_component', 'Tea Deduction')}
+                            onChange={(_event, newValue) => {
+                              setFieldVal(cat.key, 'tea_deduction_component', newValue || '');
+                            }}
+                            onInputChange={(_event, newInputValue) => {
+                              if (newInputValue !== undefined) {
+                                setFieldVal(cat.key, 'tea_deduction_component', newInputValue);
+                              }
+                            }}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Tea Deduction Salary Component"
+                                placeholder="Select or type component name (e.g. Tea Deduction)..."
+                                helperText={
+                                  cat.key === 'general'
+                                    ? 'Salary Component used for Employee Tea expense deduction on salary slips'
+                                    : `Deduction component for ${cat.title}. ${
+                                        data[`${cat.key}_tea_deduction_component`] === undefined || data[`${cat.key}_tea_deduction_component`] === ''
+                                          ? `(Inheriting Company Default: ${data.tea_deduction_component || 'Tea Deduction'})`
+                                          : ''
+                                      }`
+                                }
+                              />
+                            )}
+                          />
+
+                          <TextField
+                            fullWidth
+                            size="medium"
+                            type="number"
+                            label="Tea Deduction Rate (₹/day)"
+                            value={getFieldVal(cat.key, 'employee_tea_deduction_per_day', defaultTeaRate)}
+                            onChange={(e) => setFieldVal(cat.key, 'employee_tea_deduction_per_day', e.target.value)}
+                            placeholder={cat.key === 'general' ? '0' : defaultTeaRate}
+                            helperText={
+                              cat.key === 'general'
+                                ? 'Default baseline deducted from Gross Pay (Present Days × ₹/day).'
+                                : `Deducted from Employee Gross Pay (Present Days × ₹/day). ${
+                                    data[`${cat.key}_employee_tea_deduction_per_day`] === undefined || data[`${cat.key}_employee_tea_deduction_per_day`] === ''
+                                      ? `(Inheriting Company Default: ₹${defaultTeaRate}/day)`
+                                      : ''
+                                  }`
+                            }
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                  </InputAdornment>
+                                ),
+                                endAdornment: <InputAdornment position="end">/day</InputAdornment>,
+                              },
+                              htmlInput: { min: 0, step: 1 },
+                            }}
+                          />
+                        </Stack>
                       )}
                     </Box>
                   </Box>
@@ -2766,35 +2808,71 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                       </Stack>
 
                       {empCanteenEnabled && (
-                        <TextField
-                          fullWidth
-                          size="medium"
-                          type="number"
-                          label="Canteen Deduction Rate (₹/meal)"
-                          value={getFieldVal(cat.key, 'employee_canteen_deduction_per_meal', defaultCanteenRate)}
-                          onChange={(e) => setFieldVal(cat.key, 'employee_canteen_deduction_per_meal', e.target.value)}
-                          placeholder={cat.key === 'general' ? '0' : defaultCanteenRate}
-                          helperText={
-                            cat.key === 'general'
-                              ? 'Default baseline deducted from Gross Pay (Canteen Entries × ₹/meal).'
-                              : `Deducted from Employee Gross Pay (All Canteen Entries × ₹/meal). ${
-                                  data[`${cat.key}_employee_canteen_deduction_per_meal`] === undefined || data[`${cat.key}_employee_canteen_deduction_per_meal`] === ''
-                                    ? `(Inheriting Company Default: ₹${defaultCanteenRate}/meal)`
-                                    : ''
-                                }`
-                          }
-                          slotProps={{
-                            input: {
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                                </InputAdornment>
-                              ),
-                              endAdornment: <InputAdornment position="end">/meal</InputAdornment>,
-                            },
-                            htmlInput: { min: 0, step: 1 },
-                          }}
-                        />
+                        <Stack spacing={2.5}>
+                          <Autocomplete
+                            freeSolo
+                            openOnFocus
+                            forcePopupIcon
+                            autoHighlight
+                            disabled={!empCanteenEnabled}
+                            options={deductionOptions}
+                            value={getFieldVal(cat.key, 'canteen_deduction_component', 'Canteen Deduction')}
+                            onChange={(_event, newValue) => {
+                              setFieldVal(cat.key, 'canteen_deduction_component', newValue || '');
+                            }}
+                            onInputChange={(_event, newInputValue) => {
+                              if (newInputValue !== undefined) {
+                                setFieldVal(cat.key, 'canteen_deduction_component', newInputValue);
+                              }
+                            }}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Canteen Deduction Salary Component"
+                                placeholder="Select or type component name (e.g. Canteen Deduction)..."
+                                helperText={
+                                  cat.key === 'general'
+                                    ? 'Salary Component used for Employee Canteen / Lunch deduction on salary slips'
+                                    : `Deduction component for ${cat.title}. ${
+                                        data[`${cat.key}_canteen_deduction_component`] === undefined || data[`${cat.key}_canteen_deduction_component`] === ''
+                                          ? `(Inheriting Company Default: ${data.canteen_deduction_component || 'Canteen Deduction'})`
+                                          : ''
+                                      }`
+                                }
+                              />
+                            )}
+                          />
+
+                          <TextField
+                            fullWidth
+                            size="medium"
+                            type="number"
+                            label="Canteen Deduction Rate (₹/meal)"
+                            value={getFieldVal(cat.key, 'employee_canteen_deduction_per_meal', defaultCanteenRate)}
+                            onChange={(e) => setFieldVal(cat.key, 'employee_canteen_deduction_per_meal', e.target.value)}
+                            placeholder={cat.key === 'general' ? '0' : defaultCanteenRate}
+                            helperText={
+                              cat.key === 'general'
+                                ? 'Default baseline deducted from Gross Pay (Canteen Entries × ₹/meal).'
+                                : `Deducted from Employee Gross Pay (All Canteen Entries × ₹/meal). ${
+                                    data[`${cat.key}_employee_canteen_deduction_per_meal`] === undefined || data[`${cat.key}_employee_canteen_deduction_per_meal`] === ''
+                                      ? `(Inheriting Company Default: ₹${defaultCanteenRate}/meal)`
+                                      : ''
+                                  }`
+                            }
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                  </InputAdornment>
+                                ),
+                                endAdornment: <InputAdornment position="end">/meal</InputAdornment>,
+                              },
+                              htmlInput: { min: 0, step: 1 },
+                            }}
+                          />
+                        </Stack>
                       )}
                     </Box>
                   </Box>
@@ -3412,28 +3490,56 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                               </Stack>
 
                               {empTeaEnabled && (
-                                <TextField
-                                  fullWidth
-                                  size="medium"
-                                  type="number"
-                                  label="Tea Deduction Rate (₹/day)"
-                                  value={rule.employee_tea_deduction_per_day ?? 0}
-                                  onChange={(e) => handleUpdateSingleOtherStatutoryRule(rule.id, 'employee_tea_deduction_per_day', Number(e.target.value))}
-                                  placeholder="0"
-                                  disabled={!ruleActive}
-                                  helperText="Deducted from Employee Gross Pay (Present Days × ₹/day)."
-                                  slotProps={{
-                                    input: {
-                                      startAdornment: (
-                                        <InputAdornment position="start">
-                                          <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                                        </InputAdornment>
-                                      ),
-                                      endAdornment: <InputAdornment position="end">/day</InputAdornment>,
-                                    },
-                                    htmlInput: { min: 0, step: 1 },
-                                  }}
-                                />
+                                <Stack spacing={2.5}>
+                                  <Autocomplete
+                                    freeSolo
+                                    openOnFocus
+                                    forcePopupIcon
+                                    autoHighlight
+                                    disabled={!empTeaEnabled || !ruleActive}
+                                    options={deductionOptions}
+                                    value={rule.tea_deduction_component || 'Tea Deduction'}
+                                    onChange={(_event, newValue) => {
+                                      handleUpdateSingleOtherStatutoryRule(rule.id, 'tea_deduction_component', newValue || '');
+                                    }}
+                                    onInputChange={(_event, newInputValue) => {
+                                      if (newInputValue !== undefined) {
+                                        handleUpdateSingleOtherStatutoryRule(rule.id, 'tea_deduction_component', newInputValue);
+                                      }
+                                    }}
+                                    renderInput={(params) => (
+                                      <TextField
+                                        {...params}
+                                        label="Tea Deduction Salary Component"
+                                        placeholder="Select or type component name (e.g. Tea Deduction)..."
+                                        helperText="Salary Component used for Employee Tea expense deduction on salary slips"
+                                      />
+                                    )}
+                                  />
+
+                                  <TextField
+                                    fullWidth
+                                    size="medium"
+                                    type="number"
+                                    label="Tea Deduction Rate (₹/day)"
+                                    value={rule.employee_tea_deduction_per_day ?? 0}
+                                    onChange={(e) => handleUpdateSingleOtherStatutoryRule(rule.id, 'employee_tea_deduction_per_day', Number(e.target.value))}
+                                    placeholder="0"
+                                    disabled={!ruleActive}
+                                    helperText="Deducted from Employee Gross Pay (Present Days × ₹/day)."
+                                    slotProps={{
+                                      input: {
+                                        startAdornment: (
+                                          <InputAdornment position="start">
+                                            <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                          </InputAdornment>
+                                        ),
+                                        endAdornment: <InputAdornment position="end">/day</InputAdornment>,
+                                      },
+                                      htmlInput: { min: 0, step: 1 },
+                                    }}
+                                  />
+                                </Stack>
                               )}
                             </Box>
                           </Box>
@@ -3483,28 +3589,56 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                               </Stack>
 
                               {empCanteenEnabled && (
-                                <TextField
-                                  fullWidth
-                                  size="medium"
-                                  type="number"
-                                  label="Canteen Deduction Rate (₹/meal)"
-                                  value={rule.employee_canteen_deduction_per_meal ?? 0}
-                                  onChange={(e) => handleUpdateSingleOtherStatutoryRule(rule.id, 'employee_canteen_deduction_per_meal', Number(e.target.value))}
-                                  placeholder="0"
-                                  disabled={!ruleActive}
-                                  helperText="Deducted from Employee Gross Pay (All Canteen Entries × ₹/meal)."
-                                  slotProps={{
-                                    input: {
-                                      startAdornment: (
-                                        <InputAdornment position="start">
-                                          <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
-                                        </InputAdornment>
-                                      ),
-                                      endAdornment: <InputAdornment position="end">/meal</InputAdornment>,
-                                    },
-                                    htmlInput: { min: 0, step: 1 },
-                                  }}
-                                />
+                                <Stack spacing={2.5}>
+                                  <Autocomplete
+                                    freeSolo
+                                    openOnFocus
+                                    forcePopupIcon
+                                    autoHighlight
+                                    disabled={!empCanteenEnabled || !ruleActive}
+                                    options={deductionOptions}
+                                    value={rule.canteen_deduction_component || 'Canteen Deduction'}
+                                    onChange={(_event, newValue) => {
+                                      handleUpdateSingleOtherStatutoryRule(rule.id, 'canteen_deduction_component', newValue || '');
+                                    }}
+                                    onInputChange={(_event, newInputValue) => {
+                                      if (newInputValue !== undefined) {
+                                        handleUpdateSingleOtherStatutoryRule(rule.id, 'canteen_deduction_component', newInputValue);
+                                      }
+                                    }}
+                                    renderInput={(params) => (
+                                      <TextField
+                                        {...params}
+                                        label="Canteen Deduction Salary Component"
+                                        placeholder="Select or type component name (e.g. Canteen Deduction)..."
+                                        helperText="Salary Component used for Employee Canteen / Lunch deduction on salary slips"
+                                      />
+                                    )}
+                                  />
+
+                                  <TextField
+                                    fullWidth
+                                    size="medium"
+                                    type="number"
+                                    label="Canteen Deduction Rate (₹/meal)"
+                                    value={rule.employee_canteen_deduction_per_meal ?? 0}
+                                    onChange={(e) => handleUpdateSingleOtherStatutoryRule(rule.id, 'employee_canteen_deduction_per_meal', Number(e.target.value))}
+                                    placeholder="0"
+                                    disabled={!ruleActive}
+                                    helperText="Deducted from Employee Gross Pay (All Canteen Entries × ₹/meal)."
+                                    slotProps={{
+                                      input: {
+                                        startAdornment: (
+                                          <InputAdornment position="start">
+                                            <Typography component="span" sx={{ fontFamily: "Arial, 'sans-serif'", fontWeight: 700, fontSize: '0.875rem', color: 'text.secondary', ml: 1, mr: 0.5 }}>₹</Typography>
+                                          </InputAdornment>
+                                        ),
+                                        endAdornment: <InputAdornment position="end">/meal</InputAdornment>,
+                                      },
+                                      htmlInput: { min: 0, step: 1 },
+                                    }}
+                                  />
+                                </Stack>
                               )}
                             </Box>
                           </Box>
