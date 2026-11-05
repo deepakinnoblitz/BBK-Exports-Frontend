@@ -830,35 +830,6 @@ export function EmployeeDetailsView() {
                                                                 Biometric identifier: {employee.name || employee.employee_id}
                                                             </Box>
                                                         </Stack>
-
-                                                        <Stack direction="row" spacing={1.5} sx={{ pt: 2 }} flexWrap="wrap">
-                                                            <Button
-                                                                variant="contained"
-                                                                size="small"
-                                                                startIcon={<Iconify icon={"solar:camera-bold" as any} />}
-                                                                onClick={() => setEnrollModalOpen(true)}
-                                                                sx={{
-                                                                    bgcolor: COMMON_COLORS.emerald.main,
-                                                                    color: '#ffffff',
-                                                                    borderRadius: 1.5,
-                                                                    fontWeight: 700,
-                                                                    '&:hover': { bgcolor: COMMON_COLORS.emerald.dark },
-                                                                }}
-                                                            >
-                                                                Re-enroll Face Photo
-                                                            </Button>
-
-                                                            <Button
-                                                                variant="outlined"
-                                                                size="small"
-                                                                color="error"
-                                                                startIcon={<Iconify icon={"solar:trash-bin-trash-bold" as any} />}
-                                                                onClick={() => setConfirmRemoveOpen(true)}
-                                                                sx={{ borderRadius: 1.5, fontWeight: 700 }}
-                                                            >
-                                                                Remove Biometrics
-                                                            </Button>
-                                                        </Stack>
                                                     </Stack>
                                                 </Box>
                                             </Stack>
