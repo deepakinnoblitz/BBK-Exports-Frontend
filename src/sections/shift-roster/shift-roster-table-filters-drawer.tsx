@@ -155,32 +155,6 @@ export function ShiftRosterTableFiltersDrawer({
 
         <Scrollbar>
           <Stack spacing={3} sx={{ p: 3 }}>
-            {/* Department Filter (if available and HR) */}
-            {isHR && departmentOptions && departmentOptions.length > 0 && (
-              <Stack spacing={1.5}>
-                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
-                  Department
-                </Typography>
-                <FormControl fullWidth size="small">
-                  <Select
-                    value={filters.department || 'all'}
-                    onChange={(e) => onFilters({ department: e.target.value })}
-                    sx={{
-                      borderRadius: 1.5,
-                      bgcolor: 'background.neutral',
-                    }}
-                  >
-                    <MenuItem value="all">All Departments</MenuItem>
-                    {departmentOptions.map((d) => (
-                      <MenuItem key={d.name} value={d.name}>
-                        {d.department_name || d.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Stack>
-            )}
-
             {/* Employee Filter (if HR) */}
             {isHR && (
               <Stack spacing={1.5}>
@@ -242,6 +216,32 @@ export function ShiftRosterTableFiltersDrawer({
                     />
                   )}
                 />
+              </Stack>
+            )}
+
+            {/* Department Filter (if available and HR) */}
+            {isHR && departmentOptions && departmentOptions.length > 0 && (
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                  Department
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={filters.department || 'all'}
+                    onChange={(e) => onFilters({ department: e.target.value })}
+                    sx={{
+                      borderRadius: 1.5,
+                      bgcolor: 'background.neutral',
+                    }}
+                  >
+                    <MenuItem value="all">All Departments</MenuItem>
+                    {departmentOptions.map((d) => (
+                      <MenuItem key={d.name} value={d.name}>
+                        {d.department_name || d.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Stack>
             )}
 

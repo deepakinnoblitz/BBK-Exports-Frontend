@@ -79,10 +79,6 @@ export function LineRosterTableFiltersDrawer({
     onFilters({ employees: value || [] });
   };
 
-  const handleFilterLine = (event: SelectChangeEvent<string>) => {
-    onFilters({ line_order: event.target.value });
-  };
-
   const handleFilterStatus = (event: SelectChangeEvent<string>) => {
     onFilters({ status: event.target.value });
   };
@@ -155,32 +151,6 @@ export function LineRosterTableFiltersDrawer({
 
         <Scrollbar>
           <Stack spacing={3} sx={{ p: 3 }}>
-            {/* Department Filter */}
-            {isHR && departmentOptions && departmentOptions.length > 0 && (
-              <Stack spacing={1.5}>
-                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
-                  Department
-                </Typography>
-                <FormControl fullWidth size="small">
-                  <Select
-                    value={filters.department || 'all'}
-                    onChange={(e) => onFilters({ department: e.target.value })}
-                    sx={{
-                      borderRadius: 1.5,
-                      bgcolor: 'background.neutral',
-                    }}
-                  >
-                    <MenuItem value="all">All Departments</MenuItem>
-                    {departmentOptions.map((dept) => (
-                      <MenuItem key={dept.name} value={dept.name}>
-                        {dept.department_name || dept.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Stack>
-            )}
-
             {/* Employee Multi-Select */}
             {isHR && (
               <Stack spacing={1.5}>
@@ -247,28 +217,74 @@ export function LineRosterTableFiltersDrawer({
               </Stack>
             )}
 
+            {/* Department Filter */}
+            {isHR && departmentOptions && departmentOptions.length > 0 && (
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                  Department
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={filters.department || 'all'}
+                    onChange={(e) => onFilters({ department: e.target.value })}
+                    sx={{
+                      borderRadius: 1.5,
+                      bgcolor: 'background.neutral',
+                    }}
+                  >
+                    <MenuItem value="all">All Departments</MenuItem>
+                    {departmentOptions.map((dept) => (
+                      <MenuItem key={dept.name} value={dept.name}>
+                        {dept.department_name || dept.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+            )}
+
             {/* Line Filter */}
             <Stack spacing={1.5}>
               <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
                 Line
               </Typography>
-              <FormControl fullWidth size="small">
-                <Select
-                  value={filters.line_order || filters.line || 'all'}
-                  onChange={handleFilterLine}
-                  sx={{
-                    borderRadius: 1.5,
-                    bgcolor: 'background.neutral',
-                  }}
-                >
-                  <MenuItem value="all">All Lines</MenuItem>
-                  {lineOptions.map((line) => (
-                    <MenuItem key={line.name} value={line.name}>
-                      {line.line_name || line.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                fullWidth
+                size="small"
+                options={lineOptions}
+                getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt?.line_name || opt?.name || '')}
+                isOptionEqualToValue={(option, value) => (option?.name || option) === (value?.name || value)}
+                value={lineOptions.find((l) => l.name === (filters.line_order || filters.line)) || null}
+                onChange={(_, newValue) => {
+                  onFilters({ line_order: newValue ? newValue.name : 'all' });
+                }}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.name}>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        {option.line_name || option.name}
+                      </Typography>
+                      {option.line_name && option.name !== option.line_name && (
+                        <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                          ID: {option.name}
+                        </Typography>
+                      )}
+                    </Box>
+                  </li>
+                )}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Search line..."
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+                        bgcolor: 'background.neutral',
+                      },
+                    }}
+                  />
+                )}
+              />
             </Stack>
 
             {/* Status Filter */}

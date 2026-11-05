@@ -85,6 +85,9 @@ export function LineRosterMonthlyView({
   const [currentDate, setCurrentDate] = useState<dayjs.Dayjs>(dayjs());
   const [selectedDept, setSelectedDept] = useState('all');
   const [selectedLineFilter, setSelectedLineFilter] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [fromDate, setFromDate] = useState<dayjs.Dayjs | null>(null);
+  const [toDate, setToDate] = useState<dayjs.Dayjs | null>(null);
   const [searchEmployee, setSearchEmployee] = useState('');
   const [openFilters, setOpenFilters] = useState(false);
   const [internalEmployees, setInternalEmployees] = useState<any[]>([]);
@@ -276,13 +279,21 @@ export function LineRosterMonthlyView({
   // Filter helper logic
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (isHRUser && selectedDept !== 'all') count += 1;
     if (isHRUser && selectedEmployees.length > 0) count += 1;
     if (selectedLineFilter !== 'all') count += 1;
+    if (selectedStatus !== 'all') count += 1;
+    if (fromDate?.isValid()) count += 1;
+    if (toDate?.isValid()) count += 1;
     return count;
-  }, [isHRUser, selectedDept, selectedEmployees, selectedLineFilter]);
+  }, [isHRUser, selectedEmployees, selectedLineFilter, selectedStatus, fromDate, toDate]);
 
-  const canReset = (isHRUser && selectedDept !== 'all') || (isHRUser && selectedEmployees.length > 0) || selectedLineFilter !== 'all' || !!searchEmployee;
+  const canReset =
+    (isHRUser && selectedEmployees.length > 0) ||
+    selectedLineFilter !== 'all' ||
+    selectedStatus !== 'all' ||
+    Boolean(fromDate?.isValid()) ||
+    Boolean(toDate?.isValid()) ||
+    Boolean(searchEmployee);
 
   const handleResetFilters = () => {
     if (isHRUser) {
@@ -290,6 +301,9 @@ export function LineRosterMonthlyView({
       setSelectedEmployees([]);
     }
     setSelectedLineFilter('all');
+    setSelectedStatus('all');
+    setFromDate(null);
+    setToDate(null);
     setSearchEmployee('');
   };
 
@@ -306,6 +320,15 @@ export function LineRosterMonthlyView({
     if (update.line_order !== undefined || update.line !== undefined) {
       setSelectedLineFilter(update.line_order || update.line || 'all');
     }
+    if (update.status !== undefined) {
+      setSelectedStatus(update.status);
+    }
+    if (update.fromDate !== undefined) {
+      setFromDate(update.fromDate);
+    }
+    if (update.toDate !== undefined) {
+      setToDate(update.toDate);
+    }
   };
 
   // Color map for lines
@@ -314,12 +337,33 @@ export function LineRosterMonthlyView({
     lineColorMap[l.name] = LINE_PALETTES[idx % LINE_PALETTES.length];
   });
 
+  const days = useMemo(() => {
+    if (!data?.days) return [];
+    return data.days.filter((d) => {
+      if (fromDate?.isValid() && dayjs(d.date).isBefore(fromDate, 'day')) return false;
+      if (toDate?.isValid() && dayjs(d.date).isAfter(toDate, 'day')) return false;
+      return true;
+    });
+  }, [data?.days, fromDate, toDate]);
+
   const filteredEmployees = (data?.employees || []).filter((emp) => {
     if (selectedLineFilter && selectedLineFilter !== 'all') {
       const hasLine = Object.values(emp.lines || {}).some(
         (cell: any) => cell?.line_order === selectedLineFilter || cell?.line_name === selectedLineFilter
       );
       if (!hasLine) return false;
+    }
+    if (selectedStatus && selectedStatus !== 'all') {
+      const hasMatchingStatus = Object.values(emp.lines || {}).some((cell: any) => {
+        if (selectedStatus === 'Active') {
+          return cell?.source === 'ROSTER' || cell?.source === 'ROTATION' || cell?.source === 'DEFAULT';
+        }
+        if (selectedStatus === 'Cancelled') {
+          return cell?.assignment_type === 'Cancelled' || cell?.status === 'Cancelled';
+        }
+        return true;
+      });
+      if (!hasMatchingStatus) return false;
     }
     if (!searchEmployee) return true;
     const q = searchEmployee.toLowerCase();
@@ -667,7 +711,7 @@ export function LineRosterMonthlyView({
                   Employee ({filteredEmployees.length}{totalCount ? ` of ${totalCount}` : ''})
                 </TableCell>
 
-                {data?.days?.map((d) => {
+                {days.map((d) => {
                   const isToday = d.date === todayStr;
                   return (
                     <TableCell
@@ -701,13 +745,13 @@ export function LineRosterMonthlyView({
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={(data?.days?.length || 0) + 1} align="center" sx={{ py: 10 }}>
+                  <TableCell colSpan={(days.length || 0) + 1} align="center" sx={{ py: 10 }}>
                     <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                   </TableCell>
                 </TableRow>
               ) : filteredEmployees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={(data?.days?.length || 0) + 1} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                  <TableCell colSpan={(days.length || 0) + 1} align="center" sx={{ py: 6, color: 'text.secondary' }}>
                     No employees matching the selected criteria.
                   </TableCell>
                 </TableRow>
@@ -735,7 +779,7 @@ export function LineRosterMonthlyView({
                     </TableCell>
 
                     {/* Day Line Cells */}
-                    {data?.days?.map((d) => {
+                    {days.map((d) => {
                       const isFullHoliday = d.is_holiday && !filteredEmployees.some((e) => e.lines?.[d.date]?.source === 'ROSTER');
 
                       if (isFullHoliday) {
@@ -884,7 +928,7 @@ export function LineRosterMonthlyView({
               {hasMore && (
                 <TableRow>
                   <TableCell
-                    colSpan={(data?.days?.length || 31) + 1}
+                    colSpan={(days.length || 31) + 1}
                     align="center"
                     sx={{ py: 2, bgcolor: 'background.neutral' }}
                   >
@@ -941,18 +985,17 @@ export function LineRosterMonthlyView({
           onOpen={() => setOpenFilters(true)}
           onClose={() => setOpenFilters(false)}
           filters={{
-            department: selectedDept,
             employees: selectedEmployees,
             line_order: selectedLineFilter,
+            status: selectedStatus,
+            fromDate,
+            toDate,
           }}
           onFilters={handleDrawerFilters}
           canReset={canReset}
           onResetFilters={handleResetFilters}
-          employeeOptions={selectedDept === 'all' ? employees : employees.filter((e) => e.department === selectedDept)}
+          employeeOptions={employees}
           lineOptions={data?.lines || []}
-          departmentOptions={departments}
-          hideDateFilters
-          hideStatusFilter
           isHR={isHRUser}
         />
       )}
