@@ -2,15 +2,12 @@ import { useSearchParams } from 'react-router-dom';
 import { useMemo, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
-
-import { useLineRoster } from 'src/hooks/use-line-roster';
 
 import { COMMON_COLORS } from 'src/theme';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -21,100 +18,6 @@ import { useAuth } from 'src/auth/auth-context';
 
 import { LineRosterMonthlyView } from './line-roster-monthly-view';
 import { LineRosterCalendarView } from './line-roster-calendar-view';
-
-// ----------------------------------------------------------------------
-
-interface SummaryCardProps {
-  item: {
-    label: string;
-    value: number;
-    indicator: 'blue' | 'green' | 'red' | 'orange';
-  };
-}
-
-function SummaryCard({ item }: SummaryCardProps) {
-  const { label, value, indicator } = item;
-
-  const getColor = () => {
-    switch (indicator) {
-      case 'blue':
-        return {
-          bg: 'rgba(14, 165, 233, 0.08)',
-          border: 'rgba(14, 165, 233, 0.16)',
-          color: '#0284c7',
-          icon: 'solar:file-text-bold-duotone',
-        };
-      case 'green':
-        return {
-          bg: 'rgba(34, 197, 94, 0.08)',
-          border: 'rgba(34, 197, 94, 0.16)',
-          color: '#16a34a',
-          icon: 'solar:check-circle-bold-duotone',
-        };
-      case 'red':
-        return {
-          bg: 'rgba(239, 68, 68, 0.08)',
-          border: 'rgba(239, 68, 68, 0.16)',
-          color: '#dc2626',
-          icon: 'solar:close-circle-bold-duotone',
-        };
-      case 'orange':
-        return {
-          bg: 'rgba(249, 115, 22, 0.08)',
-          border: 'rgba(249, 115, 22, 0.16)',
-          color: '#ea580c',
-          icon: 'solar:clock-circle-bold-duotone',
-        };
-      default:
-        return {
-          bg: 'rgba(148, 163, 184, 0.08)',
-          border: 'rgba(148, 163, 184, 0.16)',
-          color: '#475569',
-          icon: 'solar:info-circle-bold-duotone',
-        };
-    }
-  };
-
-  const config = getColor();
-
-  return (
-    <Card
-      sx={{
-        p: 2,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 2,
-        bgcolor: config.bg,
-        border: `1px solid ${config.border}`,
-        boxShadow: 'none',
-      }}
-    >
-      <Box
-        sx={{
-          width: 44,
-          height: 44,
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: alpha(config.color, 0.1),
-          color: config.color,
-        }}
-      >
-        <Iconify icon={config.icon as any} width={24} />
-      </Box>
-
-      <Stack spacing={0.5}>
-        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-          {label}
-        </Typography>
-        <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 800 }}>
-          {value}
-        </Typography>
-      </Stack>
-    </Card>
-  );
-}
 
 // ----------------------------------------------------------------------
 
@@ -170,19 +73,7 @@ export function MonthlyLineRosterView() {
     severity: 'success',
   });
 
-  const summaryCustomFilters = useMemo(() => {
-    if (isRestrictedEmployee && user?.employee) {
-      return [['Employee Line Roster', 'employee', '=', user.employee]];
-    }
-    return [];
-  }, [isRestrictedEmployee, user?.employee]);
-
-  const { data, total, refetch } = useLineRoster(1, 100, '', 'effective_from', 'desc', summaryCustomFilters);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  const activeCount = data.filter((d) => d.status === 'Active').length;
-  const bulkRotationCount = data.filter((d) => ['Bulk', 'Rotation'].includes(d.assignment_type)).length;
-  const uniqueEmployees = new Set(data.map((d) => d.employee)).size;
 
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
@@ -217,7 +108,6 @@ export function MonthlyLineRosterView() {
               variant="outlined"
               startIcon={<Iconify icon={"solar:refresh-bold" as any} />}
               onClick={() => {
-                refetch();
                 setRefreshTrigger((prev) => prev + 1);
                 setSnackbar({ open: true, message: 'Monthly Line Roster refreshed', severity: 'info' });
               }}
@@ -226,24 +116,6 @@ export function MonthlyLineRosterView() {
             </Button>
           </Stack>
         </Stack>
-
-        {/* Summary Stat Cards */}
-        <Box
-          sx={{
-            display: 'grid',
-            gap: 3,
-            gridTemplateColumns: {
-              xs: 'repeat(1, 1fr)',
-              sm: 'repeat(2, 1fr)',
-              md: 'repeat(4, 1fr)',
-            },
-          }}
-        >
-          <SummaryCard item={{ label: 'Total Assignments', value: total, indicator: 'blue' }} />
-          <SummaryCard item={{ label: 'Active Lines', value: activeCount, indicator: 'green' }} />
-          <SummaryCard item={{ label: 'Employees Assigned', value: uniqueEmployees, indicator: 'orange' }} />
-          <SummaryCard item={{ label: 'Bulk & Rotations', value: bulkRotationCount, indicator: 'blue' }} />
-        </Box>
 
         {/* View Switcher Pill */}
         {isSingleEmployee && (
@@ -297,7 +169,7 @@ export function MonthlyLineRosterView() {
             canEdit={false}
             selectedEmployees={currentEmployee ? [currentEmployee] : selectedEmployees}
             onSelectEmployees={isRestrictedEmployee ? undefined : setSelectedEmployees}
-            filterVariant="drawer"
+            filterVariant="quick-range"
             refreshTrigger={refreshTrigger}
             isHR={isHR}
           />

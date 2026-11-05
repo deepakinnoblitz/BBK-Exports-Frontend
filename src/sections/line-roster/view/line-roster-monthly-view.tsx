@@ -1,13 +1,15 @@
 import dayjs from 'dayjs';
-import { useRef, useMemo, useState, useEffect } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Badge from '@mui/material/Badge';
 import Button from '@mui/material/Button';
 import Select from '@mui/material/Select';
+import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
@@ -21,9 +23,10 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import FormControl from '@mui/material/FormControl';
 import Autocomplete from '@mui/material/Autocomplete';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import InputAdornment from '@mui/material/InputAdornment';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CircularProgress from '@mui/material/CircularProgress';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useMonthlyLineRoster } from 'src/hooks/use-line-roster';
 
@@ -74,7 +77,7 @@ export function LineRosterMonthlyView({
   onSelectEmployees?: (emps: any[]) => void;
   selectedEmployee?: any | null;
   onSelectEmployee?: (emp: any | null) => void;
-  filterVariant?: 'drawer' | 'inline';
+  filterVariant?: 'drawer' | 'inline' | 'quick-range';
   refreshTrigger?: number;
   isHR?: boolean;
 }) {
@@ -86,11 +89,75 @@ export function LineRosterMonthlyView({
   const [selectedDept, setSelectedDept] = useState('all');
   const [selectedLineFilter, setSelectedLineFilter] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [fromDate, setFromDate] = useState<dayjs.Dayjs | null>(null);
-  const [toDate, setToDate] = useState<dayjs.Dayjs | null>(null);
+  const [sortBy, setSortBy] = useState('date_asc');
+  const [fromDate, setFromDate] = useState<dayjs.Dayjs | null>(
+    filterVariant === 'quick-range' ? dayjs().startOf('month') : null
+  );
+  const [toDate, setToDate] = useState<dayjs.Dayjs | null>(
+    filterVariant === 'quick-range' ? dayjs().endOf('month') : null
+  );
   const [searchEmployee, setSearchEmployee] = useState('');
   const [openFilters, setOpenFilters] = useState(false);
   const [internalEmployees, setInternalEmployees] = useState<any[]>([]);
+
+  // Quick Range Presets
+  const handlePreset = useCallback(
+    (preset: 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'lastMonth') => {
+      const today = dayjs();
+      if (preset === 'today') {
+        setFromDate(today);
+        setToDate(today);
+        if (!currentDate.isSame(today, 'month')) setCurrentDate(today);
+      } else if (preset === 'yesterday') {
+        const yest = today.subtract(1, 'day');
+        setFromDate(yest);
+        setToDate(yest);
+        if (!currentDate.isSame(yest, 'month')) setCurrentDate(yest);
+      } else if (preset === 'last7') {
+        setFromDate(today.subtract(6, 'day'));
+        setToDate(today);
+        if (!currentDate.isSame(today, 'month')) setCurrentDate(today);
+      } else if (preset === 'thisMonth') {
+        setFromDate(today.startOf('month'));
+        setToDate(today.endOf('month'));
+        if (!currentDate.isSame(today, 'month')) setCurrentDate(today);
+      } else if (preset === 'lastMonth') {
+        const lastM = today.subtract(1, 'month');
+        setFromDate(lastM.startOf('month'));
+        setToDate(lastM.endOf('month'));
+        setCurrentDate(lastM);
+      }
+    },
+    [currentDate]
+  );
+
+  const isPresetActive = useCallback(
+    (preset: string) => {
+      const today = dayjs();
+      if (!fromDate || !toDate) return false;
+      if (preset === 'today') return fromDate.isSame(today, 'day') && toDate.isSame(today, 'day');
+      if (preset === 'yesterday')
+        return fromDate.isSame(today.subtract(1, 'day'), 'day') && toDate.isSame(today.subtract(1, 'day'), 'day');
+      if (preset === 'last7')
+        return fromDate.isSame(today.subtract(6, 'day'), 'day') && toDate.isSame(today, 'day');
+      if (preset === 'thisMonth')
+        return (
+          fromDate.isSame(today.startOf('month'), 'day') &&
+          toDate.isSame(today.endOf('month'), 'day') &&
+          currentDate.isSame(today, 'month')
+        );
+      if (preset === 'lastMonth') {
+        const lastM = today.subtract(1, 'month');
+        return (
+          fromDate.isSame(lastM.startOf('month'), 'day') &&
+          toDate.isSame(lastM.endOf('month'), 'day') &&
+          currentDate.isSame(lastM, 'month')
+        );
+      }
+      return false;
+    },
+    [fromDate, toDate, currentDate]
+  );
 
   const selectedEmployees: any[] = useMemo(() => {
     if (isRestrictedEmployee && user?.employee) {
@@ -204,15 +271,30 @@ export function LineRosterMonthlyView({
   }, [refreshTrigger, refetch]);
 
   const handlePrevMonth = () => {
-    setCurrentDate((prev) => prev.subtract(1, 'month'));
+    const newDate = currentDate.subtract(1, 'month');
+    setCurrentDate(newDate);
+    if (filterVariant === 'quick-range') {
+      setFromDate(newDate.startOf('month'));
+      setToDate(newDate.endOf('month'));
+    }
   };
 
   const handleNextMonth = () => {
-    setCurrentDate((prev) => prev.add(1, 'month'));
+    const newDate = currentDate.add(1, 'month');
+    setCurrentDate(newDate);
+    if (filterVariant === 'quick-range') {
+      setFromDate(newDate.startOf('month'));
+      setToDate(newDate.endOf('month'));
+    }
   };
 
   const handleToday = () => {
-    setCurrentDate(dayjs());
+    const today = dayjs();
+    setCurrentDate(today);
+    if (filterVariant === 'quick-range') {
+      setFromDate(today.startOf('month'));
+      setToDate(today.endOf('month'));
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -376,10 +458,292 @@ export function LineRosterMonthlyView({
 
   const todayStr = dayjs().format('YYYY-MM-DD');
 
+  const sortedEmployees = useMemo(() => {
+    const list = [...filteredEmployees];
+    if (sortBy === 'name_asc') {
+      list.sort((a, b) => (a.employee_name || a.employee).localeCompare(b.employee_name || b.employee));
+    } else if (sortBy === 'name_desc') {
+      list.sort((a, b) => (b.employee_name || b.employee).localeCompare(a.employee_name || a.employee));
+    }
+    return list;
+  }, [filteredEmployees, sortBy]);
+
+  const displayDays = useMemo(() => {
+    if (sortBy === 'date_desc') {
+      return [...days].reverse();
+    }
+    return days;
+  }, [days, sortBy]);
+
   return (
     <Stack spacing={2.5}>
       {/* Filter toolbar based on filterVariant */}
-      {filterVariant === 'drawer' ? (
+      {filterVariant === 'quick-range' ? (
+        <Card
+          sx={{
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.75,
+            borderRadius: 2,
+            bgcolor: (t) => alpha('#10b981', 0.04),
+            border: (t) => `1px solid ${alpha('#10b981', 0.18)}`,
+            boxShadow: 'none',
+          }}
+        >
+          {/* Top Row: Quick Presets & Month Navigator */}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            alignItems={{ xs: 'flex-start', sm: 'center' }}
+            justifyContent="space-between"
+            gap={1.5}
+            flexWrap="wrap"
+          >
+            {/* Quick Range Chips */}
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ gap: 0.75 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  fontWeight: 700,
+                  mr: 0.5,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  fontSize: '0.7rem',
+                }}
+              >
+                <Iconify icon={"solar:calendar-linear" as any} width={15} />
+                Quick Range:
+              </Typography>
+              {[
+                { key: 'today', label: 'Today' },
+                { key: 'yesterday', label: 'Yesterday' },
+                { key: 'last7', label: 'Last 7 Days' },
+                { key: 'thisMonth', label: 'This Month' },
+                { key: 'lastMonth', label: 'Last Month' },
+              ].map((p) => {
+                const active = isPresetActive(p.key);
+                return (
+                  <Chip
+                    key={p.key}
+                    label={p.label}
+                    size="small"
+                    clickable
+                    onClick={() => handlePreset(p.key as any)}
+                    sx={{
+                      fontWeight: active ? 700 : 500,
+                      fontSize: '0.75rem',
+                      height: 26,
+                      bgcolor: active ? COMMON_COLORS.emerald.main : 'background.paper',
+                      color: active ? '#fff' : 'text.primary',
+                      border: (t) =>
+                        `1px solid ${active ? COMMON_COLORS.emerald.main : t.palette.divider}`,
+                      boxShadow: active ? `0 2px 8px ${alpha(COMMON_COLORS.emerald.main, 0.28)}` : 'none',
+                      '&:hover': {
+                        bgcolor: active ? COMMON_COLORS.emerald.dark : 'action.hover',
+                      },
+                    }}
+                  />
+                );
+              })}
+            </Stack>
+
+            {/* Month Navigator on Right */}
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{
+                p: 0.5,
+                px: 1,
+                borderRadius: 1.25,
+                bgcolor: 'background.paper',
+                border: (t) => `1px solid ${t.palette.divider}`,
+              }}
+            >
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleToday}
+                sx={{ fontWeight: 700, color: COMMON_COLORS.emerald.main, px: 1, fontSize: '0.8rem' }}
+              >
+                Current Month
+              </Button>
+
+              <IconButton size="small" onClick={handlePrevMonth}>
+                <Iconify icon={"solar:alt-arrow-left-linear" as any} width={18} />
+              </IconButton>
+
+              <Typography
+                variant="subtitle2"
+                sx={{ minWidth: 120, textAlign: 'center', fontWeight: 800, fontSize: '0.85rem' }}
+              >
+                {currentDate.format('MMMM YYYY')}
+              </Typography>
+
+              <IconButton size="small" onClick={handleNextMonth}>
+                <Iconify icon={"solar:alt-arrow-right-linear" as any} width={18} />
+              </IconButton>
+            </Stack>
+          </Stack>
+
+          <Divider sx={{ borderStyle: 'dashed', borderColor: (t) => alpha('#10b981', 0.16) }} />
+
+          {/* Filter Inputs Grid */}
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 1.5,
+              gridTemplateColumns: {
+                xs: 'repeat(1, 1fr)',
+                sm: 'repeat(2, 1fr)',
+                md: '160px 160px 150px 170px 1fr',
+              },
+              alignItems: 'center',
+            }}
+          >
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="From Date"
+                format="DD-MM-YYYY"
+                value={fromDate}
+                onChange={(newValue) => {
+                  setFromDate(newValue);
+                  if (
+                    newValue?.isValid() &&
+                    (newValue.month() !== currentDate.month() || newValue.year() !== currentDate.year())
+                  ) {
+                    setCurrentDate(newValue);
+                  }
+                }}
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true,
+                    sx: {
+                      bgcolor: 'background.paper',
+                      borderRadius: 1.5,
+                      '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                    },
+                  },
+                }}
+              />
+              <DatePicker
+                label="To Date"
+                format="DD-MM-YYYY"
+                value={toDate}
+                onChange={(newValue) => setToDate(newValue)}
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true,
+                    sx: {
+                      bgcolor: 'background.paper',
+                      borderRadius: 1.5,
+                      '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 },
+                    },
+                  },
+                }}
+              />
+            </LocalizationProvider>
+
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}
+            >
+              <Select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                displayEmpty
+              >
+                <MenuItem value="all">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'text.disabled' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      All Status
+                    </Typography>
+                  </Stack>
+                </MenuItem>
+                <MenuItem value="Active">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#10b981' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#059669' }}>
+                      Active
+                    </Typography>
+                  </Stack>
+                </MenuItem>
+                <MenuItem value="Cancelled">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#ef4444' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#dc2626' }}>
+                      Cancelled
+                    </Typography>
+                  </Stack>
+                </MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}
+            >
+              <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <MenuItem value="date_asc">Date ↓ (Latest)</MenuItem>
+                <MenuItem value="date_desc">Date ↑ (Oldest)</MenuItem>
+                <MenuItem value="name_asc">Name: A to Z</MenuItem>
+                <MenuItem value="name_desc">Name: Z to A</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Autocomplete
+              multiple
+              disableCloseOnSelect
+              size="small"
+              fullWidth
+              sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}
+              options={selectedDept === 'all' ? employees : employees.filter((e) => e.department === selectedDept)}
+              filterOptions={filterEmployeeOptions}
+              getOptionLabel={(opt) => (opt ? `${opt.employee_name || opt.name} (${opt.name})` : '')}
+              isOptionEqualToValue={(option, value) => option?.name === value?.name}
+              value={employees.filter((opt) =>
+                selectedEmployees.some((se) => (typeof se === 'string' ? se === opt.name : se?.name === opt.name))
+              )}
+              onChange={(_, val) => setSelectedEmployees(val || [])}
+              disabled={!isHRUser}
+              renderOption={(props, option, { selected: isSelected }) => (
+                <li {...props} key={option.name}>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                      {option.employee_name || option.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
+                      ID: {option.name}
+                    </Typography>
+                  </Box>
+                  {isSelected && (
+                    <Iconify
+                      icon={"solar:check-circle-bold" as any}
+                      width={20}
+                      sx={{ color: 'primary.main', ml: 1 }}
+                    />
+                  )}
+                </li>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder={selectedEmployees.length === 0 ? 'Employee' : ''}
+                />
+              )}
+            />
+          </Box>
+        </Card>
+      ) : filterVariant === 'drawer' ? (
         <Card
           sx={{
             p: 2,
@@ -708,10 +1072,10 @@ export function LineRosterMonthlyView({
                     borderBottom: (t) => `1px solid ${t.palette.divider}`,
                   }}
                 >
-                  Employee ({filteredEmployees.length}{totalCount ? ` of ${totalCount}` : ''})
+                  Employee ({sortedEmployees.length}{totalCount ? ` of ${totalCount}` : ''})
                 </TableCell>
 
-                {days.map((d) => {
+                {displayDays.map((d) => {
                   const isToday = d.date === todayStr;
                   return (
                     <TableCell
@@ -745,18 +1109,18 @@ export function LineRosterMonthlyView({
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={(days.length || 0) + 1} align="center" sx={{ py: 10 }}>
+                  <TableCell colSpan={(displayDays.length || 0) + 1} align="center" sx={{ py: 10 }}>
                     <CircularProgress sx={{ color: COMMON_COLORS.emerald.main }} />
                   </TableCell>
                 </TableRow>
-              ) : filteredEmployees.length === 0 ? (
+              ) : sortedEmployees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={(days.length || 0) + 1} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                  <TableCell colSpan={(displayDays.length || 0) + 1} align="center" sx={{ py: 6, color: 'text.secondary' }}>
                     No employees matching the selected criteria.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredEmployees.map((emp, empIndex) => (
+                sortedEmployees.map((emp, empIndex) => (
                   <TableRow key={emp.employee} hover sx={{ '& td': { py: 1.2 } }}>
                     {/* Sticky Employee Column */}
                     <TableCell
@@ -779,15 +1143,15 @@ export function LineRosterMonthlyView({
                     </TableCell>
 
                     {/* Day Line Cells */}
-                    {days.map((d) => {
-                      const isFullHoliday = d.is_holiday && !filteredEmployees.some((e) => e.lines?.[d.date]?.source === 'ROSTER');
+                    {displayDays.map((d) => {
+                      const isFullHoliday = d.is_holiday && !sortedEmployees.some((e) => e.lines?.[d.date]?.source === 'ROSTER');
 
                       if (isFullHoliday) {
                         if (empIndex === 0) {
                           return (
                             <TableCell
                               key={d.date}
-                              rowSpan={filteredEmployees.length}
+                              rowSpan={sortedEmployees.length}
                               align="center"
                               onClick={() => canEdit && handleCellClick(emp.employee, d.date)}
                               sx={{
@@ -851,7 +1215,6 @@ export function LineRosterMonthlyView({
                       const cell = emp.lines?.[d.date];
                       const isToday = d.date === todayStr;
                       const isHoliday = d.is_holiday;
-                      const isWeeklyOff = d.is_weekend;
 
                       let chipCode = '-';
                       let chipStyle = {
@@ -928,7 +1291,7 @@ export function LineRosterMonthlyView({
               {hasMore && (
                 <TableRow>
                   <TableCell
-                    colSpan={(days.length || 31) + 1}
+                    colSpan={(displayDays.length || 31) + 1}
                     align="center"
                     sx={{ py: 2, bgcolor: 'background.neutral' }}
                   >
@@ -937,7 +1300,7 @@ export function LineRosterMonthlyView({
                         <Stack direction="row" spacing={1.5} alignItems="center">
                           <CircularProgress size={20} color="primary" />
                           <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                            Loading more employees... ({filteredEmployees.length} of {totalCount})
+                            Loading more employees... ({sortedEmployees.length} of {totalCount})
                           </Typography>
                         </Stack>
                       ) : (
@@ -948,7 +1311,7 @@ export function LineRosterMonthlyView({
                           startIcon={<Iconify icon={"solar:alt-arrow-down-linear" as any} />}
                           sx={{ fontWeight: 700 }}
                         >
-                          Load More ({Math.min(50, totalCount - filteredEmployees.length)} remaining)
+                          Load More ({Math.min(50, totalCount - sortedEmployees.length)} remaining)
                         </Button>
                       )}
                     </Box>
