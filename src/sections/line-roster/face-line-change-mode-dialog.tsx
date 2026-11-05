@@ -1,18 +1,26 @@
-import { useState } from 'react';
+import dayjs, { type Dayjs } from 'dayjs';
+import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
 import { alpha, useTheme } from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { COMMON_COLORS } from 'src/theme';
+import { fetchLiveLineOccupancy, type LiveLineOccupancy } from 'src/api/line-roster';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -21,11 +29,22 @@ import { Iconify } from 'src/components/iconify';
 
 export type LineChangeMode = 'pre-fixed' | 'post-fixed';
 
+export interface PreFixedConfig {
+  targetLine: string;
+  sourceLine?: string;
+  effectiveFrom: string;
+  effectiveTo: string;
+}
+
 type Props = {
   open: boolean;
   onClose: VoidFunction;
-  onSelectMode: (mode: LineChangeMode) => void;
+  onSelectMode: (mode: LineChangeMode, config?: PreFixedConfig) => void;
   currentMode?: LineChangeMode;
+  initialTargetLine?: string;
+  initialEffectiveFrom?: Dayjs | null;
+  initialEffectiveTo?: Dayjs | null;
+  lines?: LiveLineOccupancy[];
 };
 
 export function FaceLineChangeModeDialog({
@@ -33,16 +52,60 @@ export function FaceLineChangeModeDialog({
   onClose,
   onSelectMode,
   currentMode = 'pre-fixed',
+  initialTargetLine = '',
+  initialEffectiveFrom,
+  initialEffectiveTo,
+  lines,
 }: Props) {
   const theme = useTheme();
   const [selectedMode, setSelectedMode] = useState<LineChangeMode>(currentMode);
+
+  // Line selection & Dates
+  const [linesList, setLinesList] = useState<LiveLineOccupancy[]>(lines || []);
+  const [targetLine, setTargetLine] = useState<string>(initialTargetLine);
+  const [effectiveFrom, setEffectiveFrom] = useState<Dayjs | null>(initialEffectiveFrom || dayjs());
+  const [effectiveTo, setEffectiveTo] = useState<Dayjs | null>(initialEffectiveTo || dayjs());
+
+  useEffect(() => {
+    setSelectedMode(currentMode);
+  }, [currentMode]);
+
+  useEffect(() => {
+    if (initialTargetLine) {
+      setTargetLine(initialTargetLine);
+    }
+  }, [initialTargetLine]);
+
+  useEffect(() => {
+    if (lines && lines.length > 0) {
+      setLinesList(lines);
+      if (!targetLine && lines[0]?.name) {
+        setTargetLine(lines[0].name);
+      }
+    } else if (open) {
+      fetchLiveLineOccupancy(effectiveFrom?.format('YYYY-MM-DD'))
+        .then((res) => {
+          const list = res || [];
+          setLinesList(list);
+          if (!targetLine && list[0]?.name) {
+            setTargetLine(list[0].name);
+          }
+        })
+        .catch((err) => console.error('Failed to load lines for mode dialog:', err));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, lines]);
 
   const handleSelect = (mode: LineChangeMode) => {
     setSelectedMode(mode);
   };
 
   const handleConfirm = () => {
-    onSelectMode(selectedMode);
+    onSelectMode(selectedMode, {
+      targetLine,
+      effectiveFrom: effectiveFrom?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD'),
+      effectiveTo: effectiveTo?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD'),
+    });
   };
 
   return (
@@ -170,6 +233,66 @@ export function FaceLineChangeModeDialog({
                     Hands-Free Auto Advance
                   </Typography>
                 </Stack>
+
+                {/* Pre-Fixed Settings: To Line (Target Line) and Effective Dates */}
+                {selectedMode === 'pre-fixed' && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      pt: 2,
+                      borderTop: (t) => `1px dashed ${alpha(COMMON_COLORS.emerald.main, 0.35)}`,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Stack spacing={2}>
+                      <Autocomplete
+                        fullWidth
+                        size="small"
+                        options={linesList}
+                        value={linesList.find((l) => l.name === targetLine) || null}
+                        onChange={(_, val) => setTargetLine(val ? val.name : '')}
+                        getOptionLabel={(option) => `${option.line_name} (${option.assigned_count} workers)`}
+                        isOptionEqualToValue={(option, val) => option.name === val.name}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="To Line (Target Line) *"
+                            placeholder="Select target line for transfer..."
+                            error={!targetLine}
+                            helperText={!targetLine ? 'Target line is required for Pre-Fixed Mode' : ''}
+                          />
+                        )}
+                      />
+
+                      <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <Grid container spacing={1.5}>
+                          <Grid size={{ xs: 6 }}>
+                            <DatePicker
+                              label="Effective From"
+                              value={effectiveFrom}
+                              onChange={(val) => {
+                                setEffectiveFrom(val);
+                                if (effectiveTo && val && val.isAfter(effectiveTo)) {
+                                  setEffectiveTo(val);
+                                }
+                              }}
+                              slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 6 }}>
+                            <DatePicker
+                              label="Effective To"
+                              value={effectiveTo}
+                              minDate={effectiveFrom || undefined}
+                              onChange={(val) => setEffectiveTo(val)}
+                              slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                            />
+                          </Grid>
+                        </Grid>
+                      </LocalizationProvider>
+                    </Stack>
+                  </Box>
+                )}
               </Stack>
             </Stack>
           </Card>
@@ -270,6 +393,45 @@ export function FaceLineChangeModeDialog({
                     Dynamic Flexible Routing
                   </Typography>
                 </Stack>
+
+                {/* Post-Fixed Settings: Effective Dates */}
+                {selectedMode === 'post-fixed' && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      pt: 2,
+                      borderTop: (t) => `1px dashed ${alpha('#8b5cf6', 0.35)}`,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                      <Grid container spacing={1.5}>
+                        <Grid size={{ xs: 6 }}>
+                          <DatePicker
+                            label="Effective From"
+                            value={effectiveFrom}
+                            onChange={(val) => {
+                              setEffectiveFrom(val);
+                              if (effectiveTo && val && val.isAfter(effectiveTo)) {
+                                setEffectiveTo(val);
+                              }
+                            }}
+                            slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 6 }}>
+                          <DatePicker
+                            label="Effective To"
+                            value={effectiveTo}
+                            minDate={effectiveFrom || undefined}
+                            onChange={(val) => setEffectiveTo(val)}
+                            slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                          />
+                        </Grid>
+                      </Grid>
+                    </LocalizationProvider>
+                  </Box>
+                )}
               </Stack>
             </Stack>
           </Card>
@@ -279,6 +441,7 @@ export function FaceLineChangeModeDialog({
       <DialogActions sx={{ px: 3, pb: 2.5, pt: 1, justifyContent: 'space-between' }}>
         <Button
           variant="contained"
+          disabled={selectedMode === 'pre-fixed' && !targetLine}
           onClick={handleConfirm}
           endIcon={<Iconify icon={"eva:arrow-forward-fill" as any} />}
           sx={{

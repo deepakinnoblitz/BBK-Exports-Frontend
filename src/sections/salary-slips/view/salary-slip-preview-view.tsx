@@ -841,21 +841,37 @@ export function SalarySlipPreviewView() {
                     <Stack spacing={1}>
                         {(data.deductions || [])
                             .filter((item: any) => Number(item.amount || 0) > 0)
-                            .map((item: any, idx: number) => (
-                            <AmountRow
-                                key={idx}
-                                label={
-                                    (item.component_name === 'Canteen Deduction' || item.salary_component === 'Canteen Deduction') && (data.canteen_meals_count || data.lunch_count)
-                                        ? `Canteen Deduction (${data.canteen_meals_count ?? data.lunch_count} Meals${data.employee_canteen_rate ? ` @ ₹${data.employee_canteen_rate}` : ''})`
-                                        : (item.component_name === 'Tea Deduction' || item.salary_component === 'Tea Deduction') && (data.actual_present_days ?? data.present_days) && data.employee_tea_rate
-                                            ? `Tea Deduction (${data.actual_present_days ?? data.present_days} Days @ ₹${data.employee_tea_rate})`
-                                            : (item.component_name || item.salary_component)
+                            .map((item: any, idx: number) => {
+                                const cName = (item.component_name || item.salary_component || '').trim();
+                                const cLower = cName.toLowerCase();
+                                const isCanteen = cLower === 'canteen deduction' || ((cLower.includes('canteen') || cLower.includes('lunch')) && cLower.includes('deduction'));
+                                const isTea = cLower === 'tea deduction' || (cLower.includes('tea') && cLower.includes('deduction'));
+                                const teaRate = data.employee_tea_rate ?? data.employee_tea_deduction_per_day;
+                                const canteenRate = data.employee_canteen_rate ?? data.employee_canteen_deduction_per_meal;
+                                const mealsCount = data.canteen_meals_count ?? data.lunch_count;
+                                const presentDays = data.actual_present_days ?? data.present_days;
+
+                                let label = item.component_name || item.salary_component;
+                                if (isCanteen) {
+                                    label = mealsCount && canteenRate
+                                        ? `Canteen Deduction (${mealsCount} Meals @ ₹${canteenRate})`
+                                        : (mealsCount ? `Canteen Deduction (${mealsCount} Meals)` : 'Canteen Deduction');
+                                } else if (isTea) {
+                                    label = presentDays && teaRate
+                                        ? `Tea Deduction (${presentDays} Days @ ₹${teaRate})`
+                                        : 'Tea Deduction';
                                 }
-                                standardAmount={item.standard_amount !== undefined ? item.standard_amount : item.amount}
-                                amount={item.amount}
-                                hrSettings={hrSettings}
-                            />
-                        ))}
+
+                                return (
+                                    <AmountRow
+                                        key={idx}
+                                        label={label}
+                                        standardAmount={item.standard_amount !== undefined ? item.standard_amount : item.amount}
+                                        amount={item.amount}
+                                        hrSettings={hrSettings}
+                                    />
+                                );
+                            })}
                         {(!data.deductions || !(data.deductions || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No deductions

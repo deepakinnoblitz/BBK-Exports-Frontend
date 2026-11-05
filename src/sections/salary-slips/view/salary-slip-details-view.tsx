@@ -1012,21 +1012,37 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                     <Stack spacing={1}>
                         {(slip.deductions || [])
                             .filter((item: any) => Number(item.amount || 0) > 0)
-                            .map((item: any, idx: number) => (
-                                <AmountRow
-                                    key={idx}
-                                    label={
-                                        (item.component_name === 'Canteen Deduction' || item.salary_component === 'Canteen Deduction') && (slip.canteen_meals_count || slip.lunch_count)
-                                            ? `Canteen Deduction (${slip.canteen_meals_count ?? slip.lunch_count} Meals${slip.employee_canteen_rate ? ` @ ₹${slip.employee_canteen_rate}` : ''})`
-                                            : (item.component_name === 'Tea Deduction' || item.salary_component === 'Tea Deduction') && (slip.actual_present_days ?? slip.present_days) && slip.employee_tea_rate
-                                                ? `Tea Deduction (${slip.actual_present_days ?? slip.present_days} Days @ ₹${slip.employee_tea_rate})`
-                                                : (item.component_name || item.salary_component)
-                                    }
-                                    standardAmount={item.standard_amount !== undefined ? item.standard_amount : item.amount}
-                                    amount={item.amount}
-                                    hrSettings={hrSettings}
-                                />
-                            ))}
+                            .map((item: any, idx: number) => {
+                                const cName = (item.component_name || item.salary_component || '').trim();
+                                const cLower = cName.toLowerCase();
+                                const isCanteen = cLower === 'canteen deduction' || ((cLower.includes('canteen') || cLower.includes('lunch')) && cLower.includes('deduction'));
+                                const isTea = cLower === 'tea deduction' || (cLower.includes('tea') && cLower.includes('deduction'));
+                                const teaRate = slip.employee_tea_rate ?? slip.employee_tea_deduction_per_day;
+                                const canteenRate = slip.employee_canteen_rate ?? slip.employee_canteen_deduction_per_meal;
+                                const mealsCount = slip.canteen_meals_count ?? slip.lunch_count;
+                                const presentDays = slip.actual_present_days ?? slip.present_days;
+
+                                let label = item.component_name || item.salary_component;
+                                if (isCanteen) {
+                                    label = mealsCount && canteenRate
+                                        ? `Canteen Deduction (${mealsCount} Meals @ ₹${canteenRate})`
+                                        : (mealsCount ? `Canteen Deduction (${mealsCount} Meals)` : 'Canteen Deduction');
+                                } else if (isTea) {
+                                    label = presentDays && teaRate
+                                        ? `Tea Deduction (${presentDays} Days @ ₹${teaRate})`
+                                        : 'Tea Deduction';
+                                }
+
+                                return (
+                                    <AmountRow
+                                        key={idx}
+                                        label={label}
+                                        standardAmount={item.standard_amount !== undefined ? item.standard_amount : item.amount}
+                                        amount={item.amount}
+                                        hrSettings={hrSettings}
+                                    />
+                                );
+                            })}
                         {(!slip.deductions || !(slip.deductions || []).some((item: any) => Number(item.amount || 0) > 0)) && (
                             <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', py: 1 }}>
                                 No deductions recorded

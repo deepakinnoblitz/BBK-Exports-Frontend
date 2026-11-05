@@ -277,9 +277,14 @@ export function LineRosterView() {
         <FaceLineChangeModeDialog
           open={openFaceModeDialog}
           onClose={() => setOpenFaceModeDialog(false)}
-          onSelectMode={(mode) => {
+          onSelectMode={(mode, config) => {
             setOpenFaceModeDialog(false);
-            router.push(`/face-line-change?mode=${mode}`);
+            const params = new URLSearchParams();
+            params.set('mode', mode);
+            if (config?.targetLine) params.set('targetLine', config.targetLine);
+            if (config?.effectiveFrom) params.set('from', config.effectiveFrom);
+            if (config?.effectiveTo) params.set('to', config.effectiveTo);
+            router.push(`/face-line-change?${params.toString()}`);
           }}
         />
       )}

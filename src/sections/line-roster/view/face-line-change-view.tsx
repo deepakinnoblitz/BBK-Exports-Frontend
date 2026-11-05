@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { useSnackbar } from 'notistack';
 import { useSearchParams } from 'react-router-dom';
-import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -25,10 +25,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import { alpha, useTheme } from '@mui/material/styles';
 import TableContainer from '@mui/material/TableContainer';
 import LinearProgress from '@mui/material/LinearProgress';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CircularProgress from '@mui/material/CircularProgress';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { useRouter } from 'src/routes/hooks';
 
@@ -522,24 +519,14 @@ export function FaceLineChangeView() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const queryMode = searchParams.get('mode') as LineChangeMode | null;
+  const queryTargetLine = searchParams.get('targetLine') || '';
+  const queryFrom = searchParams.get('from');
+  const queryTo = searchParams.get('to');
+
   const [mode, setMode] = useState<LineChangeMode>(
     queryMode === 'post-fixed' ? 'post-fixed' : 'pre-fixed'
   );
   const [openModeDialog, setOpenModeDialog] = useState(false);
-
-  // Sync mode if query param changes
-  useEffect(() => {
-    if (queryMode && (queryMode === 'pre-fixed' || queryMode === 'post-fixed')) {
-      setMode(queryMode);
-    }
-  }, [queryMode]);
-
-  // If accessed directly without mode query param, open the selection dialog
-  useEffect(() => {
-    if (!searchParams.get('mode')) {
-      setOpenModeDialog(true);
-    }
-  }, [searchParams]);
 
   // Lines & Catalog
   const [lines, setLines] = useState<LiveLineOccupancy[]>([]);
@@ -547,17 +534,33 @@ export function FaceLineChangeView() {
 
   // Pre-Fixed Form
   const [sourceLine, setSourceLine] = useState('');
-  const [targetLine, setTargetLine] = useState('');
-  const [effectiveFrom, setEffectiveFrom] = useState<dayjs.Dayjs | null>(dayjs());
-  const [effectiveTo, setEffectiveTo] = useState<dayjs.Dayjs | null>(dayjs());
-
-  const sourceLineOptions = useMemo(
-    () => [
-      { name: '', line_name: 'Any Line (Auto-Detect)', assigned_count: 0 } as LiveLineOccupancy,
-      ...lines,
-    ],
-    [lines]
+  const [targetLine, setTargetLine] = useState(queryTargetLine);
+  const [effectiveFrom, setEffectiveFrom] = useState<dayjs.Dayjs | null>(
+    queryFrom && dayjs(queryFrom).isValid() ? dayjs(queryFrom) : dayjs()
   );
+  const [effectiveTo, setEffectiveTo] = useState<dayjs.Dayjs | null>(
+    queryTo && dayjs(queryTo).isValid() ? dayjs(queryTo) : dayjs()
+  );
+
+  // Sync mode & parameters if query param changes
+  useEffect(() => {
+    if (queryMode && (queryMode === 'pre-fixed' || queryMode === 'post-fixed')) {
+      setMode(queryMode);
+    }
+    const qTarget = searchParams.get('targetLine');
+    if (qTarget) setTargetLine(qTarget);
+    const qFrom = searchParams.get('from');
+    if (qFrom && dayjs(qFrom).isValid()) setEffectiveFrom(dayjs(qFrom));
+    const qTo = searchParams.get('to');
+    if (qTo && dayjs(qTo).isValid()) setEffectiveTo(dayjs(qTo));
+  }, [queryMode, searchParams]);
+
+  // If accessed directly without mode query param, open the selection dialog
+  useEffect(() => {
+    if (!searchParams.get('mode')) {
+      setOpenModeDialog(true);
+    }
+  }, [searchParams]);
 
   // Post-Fixed Form
   const [postTargetLine, setPostTargetLine] = useState('');
@@ -681,7 +684,7 @@ export function FaceLineChangeView() {
       setCatalog(catList);
 
       // Auto-set default source and target line if available
-      setSourceLine((prev) => (prev ? prev : lineList[0]?.name || ''));
+      setSourceLine((prev) => (prev ? prev : ''));
       setTargetLine((prev) => (prev ? prev : (lineList[1]?.name || lineList[0]?.name || '')));
 
       // Auto-extract and cache real 128-D descriptors for enrolled workers with photos in background
@@ -1909,83 +1912,83 @@ export function FaceLineChangeView() {
         {/* ── RIGHT PANEL: Mode Setup & Line Assignment Action ── */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Stack spacing={2.5}>
-            {/* Effective Date Range Selectors */}
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <Grid container spacing={1.5}>
-                <Grid size={{ xs: 6 }}>
-                  <DatePicker
-                    label="Effective From"
-                    value={effectiveFrom}
-                    onChange={(val) => {
-                      setEffectiveFrom(val);
-                      if (effectiveTo && val && val.isAfter(effectiveTo)) {
-                        setEffectiveTo(val);
-                      }
-                    }}
-                    slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <DatePicker
-                    label="Effective To"
-                    value={effectiveTo}
-                    minDate={effectiveFrom || undefined}
-                    onChange={(val) => setEffectiveTo(val)}
-                    slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                  />
-                </Grid>
-              </Grid>
-            </LocalizationProvider>
+            {/* Active Mode & Target Line Preset Banner */}
+            <Card
+              sx={{
+                p: 1.75,
+                borderRadius: '16px',
+                border: (t) =>
+                  `1.5px solid ${
+                    mode === 'pre-fixed'
+                      ? alpha(COMMON_COLORS.emerald.main, 0.28)
+                      : alpha('#8b5cf6', 0.28)
+                  }`,
+                bgcolor: (t) =>
+                  mode === 'pre-fixed'
+                    ? alpha(COMMON_COLORS.emerald.main, 0.04)
+                    : alpha('#8b5cf6', 0.04),
+              }}
+            >
+              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                <Stack direction="row" alignItems="center" spacing={1.25} sx={{ minWidth: 0, flex: 1, flexWrap: 'wrap' }}>
+                  <Label
+                    variant="soft"
+                    color={mode === 'pre-fixed' ? 'success' : 'secondary'}
+                    sx={{ fontWeight: 800, fontSize: 12 }}
+                  >
+                    {mode === 'pre-fixed' ? 'Pre-Fixed Mode' : 'Post-Fixed Mode'}
+                  </Label>
 
-            {/* ── PRE-FIXED MODE CONFIGURATION ── */}
-            {mode === 'pre-fixed' && (
-              <Card
-                sx={{
-                  p: 2.5,
-                  borderRadius: '16px',
-                  border: (t) => `1.5px solid ${alpha(COMMON_COLORS.emerald.main, 0.28)}`,
-                  bgcolor: (t) => alpha(COMMON_COLORS.emerald.main, 0.04),
-                }}
-              >
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main }}>
-                    Pre-Fixed Batch Transfer Line Settings
-                  </Typography>
+                  {mode === 'pre-fixed' && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                        Target:
+                      </Typography>
+                      <Typography
+                        variant="subtitle2"
+                        noWrap
+                        sx={{ fontWeight: 800, color: COMMON_COLORS.emerald.main }}
+                      >
+                        {lines.find((l) => l.name === targetLine)?.line_name || targetLine || 'Not selected'}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Iconify icon={"solar:calendar-date-bold" as any} width={15} sx={{ color: 'text.secondary' }} />
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                      {effectiveFrom?.format('DD-MM-YYYY') === effectiveTo?.format('DD-MM-YYYY')
+                        ? effectiveFrom?.format('DD-MM-YYYY')
+                        : `${effectiveFrom?.format('DD-MM-YYYY')} - ${effectiveTo?.format('DD-MM-YYYY')}`}
+                    </Typography>
+                  </Box>
                 </Stack>
 
-                <Grid container spacing={1.5}>
-                  <Grid size={{ xs: 6 }}>
-                    <Autocomplete
-                      fullWidth
-                      size="small"
-                      options={sourceLineOptions}
-                      value={sourceLineOptions.find((l) => l.name === sourceLine) || sourceLineOptions[0]}
-                      onChange={(_, val) => setSourceLine(val ? val.name : '')}
-                      getOptionLabel={(option) =>
-                        option.name
-                          ? `${option.line_name} (${option.assigned_count} workers)`
-                          : option.line_name
-                      }
-                      isOptionEqualToValue={(option, val) => option.name === val.name}
-                      renderInput={(params) => <TextField {...params} label="From Line (Source)" />}
-                    />
-                  </Grid>
-
-                  <Grid size={{ xs: 6 }}>
-                    <Autocomplete
-                      fullWidth
-                      size="small"
-                      options={lines}
-                      value={lines.find((l) => l.name === targetLine) || null}
-                      onChange={(_, val) => setTargetLine(val ? val.name : '')}
-                      getOptionLabel={(option) => `${option.line_name} (${option.assigned_count} workers)`}
-                      isOptionEqualToValue={(option, val) => option.name === val.name}
-                      renderInput={(params) => <TextField {...params} label="To Line (Target)" />}
-                    />
-                  </Grid>
-                </Grid>
-              </Card>
-            )}
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setOpenModeDialog(true)}
+                  startIcon={<Iconify icon={"solar:pen-bold" as any} width={14} />}
+                  sx={{
+                    borderRadius: '10px',
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    fontSize: 12,
+                    py: 0.4,
+                    px: 1.25,
+                    flexShrink: 0,
+                    borderColor: mode === 'pre-fixed' ? COMMON_COLORS.emerald.main : '#8b5cf6',
+                    color: mode === 'pre-fixed' ? COMMON_COLORS.emerald.main : '#8b5cf6',
+                    '&:hover': {
+                      borderColor: mode === 'pre-fixed' ? COMMON_COLORS.emerald.dark : '#7c3aed',
+                      bgcolor: alpha(mode === 'pre-fixed' ? COMMON_COLORS.emerald.main : '#8b5cf6', 0.08),
+                    },
+                  }}
+                >
+                  Change
+                </Button>
+              </Stack>
+            </Card>
 
             {/* ── RECOGNIZED WORKER CARD ── */}
             {activeWorker ? (
@@ -2091,46 +2094,37 @@ export function FaceLineChangeView() {
                   </Box>
                 </Box>
 
-                {/* ── POST-FIXED MODE: Target Line Selection Grid ── */}
+                {/* ── POST-FIXED MODE: Target Line Selection Autocomplete ── */}
                 {mode === 'post-fixed' && (
                   <Box sx={{ mt: 2.5 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', mb: 1, display: 'block' }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ fontWeight: 700, color: 'text.secondary', mb: 1, display: 'block' }}
+                    >
                       Choose Destination Line for this worker:
                     </Typography>
-                    <Grid container spacing={1.5}>
-                      {lines.map((line) => {
-                        const isSelected = postTargetLine === line.name;
-                        const isCurrent = line.name === (activeWorker.current_line || activeWorker.default_line);
-                        return (
-                          <Grid size={{ xs: 6 }} key={line.name}>
-                            <Card
-                              onClick={() => !isCurrent && setPostTargetLine(line.name)}
-                              sx={{
-                                p: 1.5,
-                                borderRadius: '14px',
-                                cursor: isCurrent ? 'not-allowed' : 'pointer',
-                                opacity: isCurrent ? 0.6 : 1,
-                                border: `1.5px solid ${
-                                  isSelected ? COMMON_COLORS.emerald.main : alpha(theme.palette.grey[500], 0.2)
-                                }`,
-                                bgcolor: isSelected ? alpha(COMMON_COLORS.emerald.main, 0.1) : 'background.paper',
-                                transition: 'all 0.15s ease-in-out',
-                                '&:hover': {
-                                  borderColor: !isCurrent ? COMMON_COLORS.emerald.main : undefined,
-                                },
-                              }}
-                            >
-                              <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700, fontSize: 13 }}>
-                                {line.line_name}
-                              </Typography>
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {line.assigned_count} workers
-                              </Typography>
-                            </Card>
-                          </Grid>
-                        );
-                      })}
-                    </Grid>
+                    <Autocomplete
+                      fullWidth
+                      options={lines}
+                      value={lines.find((l) => l.name === postTargetLine) || null}
+                      onChange={(_, val) => setPostTargetLine(val ? val.name : '')}
+                      getOptionLabel={(option) => `${option.line_name} (${option.assigned_count} workers)`}
+                      isOptionEqualToValue={(option, val) => option.name === val.name}
+                      getOptionDisabled={(option) =>
+                        option.name === (activeWorker.current_line || activeWorker.default_line)
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Search or select destination line..."
+                          helperText={
+                            postTargetLine
+                              ? undefined
+                              : "Select the worker's destination line to confirm transfer"
+                          }
+                        />
+                      )}
+                    />
                   </Box>
                 )}
 
@@ -2410,11 +2404,28 @@ export function FaceLineChangeView() {
         <FaceLineChangeModeDialog
           open={openModeDialog}
           currentMode={mode}
+          lines={lines}
+          initialTargetLine={targetLine}
+          initialEffectiveFrom={effectiveFrom}
+          initialEffectiveTo={effectiveTo}
           onClose={() => setOpenModeDialog(false)}
-          onSelectMode={(newMode) => {
+          onSelectMode={(newMode, config) => {
             setOpenModeDialog(false);
             setMode(newMode);
-            setSearchParams({ mode: newMode });
+            if (config?.targetLine) {
+              setTargetLine(config.targetLine);
+            }
+            if (config?.effectiveFrom) {
+              setEffectiveFrom(dayjs(config.effectiveFrom));
+            }
+            if (config?.effectiveTo) {
+              setEffectiveTo(dayjs(config.effectiveTo));
+            }
+            const newParams: Record<string, string> = { mode: newMode };
+            if (config?.targetLine) newParams.targetLine = config.targetLine;
+            if (config?.effectiveFrom) newParams.from = config.effectiveFrom;
+            if (config?.effectiveTo) newParams.to = config.effectiveTo;
+            setSearchParams(newParams);
             setActiveWorker(null);
             setCountdown(0);
           }}
