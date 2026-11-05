@@ -13,7 +13,7 @@ export interface LineRoster {
   line_name: string;
   effective_from: string;
   effective_to?: string;
-  assignment_type: 'Manual' | 'Bulk' | 'Rotation' | 'Override' | 'Line Change' | 'Face Recognition';
+  assignment_type: 'Manual' | 'Bulk' | 'Rotation' | 'Override' | 'Line Change' | 'Face Recognition' | 'Face Biometric Change';
   status: 'Active' | 'Cancelled';
   reason?: string;
   owner?: string;
@@ -330,9 +330,12 @@ export async function fetchLineRosterHistory(params: {
 // Face Recognition Line Change APIs
 // ----------------------------------------------------------------------
 
-export async function fetchFaceCatalog(): Promise<FaceCatalogItem[]> {
+export async function fetchFaceCatalog(date?: string): Promise<FaceCatalogItem[]> {
   const headers = await getAuthHeaders();
-  const res = await frappeRequest('/api/method/company.company.line_roster_api.get_face_catalog', {
+  const url = date
+    ? `/api/method/company.company.line_roster_api.get_face_catalog?attendance_date=${encodeURIComponent(date)}`
+    : '/api/method/company.company.line_roster_api.get_face_catalog';
+  const res = await frappeRequest(url, {
     method: 'GET',
     headers,
   });
