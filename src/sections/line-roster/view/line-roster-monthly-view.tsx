@@ -181,6 +181,7 @@ export function LineRosterMonthlyView({
 
   const [departments, setDepartments] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [lines, setLines] = useState<any[]>([]);
 
   // Dialog state
   const [openAssignDialog, setOpenAssignDialog] = useState(false);
@@ -201,12 +202,14 @@ export function LineRosterMonthlyView({
 
   const loadMasters = async () => {
     try {
-      const [deptRes, empRes] = await Promise.all([
+      const [deptRes, empRes, lineRes] = await Promise.all([
         getDoctypeList('Department', ['name', 'department_name']),
         getDoctypeList('Employee', ['name', 'employee_name', 'department']),
+        getDoctypeList('Line Order', ['name', 'line_name']),
       ]);
       setDepartments(deptRes || []);
       setEmployees(empRes || []);
+      setLines(lineRes || []);
     } catch (e) {
       console.error(e);
     }
@@ -415,9 +418,15 @@ export function LineRosterMonthlyView({
 
   // Color map for lines
   const lineColorMap: Record<string, { bg: string; color: string; border: string }> = {};
-  data?.lines?.forEach((l, idx) => {
+  const lineList = data?.lines?.length ? data.lines : lines;
+  lineList.forEach((l, idx) => {
     lineColorMap[l.name] = LINE_PALETTES[idx % LINE_PALETTES.length];
   });
+
+  const lineOptions = useMemo(() => {
+    if (lines.length > 0) return lines;
+    return data?.lines || [];
+  }, [lines, data?.lines]);
 
   const days = useMemo(() => {
     if (!data?.days) return [];
@@ -430,9 +439,11 @@ export function LineRosterMonthlyView({
 
   const filteredEmployees = (data?.employees || []).filter((emp) => {
     if (selectedLineFilter && selectedLineFilter !== 'all') {
-      const hasLine = Object.values(emp.lines || {}).some(
-        (cell: any) => cell?.line_order === selectedLineFilter || cell?.line_name === selectedLineFilter
-      );
+      const hasLine = Object.entries(emp.lines || {}).some(([dateKey, cell]: [string, any]) => {
+        if (fromDate?.isValid() && dayjs(dateKey).isBefore(fromDate, 'day')) return false;
+        if (toDate?.isValid() && dayjs(dateKey).isAfter(toDate, 'day')) return false;
+        return cell?.line_order === selectedLineFilter || cell?.line_name === selectedLineFilter;
+      });
       if (!hasLine) return false;
     }
     if (selectedStatus && selectedStatus !== 'all') {
@@ -600,7 +611,7 @@ export function LineRosterMonthlyView({
               gridTemplateColumns: {
                 xs: 'repeat(1, 1fr)',
                 sm: 'repeat(2, 1fr)',
-                md: '160px 160px 150px 170px 1fr',
+                md: '160px 160px 190px 170px 1fr',
               },
               alignItems: 'center',
             }}
@@ -650,42 +661,55 @@ export function LineRosterMonthlyView({
               />
             </LocalizationProvider>
 
-            <FormControl
+            <Autocomplete
               size="small"
               fullWidth
               sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 1.5 } }}
-            >
-              <Select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                displayEmpty
-              >
-                <MenuItem value="all">
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'text.disabled' }} />
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      All Status
-                    </Typography>
-                  </Stack>
-                </MenuItem>
-                <MenuItem value="Active">
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#10b981' }} />
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#059669' }}>
-                      Active
-                    </Typography>
-                  </Stack>
-                </MenuItem>
-                <MenuItem value="Cancelled">
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#ef4444' }} />
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#dc2626' }}>
-                      Cancelled
-                    </Typography>
-                  </Stack>
-                </MenuItem>
-              </Select>
-            </FormControl>
+              options={lineOptions}
+              getOptionLabel={(opt) => (opt ? opt.line_name || opt.name : '')}
+              isOptionEqualToValue={(option, value) => (option?.name || option) === (value?.name || value)}
+              value={lineOptions.find((l) => l.name === selectedLineFilter) || null}
+              onChange={(_, val) => setSelectedLineFilter(val ? val.name : 'all')}
+              renderOption={(props, option) => {
+                const pal = lineColorMap[option.name];
+                const code = getLineShortCode(option.line_name || option.name);
+                return (
+                  <li {...props} key={option.name}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      {pal && (
+                        <Box
+                          sx={{
+                            width: 24,
+                            height: 20,
+                            borderRadius: '4px',
+                            bgcolor: pal.bg,
+                            color: pal.color,
+                            border: `1px solid ${pal.border}`,
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {code}
+                        </Box>
+                      )}
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {option.line_name || option.name}
+                      </Typography>
+                    </Stack>
+                  </li>
+                );
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder={!selectedLineFilter || selectedLineFilter === 'all' ? 'Line' : ''}
+                />
+              )}
+            />
 
             <FormControl
               size="small"
