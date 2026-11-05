@@ -13,7 +13,7 @@ export interface LineRoster {
   line_name: string;
   effective_from: string;
   effective_to?: string;
-  assignment_type: 'Manual' | 'Bulk' | 'Rotation' | 'Override' | 'Line Change' | 'Face Recognition';
+  assignment_type: 'Manual' | 'Bulk' | 'Rotation' | 'Override' | 'Line Change' | 'Face Recognition' | 'Face Biometric Change';
   status: 'Active' | 'Cancelled';
   reason?: string;
   owner?: string;

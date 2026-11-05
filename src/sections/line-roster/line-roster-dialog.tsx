@@ -418,6 +418,9 @@ export function LineRosterDialog({
                 <MenuItem value="Manual">Manual</MenuItem>
                 <MenuItem value="Override">Override</MenuItem>
                 <MenuItem value="Line Change">Line Change</MenuItem>
+                {(isEdit && assignmentType === 'Face Biometric Change') && (
+                  <MenuItem value="Face Biometric Change">Face Biometric Change</MenuItem>
+                )}
               </TextField>
 
               <TextField
