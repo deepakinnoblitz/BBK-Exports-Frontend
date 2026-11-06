@@ -395,10 +395,21 @@ export async function executeUndoFaceLineChange(params: {
   effective_from?: string;
 }) {
   const headers = await getAuthHeaders();
+  let employee = params.employee;
+  if (employee) {
+    const raw = String(employee).trim();
+    if (!raw.toUpperCase().startsWith('EMP')) {
+      const digits = raw.replace(/\D/g, '');
+      if (digits) {
+        employee = `EMP${digits.padStart(5, '0')}`;
+      }
+    }
+  }
+
   const res = await frappeRequest('/api/method/company.company.line_roster_api.undo_face_line_change', {
     method: 'POST',
     headers,
-    body: JSON.stringify(params),
+    body: JSON.stringify({ ...params, employee }),
   });
 
   const json = await res.json();

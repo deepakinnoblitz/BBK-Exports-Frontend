@@ -3493,38 +3493,7 @@ export function EmployeeView() {
 
                                     {/* CTC Field - Full Width */}
                                     <Box sx={{ mb: 3 }}>
-                                        {renderField('ctc', 'CTC (Yearly)', 'number', [], {
-                                            ...(!currentEmployeeId ? {
-                                                InputProps: {
-                                                    endAdornment: (
-                                                        <Button
-                                                            size="small"
-                                                            variant="contained"
-                                                            onClick={handleDefaultSplitting}
-                                                            sx={{
-                                                                whiteSpace: 'nowrap',
-                                                                mx: 1,
-                                                                py: 1.5,
-                                                                px: 3,
-                                                                height: 32,
-                                                                fontSize: '0.75rem',
-                                                                fontWeight: 700,
-                                                                bgcolor: COMMON_COLORS.emerald.main,
-                                                                color: 'common.white',
-                                                                boxShadow: (theme) => theme.customShadows.z8,
-                                                                '&:hover': {
-                                                                    bgcolor: COMMON_COLORS.emerald.dark,
-                                                                    boxShadow: (theme) => theme.customShadows.z16,
-                                                                }
-                                                            }}
-                                                            startIcon={<Iconify icon={"solar:magic-stick-bold" as any} width={16} />}
-                                                        >
-                                                            Default Splitting
-                                                        </Button>
-                                                    )
-                                                }
-                                            } : {})
-                                        }, false)}
+                                        {renderField('ctc', 'CTC (Yearly)', 'number', [], {}, false)}
                                     </Box>
 
                                     {/* Two Column Layout: Earnings and Deductions */}

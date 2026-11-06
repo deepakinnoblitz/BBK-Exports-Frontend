@@ -507,6 +507,14 @@ function playChime(type: 'success' | 'alert') {
   }
 }
 
+const toEmpFormat = (name?: string, id?: string) => {
+  if (name && name.toUpperCase().startsWith('EMP')) return name;
+  const raw = id || name || '';
+  const digits = raw.replace(/\D/g, '');
+  if (digits) return `EMP${digits.padStart(5, '0')}`;
+  return name || id || '';
+};
+
 interface SessionLogItem {
   roster_id: string;
   employee_id: string;
@@ -1371,9 +1379,11 @@ export function FaceLineChangeView() {
       enqueueSnackbar(res?.message || `Transferred to ${chosenTargetLine}`, { variant: 'success' });
 
       // Append to session logs
+      const formattedEmpId = toEmpFormat(activeWorker.name, activeWorker.employee_id);
+
       const logItem: SessionLogItem = {
         roster_id: res?.roster_name || '',
-        employee_id: activeWorker.employee_id || activeWorker.name,
+        employee_id: formattedEmpId,
         employee_name: activeWorker.employee_name,
         previous_line: workerCurrentLine,
         target_line: chosenTargetLine,
@@ -1438,9 +1448,10 @@ export function FaceLineChangeView() {
   const handleUndo = async (log: SessionLogItem) => {
     setUndoingId(log.roster_id);
     try {
+      const empId = toEmpFormat(log.employee_id);
       await executeUndoFaceLineChange({
         roster_id: log.roster_id,
-        employee: log.employee_id,
+        employee: empId,
         previous_line: log.previous_line,
         effective_from: effectiveFrom?.format('YYYY-MM-DD'),
       });
@@ -1453,7 +1464,10 @@ export function FaceLineChangeView() {
       // Update local catalog
       setCatalog((prev) =>
         prev.map((c) =>
-          c.name === log.employee_id || c.employee_id === log.employee_id
+          c.name === empId ||
+          c.name === log.employee_id ||
+          c.employee_id === log.employee_id ||
+          (empId && c.employee_id && toEmpFormat(c.name, c.employee_id) === empId)
             ? { ...c, current_line: log.previous_line }
             : c
         )
@@ -2374,7 +2388,7 @@ export function FaceLineChangeView() {
                 {sessionLogs.map((log) => (
                   <TableRow key={log.roster_id} hover>
                     <TableCell sx={{ fontWeight: 600 }}>
-                      {log.employee_name} ({log.employee_id})
+                      {log.employee_name} ({toEmpFormat(log.employee_id)})
                     </TableCell>
                     <TableCell>{log.previous_line || '-'}</TableCell>
                     <TableCell>
