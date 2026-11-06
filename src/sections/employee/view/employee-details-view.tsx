@@ -34,7 +34,7 @@ import { COMMON_COLORS } from 'src/theme';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRDoc, getHRSettings } from 'src/api/hr-management';
 import { fetchEmployeeSkillHistory, fetchEmployeeSalaryHistory } from 'src/api/masters';
-import { fetchEffectiveLineForEmployee, clearEmployeeFaceEmbedding } from 'src/api/line-roster';
+import { clearEmployeeFaceEmbedding, fetchEffectiveLineForEmployee } from 'src/api/line-roster';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -290,7 +290,6 @@ export function EmployeeDetailsView() {
                                             <DetailItem label="Personal Phone" value={employee.phone} icon="solar:phone-bold" />
                                             <DetailItem label="Office Phone" value={employee.office_phone_number} icon="solar:phone-bold" />
                                             <DetailItem label="User Login" value={employee.user} icon="solar:user-bold" />
-                                            <DetailItem label="Employee ID" value={employee.employee_id || employee.employeeId} icon="solar:user-id-bold" />
                                         </Box>
                                     </Box>
 
@@ -309,19 +308,28 @@ export function EmployeeDetailsView() {
                                             {(employee.status === 'Inactive' || employee.date_of_leaving) && (
                                                 <DetailItem label="Date of Leaving (DOL)" value={employee.date_of_leaving ? fDate(employee.date_of_leaving, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
                                             )}
-                                            <DetailItem label="Date of Birth" value={employee.dob ? fDate(employee.dob, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
-                                            <DetailItem label="Blood Group" value={employee.blood_group} icon="solar:drop-bold" />
-                                            <DetailItem label="Gender" value={employee.sex} icon="solar:user-bold" />
-                                            <DetailItem label="Marital Status" value={employee.marital_status} icon="solar:heart-bold" />
-                                            <DetailItem label="Father/Husband Name" value={employee.father_husband_name} icon="solar:user-bold" />
-                                            <DetailItem label="Qualification" value={employee.qualification} icon="solar:diploma-bold" />
-                                            <DetailItem label="Aadhar Number" value={employee.aadhar_number} icon="solar:card-bold" />
                                             <DetailItem label="Line Order" value={employee.line_order} icon="solar:settings-minimalistic-bold" />
                                             <DetailItem label="Shift" value={employee.shift} icon="solar:clock-circle-bold" />
                                             <DetailItem label="Bus - Travel Route" value={employee.bus_travel_route} icon="solar:bus-bold" />
                                             {employee.bus_route_point && (
                                                 <DetailItem label="Bus Route Point" value={employee.bus_route_point} icon="solar:map-point-bold" />
                                             )}
+                                        </Box>
+                                    </Box>
+
+                                    <Divider sx={{ borderStyle: 'dashed' }} />
+
+                                    {/* Personal Details */}
+                                    <Box>
+                                        <SectionHeader title="Personal Details" icon="solar:user-id-bold" />
+                                        <Box sx={{ display: 'grid', columnGap: 4, rowGap: 3.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
+                                            <DetailItem label="Date of Birth" value={employee.dob ? fDate(employee.dob, 'DD-MM-YYYY') : '-'} icon="solar:calendar-bold" />
+                                            <DetailItem label="Gender" value={employee.sex} icon="solar:user-bold" />
+                                            <DetailItem label="Blood Group" value={employee.blood_group} icon="solar:drop-bold" />
+                                            <DetailItem label="Marital Status" value={employee.marital_status} icon="solar:heart-bold" />
+                                            <DetailItem label="Father/Husband Name" value={employee.father_husband_name} icon="solar:user-bold" />
+                                            <DetailItem label="Qualification" value={employee.qualification} icon="solar:diploma-bold" />
+                                            <DetailItem label="Aadhar Number" value={employee.aadhar_number} icon="solar:card-bold" />
                                         </Box>
                                     </Box>
 
