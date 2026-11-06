@@ -44,7 +44,7 @@ export const DRIVER_DEFAULT_DEDUCTIONS = [
 
 // Definition of standard employee columns
 export const PERSONAL_FIELDS = [
-    { label: 'Employee ID *', key: 'employee_id', sample: 'EMP001', width: 16, type: 'text' },
+    { label: 'Employee ID *', key: 'name', sample: 'BEPL00001', width: 18, type: 'text' },
     { label: 'Employee Name *', key: 'employee_name', sample: 'Rajesh Kumar', width: 22, type: 'text' },
     { label: 'Father/Husband Name', key: 'father_husband_name', sample: 'Suresh Kumar', width: 20, type: 'text' },
     { label: 'Email *', key: 'email', sample: 'rajesh.kumar@bbkexports.com', width: 28, type: 'text' },
@@ -87,7 +87,7 @@ export const BANK_FIELDS = [
 ];
 
 export const BANK_ACCOUNT_SHEET_FIELDS = [
-    { label: 'Referral No. *', key: 'referral_no', sample: 'EMP001', width: 18, type: 'text' },
+    { label: 'Referral No. *', key: 'referral_no', sample: 'BEPL00001', width: 18, type: 'text' },
     { label: 'Bank Account Name *', key: 'bank_account_name', sample: 'Salary Account', width: 24, type: 'text' },
     { label: 'Account Number *', key: 'account_number', sample: '123456789012', width: 22, type: 'text' },
     { label: 'Account Type', key: 'account_type', sample: 'Savings', width: 18, type: 'text' },

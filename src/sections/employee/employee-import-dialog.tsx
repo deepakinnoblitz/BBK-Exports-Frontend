@@ -216,7 +216,8 @@ const matchMasterBankAccount = (
 
 // Available standard target fields for mapping
 const STANDARD_TARGET_FIELDS = [
-    { value: 'employee_id', label: 'Employee ID *', reqd: true },
+    { value: 'name', label: 'Employee ID (Document Name) *', reqd: true },
+    { value: 'employee_id', label: 'Employee ID (Legacy)', reqd: false },
     { value: 'employee_name', label: 'Employee Name *', reqd: true },
     { value: 'email', label: 'Email *', reqd: true },
     { value: 'date_of_joining', label: 'Joining Date *', reqd: true },
@@ -526,7 +527,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                         );
 
                         const refIdx = bHeaders.findIndex(
-                            (h) => h.includes('referral') || h.includes('employee id') || h === 'emp id' || h === 'id'
+                            (h) => h.includes('referral') || h.includes('employee id') || h === 'emp id' || h === 'id' || h.includes('document id') || h.includes('doc id') || h.includes('document name')
                         );
                         const acctNameIdx = bHeaders.findIndex(
                             (h) => h.includes('bank account name') || h.includes('account name')
@@ -618,7 +619,31 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                         return;
                     }
 
-                    // 3. Exact or prefix match with standard employee fields
+                    // 3. Employee ID (Document Name) mapping
+                    if (
+                        cleanH.includes('employee id') ||
+                        cleanH === 'id' ||
+                        cleanH === 'emp id' ||
+                        cleanH === 'emp code' ||
+                        cleanH.includes('document id') ||
+                        cleanH.includes('doc id') ||
+                        cleanH.includes('document name')
+                    ) {
+                        initialMap[idx] = 'name';
+                        return;
+                    }
+
+                    // 4. Employee Name mapping
+                    if (
+                        cleanH.includes('employee name') ||
+                        cleanH === 'name' ||
+                        cleanH === 'emp name'
+                    ) {
+                        initialMap[idx] = 'employee_name';
+                        return;
+                    }
+
+                    // 5. Exact or prefix match with standard employee fields
                     const matchedStd = STANDARD_TARGET_FIELDS.find((f) => {
                         const cleanLabel = f.label.toLowerCase().replace(/[*_()]/g, ' ').replace(/\s+/g, ' ').trim();
                         return cleanH === f.value || cleanH === cleanLabel || cleanH.startsWith(f.value) || cleanH.startsWith(cleanLabel);
@@ -629,7 +654,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                         return;
                     }
 
-                    // 4. Match against known salary components in the database
+                    // 6. Match against known salary components in the database
                     const matchedComp = knownSalaryComponents.find((sc) => {
                         const scName = (sc.component_name || sc.name || '').toLowerCase().trim();
                         return scName === cleanH || scName === rawH.toLowerCase().trim();
@@ -644,12 +669,8 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                         return;
                     }
 
-                    // 5. Fuzzy checks for standard employee fields
-                    if (cleanH.includes('employee id') || cleanH === 'id' || cleanH === 'emp id' || cleanH === 'emp code') {
-                        initialMap[idx] = 'employee_id';
-                    } else if (cleanH.includes('employee name') || cleanH === 'name' || cleanH === 'emp name') {
-                        initialMap[idx] = 'employee_name';
-                    } else if (cleanH.includes('joining date') || cleanH.includes('doj') || cleanH === 'date of joining') {
+                    // 7. Fuzzy checks for remaining standard employee fields
+                    if (cleanH.includes('joining date') || cleanH.includes('doj') || cleanH === 'date of joining') {
                         initialMap[idx] = 'date_of_joining';
                     } else if (cleanH.includes('personal phone') || cleanH === 'phone' || cleanH === 'mobile') {
                         initialMap[idx] = 'phone';
@@ -696,7 +717,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
     // ----------------------------------------------------
     const handleSaveMapping = () => {
         const mappedTargets = Object.values(columnMapping);
-        const hasId = mappedTargets.includes('employee_id');
+        const hasId = mappedTargets.includes('name') || mappedTargets.includes('employee_id');
         const hasName = mappedTargets.includes('employee_name');
         const hasEmail = mappedTargets.includes('email');
 
@@ -757,8 +778,13 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 }
             });
 
-            // Match with Bank Account Details from secondary sheet (Referral No. == Employee ID)
-            const empIdKey = String(empRecord.employee_id || '').toLowerCase().trim();
+            // Determine Employee Document ID (name)
+            const empDocName = String(empRecord.name || empRecord.employee_id || '').trim();
+            empRecord.name = empDocName;
+            empRecord.employee_id = empDocName;
+
+            // Match with Bank Account Details from secondary sheet (Referral No. == Employee ID / Document ID)
+            const empIdKey = empDocName.toLowerCase();
             const matchedBank = parsedBankMap[empIdKey];
             if (matchedBank) {
                 empRecord.bank_details = matchedBank;
@@ -806,12 +832,12 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
             }
 
             // Validation
-            if (!empRecord.employee_id) {
+            if (!empDocName) {
                 empRecord._errors.push('Missing Employee ID');
-            } else if (seenIds.has(empRecord.employee_id.toUpperCase())) {
+            } else if (seenIds.has(empDocName.toUpperCase())) {
                 empRecord._errors.push('Duplicate Employee ID in sheet');
             } else {
-                seenIds.add(empRecord.employee_id.toUpperCase());
+                seenIds.add(empDocName.toUpperCase());
             }
 
             if (!empRecord.employee_name) {
@@ -841,7 +867,11 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
         if (editingIndex === null || !editForm) return;
 
         const updatedErrors: string[] = [];
-        if (!editForm.employee_id?.trim()) updatedErrors.push('Missing Employee ID');
+        const editDocName = String(editForm.name || editForm.employee_id || '').trim();
+        editForm.name = editDocName;
+        editForm.employee_id = editDocName;
+
+        if (!editDocName) updatedErrors.push('Missing Employee ID');
         if (!editForm.employee_name?.trim()) updatedErrors.push('Missing Employee Name');
         if (!editForm.email?.trim()) updatedErrors.push('Missing Email');
 
@@ -1496,7 +1526,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                             whiteSpace: 'nowrap',
                                         }}
                                     >
-                                        {row.employee_id || '-'}
+                                        {row.name || row.employee_id || '-'}
                                     </TableCell>
                                     <TableCell
                                         sx={{
@@ -1933,10 +1963,10 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                     <TextField
                                         label="Employee ID *"
                                         size="small"
-                                        value={editForm.employee_id || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, employee_id: e.target.value })}
-                                        error={!editForm.employee_id?.trim()}
-                                        helperText={!editForm.employee_id?.trim() ? 'Required' : ''}
+                                        value={editForm.name || editForm.employee_id || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value, employee_id: e.target.value })}
+                                        error={!String(editForm.name || editForm.employee_id || '').trim()}
+                                        helperText={!String(editForm.name || editForm.employee_id || '').trim() ? 'Required' : ''}
                                     />
                                     <TextField
                                         label="Employee Name *"
