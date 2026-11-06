@@ -1107,7 +1107,6 @@ export function EmployeeView() {
         let errorTab = 0;
 
         const requiredFields = [
-            { name: 'employee_id', label: 'Employee ID' },
             { name: 'employee_name', label: 'Employee Name' },
             { name: 'email', label: 'Email' },
             { name: 'date_of_joining', label: 'Joining Date' },
@@ -3278,7 +3277,6 @@ export function EmployeeView() {
                                 showIndex
                                 headLabel={[
                                     { id: 'employee_name', label: 'Name', minWidth: 160 },
-                                    { id: 'employee_id', label: 'Employee ID', minWidth: 120 },
                                     { id: 'employee_type', label: 'Employee Type', minWidth: 130 },
                                     { id: 'skill', label: 'Skill', minWidth: 120 },
                                     { id: 'department', label: 'Department', minWidth: 120 },
@@ -3292,7 +3290,7 @@ export function EmployeeView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
@@ -3328,7 +3326,7 @@ export function EmployeeView() {
 
                                         {empty && (
                                             <TableRow>
-                                                <TableCell colSpan={10}>
+                                                <TableCell colSpan={9}>
                                                     <EmptyContent
                                                         title="No employees found"
                                                         description="Click 'New Employee' to add your first team member."
@@ -3430,7 +3428,7 @@ export function EmployeeView() {
                                     <>
                                         <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>Personal Information</Typography>
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
-                                            {renderField('employee_id', 'Employee ID', 'text', [], {}, true)}
+                                            {renderField('employee_id', 'Employee ID', 'text', [], {}, false)}
                                             {renderField('employee_name', 'Employee Name', 'text', [], {}, true)}
                                             {renderField('father_husband_name', 'Father/Husband Name')}
                                             {renderField('email', 'Email', 'text', [], {}, true)}

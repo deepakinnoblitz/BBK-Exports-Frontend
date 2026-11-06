@@ -112,12 +112,6 @@ export function EmployeeTableRow({
             </TableCell>
 
             <TableCell>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }} noWrap>
-                    {row.employeeId || row.id || '-'}
-                </Typography>
-            </TableCell>
-
-            <TableCell>
                 <Typography variant="body2" noWrap sx={{ textTransform: 'capitalize' }}>
                     {row.employeeType || '-'}
                 </Typography>
