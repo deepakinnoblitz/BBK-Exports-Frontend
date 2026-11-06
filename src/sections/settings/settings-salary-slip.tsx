@@ -399,8 +399,8 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
 
   const deductionComponents = salaryComponents.filter((c) => c.type === 'Deduction');
   const deductionOptions = deductionComponents.length > 0
-    ? Array.from(new Set(['Professional Tax', 'Prof.Tax', 'PF', 'ESI', ...deductionComponents.map((c) => c.component_name || c.name).filter(Boolean)]))
-    : ['Professional Tax', 'Prof.Tax', 'PF', 'ESI', 'ESI/Health Insurance', 'TDS', 'LWF', 'Loan Recovery', 'Canteen', 'Uniform', 'ADV'];
+    ? Array.from(new Set(['Professional Tax', 'Prof.Tax', 'PF', 'ESI', 'Labour Welfare Fund', 'LWF', ...deductionComponents.map((c) => c.component_name || c.name).filter(Boolean)]))
+    : ['Professional Tax', 'Prof.Tax', 'PF', 'ESI', 'ESI/Health Insurance', 'TDS', 'Labour Welfare Fund', 'LWF', 'Loan Recovery', 'Canteen', 'Uniform', 'ADV'];
 
   const DEFAULT_EMPLOYEE_TYPES = [
     'Staff - CTC',
@@ -6674,7 +6674,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
               {/* Policy Inputs Grid */}
               <Grid container spacing={2.5}>
                 {/* State / Governing Board */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     label="State / Governing Board"
@@ -6684,8 +6684,49 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   />
                 </Grid>
 
+                {/* LWF Deduction Salary Component */}
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Autocomplete
+                    freeSolo
+                    openOnFocus
+                    forcePopupIcon
+                    autoHighlight
+                    disabled={!isCheckEnabled(data.enable_lwf ?? 1)}
+                    options={deductionOptions}
+                    value={data.lwf_deduction_component || 'Labour Welfare Fund'}
+                    onChange={(_event, newValue) => {
+                      onChange('lwf_deduction_component', newValue || 'Labour Welfare Fund');
+                    }}
+                    onInputChange={(_event, newInputValue) => {
+                      if (newInputValue !== undefined) {
+                        onChange('lwf_deduction_component', newInputValue);
+                      }
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        label="LWF Deduction Salary Component"
+                        placeholder="Select or type component name..."
+                        helperText="Salary Component used for LWF deduction on salary slips"
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Remittance Deadline */}
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Remittance Deadline"
+                    value={data.lwf_remittance_deadline ?? '31st January'}
+                    onChange={(e) => onChange('lwf_remittance_deadline', e.target.value)}
+                    helperText="Statutory payment deadline"
+                  />
+                </Grid>
+
                 {/* Deduction Month */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <FormControl fullWidth>
                     <InputLabel id="lwf-deduction-month-label">Deduction Month</InputLabel>
                     <Select
@@ -6702,7 +6743,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                 </Grid>
 
                 {/* Deduction Frequency */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <FormControl fullWidth>
                     <InputLabel id="lwf-frequency-label">Contribution Frequency</InputLabel>
                     <Select
@@ -6718,19 +6759,26 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   </FormControl>
                 </Grid>
 
-                {/* Remittance Deadline */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                {/* Salary Eligibility Ceiling */}
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
-                    label="Remittance Deadline"
-                    value={data.lwf_remittance_deadline ?? '31st January'}
-                    onChange={(e) => onChange('lwf_remittance_deadline', e.target.value)}
-                    helperText="Statutory payment deadline"
+                    type="number"
+                    label="Gross Salary Ceiling (₹)"
+                    value={data.lwf_salary_ceiling ?? '25000'}
+                    onChange={(e) => onChange('lwf_salary_ceiling', e.target.value)}
+                    helperText="Exempt if gross exceeds this amount. Set 0 for no limit."
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                      },
+                      htmlInput: { min: 0, step: 500 },
+                    }}
                   />
                 </Grid>
 
                 {/* Employee Contribution */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     type="number"
@@ -6748,7 +6796,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                 </Grid>
 
                 {/* Employer Contribution */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     type="number"
@@ -6766,7 +6814,7 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                 </Grid>
 
                 {/* Government Contribution */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     type="number"
@@ -6779,24 +6827,6 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                         startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                       },
                       htmlInput: { min: 0, step: 1 },
-                    }}
-                  />
-                </Grid>
-
-                {/* Salary Eligibility Ceiling */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Gross Salary Ceiling (₹)"
-                    value={data.lwf_salary_ceiling ?? '25000'}
-                    onChange={(e) => onChange('lwf_salary_ceiling', e.target.value)}
-                    helperText="Exempt if gross exceeds this amount. Set 0 for no limit."
-                    slotProps={{
-                      input: {
-                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                      },
-                      htmlInput: { min: 0, step: 500 },
                     }}
                   />
                 </Grid>

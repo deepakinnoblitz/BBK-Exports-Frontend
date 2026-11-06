@@ -50,7 +50,7 @@ import { uploadFile } from 'src/api/data-import';
 import { getStates, getCities } from 'src/api/location';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getBusTravelRoute, fetchBankAccounts } from 'src/api/masters';
-import { getEmployee, createEmployee, updateEmployee, deleteEmployee } from 'src/api/employees';
+import { getEmployee, createEmployee, updateEmployee, deleteEmployee, renameEmployee, getNextEmployeeId } from 'src/api/employees';
 import { getHRSettings, fetchFrappeList, getHRPermissions, getDocTypeMetadata, fetchSalaryComponents } from 'src/api/hr-management';
 import { createRosterAssignment as createShiftRosterAssignment, deleteOrCancelRosterAssignment as deleteOrCancelShiftRosterAssignment } from 'src/api/shift-roster';
 import {
@@ -961,7 +961,22 @@ export function EmployeeView() {
         }
     };
     const handleOpenCreate = async () => {
-        setFormData({ status: 'Active', ctc: 0, skip_probation: 0, country: 'India', documents: [] });
+        setCurrentEmployeeId(null);
+        let previewId = '';
+        try {
+            previewId = await getNextEmployeeId();
+        } catch (e) {
+            console.error('Failed to load next employee ID preview:', e);
+        }
+        setFormData({
+            status: 'Active',
+            ctc: 0,
+            skip_probation: 0,
+            country: 'India',
+            documents: [],
+            name: previewId,
+            employee_id: previewId,
+        });
         setBusRoutePoints([]);
         setFormErrors({});
         loadBankAccounts('');
@@ -1107,7 +1122,6 @@ export function EmployeeView() {
         let errorTab = 0;
 
         const requiredFields = [
-            { name: 'employee_id', label: 'Employee ID' },
             { name: 'employee_name', label: 'Employee Name' },
             { name: 'email', label: 'Email' },
             { name: 'date_of_joining', label: 'Joining Date' },
@@ -1226,6 +1240,29 @@ export function EmployeeView() {
             dataToSave.documents = documents;
 
             if (currentEmployeeId) {
+                let targetId = currentEmployeeId;
+                const newDocName = (formData.name || formData.employee_id || '').trim();
+
+                // If user edited Employee ID (doc name), rename the document
+                if (newDocName && newDocName !== currentEmployeeId) {
+                    try {
+                        const renamed = await renameEmployee(currentEmployeeId, newDocName);
+                        targetId = renamed;
+                        setCurrentEmployeeId(targetId);
+                        dataToSave.name = targetId;
+                        dataToSave.employee_id = targetId;
+                    } catch (renameErr: any) {
+                        setServerAlert({
+                            message: `Failed to rename Employee: ${renameErr.message || 'ID may already exist.'}`,
+                            severity: 'error'
+                        });
+                        setCreating(false);
+                        return;
+                    }
+                } else {
+                    dataToSave.employee_id = targetId;
+                }
+
                 // Check if shift was changed from default settings
                 const defaultShift = (originalEmployeeShift || '').trim();
                 const newShift = (formData.shift || '').trim();
@@ -1253,7 +1290,7 @@ export function EmployeeView() {
                 // Commit pending face biometrics only when user clicks Update Employee
                 if (dataToSave._faceBiometricsPendingClear) {
                     try {
-                        const clearRes = await clearEmployeeFaceEmbedding(currentEmployeeId);
+                        const clearRes = await clearEmployeeFaceEmbedding(targetId);
                         if (clearRes?.modified) {
                             dataToSave.modified = clearRes.modified;
                         }
@@ -1263,7 +1300,7 @@ export function EmployeeView() {
                 } else if (dataToSave._faceBiometricsPendingSave && dataToSave.face_descriptor) {
                     try {
                         const bioRes = await saveEmployeeFaceEmbedding({
-                            employee: currentEmployeeId,
+                            employee: targetId,
                             face_descriptor: dataToSave.face_descriptor,
                             face_3d_landmarks: dataToSave.face_3d_landmarks,
                             face_image: dataToSave.face_enrolled_image,
@@ -1289,10 +1326,18 @@ export function EmployeeView() {
                 }
 
                 console.log("Saving Employee", dataToSave);
-                await updateEmployee(currentEmployeeId, dataToSave as any);
+                await updateEmployee(targetId, dataToSave as any);
                 handleCloseCreate();
-                setSnackbar({ open: true, message: 'Employee updated successfully', severity: 'success' });
+                setSnackbar({
+                    open: true,
+                    message: newDocName && newDocName !== currentEmployeeId
+                        ? `Employee renamed to ${targetId} and updated successfully`
+                        : 'Employee updated successfully',
+                    severity: 'success'
+                });
             } else {
+                delete dataToSave.name;
+                delete dataToSave.employee_id;
                 await createEmployee(dataToSave as any);
                 handleCloseCreate();
                 setSnackbar({ open: true, message: 'Employee created successfully', severity: 'success' });
@@ -1556,6 +1601,8 @@ export function EmployeeView() {
                 const cleanedRow = { ...fullDoc };
                 if (cleanedRow.phone) cleanedRow.phone = cleanPhoneNumber(cleanedRow.phone);
                 if (cleanedRow.office_phone_number) cleanedRow.office_phone_number = cleanPhoneNumber(cleanedRow.office_phone_number);
+                cleanedRow.name = id;
+                cleanedRow.employee_id = id;
                 setFormData(cleanedRow);
                 setOriginalEmployeeLine(cleanedRow.line_order || '');
                 setOriginalEmployeeShift(cleanedRow.shift || '');
@@ -3278,7 +3325,6 @@ export function EmployeeView() {
                                 showIndex
                                 headLabel={[
                                     { id: 'employee_name', label: 'Name', minWidth: 160 },
-                                    { id: 'employee_id', label: 'Employee ID', minWidth: 120 },
                                     { id: 'employee_type', label: 'Employee Type', minWidth: 130 },
                                     { id: 'skill', label: 'Skill', minWidth: 120 },
                                     { id: 'department', label: 'Department', minWidth: 120 },
@@ -3292,7 +3338,7 @@ export function EmployeeView() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
+                                        <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
                                             <CircularProgress sx={{ color: '#059669' }} />
                                         </TableCell>
                                     </TableRow>
@@ -3328,7 +3374,7 @@ export function EmployeeView() {
 
                                         {empty && (
                                             <TableRow>
-                                                <TableCell colSpan={10}>
+                                                <TableCell colSpan={9}>
                                                     <EmptyContent
                                                         title="No employees found"
                                                         description="Click 'New Employee' to add your first team member."
@@ -3430,7 +3476,28 @@ export function EmployeeView() {
                                     <>
                                         <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>Personal Information</Typography>
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
-                                            {renderField('employee_id', 'Employee ID', 'text', [], {}, true)}
+                                            <TextField
+                                                fullWidth
+                                                label="Employee ID"
+                                                name="employee_id"
+                                                value={currentEmployeeId ? (formData.name || currentEmployeeId) : (formData.name || 'Loading...')}
+                                                onChange={(e) => {
+                                                    if (currentEmployeeId) {
+                                                        const val = e.target.value.toUpperCase();
+                                                        handleInputChange('name', val);
+                                                        handleInputChange('employee_id', val);
+                                                    }
+                                                }}
+                                                disabled={!currentEmployeeId}
+                                                slotProps={{
+                                                    input: {
+                                                        readOnly: !currentEmployeeId,
+                                                    },
+                                                }}
+                                                InputLabelProps={{ shrink: true }}
+                                                error={!!formErrors.name || !!formErrors.employee_id}
+                                                helperText={formErrors.name || formErrors.employee_id || undefined}
+                                            />
                                             {renderField('employee_name', 'Employee Name', 'text', [], {}, true)}
                                             {renderField('father_husband_name', 'Father/Husband Name')}
                                             {renderField('email', 'Email', 'text', [], {}, true)}
