@@ -29,6 +29,9 @@ export interface Employee {
     pf_number?: string;
     esi_no?: string;
     skill?: string;
+    line_order?: string;
+    shift?: string;
+    weekly_off?: string;
     full_address?: string;
     bank_account?: string;
     bus_travel_route?: string;

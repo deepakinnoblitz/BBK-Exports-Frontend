@@ -367,6 +367,7 @@ export function EmployeeView() {
         ctc: 0,
         skip_probation: 0,
         country: 'India',
+        weekly_off: 'Sunday',
     });
     const [fieldOptions, setFieldOptions] = useState<Record<string, any[]>>({});
     const [stateOptions, setStateOptions] = useState<string[]>([]);
@@ -666,6 +667,12 @@ export function EmployeeView() {
             const next = { ...prev, [fieldname]: finalValue };
             if (fieldname === 'status' && finalValue === 'Active') {
                 next.date_of_leaving = '';
+            }
+            if (fieldname === 'employee_type') {
+                const isSec = String(finalValue || '').toLowerCase().includes('security');
+                if (!isSec) {
+                    next.weekly_off = 'Sunday';
+                }
             }
             return next;
         });
@@ -973,6 +980,7 @@ export function EmployeeView() {
             ctc: 0,
             skip_probation: 0,
             country: 'India',
+            weekly_off: 'Sunday',
             documents: [],
             name: previewId,
             employee_id: previewId,
@@ -992,7 +1000,7 @@ export function EmployeeView() {
         setOpenCreate(false);
         setFormErrors({});
         setCurrentEmployeeId(null);
-        setFormData({ status: 'Active', ctc: 0, skip_probation: 0, country: 'India', documents: [] });
+        setFormData({ status: 'Active', ctc: 0, skip_probation: 0, country: 'India', weekly_off: 'Sunday', documents: [] });
         setBusRoutePoints([]);
         setServerAlert({ message: '', severity: 'info' });
         setStateOptions([]);
@@ -3525,10 +3533,12 @@ export function EmployeeView() {
                                             {renderField('department', 'Department', 'link', fieldOptions['department'] || [])}
                                             {renderField('designation', 'Designation', 'link', fieldOptions['designation'] || [])}
                                             {renderField('employee_type', 'Employee Type', 'link', fieldOptions['employee_type'] || [])}
+                                            {String(formData.employee_type || '').toLowerCase().includes('security') && renderField('weekly_off', 'Weekly Off', 'select', ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])}
                                             {renderField('skill', 'Skill', 'link', fieldOptions['skill'] || [])}
                                             {renderField('production_type', 'Production Type', 'select', ['Production', 'Non Production'])}
                                             {renderField('line_order', 'Line Order', 'link', fieldOptions['line_order'] || [])}
                                             {renderField('shift', 'Shift', 'link', fieldOptions['shift'] || [])}
+                                            {renderField('weekly_off', 'Weekly Off', 'select', ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])}
                                             {renderField('bus_travel_route', 'Bus - Travel Route', 'link', fieldOptions['bus_travel_route'] || [])}
                                             {formData.bus_travel_route && renderField('bus_route_point', 'Bus Route Point', 'autocomplete', busRoutePoints)}
                                             {renderField('date_of_joining', 'Joining Date', 'date', [], {}, true)}

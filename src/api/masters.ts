@@ -2267,6 +2267,7 @@ export interface Shift {
     allow_overtime?: number | boolean;
     overtime_hours?: number;
     min_overtime_minutes?: number;
+    weekly_off?: string;
     description?: string;
     break_duration?: number;
     enable_auto_attendance?: boolean;

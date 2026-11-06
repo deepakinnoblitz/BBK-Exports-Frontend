@@ -310,6 +310,16 @@ export function EmployeeDetailsView() {
                                             )}
                                             <DetailItem label="Line Order" value={employee.line_order} icon="solar:settings-minimalistic-bold" />
                                             <DetailItem label="Shift" value={employee.shift} icon="solar:clock-circle-bold" />
+                                            {(String(employee.employee_type || '').toLowerCase().includes('security') ||
+                                              String(employee.designation || '').toLowerCase().includes('security') ||
+                                              String(employee.department || '').toLowerCase().includes('security')) && (
+                                                <DetailItem label="Weekly Off" value={employee.weekly_off || 'Sunday'} icon="solar:calendar-bold" />
+                                            )}
+                                            {(String(employee.employee_type || '').toLowerCase().includes('security') ||
+                                              String(employee.designation || '').toLowerCase().includes('security') ||
+                                              String(employee.department || '').toLowerCase().includes('security')) && (
+                                                <DetailItem label="Weekly Off" value={employee.weekly_off || 'Sunday'} icon="solar:calendar-bold" />
+                                            )}
                                             <DetailItem label="Bus - Travel Route" value={employee.bus_travel_route} icon="solar:bus-bold" />
                                             {employee.bus_route_point && (
                                                 <DetailItem label="Bus Route Point" value={employee.bus_route_point} icon="solar:map-point-bold" />

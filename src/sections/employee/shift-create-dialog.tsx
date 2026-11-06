@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Switch from '@mui/material/Switch';
+import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -37,6 +38,7 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
     const [endTime, setEndTime] = useState<Dayjs | null>(null);
     const [lunchHours, setLunchHours] = useState<Dayjs | null>(null);
     const [breakHours, setBreakHours] = useState<Dayjs | null>(null);
+    const [weeklyOff, setWeeklyOff] = useState('Sunday');
     const [allowOvertime, setAllowOvertime] = useState(false);
     const [overtimeHours, setOvertimeHours] = useState<number | string>('');
     const [minOvertimeMinutes, setMinOvertimeMinutes] = useState<number | string>(0);
@@ -51,6 +53,7 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
             setEndTime(null);
             setLunchHours(null);
             setBreakHours(null);
+            setWeeklyOff('Sunday');
             setAllowOvertime(false);
             setOvertimeHours('');
             setMinOvertimeMinutes(0);
@@ -74,6 +77,7 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
                 end_time: endTime ? endTime.format('HH:mm:ss') : undefined,
                 lunch_hours: lunchHours ? lunchHours.format('HH:mm:ss') : undefined,
                 break_hours: breakHours ? breakHours.format('HH:mm:ss') : undefined,
+                weekly_off: weeklyOff || 'Sunday',
                 allow_overtime: allowOvertime ? 1 : 0,
                 overtime_hours: allowOvertime && overtimeHours !== '' ? Number(overtimeHours) : 0,
                 min_overtime_minutes: allowOvertime && minOvertimeMinutes !== '' ? Number(minOvertimeMinutes) : 0,
@@ -185,6 +189,23 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
                             />
                         </Box>
                     </LocalizationProvider>
+
+                    <TextField
+                        select
+                        fullWidth
+                        label="Default Weekly Off"
+                        value={weeklyOff}
+                        onChange={(e) => setWeeklyOff(e.target.value)}
+                        disabled={loading}
+                        InputLabelProps={{ shrink: true }}
+                        helperText="Default weekly-off day for employees assigned to this shift"
+                    >
+                        {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => (
+                            <MenuItem key={day} value={day}>
+                                {day}
+                            </MenuItem>
+                        ))}
+                    </TextField>
 
                     <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: (theme) => theme.palette.mode === 'light' ? 'grey.50' : 'background.neutral' }}>
                         <FormControlLabel

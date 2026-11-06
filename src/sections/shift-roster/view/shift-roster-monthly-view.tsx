@@ -1013,6 +1013,29 @@ export function ShiftRosterMonthlyView({
           <Stack direction="row" alignItems="center" spacing={1}>
             <Box
               sx={{
+                width: 30,
+                height: 22,
+                borderRadius: '6px',
+                bgcolor: '#fee2e2',
+                color: '#ef4444',
+                border: '1px solid #fca5a5',
+                fontSize: '0.68rem',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              WO
+            </Box>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+              Weekly Off
+            </Typography>
+          </Stack>
+
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box
+              sx={{
                 width: 26,
                 height: 22,
                 borderRadius: '6px',
@@ -1145,7 +1168,14 @@ export function ShiftRosterMonthlyView({
 
                     {/* Day Shift Cells */}
                     {displayDays.map((d) => {
-                      const isFullHoliday = d.is_holiday && !sortedEmployees.some((e) => e.shifts?.[d.date]?.source === 'ROSTER');
+                      const isFullHoliday = Boolean(
+                        d.is_holiday &&
+                        sortedEmployees.length > 0 &&
+                        !sortedEmployees.some((e) => {
+                          const c = e.shifts?.[d.date];
+                          return c?.source === 'ROSTER' || (c?.shift && !c?.is_weekly_off);
+                        })
+                      );
 
                       if (isFullHoliday) {
                         if (empIndex === 0) {
@@ -1213,9 +1243,85 @@ export function ShiftRosterMonthlyView({
                         return null;
                       }
 
+                      const isFullWeeklyOff = Boolean(
+                        !isFullHoliday &&
+                        sortedEmployees.length > 0 &&
+                        sortedEmployees.every((e) => {
+                          const c = e.shifts?.[d.date];
+                          return c?.is_weekly_off && c?.source !== 'ROSTER';
+                        })
+                      );
+
+                      if (isFullWeeklyOff) {
+                        if (empIndex === 0) {
+                          return (
+                            <TableCell
+                              key={d.date}
+                              rowSpan={sortedEmployees.length}
+                              align="center"
+                              onClick={() => canEdit && handleCellClick(emp.employee, d.date)}
+                              sx={{
+                                px: 0.5,
+                                py: 1,
+                                minWidth: 42,
+                                maxWidth: 42,
+                                verticalAlign: 'middle',
+                                bgcolor: 'rgba(244, 63, 94, 0.08)',
+                                borderRight: (t) => `1px solid ${t.palette.divider}`,
+                                borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                                cursor: canEdit ? 'pointer' : 'default',
+                                transition: 'background-color 0.15s ease',
+                                '&:hover': {
+                                  bgcolor: 'rgba(244, 63, 94, 0.14)',
+                                },
+                              }}
+                            >
+                              <Tooltip
+                                title={
+                                  <span style={{ whiteSpace: 'pre-line' }}>
+                                    {`Weekly Off\n${d.date}`}
+                                  </span>
+                                }
+                                arrow
+                              >
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    height: '100%',
+                                    width: '100%',
+                                    minHeight: 80,
+                                  }}
+                                >
+                                  <Typography
+                                    sx={{
+                                      fontWeight: 800,
+                                      fontSize: '0.72rem',
+                                      letterSpacing: 2.5,
+                                      color: '#9f1239',
+                                      textTransform: 'uppercase',
+                                      writingMode: 'vertical-rl',
+                                      transform: 'rotate(180deg)',
+                                      display: 'inline-block',
+                                      whiteSpace: 'nowrap',
+                                      userSelect: 'none',
+                                    }}
+                                  >
+                                    Weekly Off
+                                  </Typography>
+                                </Box>
+                              </Tooltip>
+                            </TableCell>
+                          );
+                        }
+                        return null;
+                      }
+
                       const cell = emp.shifts?.[d.date];
                       const isToday = d.date === todayStr;
                       const isHoliday = d.is_holiday;
+                      const isWeeklyOff = cell?.is_weekly_off;
 
                       let chipCode = '-';
                       let chipStyle = {
@@ -1227,6 +1333,9 @@ export function ShiftRosterMonthlyView({
                       if (isHoliday && cell?.source !== 'ROSTER') {
                         chipCode = 'H';
                         chipStyle = { bg: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' };
+                      } else if (isWeeklyOff && cell?.source !== 'ROSTER') {
+                        chipCode = 'WO';
+                        chipStyle = { bg: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' };
                       } else if (cell?.shift) {
                         const pal = shiftColorMap[cell.shift] || { bg: '#e0f2fe', color: '#0284c7', border: '#bae6fd' };
                         chipCode = getShiftShortCode(cell.shift_name || cell.shift);
@@ -1235,6 +1344,8 @@ export function ShiftRosterMonthlyView({
 
                       const tooltipText = (isHoliday && cell?.source !== 'ROSTER')
                         ? `Holiday: ${d.holiday_name || 'Public Holiday'}\n${d.date}`
+                        : (isWeeklyOff && cell?.source !== 'ROSTER')
+                        ? `Weekly Off\n${d.date}`
                         : cell?.shift
                         ? `${cell.shift_name || cell.shift}\n${d.date}\nSource: ${cell.source || 'ROSTER'}`
                         : `Unassigned\n${d.date}`;
@@ -1249,13 +1360,19 @@ export function ShiftRosterMonthlyView({
                             py: 0.8,
                             minWidth: 42,
                             maxWidth: 42,
-                            bgcolor: isToday ? 'action.selected' : undefined,
+                            bgcolor: isToday
+                              ? 'action.selected'
+                              : (isWeeklyOff && cell?.source !== 'ROSTER')
+                              ? 'rgba(244, 63, 94, 0.05)'
+                              : undefined,
                             borderRight: (t) => `1px solid ${t.palette.divider}`,
                             borderBottom: (t) => `1px solid ${t.palette.divider}`,
                             cursor: canEdit ? 'pointer' : 'default',
                             transition: 'background-color 0.15s ease',
                             '&:hover': {
-                              bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                              bgcolor: (isWeeklyOff && cell?.source !== 'ROSTER')
+                                ? 'rgba(244, 63, 94, 0.12)'
+                                : alpha(COMMON_COLORS.emerald.main, 0.08),
                             },
                           }}
                         >
