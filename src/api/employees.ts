@@ -143,6 +143,34 @@ export async function getEmployee(name: string) {
     return (await res.json()).message;
 }
 
+export async function getNextEmployeeId(): Promise<string> {
+    try {
+        const res = await frappeRequest('/api/method/company.company.api.get_next_employee_id');
+        if (!res.ok) return '';
+        const json = await res.json();
+        return json.message || '';
+    } catch {
+        return '';
+    }
+}
+
+export async function renameEmployee(oldName: string, newName: string): Promise<string> {
+    const headers = await getAuthHeaders();
+    const res = await frappeRequest('/api/method/frappe.client.rename_doc', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+            doctype: 'Employee',
+            old_name: oldName.trim(),
+            new_name: newName.trim(),
+            merge: 0,
+        }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(handleFrappeError(json, `Failed to rename Employee from ${oldName} to ${newName}`));
+    return json.message || newName.trim();
+}
+
 export async function bulkImportEmployees(rows: any[], updateExisting: boolean = false, bankAccounts: any[] = []) {
     const headers = await getAuthHeaders();
     const res = await frappeRequest("/api/method/company.company.api.bulk_import_employees", {
