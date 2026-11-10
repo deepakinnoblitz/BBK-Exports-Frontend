@@ -213,7 +213,14 @@ export const hrNavData = [
       // { title: 'Timesheet Report', path: '/timesheet-reports' },
       { title: 'Leave Allocation Report', path: '/reports/leave-allocation' },
       { title: 'Employee Overall Report', path: '/employee-overall-report' },
-      { title: 'Salary Slip Report', path: '/reports/salary-slip' },
+      {
+        title: 'Salary Slip Report',
+        path: '/reports/salary-slip',
+        children: [
+          { title: 'Salary Slip Report', path: '/reports/salary-slip' },
+          { title: 'Salary Reconciliation', path: '/reports/salary-reconciliation' },
+        ],
+      },
     ],
   },
   {

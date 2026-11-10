@@ -536,16 +536,16 @@ export function SalarySlipsView() {
                             </Button>
                         )}
 
-                        {/* <Button
+                        <Button
                             variant="outlined"
                             startIcon={<Iconify icon="solar:chart-2-bold-duotone" />}
-                            onClick={() => setOpenRecon(true)}
+                            onClick={() => router.push('/reports/salary-reconciliation')}
                             sx={{ borderRadius: 1.5, height: 40, textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
                         >
-                            Reconciliation
+                            Reconciliation Statement
                         </Button>
 
-                        <LoadingButton
+                        {/* <LoadingButton
                             variant="outlined"
                             loading={exportingBob}
                             startIcon={<Iconify icon={"solar:card-send-bold-duotone" as any} />}
