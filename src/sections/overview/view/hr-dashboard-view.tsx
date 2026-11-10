@@ -1,4 +1,7 @@
-import { useState, useEffect } from 'react';
+import type { Dayjs } from 'dayjs';
+
+import dayjs from 'dayjs';
+import { useState, useEffect, useCallback } from 'react';
 import { FaUsers, FaUserCheck, FaUserXmark } from "react-icons/fa6";
 
 import Box from '@mui/material/Box';
@@ -29,6 +32,7 @@ import { HRAnnouncements } from '../hr-announcements';
 import { HRSummaryWidget } from '../hr-summary-widget';
 import { HRDashboardTable } from '../hr-dashboard-table';
 import { DepartmentWiseChart } from '../department-wise-chart';
+import { DateRangeFilterButton } from '../date-range-filter-button';
 import { WorkersSkillMatrixChart } from '../workers-skill-matrix-chart';
 // import { DashboardEomCard } from '../dashboard-eom-card';
 import { WeeklyPresentAbsentChart } from '../weekly-present-absent-chart';
@@ -40,6 +44,8 @@ export function HRDashboardView() {
     const [loading, setLoading] = useState(true);
     const [chartLoading, setChartLoading] = useState(false);
     const [workforceData, setWorkforceData] = useState<WorkforceAnalyticsData | null>(null);
+    const [selectedStartDate, setSelectedStartDate] = useState<Dayjs>(dayjs());
+    const [selectedEndDate, setSelectedEndDate] = useState<Dayjs>(dayjs());
     const [data, setData] = useState<any>({
         announcements: [],
         total_employees: 0,
@@ -63,56 +69,78 @@ export function HRDashboardView() {
         to: ''
     });
 
+    const loadData = useCallback(async (start?: Dayjs, end?: Dayjs, presetKey?: string) => {
+        const s = start || selectedStartDate;
+        const e = end || selectedEndDate;
+        const startStr = s.format('YYYY-MM-DD');
+        const endStr = e.format('YYYY-MM-DD');
+        const isSingleDay = s.isSame(e, 'day');
+
+        setChartLoading(true);
+        try {
+            const [
+                hrData,
+                stats,
+                holidays,
+                renewals,
+                missingAttendanceChart,
+                weeklyPresentChart,
+                weeklyPresentAbsent,
+                wfAnalytics
+            ] = await Promise.all([
+                fetchHRDashboardData(startStr, endStr),
+                fetchAttendanceStats('today'),
+                fetchMonthHolidays(s.month() + 1, s.year()),
+                fetchUpcomingRenewals(),
+                fetchMissingAttendanceChartData(),
+                fetchWeeklyPresentChartData(),
+                fetchWeeklyPresentAbsentChartData({
+                    filter_type: presetKey || (isSingleDay ? 'Last 7 Days' : 'Custom'),
+                    from_date: startStr,
+                    to_date: endStr,
+                }),
+                fetchWorkforceAnalytics(endStr)
+            ]);
+
+            setWorkforceData(wfAnalytics);
+
+            setData({
+                ...hrData,
+                holidays,
+                renewals,
+                total_active_employees: hrData.total_active_employees ?? hrData.total_employees ?? 0,
+                today_present: hrData.today_present ?? stats?.present ?? 0,
+                today_absent: hrData.today_absent ?? stats?.absent ?? 0,
+                present_today: hrData.today_present ?? stats?.present ?? 0,
+                missing_attendance: stats?.missing || 0,
+                missing_attendance_chart: missingAttendanceChart,
+                weekly_present_chart: weeklyPresentChart,
+                weekly_present_absent: weeklyPresentAbsent
+            });
+        } catch (error) {
+            console.error('Failed to load HR dashboard data:', error);
+        } finally {
+            setLoading(false);
+            setChartLoading(false);
+        }
+    }, [selectedStartDate, selectedEndDate]);
+
     useEffect(() => {
-        const loadData = async () => {
-            setLoading(true);
-            try {
-                const [
-                    hrData,
-                    stats,
-                    holidays,
-                    renewals,
-                    missingAttendanceChart,
-                    weeklyPresentChart,
-                    weeklyPresentAbsent,
-                    wfAnalytics
-                ] = await Promise.all([
-                    fetchHRDashboardData(),
-                    fetchAttendanceStats('today'),
-                    fetchMonthHolidays(),
-                    fetchUpcomingRenewals(),
-                    fetchMissingAttendanceChartData(),
-                    fetchWeeklyPresentChartData(),
-                    fetchWeeklyPresentAbsentChartData(),
-                    fetchWorkforceAnalytics()
-                ]);
-
-                console.log('Holidays data received:', holidays);
-
-                setWorkforceData(wfAnalytics);
-
-                setData({
-                    ...hrData,
-                    holidays,
-                    renewals,
-                    total_active_employees: hrData.total_active_employees ?? hrData.total_employees ?? 0,
-                    today_present: hrData.today_present ?? stats?.present ?? 0,
-                    today_absent: hrData.today_absent ?? stats?.absent ?? 0,
-                    present_today: hrData.today_present ?? stats?.present ?? 0,
-                    missing_attendance: stats?.missing || 0,
-                    missing_attendance_chart: missingAttendanceChart,
-                    weekly_present_chart: weeklyPresentChart,
-                    weekly_present_absent: weeklyPresentAbsent
-                });
-            } catch (error) {
-                console.error('Failed to load HR dashboard data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         loadData();
-    }, []);
+    }, [loadData]);
+
+    const handleDateRangeChange = (start: Dayjs, end: Dayjs, presetKey?: string) => {
+        setSelectedStartDate(start);
+        setSelectedEndDate(end);
+        loadData(start, end, presetKey);
+    };
+
+    const handleResetDateFilter = () => {
+        const today = dayjs();
+        setSelectedStartDate(today);
+        setSelectedEndDate(today);
+        loadData(today, today, 'Today');
+    };
 
     if (loading) {
         return (
@@ -163,9 +191,29 @@ export function HRDashboardView() {
 
     return (
         <DashboardContent maxWidth="xl">
-            <Typography variant="h4" sx={{ mb: { xs: 3, md: 2 }, mt: 3 }}>
-                Hello, {user?.full_name || 'HR User'}, Welcome back !
-            </Typography>
+            <Box
+                sx={{
+                    mb: { xs: 3, md: 2 },
+                    mt: 3,
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'flex-start', sm: 'center' },
+                    justifyContent: 'space-between',
+                    gap: 2,
+                }}
+            >
+                <Typography variant="h4" sx={{ fontWeight: 800 }}>
+                    Hello, {user?.full_name || 'HR User'}, Welcome back !
+                </Typography>
+
+                <DateRangeFilterButton
+                    startDate={selectedStartDate}
+                    endDate={selectedEndDate}
+                    onChange={handleDateRangeChange}
+                    onReset={handleResetDateFilter}
+                    disabled={chartLoading}
+                />
+            </Box>
 
             {/* <DashboardEomCard /> */}
 
@@ -198,20 +246,20 @@ export function HRDashboardView() {
 
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <HRSummaryWidget
-                        title="Today Present"
+                        title={selectedStartDate.isSame(dayjs(), 'day') && selectedEndDate.isSame(dayjs(), 'day') ? "Today Present" : "Present"}
                         total={data.today_present ?? data.present_today ?? 0}
                         color="#10b981"
-                        loading={loading}
+                        loading={loading || chartLoading}
                         icon={<FaUserCheck />}
                     />
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <HRSummaryWidget
-                        title="Today Absent"
+                        title={selectedStartDate.isSame(dayjs(), 'day') && selectedEndDate.isSame(dayjs(), 'day') ? "Today Absent" : "Absent"}
                         total={data.today_absent ?? 0}
                         color="#f97316"
-                        loading={loading}
+                        loading={loading || chartLoading}
                         icon={<FaUserXmark />}
                     />
                 </Grid>
@@ -231,7 +279,7 @@ export function HRDashboardView() {
                 <Grid size={{ xs: 12 }}>
                     <LineWiseChart
                         data={workforceData?.line_wise || []}
-                        loading={loading}
+                        loading={loading || chartLoading}
                     />
                 </Grid>
 
@@ -239,14 +287,14 @@ export function HRDashboardView() {
                 <Grid size={{ xs: 12, md: 6 }}>
                     <DepartmentWiseChart
                         data={workforceData?.department_wise || []}
-                        loading={loading}
+                        loading={loading || chartLoading}
                     />
                 </Grid>
 
                 <Grid size={{ xs: 12, md: 6 }}>
                     <ShiftWiseChart
                         data={workforceData?.shift_wise || []}
-                        loading={loading}
+                        loading={loading || chartLoading}
                     />
                 </Grid>
 
@@ -258,7 +306,7 @@ export function HRDashboardView() {
                         lineMatrix={workforceData?.skill_matrix?.line_matrix || []}
                         departmentMatrix={workforceData?.skill_matrix?.department_matrix || []}
                         summary={workforceData?.skill_matrix?.summary || { highly_skilled: 0, skilled: 0, semi_skilled: 0, unskilled: 0, unassigned: 0 }}
-                        loading={loading}
+                        loading={loading || chartLoading}
                     />
                 </Grid>
 
