@@ -52,13 +52,8 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { getBusTravelRoute, fetchBankAccounts } from 'src/api/masters';
 import { getHRSettings, fetchFrappeList, getHRPermissions, getDocTypeMetadata, fetchSalaryComponents } from 'src/api/hr-management';
 import { getEmployee, createEmployee, updateEmployee, deleteEmployee, renameEmployee, getNextEmployeeId, checkEmployeeIdAvailable } from 'src/api/employees';
-import { createRosterAssignment as createShiftRosterAssignment, deleteOrCancelRosterAssignment as deleteOrCancelShiftRosterAssignment } from 'src/api/shift-roster';
-import {
-  saveEmployeeFaceEmbedding,
-  createLineRosterAssignment,
-  clearEmployeeFaceEmbedding,
-  deleteOrCancelLineRosterAssignment,
-} from 'src/api/line-roster';
+import { saveEmployeeFaceEmbedding, createLineRosterAssignment, clearEmployeeFaceEmbedding, fetchEffectiveLineForEmployee, deleteOrCancelLineRosterAssignment } from 'src/api/line-roster';
+import { fetchEffectiveShiftForEmployee, createRosterAssignment as createShiftRosterAssignment, deleteOrCancelRosterAssignment as deleteOrCancelShiftRosterAssignment } from 'src/api/shift-roster';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -672,8 +667,8 @@ export function EmployeeView() {
             if (fieldname === 'production_type' && finalValue === 'Non Production') {
                 next.line_order = '';
             }
-            if (fieldname === 'employee_type') {
-                const isSec = String(finalValue || '').toLowerCase().includes('security');
+            if (fieldname === 'employee_type' || fieldname === 'department') {
+                const isSec = String(next.employee_type || '').toLowerCase().includes('security') || String(next.department || '').toLowerCase().includes('security');
                 if (!isSec) {
                     next.weekly_off = 'Sunday';
                 }
@@ -1662,6 +1657,23 @@ export function EmployeeView() {
                 if (cleanedRow.office_phone_number) cleanedRow.office_phone_number = cleanPhoneNumber(cleanedRow.office_phone_number);
                 cleanedRow.name = id;
                 cleanedRow.employee_id = id;
+
+                // Resolve currently active effective shift & line if assigned
+                try {
+                    const [effectiveShift, effectiveLine] = await Promise.all([
+                        fetchEffectiveShiftForEmployee(id),
+                        fetchEffectiveLineForEmployee(id),
+                    ]);
+                    if (effectiveShift) {
+                        cleanedRow.shift = effectiveShift;
+                    }
+                    if (effectiveLine) {
+                        cleanedRow.line_order = effectiveLine;
+                    }
+                } catch (resolveErr) {
+                    console.error('Failed to resolve effective shift/line:', resolveErr);
+                }
+
                 setFormData(cleanedRow);
                 setOriginalEmployeeLine(cleanedRow.line_order || '');
                 setOriginalEmployeeShift(cleanedRow.shift || '');
@@ -3629,12 +3641,11 @@ export function EmployeeView() {
                                             {renderField('department', 'Department', 'link', fieldOptions['department'] || [])}
                                             {renderField('designation', 'Designation', 'link', fieldOptions['designation'] || [])}
                                             {renderField('employee_type', 'Employee Type', 'link', fieldOptions['employee_type'] || [])}
-                                            {String(formData.employee_type || '').toLowerCase().includes('security') && renderField('weekly_off', 'Weekly Off', 'select', ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])}
+                                            {(String(formData.employee_type || '').toLowerCase().includes('security') || String(formData.department || '').toLowerCase().includes('security')) && renderField('weekly_off', 'Weekly Off', 'select', ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])}
                                             {renderField('skill', 'Skill', 'link', fieldOptions['skill'] || [])}
                                             {renderField('production_type', 'Production Type', 'select', ['Production', 'Non Production'])}
                                             {renderField('line_order', 'Line Order', 'link', fieldOptions['line_order'] || [])}
                                             {renderField('shift', 'Shift', 'link', fieldOptions['shift'] || [])}
-                                            {renderField('weekly_off', 'Weekly Off', 'select', ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])}
                                             {renderField('bus_travel_route', 'Bus - Travel Route', 'link', fieldOptions['bus_travel_route'] || [])}
                                             {formData.bus_travel_route && renderField('bus_route_point', 'Bus Route Point', 'autocomplete', busRoutePoints)}
                                             {renderField('date_of_joining', 'Joining Date', 'date', [], {}, true)}

@@ -236,7 +236,7 @@ export function AttendanceTableRow({
                 </Typography>
             </TableCell>
             <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-                <Typography variant="body2" noWrap>
+                <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
                     {row.working_hours_display || '-'}
                 </Typography>
             </TableCell>

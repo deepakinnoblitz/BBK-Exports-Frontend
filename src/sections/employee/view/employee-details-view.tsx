@@ -33,6 +33,7 @@ import { fNumber } from 'src/utils/format-number';
 import { COMMON_COLORS } from 'src/theme';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRDoc, getHRSettings } from 'src/api/hr-management';
+import { fetchEffectiveShiftForEmployee } from 'src/api/shift-roster';
 import { fetchEmployeeSkillHistory, fetchEmployeeSalaryHistory } from 'src/api/masters';
 import { clearEmployeeFaceEmbedding, fetchEffectiveLineForEmployee } from 'src/api/line-roster';
 
@@ -106,12 +107,17 @@ export function EmployeeDetailsView() {
             Promise.all([
                 getHRDoc('Employee', employeeId),
                 fetchEffectiveLineForEmployee(employeeId),
+                fetchEffectiveShiftForEmployee(employeeId),
             ])
-                .then(([empData, effectiveLine]) => {
-                    // Override line_order with the currently active assignment if one exists
-                    const resolvedEmployee = effectiveLine
-                        ? { ...empData, line_order: effectiveLine }
-                        : empData;
+                .then(([empData, effectiveLine, effectiveShift]) => {
+                    // Override line_order and shift with the currently active assignments if they exist
+                    let resolvedEmployee = empData;
+                    if (effectiveLine) {
+                        resolvedEmployee = { ...resolvedEmployee, line_order: effectiveLine };
+                    }
+                    if (effectiveShift) {
+                        resolvedEmployee = { ...resolvedEmployee, shift: effectiveShift };
+                    }
                     setEmployee(resolvedEmployee);
 
                     if (empData.bank_account) {
