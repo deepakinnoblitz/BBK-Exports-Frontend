@@ -536,25 +536,6 @@ export function SalarySlipsView() {
                             </Button>
                         )}
 
-                        <Button
-                            variant="outlined"
-                            startIcon={<Iconify icon="solar:chart-2-bold-duotone" />}
-                            onClick={() => router.push('/reports/salary-reconciliation')}
-                            sx={{ borderRadius: 1.5, height: 40, textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
-                        >
-                            Reconciliation Statement
-                        </Button>
-
-                        {/* <LoadingButton
-                            variant="outlined"
-                            loading={exportingBob}
-                            startIcon={<Iconify icon={"solar:card-send-bold-duotone" as any} />}
-                            onClick={handleExportBob}
-                            sx={{ borderRadius: 1.5, height: 40, textTransform: 'none', fontWeight: 600, color: '#1d4ed8', borderColor: '#bfdbfe', bgcolor: '#eff6ff', '&:hover': { bgcolor: '#dbeafe', borderColor: '#93c5fd' } }}
-                        >
-                            Bank Export (BOB)
-                        </LoadingButton> */}
-
                         {canCreateSalarySlip && (
                             <>
                                 <Button
