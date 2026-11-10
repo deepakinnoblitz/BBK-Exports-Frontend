@@ -206,13 +206,13 @@ export function HRDashboardView() {
                     Hello, {user?.full_name || 'HR User'}, Welcome back !
                 </Typography>
 
-                <DateRangeFilterButton
+                {/* <DateRangeFilterButton
                     startDate={selectedStartDate}
                     endDate={selectedEndDate}
                     onChange={handleDateRangeChange}
                     onReset={handleResetDateFilter}
                     disabled={chartLoading}
-                />
+                /> */}
             </Box>
 
             {/* <DashboardEomCard /> */}
