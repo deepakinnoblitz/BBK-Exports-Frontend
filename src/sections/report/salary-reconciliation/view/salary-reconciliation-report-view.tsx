@@ -1089,7 +1089,9 @@ export function SalaryReconciliationReportView() {
                             value: `${(data?.total_revision?.total || 0) >= 0 ? '+' : ''}${fNumber(data?.total_revision?.total || 0, { locale: hrSettings.default_locale })}`,
                             prefix: hrSettings.currency_symbol,
                             indicator: 'blue',
-                            subtitle: `Inc: ${data?.total_increment?.count || 0} | Dec: ${data?.total_decrement?.count || 0}`,
+                            subtitle: data?.total_lop_variance?.count
+                                ? `Inc: ${data?.total_increment?.count || 0} | Dec: ${data?.total_decrement?.count || 0} (${data?.total_lop_variance?.count} LOP)`
+                                : `Inc: ${data?.total_increment?.count || 0} | Dec: ${data?.total_decrement?.count || 0}`,
                         }}
                     />
                     <SummaryCard
@@ -1276,6 +1278,7 @@ export function SalaryReconciliationReportView() {
                                             {/* Revision Rows with Increment/Decrement Status */}
                                             {data.revisions && data.revisions.length > 0 ? (
                                                 data.revisions.map((row: any) => {
+                                                    const isLopVariance = row.is_lop_variance || row.revision_type === 'LOP Variance';
                                                     const isIncrement = row.revision_type === 'Increment';
                                                     return (
                                                         <TableRow key={row.employee} hover sx={{ '& td': { py: 0.8 } }}>
@@ -1291,13 +1294,23 @@ export function SalaryReconciliationReportView() {
                                                                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                                                             {row.employee_name}
                                                                         </Typography>
-                                                                        <Label
-                                                                            variant="soft"
-                                                                            color={isIncrement ? 'success' : 'error'}
-                                                                            sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }}
-                                                                        >
-                                                                            {isIncrement ? '▲ INCREMENT' : '▼ DECREMENT'}
-                                                                        </Label>
+                                                                        {isLopVariance ? (
+                                                                            <Label
+                                                                                variant="soft"
+                                                                                color="warning"
+                                                                                sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }}
+                                                                            >
+                                                                                LOP VARIANCE
+                                                                            </Label>
+                                                                        ) : (
+                                                                            <Label
+                                                                                variant="soft"
+                                                                                color={isIncrement ? 'success' : 'error'}
+                                                                                sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }}
+                                                                            >
+                                                                                {isIncrement ? '▲ INCREMENT' : '▼ DECREMENT'}
+                                                                            </Label>
+                                                                        )}
                                                                         {row.reason && (
                                                                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                                                                 ({row.reason})
@@ -1326,11 +1339,13 @@ export function SalaryReconciliationReportView() {
                                                                 align="right"
                                                                 sx={{
                                                                     fontWeight: 700,
-                                                                    color: isIncrement ? 'success.main' : 'error.main',
+                                                                    color: isLopVariance
+                                                                        ? (row.diff_amount > 0 ? 'success.main' : 'warning.dark')
+                                                                        : (isIncrement ? 'success.main' : 'error.main'),
                                                                     borderRight: (th) => `1px solid ${th.palette.divider}`,
                                                                 }}
                                                             >
-                                                                {isIncrement ? '+' : ''}
+                                                                {row.diff_amount > 0 ? '+' : ''}
                                                                 {formatCurrency(row.diff_amount)}
                                                             </TableCell>
                                                             <TableCell align="right">-</TableCell>
