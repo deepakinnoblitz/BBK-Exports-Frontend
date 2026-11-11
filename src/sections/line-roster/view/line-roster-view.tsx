@@ -111,9 +111,6 @@ export function LineRosterView() {
             <Typography variant="h4" sx={{ fontWeight: 800 }}>
               Employee Line Assignment
             </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-              Manage date-wise line assignments, rotations, and monthly workforce line roster boards.
-            </Typography>
           </div>
 
           <Stack direction="row" spacing={1.5} alignItems="center">
