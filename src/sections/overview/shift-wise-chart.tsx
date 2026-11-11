@@ -14,6 +14,8 @@ import { fNumber } from 'src/utils/format-number';
 import { Iconify } from 'src/components/iconify';
 import { Chart, useChart } from 'src/components/chart';
 
+import { ChartEmptyState } from './chart-empty-state';
+
 // ----------------------------------------------------------------------
 
 type Props = CardProps & {
@@ -189,19 +191,12 @@ export function ShiftWiseChart({
                         </Stack>
                     </>
                 ) : (
-                    <Box
-                        sx={{
-                            height: 280,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'text.secondary',
-                        }}
-                    >
-                        <Iconify icon="solar:ghost-bold" width={48} sx={{ mb: 1, opacity: 0.5 }} />
-                        <Typography variant="body2">No shift data available</Typography>
-                    </Box>
+                    <ChartEmptyState
+                        height={280}
+                        icon="solar:clock-circle-bold-duotone"
+                        title="No shift data available"
+                        description="Employees assigned to active shifts will appear here"
+                    />
                 )}
             </Box>
         </Card>

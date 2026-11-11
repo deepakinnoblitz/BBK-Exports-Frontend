@@ -16,8 +16,9 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { fNumber } from 'src/utils/format-number';
 
-import { Iconify } from 'src/components/iconify';
 import { Chart, useChart } from 'src/components/chart';
+
+import { ChartEmptyState } from './chart-empty-state';
 
 // ----------------------------------------------------------------------
 
@@ -204,19 +205,12 @@ export function LineWiseChart({ title = 'Line-Wise Workforce & Attendance', subh
                         sx={{ height: 320 }}
                     />
                 ) : (
-                    <Box
-                        sx={{
-                            height: 320,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'text.secondary',
-                        }}
-                    >
-                        <Iconify icon="solar:ghost-bold" width={48} sx={{ mb: 1, opacity: 0.5 }} />
-                        <Typography variant="body2">No line data available</Typography>
-                    </Box>
+                    <ChartEmptyState
+                        height={320}
+                        icon="solar:users-group-rounded-bold-duotone"
+                        title="No line data available"
+                        description="Assign employees to lines to view headcount and attendance"
+                    />
                 )}
             </Box>
 

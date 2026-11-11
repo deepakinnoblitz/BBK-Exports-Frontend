@@ -18,8 +18,9 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { fNumber } from 'src/utils/format-number';
 
 import { Label } from 'src/components/label';
-import { Iconify } from 'src/components/iconify';
 import { Chart, useChart } from 'src/components/chart';
+
+import { ChartEmptyState } from './chart-empty-state';
 
 // ----------------------------------------------------------------------
 
@@ -337,19 +338,12 @@ export function WorkersSkillMatrixChart({
                         sx={{ height: 340 }}
                     />
                 ) : (
-                    <Box
-                        sx={{
-                            height: 340,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'text.secondary',
-                        }}
-                    >
-                        <Iconify icon="solar:ghost-bold" width={48} sx={{ mb: 1, opacity: 0.5 }} />
-                        <Typography variant="body2">No skill matrix records available</Typography>
-                    </Box>
+                    <ChartEmptyState
+                        height={340}
+                        icon="solar:target-bold-duotone"
+                        title="No skill matrix records available"
+                        description="Skill level distribution will appear once worker profiles are updated"
+                    />
                 )}
             </Box>
 

@@ -1,5 +1,5 @@
-import type { 
-    EmployeeType 
+import type {
+    EmployeeType
 } from 'src/api/masters';
 
 import { useState, useEffect } from 'react';
@@ -17,11 +17,11 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { 
-    getEmployeeType, 
-    createEmployeeType, 
-    updateEmployeeType, 
-    renameEmployeeType 
+import {
+    getEmployeeType,
+    createEmployeeType,
+    updateEmployeeType,
+    renameEmployeeType
 } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
@@ -49,9 +49,6 @@ export const EMPLOYEE_TYPE_OPTIONS = [
 export const CATEGORY_OPTIONS = [
     'CTC',
     'Non CTC',
-    'Skilled',
-    'Semi Skilled',
-    'Unskilled',
     'General',
 ];
 
@@ -75,7 +72,7 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
                     try {
                         setLoading(true);
                         const data = await getEmployeeType(id);
-                        
+
                         // Parse base type and category if in "Type - Category" format
                         let rawType = data.employee_type || data.name || '';
                         let rawCategory = data.category_type || 'General';
