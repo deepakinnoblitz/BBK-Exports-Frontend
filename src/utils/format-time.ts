@@ -244,3 +244,38 @@ export function formatDurationDescriptive(decimal: number): string {
   const hLabel = hours === 1 ? 'hr' : 'hrs';
   return `${hours} ${hLabel} ${minutes} Mins`;
 }
+
+/**
+ * Parse a Frappe Time/duration string ("01:00:00", "1:30") into whole minutes.
+ */
+export function parseShiftDurationMinutes(timeStr?: string | null): number {
+  if (!timeStr || timeStr === '00:00' || timeStr === '00:00:00') return 0;
+  const parts = String(timeStr).trim().split(':');
+  const h = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
+  return h * 60 + m;
+}
+
+/**
+ * Format total whole minutes into "H:MM" (e.g. 60 -> "1:00").
+ */
+export function formatMinutesAsHHMM(totalMinutes: number): string {
+  const safeMins = Math.max(0, Math.floor(totalMinutes || 0));
+  const h = Math.floor(safeMins / 60);
+  const m = safeMins % 60;
+  return `${h}:${m.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Compute elapsed whole minutes between inTime and outTime (supporting overnight shifts).
+ */
+export function computeAttendanceElapsedMinutes(inTime?: string | null, outTime?: string | null): number {
+  if (!inTime || !outTime || inTime === '00:00:00' || outTime === '00:00:00') return 0;
+  const start = dayjs(`2000-01-01 ${inTime}`);
+  let end = dayjs(`2000-01-01 ${outTime}`);
+  if (!start.isValid() || !end.isValid()) return 0;
+  if (end.isBefore(start)) {
+    end = end.add(1, 'day');
+  }
+  return Math.max(0, end.diff(start, 'minute'));
+}

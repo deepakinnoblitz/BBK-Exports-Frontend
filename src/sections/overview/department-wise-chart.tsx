@@ -25,6 +25,8 @@ import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { Chart, useChart } from 'src/components/chart';
 
+import { ChartEmptyState } from './chart-empty-state';
+
 // ----------------------------------------------------------------------
 
 // 24 Curated vibrant, distinct, accessible colors for multiple departments
@@ -566,19 +568,12 @@ export function DepartmentWiseChart({
                         </>
                     )
                 ) : (
-                    <Box
-                        sx={{
-                            height: 280,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'text.secondary',
-                        }}
-                    >
-                        <Iconify icon="solar:ghost-bold" width={48} sx={{ mb: 1, opacity: 0.5 }} />
-                        <Typography variant="body2">No department data available</Typography>
-                    </Box>
+                    <ChartEmptyState
+                        height={280}
+                        icon="solar:buildings-2-bold-duotone"
+                        title="No department data available"
+                        description="Workforce allocation across departments will appear here"
+                    />
                 )}
             </Box>
         </Card>

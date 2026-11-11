@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useRef, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -8,6 +8,7 @@ import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import { alpha } from '@mui/material/styles';
 import Snackbar from '@mui/material/Snackbar';
 import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
@@ -31,9 +32,15 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { useAttendance } from 'src/hooks/useAttendance';
 
 import { filterEmployeeOptions } from 'src/utils/filter-employees';
+import {
+    formatMinutesAsHHMM,
+    parseShiftDurationMinutes,
+    computeAttendanceElapsedMinutes,
+} from 'src/utils/format-time';
 
 import { getDoctypeList } from 'src/api/leads';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { getApplicableShift } from 'src/api/shift-roster';
 import { getHRDoc, getHRPermissions } from 'src/api/hr-management';
 import { fetchAttendance, createAttendance, updateAttendance, deleteAttendance } from 'src/api/attendance';
 
@@ -87,6 +94,9 @@ export function AttendanceView() {
     const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
     const [shiftList, setShiftList] = useState<any[]>([]);
     const [existingAttendanceDates, setExistingAttendanceDates] = useState<string[]>([]);
+    const [resolvedShiftMeta, setResolvedShiftMeta] = useState<Record<string, any> | null>(null);
+    const [resolvingShift, setResolvingShift] = useState(false);
+    const shiftResolveSeqRef = useRef(0);
 
     // Filter State
     const [filterStatus, setFilterStatus] = useState('all');
@@ -167,6 +177,9 @@ export function AttendanceView() {
     }, []);
 
     const handleOpenCreate = () => {
+        shiftResolveSeqRef.current += 1;
+        setResolvingShift(false);
+        setResolvedShiftMeta(null);
         setFormData({
             status: 'Present',
             attendance_date: dayjs().format('YYYY-MM-DD'),
@@ -181,6 +194,9 @@ export function AttendanceView() {
     };
 
     const handleCloseCreate = () => {
+        shiftResolveSeqRef.current += 1;
+        setResolvingShift(false);
+        setResolvedShiftMeta(null);
         setOpenCreate(false);
         setCurrentAttendanceId(null);
         setTouched(false);
@@ -195,18 +211,30 @@ export function AttendanceView() {
         setOpenImport(false);
     };
 
-    const parseDurationMinutes = (timeStr?: string) => {
-        if (!timeStr || timeStr === '00:00' || timeStr === '00:00:00') return 0;
-        const parts = String(timeStr).split(':');
-        const h = parseInt(parts[0], 10) || 0;
-        const m = parseInt(parts[1], 10) || 0;
-        return h * 60 + m;
-    };
-
-    const getShiftDoc = (employeeId?: string, shiftId?: string) => {
-        if (shiftId) {
-            const found = shiftList.find((s) => s.name === shiftId || s.shift_name === shiftId);
+    const getShiftDoc = (employeeId?: string, shiftId?: string, attendanceDate?: string) => {
+        const cleanShiftId = shiftId?.trim();
+        if (cleanShiftId) {
+            const found = shiftList.find((s) => s.name === cleanShiftId || s.shift_name === cleanShiftId);
             if (found) return found;
+            if (
+                resolvedShiftMeta?.details &&
+                (resolvedShiftMeta.shift === cleanShiftId || resolvedShiftMeta.shiftName === cleanShiftId)
+            ) {
+                return {
+                    name: resolvedShiftMeta.shift,
+                    shift_name: resolvedShiftMeta.shiftName,
+                    ...resolvedShiftMeta.details,
+                };
+            }
+        }
+        // When resolution ran for the active employee & date and returned no shift, do not fall back to stale cache
+        if (
+            resolvedShiftMeta?.resolved &&
+            resolvedShiftMeta.employee === employeeId &&
+            resolvedShiftMeta.attendanceDate === attendanceDate &&
+            !resolvedShiftMeta.shift
+        ) {
+            return null;
         }
         if (employeeId) {
             const emp = employeeOptions.find((e) => e.name === employeeId);
@@ -257,7 +285,7 @@ export function AttendanceView() {
 
         // Deduct lunch & break hours from elapsed time
         const totalBreakMinutes = shiftObj
-            ? parseDurationMinutes(shiftObj.lunch_hours) + parseDurationMinutes(shiftObj.break_hours)
+            ? parseShiftDurationMinutes(shiftObj.lunch_hours) + parseShiftDurationMinutes(shiftObj.break_hours)
             : 0;
 
         const netWorkingMinutes =
@@ -320,7 +348,86 @@ export function AttendanceView() {
         };
     };
 
+    const applyWorkingHours = (targetForm: Record<string, any>, shiftDoc: any) => {
+        if (!targetForm.in_time || !targetForm.out_time) {
+            return targetForm;
+        }
+        const { workingHoursDisplay, workingHoursDecimal, officialOvertime, unofficialOvertime } =
+            calculateHoursAndOvertime(targetForm.in_time, targetForm.out_time, shiftDoc);
+        return {
+            ...targetForm,
+            working_hours_display: workingHoursDisplay,
+            working_hours_decimal: workingHoursDecimal,
+            official_overtime: officialOvertime,
+            unofficial_overtime: unofficialOvertime,
+        };
+    };
+
+    const resolveShiftForForm = async (employeeId: string, attendanceDate: string) => {
+        const reqSeq = ++shiftResolveSeqRef.current;
+        if (!employeeId || !attendanceDate) {
+            setResolvingShift(false);
+            setResolvedShiftMeta(null);
+            return;
+        }
+
+        setResolvingShift(true);
+        try {
+            const resolved = await getApplicableShift(employeeId, attendanceDate);
+            if (shiftResolveSeqRef.current !== reqSeq) return;
+
+            const resolvedShiftId = resolved?.shift || '';
+            const meta = {
+                employee: employeeId,
+                attendanceDate,
+                resolved: true,
+                shift: resolvedShiftId,
+                shiftName: resolved?.shift_name || resolvedShiftId,
+                source: resolved?.source,
+                details: resolved?.details || null,
+            };
+            setResolvedShiftMeta(meta);
+
+            const shiftObj =
+                (resolvedShiftId &&
+                    shiftList.find((s) => s.name === resolvedShiftId || s.shift_name === resolvedShiftId)) ||
+                (resolved?.details
+                    ? { name: resolvedShiftId, shift_name: resolved.shift_name, ...resolved.details }
+                    : null);
+
+            setFormData((prevForm: Record<string, any>) => {
+                if (prevForm.employee !== employeeId || prevForm.attendance_date !== attendanceDate) {
+                    return prevForm;
+                }
+                const updatedForm = { ...prevForm, shift: resolvedShiftId };
+                return applyWorkingHours(updatedForm, shiftObj);
+            });
+        } catch (err) {
+            if (shiftResolveSeqRef.current !== reqSeq) return;
+            console.error('Failed to resolve applicable shift:', err);
+            const fallbackEmp = employeeOptions.find((e) => e.name === employeeId);
+            const fallbackShift = fallbackEmp?.shift || '';
+            setResolvedShiftMeta(null);
+            const fallbackShiftDoc = fallbackShift
+                ? shiftList.find((s) => s.name === fallbackShift || s.shift_name === fallbackShift) || null
+                : null;
+            setFormData((prevForm: Record<string, any>) => {
+                if (prevForm.employee !== employeeId || prevForm.attendance_date !== attendanceDate) {
+                    return prevForm;
+                }
+                return applyWorkingHours({ ...prevForm, shift: fallbackShift }, fallbackShiftDoc);
+            });
+        } finally {
+            if (shiftResolveSeqRef.current === reqSeq) {
+                setResolvingShift(false);
+            }
+        }
+    };
+
     const handleInputChange = (fieldname: string, value: any) => {
+        const nextEmployee = fieldname === 'employee' ? value : formData.employee;
+        const nextDate = fieldname === 'attendance_date' ? value : formData.attendance_date;
+
         setFormData((prev: Record<string, any>) => {
             const next = { ...prev, [fieldname]: value };
 
@@ -330,25 +437,26 @@ export function AttendanceView() {
 
             if (fieldname === 'employee') {
                 const emp = employeeOptions.find((e) => e.name === value);
-                if (emp?.shift) {
-                    next.shift = emp.shift;
-                }
+                // Clear stale shift synchronously if newly selected employee has no default shift
+                next.shift = emp?.shift || '';
             }
 
-            // Calculate working hours
-            if (fieldname === 'in_time' || fieldname === 'out_time' || fieldname === 'employee') {
-                if (next.in_time && next.out_time) {
-                    const shiftDoc = getShiftDoc(next.employee, next.shift);
-                    const { workingHoursDisplay, workingHoursDecimal, officialOvertime, unofficialOvertime } =
-                        calculateHoursAndOvertime(next.in_time, next.out_time, shiftDoc);
-                    next.working_hours_display = workingHoursDisplay;
-                    next.working_hours_decimal = workingHoursDecimal;
-                    next.official_overtime = officialOvertime;
-                    next.unofficial_overtime = unofficialOvertime;
-                }
+            // Recalculate working hours immediately on employee, date, or time change
+            if (
+                fieldname === 'in_time' ||
+                fieldname === 'out_time' ||
+                fieldname === 'employee' ||
+                fieldname === 'attendance_date'
+            ) {
+                const shiftDoc = getShiftDoc(next.employee, next.shift, next.attendance_date);
+                return applyWorkingHours(next, shiftDoc);
             }
             return next;
         });
+
+        if (fieldname === 'employee' || fieldname === 'attendance_date') {
+            resolveShiftForForm(nextEmployee, nextDate);
+        }
 
         // When employee is selected, fetch their existing attendance dates to disable in DatePicker
         if (fieldname === 'employee') {
@@ -366,9 +474,13 @@ export function AttendanceView() {
                     setExistingAttendanceDates(dates);
                     // If current attendance_date already exists for this employee, clear it in Add mode
                     if (!currentAttendanceId && formData.attendance_date && dates.includes(formData.attendance_date)) {
+                        shiftResolveSeqRef.current += 1;
+                        setResolvingShift(false);
+                        setResolvedShiftMeta(null);
                         setFormData((prev: any) => ({
                             ...prev,
                             attendance_date: '',
+                            shift: '',
                         }));
                     }
                 }).catch(() => {
@@ -413,12 +525,20 @@ export function AttendanceView() {
             if (!formData.out_time) return 'Out Time is required for ' + formData.status;
         }
 
-        // Logical time check
-        if (formData.in_time && formData.out_time) {
+        // Logical time check (allow overnight clock times where out_time < in_time)
+        if (
+            formData.in_time &&
+            formData.out_time &&
+            formData.in_time !== '00:00:00' &&
+            formData.out_time !== '00:00:00'
+        ) {
             const start = dayjs(`2000-01-01 ${formData.in_time}`);
             const end = dayjs(`2000-01-01 ${formData.out_time}`);
-            if (!end.isAfter(start)) {
-                return 'Out Time must be after In Time';
+            if (!start.isValid() || !end.isValid()) {
+                return 'Invalid In Time or Out Time';
+            }
+            if (end.isSame(start)) {
+                return 'Out Time must differ from In Time';
             }
         }
 
@@ -502,35 +622,29 @@ export function AttendanceView() {
         const firstIn = inPunches.length > 0 ? inPunches[0] : validPunches[0];
         const lastOut = outPunches.length > 0 ? outPunches[outPunches.length - 1] : (validPunches.length > 1 ? validPunches[validPunches.length - 1] : null);
 
-        let inTimeStr = formData.in_time;
-        let outTimeStr = formData.out_time;
-
-        if (firstIn) {
-            inTimeStr = extractTime(firstIn.punch_time) || inTimeStr;
-        }
-        if (lastOut) {
-            outTimeStr = extractTime(lastOut.punch_time) || outTimeStr;
-        }
-
-        const shiftDoc = getShiftDoc(formData.employee, formData.shift);
-        const { workingHoursDisplay, workingHoursDecimal, officialOvertime, unofficialOvertime } =
-            calculateHoursAndOvertime(inTimeStr, outTimeStr, shiftDoc);
-
-        setFormData((prev: any) => ({
-            ...prev,
-            attendance_punches: updatedPunches,
-            manual: 1,
-            in_time: inTimeStr,
-            out_time: outTimeStr,
-            working_hours_display: workingHoursDisplay,
-            working_hours_decimal: workingHoursDecimal,
-            official_overtime: officialOvertime,
-            unofficial_overtime: unofficialOvertime,
-            ...(validPunches.length > 0 && prev.status === 'Absent' ? { status: 'Present' } : {}),
-        }));
+        setFormData((prev: any) => {
+            const inTimeStr = (firstIn && extractTime(firstIn.punch_time)) || prev.in_time;
+            const outTimeStr = (lastOut && extractTime(lastOut.punch_time)) || prev.out_time;
+            const activeShift = getShiftDoc(prev.employee, prev.shift, prev.attendance_date);
+            return applyWorkingHours(
+                {
+                    ...prev,
+                    attendance_punches: updatedPunches,
+                    manual: 1,
+                    in_time: inTimeStr,
+                    out_time: outTimeStr,
+                    ...(validPunches.length > 0 && prev.status === 'Absent' ? { status: 'Present' } : {}),
+                },
+                activeShift
+            );
+        });
     };
 
     const handleEditRow = (id: string) => {
+        shiftResolveSeqRef.current += 1;
+        const editSeq = shiftResolveSeqRef.current;
+        setResolvedShiftMeta(null);
+        setResolvingShift(false);
         setCurrentAttendanceId(id);
         const fullRow = data.find((item: any) => item.name === id);
         if (fullRow) {
@@ -541,25 +655,72 @@ export function AttendanceView() {
         setOpenCreate(true);
 
         getHRDoc('Attendance', id)
-            .then((doc) => {
-                if (doc) {
-                    const shiftDoc = getShiftDoc(doc.employee, doc.shift);
-                    let computed = null;
-                    if (doc.in_time && doc.out_time) {
-                        computed = calculateHoursAndOvertime(doc.in_time, doc.out_time, shiftDoc);
+            .then(async (doc) => {
+                if (!doc) return;
+
+                let effectiveShift = (doc.shift || '').trim();
+                let shiftDoc = effectiveShift
+                    ? getShiftDoc(doc.employee, effectiveShift, doc.attendance_date)
+                    : null;
+
+                // Automatically resolve Shift when an existing Attendance row was saved with empty shift
+                if (!effectiveShift && doc.employee && doc.attendance_date) {
+                    try {
+                        const resolved = await getApplicableShift(doc.employee, doc.attendance_date);
+                        if (shiftResolveSeqRef.current !== editSeq) return;
+
+                        effectiveShift = resolved?.shift || '';
+                        setResolvedShiftMeta({
+                            employee: doc.employee,
+                            attendanceDate: doc.attendance_date,
+                            resolved: true,
+                            shift: effectiveShift,
+                            shiftName: resolved?.shift_name || effectiveShift,
+                            source: resolved?.source,
+                            details: resolved?.details || null,
+                        });
+                        if (effectiveShift) {
+                            shiftDoc =
+                                shiftList.find(
+                                    (s) => s.name === effectiveShift || s.shift_name === effectiveShift
+                                ) ||
+                                (resolved?.details
+                                    ? {
+                                          name: effectiveShift,
+                                          shift_name: resolved.shift_name,
+                                          ...resolved.details,
+                                      }
+                                    : null);
+                        }
+                    } catch (err) {
+                        console.error('Failed to resolve shift during edit:', err);
+                        shiftDoc = getShiftDoc(doc.employee, undefined, doc.attendance_date);
+                        effectiveShift = shiftDoc?.name || '';
                     }
-                    setFormData((prev: any) => ({
-                        ...prev,
-                        ...doc,
-                        attendance_punches: doc.attendance_punches || [],
-                        ...(computed ? {
-                            working_hours_display: computed.workingHoursDisplay,
-                            working_hours_decimal: computed.workingHoursDecimal,
-                            official_overtime: computed.officialOvertime,
-                            unofficial_overtime: computed.unofficialOvertime,
-                        } : {})
-                    }));
+                } else if (effectiveShift) {
+                    setResolvedShiftMeta({
+                        employee: doc.employee,
+                        attendanceDate: doc.attendance_date,
+                        resolved: true,
+                        shift: effectiveShift,
+                        shiftName: shiftDoc?.shift_name || effectiveShift,
+                        details: shiftDoc || null,
+                    });
                 }
+
+                const nextForm = applyWorkingHours(
+                    {
+                        ...doc,
+                        shift: effectiveShift,
+                        attendance_punches: doc.attendance_punches || [],
+                    },
+                    shiftDoc
+                );
+
+                setFormData((prev: any) => ({
+                    ...prev,
+                    ...nextForm,
+                }));
             })
             .catch(console.error)
             .finally(() => {
@@ -800,6 +961,31 @@ export function AttendanceView() {
             setOrder('desc');
         }
     };
+
+    const activeShiftDoc = getShiftDoc(formData.employee, formData.shift, formData.attendance_date);
+    const activeShiftLabel = activeShiftDoc?.shift_name || formData.shift || '';
+    const totalShiftBreakMinutes = activeShiftDoc
+        ? parseShiftDurationMinutes(activeShiftDoc.lunch_hours) +
+          parseShiftDurationMinutes(activeShiftDoc.break_hours)
+        : 0;
+    const elapsedAttendanceMinutes = computeAttendanceElapsedMinutes(formData.in_time, formData.out_time);
+    const hasElapsedTimes = elapsedAttendanceMinutes > 0;
+    const appliedBreakMinutes =
+        hasElapsedTimes && elapsedAttendanceMinutes > totalShiftBreakMinutes
+            ? totalShiftBreakMinutes
+            : 0;
+    const netCalculatedMinutes = hasElapsedTimes
+        ? elapsedAttendanceMinutes - appliedBreakMinutes
+        : 0;
+
+    let shiftBreakdownText = 'No Shift assigned for this employee/date — Lunch/Break hours will not be deducted.';
+    if (resolvingShift) {
+        shiftBreakdownText = 'Resolving applicable shift...';
+    } else if (activeShiftLabel && hasElapsedTimes) {
+        shiftBreakdownText = `Shift: ${activeShiftLabel} • Elapsed: ${formatMinutesAsHHMM(elapsedAttendanceMinutes)} • Lunch/Break: -${formatMinutesAsHHMM(appliedBreakMinutes)} • Net Working: ${formatMinutesAsHHMM(netCalculatedMinutes)}`;
+    } else if (activeShiftLabel) {
+        shiftBreakdownText = `Shift: ${activeShiftLabel} • Lunch/Break deduction: ${formatMinutesAsHHMM(totalShiftBreakMinutes)}`;
+    }
 
     return (
         <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
@@ -1106,6 +1292,30 @@ export function AttendanceView() {
                                 {isSystemManager && renderField('unofficial_overtime', 'Extra Overtime', 'text', [], { InputProps: { readOnly: true } })}
                             </Box>
 
+                            {formData.employee && (
+                                <Box
+                                    sx={{
+                                        px: 1.75,
+                                        py: 1,
+                                        borderRadius: 1,
+                                        bgcolor: (theme) =>
+                                            activeShiftLabel || resolvingShift
+                                                ? alpha(theme.palette.info.main, 0.08)
+                                                : alpha(theme.palette.warning.main, 0.08),
+                                        border: (theme) =>
+                                            `1px solid ${
+                                                activeShiftLabel || resolvingShift
+                                                    ? alpha(theme.palette.info.main, 0.24)
+                                                    : alpha(theme.palette.warning.main, 0.24)
+                                            }`,
+                                    }}
+                                >
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontWeight: 500 }}>
+                                        {shiftBreakdownText}
+                                    </Typography>
+                                </Box>
+                            )}
+
                             {renderField('manual', 'Manual', 'checkbox')}
 
                             <Box sx={{ mt: 1 }}>
@@ -1127,7 +1337,7 @@ export function AttendanceView() {
                 </DialogContent>
 
                 <DialogActions sx={{ p: 2 }}>
-                    <Button variant="contained" onClick={handleCreate} disabled={creating} sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}>
+                    <Button variant="contained" onClick={handleCreate} disabled={creating || resolvingShift} sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}>
                         {creating ? 'Saving...' : (currentAttendanceId ? 'Update Record' : 'Save Record')}
                     </Button>
                 </DialogActions>
