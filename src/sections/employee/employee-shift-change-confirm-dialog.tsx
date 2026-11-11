@@ -163,7 +163,7 @@ export function EmployeeShiftChangeConfirmDialog({
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 3, pt: 2.5 }}>
+        <DialogContent sx={{ p: 3, mt: 2.5 }}>
           <Stack spacing={2.5}>
             {/* Employee Summary Card */}
             <Card

@@ -465,6 +465,87 @@ export function ShiftRosterMonthlyView({
     return days;
   }, [days, sortBy]);
 
+  // Pre-calculate contiguous merge spans for Weekly Off and Holiday columns
+  const columnSpans = useMemo(() => {
+    const result: Record<string, ({ type: 'WO' | 'HOLIDAY'; rowSpan: number } | null)[]> = {};
+    if (!sortedEmployees.length || !displayDays.length) return result;
+
+    displayDays.forEach((d) => {
+      const list: ({ type: 'WO' | 'HOLIDAY'; rowSpan: number } | null)[] = new Array(sortedEmployees.length).fill(null);
+      let i = 0;
+      while (i < sortedEmployees.length) {
+        const cell_i = sortedEmployees[i].shifts?.[d.date];
+        const is_h_i = Boolean(
+          d.is_holiday &&
+          cell_i?.source !== 'ROSTER' &&
+          (!cell_i?.shift || cell_i?.is_weekly_off)
+        );
+        const is_wo_i = Boolean(
+          !is_h_i &&
+          cell_i?.is_weekly_off &&
+          cell_i?.source !== 'ROSTER'
+        );
+
+        if (is_h_i) {
+          let count = 1;
+          while (i + count < sortedEmployees.length) {
+            const next_cell = sortedEmployees[i + count].shifts?.[d.date];
+            const next_is_h = Boolean(
+              d.is_holiday &&
+              next_cell?.source !== 'ROSTER' &&
+              (!next_cell?.shift || next_cell?.is_weekly_off)
+            );
+            if (next_is_h) {
+              count++;
+            } else {
+              break;
+            }
+          }
+          if (count >= 2 || sortedEmployees.length === 1) {
+            list[i] = { type: 'HOLIDAY', rowSpan: count };
+            for (let j = 1; j < count; j++) {
+              list[i + j] = { type: 'HOLIDAY', rowSpan: 0 };
+            }
+          }
+          i += count;
+        } else if (is_wo_i) {
+          let count = 1;
+          while (i + count < sortedEmployees.length) {
+            const next_cell = sortedEmployees[i + count].shifts?.[d.date];
+            const next_is_h = Boolean(
+              d.is_holiday &&
+              next_cell?.source !== 'ROSTER' &&
+              (!next_cell?.shift || next_cell?.is_weekly_off)
+            );
+            const next_is_wo = Boolean(
+              !next_is_h &&
+              next_cell?.is_weekly_off &&
+              next_cell?.source !== 'ROSTER'
+            );
+            if (next_is_wo) {
+              count++;
+            } else {
+              break;
+            }
+          }
+          if (count >= 2 || sortedEmployees.length === 1) {
+            list[i] = { type: 'WO', rowSpan: count };
+            for (let j = 1; j < count; j++) {
+              list[i + j] = { type: 'WO', rowSpan: 0 };
+            }
+          }
+          i += count;
+        } else {
+          list[i] = null;
+          i++;
+        }
+      }
+      result[d.date] = list;
+    });
+
+    return result;
+  }, [sortedEmployees, displayDays]);
+
   return (
     <Stack spacing={2.5}>
       {/* Filter toolbar based on filterVariant */}
@@ -1013,6 +1094,29 @@ export function ShiftRosterMonthlyView({
           <Stack direction="row" alignItems="center" spacing={1}>
             <Box
               sx={{
+                width: 30,
+                height: 22,
+                borderRadius: '6px',
+                bgcolor: '#fee2e2',
+                color: '#ef4444',
+                border: '1px solid #fca5a5',
+                fontSize: '0.68rem',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              WO
+            </Box>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+              Weekly Off
+            </Typography>
+          </Stack>
+
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box
+              sx={{
                 width: 26,
                 height: 22,
                 borderRadius: '6px',
@@ -1145,77 +1249,83 @@ export function ShiftRosterMonthlyView({
 
                     {/* Day Shift Cells */}
                     {displayDays.map((d) => {
-                      const isFullHoliday = d.is_holiday && !sortedEmployees.some((e) => e.shifts?.[d.date]?.source === 'ROSTER');
+                      const span = columnSpans[d.date]?.[empIndex];
 
-                      if (isFullHoliday) {
-                        if (empIndex === 0) {
-                          return (
-                            <TableCell
-                              key={d.date}
-                              rowSpan={sortedEmployees.length}
-                              align="center"
-                              onClick={() => canEdit && handleCellClick(emp.employee, d.date)}
-                              sx={{
-                                px: 0.5,
-                                py: 1,
-                                minWidth: 42,
-                                maxWidth: 42,
-                                verticalAlign: 'middle',
-                                bgcolor: 'rgba(244, 63, 94, 0.08)',
-                                borderRight: (t) => `1px solid ${t.palette.divider}`,
-                                borderBottom: (t) => `1px solid ${t.palette.divider}`,
-                                cursor: canEdit ? 'pointer' : 'default',
-                                transition: 'background-color 0.15s ease',
-                                '&:hover': {
-                                  bgcolor: 'rgba(244, 63, 94, 0.14)',
-                                },
-                              }}
+                      if (span) {
+                        if (span.rowSpan === 0) {
+                          // Covered by an earlier row's rowSpan in this contiguous block
+                          return null;
+                        }
+
+                        const isHolidaySpan = span.type === 'HOLIDAY';
+                        return (
+                          <TableCell
+                            key={d.date}
+                            rowSpan={span.rowSpan}
+                            align="center"
+                            onClick={() => canEdit && handleCellClick(emp.employee, d.date)}
+                            sx={{
+                              px: 0.5,
+                              py: 1,
+                              minWidth: 42,
+                              maxWidth: 42,
+                              verticalAlign: 'middle',
+                              bgcolor: 'rgba(244, 63, 94, 0.08)',
+                              borderRight: (t) => `1px solid ${t.palette.divider}`,
+                              borderBottom: (t) => `1px solid ${t.palette.divider}`,
+                              cursor: canEdit ? 'pointer' : 'default',
+                              transition: 'background-color 0.15s ease',
+                              '&:hover': {
+                                bgcolor: 'rgba(244, 63, 94, 0.14)',
+                              },
+                            }}
+                          >
+                            <Tooltip
+                              title={
+                                <span style={{ whiteSpace: 'pre-line' }}>
+                                  {isHolidaySpan
+                                    ? `Holiday: ${d.holiday_name || 'Public Holiday'}\n${d.date}`
+                                    : `Weekly Off\n${d.date}`}
+                                </span>
+                              }
+                              arrow
                             >
-                              <Tooltip
-                                title={
-                                  <span style={{ whiteSpace: 'pre-line' }}>
-                                    {`Holiday: ${d.holiday_name || 'Public Holiday'}\n${d.date}`}
-                                  </span>
-                                }
-                                arrow
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  height: '100%',
+                                  width: '100%',
+                                  minHeight: span.rowSpan === 1 ? 40 : 80,
+                                }}
                               >
-                                <Box
+                                <Typography
                                   sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    height: '100%',
-                                    width: '100%',
-                                    minHeight: 80,
+                                    fontWeight: 800,
+                                    fontSize: '0.72rem',
+                                    letterSpacing: 2.5,
+                                    color: '#9f1239',
+                                    textTransform: 'uppercase',
+                                    writingMode: 'vertical-rl',
+                                    transform: 'rotate(180deg)',
+                                    display: 'inline-block',
+                                    whiteSpace: 'nowrap',
+                                    userSelect: 'none',
                                   }}
                                 >
-                                  <Typography
-                                    sx={{
-                                      fontWeight: 800,
-                                      fontSize: '0.72rem',
-                                      letterSpacing: 2.5,
-                                      color: '#9f1239',
-                                      textTransform: 'uppercase',
-                                      writingMode: 'vertical-rl',
-                                      transform: 'rotate(180deg)',
-                                      display: 'inline-block',
-                                      whiteSpace: 'nowrap',
-                                      userSelect: 'none',
-                                    }}
-                                  >
-                                    Holiday
-                                  </Typography>
-                                </Box>
-                              </Tooltip>
-                            </TableCell>
-                          );
-                        }
-                        return null;
+                                  {isHolidaySpan ? 'Holiday' : 'Weekly Off'}
+                                </Typography>
+                              </Box>
+                            </Tooltip>
+                          </TableCell>
+                        );
                       }
 
                       const cell = emp.shifts?.[d.date];
                       const isToday = d.date === todayStr;
                       const isHoliday = d.is_holiday;
+                      const isWeeklyOff = cell?.is_weekly_off;
 
                       let chipCode = '-';
                       let chipStyle = {
@@ -1227,6 +1337,9 @@ export function ShiftRosterMonthlyView({
                       if (isHoliday && cell?.source !== 'ROSTER') {
                         chipCode = 'H';
                         chipStyle = { bg: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' };
+                      } else if (isWeeklyOff && cell?.source !== 'ROSTER') {
+                        chipCode = 'WO';
+                        chipStyle = { bg: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' };
                       } else if (cell?.shift) {
                         const pal = shiftColorMap[cell.shift] || { bg: '#e0f2fe', color: '#0284c7', border: '#bae6fd' };
                         chipCode = getShiftShortCode(cell.shift_name || cell.shift);
@@ -1235,6 +1348,8 @@ export function ShiftRosterMonthlyView({
 
                       const tooltipText = (isHoliday && cell?.source !== 'ROSTER')
                         ? `Holiday: ${d.holiday_name || 'Public Holiday'}\n${d.date}`
+                        : (isWeeklyOff && cell?.source !== 'ROSTER')
+                        ? `Weekly Off\n${d.date}`
                         : cell?.shift
                         ? `${cell.shift_name || cell.shift}\n${d.date}\nSource: ${cell.source || 'ROSTER'}`
                         : `Unassigned\n${d.date}`;
@@ -1249,13 +1364,19 @@ export function ShiftRosterMonthlyView({
                             py: 0.8,
                             minWidth: 42,
                             maxWidth: 42,
-                            bgcolor: isToday ? 'action.selected' : undefined,
+                            bgcolor: isToday
+                              ? 'action.selected'
+                              : (isWeeklyOff && cell?.source !== 'ROSTER')
+                              ? 'rgba(244, 63, 94, 0.05)'
+                              : undefined,
                             borderRight: (t) => `1px solid ${t.palette.divider}`,
                             borderBottom: (t) => `1px solid ${t.palette.divider}`,
                             cursor: canEdit ? 'pointer' : 'default',
                             transition: 'background-color 0.15s ease',
                             '&:hover': {
-                              bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                              bgcolor: (isWeeklyOff && cell?.source !== 'ROSTER')
+                                ? 'rgba(244, 63, 94, 0.12)'
+                                : alpha(COMMON_COLORS.emerald.main, 0.08),
                             },
                           }}
                         >

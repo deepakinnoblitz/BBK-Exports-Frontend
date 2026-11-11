@@ -541,10 +541,10 @@ export function AttendanceDailyReportView({ date, onViewEmployeeDetails }: Atten
                                                                 <TableCell sx={{ fontWeight: 600 }}>{emp.employee_name}</TableCell>
                                                                 <TableCell sx={{ color: 'text.secondary' }}>{emp.designation}</TableCell>
                                                                 <TableCell sx={{ color: 'text.secondary' }}>{emp.line_order || '--'}</TableCell>
-                                                                <TableCell align="center" sx={{ fontWeight: 500 }}>
+                                                                <TableCell align="center" sx={{ fontWeight: 600 }}>
                                                                     {emp.in_time || '--'}
                                                                 </TableCell>
-                                                                <TableCell align="center" sx={{ fontWeight: 500 }}>
+                                                                <TableCell align="center" sx={{ fontWeight: 600 }}>
                                                                     {emp.out_time || '--'}
                                                                 </TableCell>
                                                                 <TableCell align="center">

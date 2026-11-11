@@ -29,6 +29,9 @@ export interface Employee {
     pf_number?: string;
     esi_no?: string;
     skill?: string;
+    line_order?: string;
+    shift?: string;
+    weekly_off?: string;
     full_address?: string;
     bank_account?: string;
     bus_travel_route?: string;
@@ -132,8 +135,16 @@ export async function deleteEmployee(name: string) {
         headers,
         body: JSON.stringify({ doctype: "Employee", name })
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(handleFrappeError(json, "Failed to delete employee"));
+    let json: any = null;
+    try {
+        json = await res.json();
+    } catch {
+        // Response may not be JSON
+    }
+    if (!res.ok) {
+        const errorMsg = json ? handleFrappeError(json, "Failed to delete employee") : `Failed to delete employee (HTTP ${res.status})`;
+        throw new Error(errorMsg);
+    }
     return true;
 }
 
@@ -151,6 +162,21 @@ export async function getNextEmployeeId(): Promise<string> {
         return json.message || '';
     } catch {
         return '';
+    }
+}
+
+export async function checkEmployeeIdAvailable(employeeId: string, currentEmployeeId?: string | null): Promise<{ available: boolean; message: string }> {
+    try {
+        const params = new URLSearchParams({ employee_id: employeeId.trim() });
+        if (currentEmployeeId && currentEmployeeId.trim()) {
+            params.append('current_employee_id', currentEmployeeId.trim());
+        }
+        const res = await frappeRequest(`/api/method/company.company.api.check_employee_id_available?${params.toString()}`);
+        if (!res.ok) return { available: true, message: '' };
+        const json = await res.json();
+        return json.message || { available: true, message: '' };
+    } catch {
+        return { available: true, message: '' };
     }
 }
 

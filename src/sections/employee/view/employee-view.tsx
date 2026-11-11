@@ -50,15 +50,10 @@ import { uploadFile } from 'src/api/data-import';
 import { getStates, getCities } from 'src/api/location';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getBusTravelRoute, fetchBankAccounts } from 'src/api/masters';
-import { getEmployee, createEmployee, updateEmployee, deleteEmployee, renameEmployee, getNextEmployeeId } from 'src/api/employees';
 import { getHRSettings, fetchFrappeList, getHRPermissions, getDocTypeMetadata, fetchSalaryComponents } from 'src/api/hr-management';
-import { createRosterAssignment as createShiftRosterAssignment, deleteOrCancelRosterAssignment as deleteOrCancelShiftRosterAssignment } from 'src/api/shift-roster';
-import {
-  saveEmployeeFaceEmbedding,
-  createLineRosterAssignment,
-  clearEmployeeFaceEmbedding,
-  deleteOrCancelLineRosterAssignment,
-} from 'src/api/line-roster';
+import { getEmployee, createEmployee, updateEmployee, deleteEmployee, renameEmployee, getNextEmployeeId, checkEmployeeIdAvailable } from 'src/api/employees';
+import { saveEmployeeFaceEmbedding, createLineRosterAssignment, clearEmployeeFaceEmbedding, fetchEffectiveLineForEmployee, deleteOrCancelLineRosterAssignment } from 'src/api/line-roster';
+import { fetchEffectiveShiftForEmployee, createRosterAssignment as createShiftRosterAssignment, deleteOrCancelRosterAssignment as deleteOrCancelShiftRosterAssignment } from 'src/api/shift-roster';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -367,6 +362,7 @@ export function EmployeeView() {
         ctc: 0,
         skip_probation: 0,
         country: 'India',
+        weekly_off: 'Sunday',
     });
     const [fieldOptions, setFieldOptions] = useState<Record<string, any[]>>({});
     const [stateOptions, setStateOptions] = useState<string[]>([]);
@@ -442,6 +438,7 @@ export function EmployeeView() {
 
     // Alert & Dialog State
     const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: string | null }>({ open: false, id: null });
+    const [deleting, setDeleting] = useState<boolean>(false);
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({
         open: false,
         message: '',
@@ -666,6 +663,15 @@ export function EmployeeView() {
             const next = { ...prev, [fieldname]: finalValue };
             if (fieldname === 'status' && finalValue === 'Active') {
                 next.date_of_leaving = '';
+            }
+            if (fieldname === 'production_type' && finalValue === 'Non Production') {
+                next.line_order = '';
+            }
+            if (fieldname === 'employee_type' || fieldname === 'department') {
+                const isSec = String(next.employee_type || '').toLowerCase().includes('security') || String(next.department || '').toLowerCase().includes('security');
+                if (!isSec) {
+                    next.weekly_off = 'Sunday';
+                }
             }
             return next;
         });
@@ -973,6 +979,7 @@ export function EmployeeView() {
             ctc: 0,
             skip_probation: 0,
             country: 'India',
+            weekly_off: 'Sunday',
             documents: [],
             name: previewId,
             employee_id: previewId,
@@ -992,7 +999,7 @@ export function EmployeeView() {
         setOpenCreate(false);
         setFormErrors({});
         setCurrentEmployeeId(null);
-        setFormData({ status: 'Active', ctc: 0, skip_probation: 0, country: 'India', documents: [] });
+        setFormData({ status: 'Active', ctc: 0, skip_probation: 0, country: 'India', weekly_off: 'Sunday', documents: [] });
         setBusRoutePoints([]);
         setServerAlert({ message: '', severity: 'info' });
         setStateOptions([]);
@@ -1028,13 +1035,20 @@ export function EmployeeView() {
     const handleConfirmDelete = async () => {
         if (!confirmDelete.id) return;
         try {
+            setDeleting(true);
             await deleteEmployee(confirmDelete.id);
             setSnackbar({ open: true, message: 'Employee deleted successfully', severity: 'success' });
+            setConfirmDelete({ open: false, id: null });
             await refetch();
-        } catch (e) {
-            console.error(e);
-            setSnackbar({ open: true, message: 'Failed to delete employee', severity: 'error' });
+        } catch (e: any) {
+            console.error('Delete employee error:', e);
+            const rawMsg = (e?.message || '').trim();
+            const displayMessage = rawMsg
+                ? (rawMsg.toLowerCase().startsWith('failed to delete') ? rawMsg : `Failed to delete employee: ${rawMsg}`)
+                : 'Failed to delete employee';
+            setSnackbar({ open: true, message: displayMessage, severity: 'error' });
         } finally {
+            setDeleting(false);
             setConfirmDelete({ open: false, id: null });
         }
     };
@@ -1243,8 +1257,24 @@ export function EmployeeView() {
                 let targetId = currentEmployeeId;
                 const newDocName = (formData.name || formData.employee_id || '').trim();
 
+                if (!newDocName) {
+                    setCurrentTab(0);
+                    setFormErrors(prev => ({ ...prev, employee_id: 'Employee ID is required' }));
+                    setCreating(false);
+                    return;
+                }
+
                 // If user edited Employee ID (doc name), rename the document
                 if (newDocName && newDocName !== currentEmployeeId) {
+                    const check = await checkEmployeeIdAvailable(newDocName, currentEmployeeId);
+                    if (!check.available) {
+                        setCurrentTab(0);
+                        setFormErrors(prev => ({ ...prev, employee_id: check.message }));
+                        setServerAlert({ message: check.message, severity: 'error' });
+                        setCreating(false);
+                        return;
+                    }
+
                     try {
                         const renamed = await renameEmployee(currentEmployeeId, newDocName);
                         targetId = renamed;
@@ -1252,6 +1282,8 @@ export function EmployeeView() {
                         dataToSave.name = targetId;
                         dataToSave.employee_id = targetId;
                     } catch (renameErr: any) {
+                        setCurrentTab(0);
+                        setFormErrors(prev => ({ ...prev, employee_id: renameErr.message || 'ID may already exist.' }));
                         setServerAlert({
                             message: `Failed to rename Employee: ${renameErr.message || 'ID may already exist.'}`,
                             severity: 'error'
@@ -1281,10 +1313,14 @@ export function EmployeeView() {
                 }
 
                 if (lineChanged) {
-                    setPendingEmployeeData(dataToSave);
-                    setOpenLineChangeConfirm(true);
-                    setCreating(false);
-                    return;
+                    if (!newLine) {
+                        dataToSave.line_order = null;
+                    } else {
+                        setPendingEmployeeData(dataToSave);
+                        setOpenLineChangeConfirm(true);
+                        setCreating(false);
+                        return;
+                    }
                 }
 
                 // Commit pending face biometrics only when user clicks Update Employee
@@ -1336,8 +1372,26 @@ export function EmployeeView() {
                     severity: 'success'
                 });
             } else {
-                delete dataToSave.name;
-                delete dataToSave.employee_id;
+                const customId = (formData.name || formData.employee_id || '').trim();
+                if (!customId) {
+                    setCurrentTab(0);
+                    setFormErrors(prev => ({ ...prev, employee_id: 'Employee ID is required' }));
+                    setCreating(false);
+                    return;
+                }
+
+                // Check uniqueness before creating
+                const check = await checkEmployeeIdAvailable(customId);
+                if (!check.available) {
+                    setCurrentTab(0);
+                    setFormErrors(prev => ({ ...prev, employee_id: check.message }));
+                    setServerAlert({ message: check.message, severity: 'error' });
+                    setCreating(false);
+                    return;
+                }
+
+                dataToSave.name = customId;
+                dataToSave.employee_id = customId;
                 await createEmployee(dataToSave as any);
                 handleCloseCreate();
                 setSnackbar({ open: true, message: 'Employee created successfully', severity: 'success' });
@@ -1603,6 +1657,23 @@ export function EmployeeView() {
                 if (cleanedRow.office_phone_number) cleanedRow.office_phone_number = cleanPhoneNumber(cleanedRow.office_phone_number);
                 cleanedRow.name = id;
                 cleanedRow.employee_id = id;
+
+                // Resolve currently active effective shift & line if assigned
+                try {
+                    const [effectiveShift, effectiveLine] = await Promise.all([
+                        fetchEffectiveShiftForEmployee(id),
+                        fetchEffectiveLineForEmployee(id),
+                    ]);
+                    if (effectiveShift) {
+                        cleanedRow.shift = effectiveShift;
+                    }
+                    if (effectiveLine) {
+                        cleanedRow.line_order = effectiveLine;
+                    }
+                } catch (resolveErr) {
+                    console.error('Failed to resolve effective shift/line:', resolveErr);
+                }
+
                 setFormData(cleanedRow);
                 setOriginalEmployeeLine(cleanedRow.line_order || '');
                 setOriginalEmployeeShift(cleanedRow.shift || '');
@@ -2096,13 +2167,17 @@ export function EmployeeView() {
                 <Autocomplete
                     fullWidth
                     options={options}
-                    value={formData[fieldname] || ''}
+                    value={formData[fieldname] || null}
                     onChange={(event, newValue: any) => {
+                        if (!newValue) {
+                            handleInputChange(fieldname, '');
+                            return;
+                        }
                         if (newValue?.isNew || newValue === 'Create Blood Group' || newValue?.name === 'Create Blood Group' || newValue?.blood_group === 'Create Blood Group') {
                             setOpenBloodGroupCreate(true);
                             setBloodGroupSearch(newValue?.inputValue || '');
                         } else {
-                            const value = typeof newValue === 'object' ? (newValue.blood_group || newValue.name) : newValue;
+                            const value = typeof newValue === 'object' && newValue ? (newValue.blood_group || newValue.name) : newValue;
                             handleInputChange(fieldname, value || '');
                         }
                     }}
@@ -2187,13 +2262,17 @@ export function EmployeeView() {
                 <Autocomplete
                     fullWidth
                     options={options}
-                    value={formData[fieldname] || ''}
+                    value={formData[fieldname] || null}
                     onChange={(event, newValue: any) => {
+                        if (!newValue) {
+                            handleInputChange(fieldname, '');
+                            return;
+                        }
                         if (newValue?.isNew || newValue === 'Create Qualification' || newValue?.name === 'Create Qualification' || newValue?.qualification === 'Create Qualification') {
                             setOpenQualificationCreate(true);
                             setQualificationSearch(newValue?.inputValue || '');
                         } else {
-                            const value = typeof newValue === 'object' ? (newValue.qualification || newValue.name) : newValue;
+                            const value = typeof newValue === 'object' && newValue ? (newValue.qualification || newValue.name) : newValue;
                             handleInputChange(fieldname, value || '');
                         }
                     }}
@@ -2278,13 +2357,17 @@ export function EmployeeView() {
                 <Autocomplete
                     fullWidth
                     options={options}
-                    value={formData[fieldname] || ''}
+                    value={formData[fieldname] || null}
                     onChange={(event, newValue: any) => {
+                        if (!newValue) {
+                            handleInputChange(fieldname, '');
+                            return;
+                        }
                         if (newValue?.isNew || newValue === 'Create Designation' || newValue?.name === 'Create Designation' || newValue?.designation_name === 'Create Designation') {
                             setOpenDesignationCreate(true);
                             setDesignationSearch(newValue?.inputValue || '');
                         } else {
-                            const value = typeof newValue === 'object' ? (newValue.designation_name || newValue.name) : newValue;
+                            const value = typeof newValue === 'object' && newValue ? (newValue.designation_name || newValue.name) : newValue;
                             handleInputChange(fieldname, value || '');
                         }
                     }}
@@ -2369,13 +2452,17 @@ export function EmployeeView() {
                 <Autocomplete
                     fullWidth
                     options={options}
-                    value={formData[fieldname] || ''}
+                    value={formData[fieldname] || null}
                     onChange={(event, newValue: any) => {
+                        if (!newValue) {
+                            handleInputChange(fieldname, '');
+                            return;
+                        }
                         if (newValue?.isNew || newValue === 'Create Line Order' || newValue?.name === 'Create Line Order' || newValue?.line_name === 'Create Line Order') {
                             setOpenLineOrderCreate(true);
                             setLineOrderSearch(newValue?.inputValue || '');
                         } else {
-                            const value = typeof newValue === 'object' ? (newValue.line_name || newValue.name) : newValue;
+                            const value = typeof newValue === 'object' && newValue ? (newValue.line_name || newValue.name) : newValue;
                             handleInputChange(fieldname, value || '');
                         }
                     }}
@@ -2427,6 +2514,7 @@ export function EmployeeView() {
                         return '';
                     }}
                     isOptionEqualToValue={(option: any, value: any) => {
+                        if (!value) return false;
                         const optionValue = typeof option === 'string' ? option : (option.line_name || option.name);
                         return optionValue === value || option?.name === value;
                     }}
@@ -2460,13 +2548,17 @@ export function EmployeeView() {
                 <Autocomplete
                     fullWidth
                     options={options}
-                    value={formData[fieldname] || ''}
+                    value={formData[fieldname] || null}
                     onChange={(event, newValue: any) => {
+                        if (!newValue) {
+                            handleInputChange(fieldname, '');
+                            return;
+                        }
                         if (newValue?.isNew || newValue === 'Create Shift' || newValue?.name === 'Create Shift' || newValue?.shift_name === 'Create Shift') {
                             setOpenShiftCreate(true);
                             setShiftSearch(newValue?.inputValue || '');
                         } else {
-                            const value = typeof newValue === 'object' ? (newValue.shift_name || newValue.name) : newValue;
+                            const value = typeof newValue === 'object' && newValue ? (newValue.shift_name || newValue.name) : newValue;
                             handleInputChange(fieldname, value || '');
                         }
                     }}
@@ -2551,13 +2643,17 @@ export function EmployeeView() {
                 <Autocomplete
                     fullWidth
                     options={options}
-                    value={formData[fieldname] || ''}
+                    value={formData[fieldname] || null}
                     onChange={(event, newValue: any) => {
+                        if (!newValue) {
+                            handleInputChange(fieldname, '');
+                            return;
+                        }
                         if (newValue?.isNew || newValue === 'Create Route' || newValue?.name === 'Create Route' || newValue?.route_name === 'Create Route') {
                             setOpenBusRouteCreate(true);
                             setBusRouteSearch(newValue?.inputValue || '');
                         } else {
-                            const value = typeof newValue === 'object' ? (newValue.route_name || newValue.name) : newValue;
+                            const value = typeof newValue === 'object' && newValue ? (newValue.route_name || newValue.name) : newValue;
                             handleInputChange(fieldname, value || '');
                         }
                     }}
@@ -2642,13 +2738,17 @@ export function EmployeeView() {
                 <Autocomplete
                     fullWidth
                     options={options}
-                    value={formData[fieldname] || ''}
+                    value={formData[fieldname] || null}
                     onChange={(event, newValue: any) => {
+                        if (!newValue) {
+                            handleInputChange(fieldname, '');
+                            return;
+                        }
                         if (newValue?.isNew || newValue === 'Create Employee Type' || newValue?.name === 'Create Employee Type' || newValue?.employee_type === 'Create Employee Type') {
                             setOpenEmployeeTypeCreate(true);
                             setEmployeeTypeSearch(newValue?.inputValue || '');
                         } else {
-                            const value = typeof newValue === 'object' ? (newValue.employee_type || newValue.name) : newValue;
+                            const value = typeof newValue === 'object' && newValue ? (newValue.employee_type || newValue.name) : newValue;
                             handleInputChange(fieldname, value || '');
                         }
                     }}
@@ -2740,13 +2840,17 @@ export function EmployeeView() {
                 <Autocomplete
                     fullWidth
                     options={options}
-                    value={formData[fieldname] || ''}
+                    value={formData[fieldname] || null}
                     onChange={(event, newValue: any) => {
+                        if (!newValue) {
+                            handleInputChange(fieldname, '');
+                            return;
+                        }
                         if (newValue?.isNew || newValue === 'Create Skill' || newValue?.name === 'Create Skill' || newValue?.skill_name === 'Create Skill') {
                             setOpenSkillCreate(true);
                             setSkillSearch(newValue?.inputValue || '');
                         } else {
-                            const value = typeof newValue === 'object' ? (newValue.skill_name || newValue.name) : newValue;
+                            const value = typeof newValue === 'object' && newValue ? (newValue.skill_name || newValue.name) : newValue;
                             handleInputChange(fieldname, value || '');
                         }
                     }}
@@ -3478,25 +3582,37 @@ export function EmployeeView() {
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
                                             <TextField
                                                 fullWidth
-                                                label="Employee ID"
+                                                label="Employee ID *"
                                                 name="employee_id"
-                                                value={currentEmployeeId ? (formData.name || currentEmployeeId) : (formData.name || 'Loading...')}
+                                                value={formData.name || formData.employee_id || ''}
                                                 onChange={(e) => {
-                                                    if (currentEmployeeId) {
-                                                        const val = e.target.value.toUpperCase();
-                                                        handleInputChange('name', val);
-                                                        handleInputChange('employee_id', val);
+                                                    const val = e.target.value.trim();
+                                                    handleInputChange('name', val);
+                                                    handleInputChange('employee_id', val);
+                                                    if (formErrors.name || formErrors.employee_id) {
+                                                        setFormErrors((prev) => {
+                                                            const copy = { ...prev };
+                                                            delete copy.name;
+                                                            delete copy.employee_id;
+                                                            return copy;
+                                                        });
                                                     }
                                                 }}
-                                                disabled={!currentEmployeeId}
-                                                slotProps={{
-                                                    input: {
-                                                        readOnly: !currentEmployeeId,
-                                                    },
+                                                onBlur={async () => {
+                                                    const val = (formData.name || formData.employee_id || '').trim();
+                                                    if (!val) {
+                                                        setFormErrors((prev) => ({ ...prev, employee_id: 'Employee ID is required' }));
+                                                        return;
+                                                    }
+                                                    const check = await checkEmployeeIdAvailable(val, currentEmployeeId);
+                                                    if (!check.available) {
+                                                        setFormErrors((prev) => ({ ...prev, employee_id: check.message }));
+                                                    }
                                                 }}
+                                                placeholder="e.g. SDB111111, BEPL111111"
                                                 InputLabelProps={{ shrink: true }}
                                                 error={!!formErrors.name || !!formErrors.employee_id}
-                                                helperText={formErrors.name || formErrors.employee_id || undefined}
+                                                helperText={formErrors.employee_id || formErrors.name || "Enter custom Employee ID or keep the generated series ID"}
                                             />
                                             {renderField('employee_name', 'Employee Name', 'text', [], {}, true)}
                                             {renderField('father_husband_name', 'Father/Husband Name')}
@@ -3525,6 +3641,7 @@ export function EmployeeView() {
                                             {renderField('department', 'Department', 'link', fieldOptions['department'] || [])}
                                             {renderField('designation', 'Designation', 'link', fieldOptions['designation'] || [])}
                                             {renderField('employee_type', 'Employee Type', 'link', fieldOptions['employee_type'] || [])}
+                                            {(String(formData.employee_type || '').toLowerCase().includes('security') || String(formData.department || '').toLowerCase().includes('security')) && renderField('weekly_off', 'Weekly Off', 'select', ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])}
                                             {renderField('skill', 'Skill', 'link', fieldOptions['skill'] || [])}
                                             {renderField('production_type', 'Production Type', 'select', ['Production', 'Non Production'])}
                                             {renderField('line_order', 'Line Order', 'link', fieldOptions['line_order'] || [])}
@@ -3835,13 +3952,24 @@ export function EmployeeView() {
 
             <ConfirmDialog
                 open={confirmDelete.open}
-                onClose={() => setConfirmDelete({ open: false, id: null })}
+                onClose={() => {
+                    if (!deleting) {
+                        setConfirmDelete({ open: false, id: null });
+                    }
+                }}
+                isLoading={deleting}
                 title="Confirm Delete"
                 content="Are you sure you want to delete this employee?"
                 action={
-                    <Button onClick={handleConfirmDelete} color="error" variant="contained" sx={{ borderRadius: 1.5, minWidth: 100 }}>
+                    <LoadingButton
+                        onClick={handleConfirmDelete}
+                        loading={deleting}
+                        color="error"
+                        variant="contained"
+                        sx={{ borderRadius: 1.5, minWidth: 100 }}
+                    >
                         Delete
-                    </Button>
+                    </LoadingButton>
                 }
             />
 

@@ -157,6 +157,7 @@ export const LeaveAllocationReportPage = lazy(() => import('src/pages/reports/le
 export const DailyLogReportPage = lazy(() => import('src/pages/reports/daily-log'));
 export const TaskReportPage = lazy(() => import('src/pages/reports/task-manager'));
 export const SalarySlipReportPage = lazy(() => import('src/pages/reports/salary-slip'));
+export const SalaryReconciliationReportPage = lazy(() => import('src/pages/reports/salary-reconciliation'));
 export const ProposalReportPage = lazy(() => import('src/pages/reports/proposal'));
 export const ProspectsReportPage = lazy(() => import('src/pages/reports/prospects'));
 export const EmployeePage = lazy(() => import('src/pages/employee'));
@@ -625,6 +626,7 @@ export const routesSection: RouteObject[] = [
           { path: 'daily-log', element: <RolePermissionGuard actionKey="report_daily_log"><DailyLogReportPage /></RolePermissionGuard> },
           { path: 'task-manager', element: <RolePermissionGuard actionKey="report_task"><TaskReportPage /></RolePermissionGuard> },
           { path: 'salary-slip', element: <RolePermissionGuard actionKey="report_salary_slip"><SalarySlipReportPage /></RolePermissionGuard> },
+          { path: 'salary-reconciliation', element: <RolePermissionGuard actionKey="report_salary_slip"><SalaryReconciliationReportPage /></RolePermissionGuard> },
           { path: 'proposal', element: <RolePermissionGuard actionKey="report_proposal"><ProposalReportPage /></RolePermissionGuard> },
           { path: 'prospects', element: <RolePermissionGuard actionKey="report_prospects"><ProspectsReportPage /></RolePermissionGuard> },
         ],

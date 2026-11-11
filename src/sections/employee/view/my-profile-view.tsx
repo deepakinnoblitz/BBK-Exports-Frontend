@@ -9,6 +9,7 @@ import {
     FaAward,
     FaGhost,
     FaMedal,
+    FaHeart,
     FaCamera,
     FaIdCard,
     FaWallet,
@@ -25,6 +26,7 @@ import {
     FaCalendarAlt,
     FaMapMarkerAlt,
     FaGlobeAmericas,
+    FaGraduationCap,
 } from 'react-icons/fa';
 
 import Box from '@mui/material/Box';
@@ -334,9 +336,28 @@ export function MyProfileView() {
                                     <DetailItem label="Production Type" value={employee.production_type} icon={FaIndustry} />
                                     <DetailItem label="Joining Date" value={fDate(employee.date_of_joining, 'DD-MM-YYYY')} icon={FaCalendarAlt} />
                                     <DetailItem label="Status" value={employee.status} icon={FaInfoCircle} />
+                                </Box>
+                            </Box>
+
+                            <Divider sx={{ borderStyle: 'dashed' }} />
+
+                            {/* Personal Details */}
+                            <Box>
+                                <SectionHeader title="Personal Details" icon={FaIdCard} />
+                                <Box
+                                    sx={{
+                                        display: 'grid',
+                                        gap: 3,
+                                        gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+                                    }}
+                                >
                                     <DetailItem label="Date of Birth" value={fDate(employee.dob, 'DD-MM-YYYY')} icon={FaCalendarAlt} />
-                                    <DetailItem label="Blood Group" value={employee.blood_group} icon={FaHeartbeat} />
                                     <DetailItem label="Gender" value={employee.sex} icon={FaUser} />
+                                    <DetailItem label="Blood Group" value={employee.blood_group} icon={FaHeartbeat} />
+                                    <DetailItem label="Marital Status" value={employee.marital_status} icon={FaHeart} />
+                                    <DetailItem label="Father/Husband Name" value={employee.father_husband_name} icon={FaUser} />
+                                    <DetailItem label="Qualification" value={employee.qualification} icon={FaGraduationCap} />
+                                    <DetailItem label="Aadhar Number" value={employee.aadhar_number} icon={FaIdCard} />
                                 </Box>
                             </Box>
 

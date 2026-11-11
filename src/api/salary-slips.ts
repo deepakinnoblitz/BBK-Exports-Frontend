@@ -353,3 +353,27 @@ export async function getWagesReconciliationStatement(currentStartDate: string, 
     if (!res.ok) throw new Error(json.message || "Failed to fetch reconciliation statement");
     return json.message;
 }
+
+export interface SalaryReconciliationParams {
+    year?: number;
+    month?: number;
+    start_date?: string;
+    end_date?: string;
+    from_date?: string;
+    to_date?: string;
+    employee_type?: string;
+    department?: string;
+    amount_basis?: 'net_pay' | 'gross_pay' | 'earned_ctc';
+    docstatus?: number | string;
+}
+
+export async function getSalaryReconciliationStatement(params: SalaryReconciliationParams) {
+    const res = await frappeRequest("/api/method/company.company.doctype.salary_slip.salary_slip.get_salary_reconciliation_statement", {
+        method: "POST",
+        body: JSON.stringify(params)
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to fetch salary reconciliation statement");
+    return json.message;
+}

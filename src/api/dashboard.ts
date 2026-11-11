@@ -319,8 +319,13 @@ export async function fetchAttendanceStats(range: string = 'today'): Promise<any
     return data.message;
 }
 
-export async function fetchHRDashboardData(): Promise<HRDashboardData> {
-    const res = await frappeRequest('/api/method/company.company.frontend_api.get_hr_dashboard_data');
+export async function fetchHRDashboardData(startDate?: string, endDate?: string): Promise<HRDashboardData> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+
+    const res = await frappeRequest(`/api/method/company.company.frontend_api.get_hr_dashboard_data${queryString}`);
 
     if (!res.ok) {
         const error = await res.json();

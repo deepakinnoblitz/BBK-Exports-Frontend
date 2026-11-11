@@ -264,3 +264,32 @@ export async function fetchRosterHistory(params: {
   const json = await res.json();
   return json.message || [];
 }
+
+// Fetch the currently effective shift for an employee
+// Returns the active assignment's shift for today, or null if none
+export async function fetchEffectiveShiftForEmployee(employeeId: string): Promise<string | null> {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  try {
+    const res: any = await fetchFrappeList('Employee Shift Roster', {
+      page: 1,
+      page_size: 1,
+      filters: [
+        ['employee', '=', employeeId],
+        ['status', '=', 'Active'],
+        ['effective_from', '<=', today],
+      ],
+      fields: ['name', 'shift', 'shift_name', 'effective_from', 'effective_to'],
+      orderBy: 'effective_from',
+      order: 'desc',
+    });
+    const records: any[] = res?.data || [];
+    // Filter out records whose effective_to has already passed
+    const valid = records.filter((r: any) => !r.effective_to || r.effective_to >= today);
+    if (valid.length > 0) {
+      return valid[0].shift || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

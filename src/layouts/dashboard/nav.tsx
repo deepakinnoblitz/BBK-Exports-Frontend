@@ -395,13 +395,18 @@ export function NavContent({
 // ----------------------------------------------------------------------
 
 function NavListSubItem({ child, fullPath }: { child: any; fullPath: string }) {
-  const [open, setOpen] = useState(false);
+  const isChildActived = hasActiveChild(child, fullPath);
+  const [open, setOpen] = useState(isChildActived);
+
+  useEffect(() => {
+    if (isChildActived) {
+      setOpen(true);
+    }
+  }, [isChildActived]);
 
   const handleToggle = useCallback(() => {
     setOpen((prev) => !prev);
   }, []);
-
-  const isChildActived = hasActiveChild(child, fullPath);
 
   if (child.children) {
     return (

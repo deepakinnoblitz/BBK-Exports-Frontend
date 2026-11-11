@@ -83,6 +83,49 @@ export function SettingsBiometric({ data, onChange, onRefresh, errors, onClearEr
   const [manualFromDate, setManualFromDate] = useState('');
   const [manualToDate, setManualToDate] = useState('');
 
+  const quickPresets = [
+    {
+      id: 'today',
+      label: 'Today',
+      start: dayjs().startOf('day').format('YYYY-MM-DD 00:00:00'),
+      end: dayjs().endOf('day').format('YYYY-MM-DD 23:59:59'),
+    },
+    {
+      id: 'yesterday',
+      label: 'Yesterday',
+      start: dayjs().subtract(1, 'day').startOf('day').format('YYYY-MM-DD 00:00:00'),
+      end: dayjs().subtract(1, 'day').endOf('day').format('YYYY-MM-DD 23:59:59'),
+    },
+    {
+      id: 'last_7_days',
+      label: 'Last 7 Days',
+      start: dayjs().subtract(6, 'day').startOf('day').format('YYYY-MM-DD 00:00:00'),
+      end: dayjs().endOf('day').format('YYYY-MM-DD 23:59:59'),
+    },
+    {
+      id: 'this_month',
+      label: 'This Month',
+      start: dayjs().startOf('month').format('YYYY-MM-DD 00:00:00'),
+      end: dayjs().endOf('day').format('YYYY-MM-DD 23:59:59'),
+    },
+    {
+      id: 'sample_logs',
+      label: 'Sample Data (Nov 01 - 09)',
+      start: '2026-11-01 00:00:00',
+      end: '2026-11-09 23:59:59',
+    },
+  ];
+
+  const handleSelectPreset = (start: string, end: string) => {
+    if (manualFromDate === start && manualToDate === end) {
+      setManualFromDate('');
+      setManualToDate('');
+    } else {
+      setManualFromDate(start);
+      setManualToDate(end);
+    }
+  };
+
   const timesParts = (data?.daily_sync_times || '')
     .split(',')
     .map((t: string) => t.trim())
@@ -646,6 +689,69 @@ export function SettingsBiometric({ data, onChange, onRefresh, errors, onClearEr
 
             {/* Manual Sync Controls */}
             <Stack spacing={2}>
+              {/* Quick Select Presets */}
+              <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, mr: 0.5 }}>
+                  Quick Select:
+                </Typography>
+                {quickPresets.map((preset) => {
+                  const selected = manualFromDate === preset.start && manualToDate === preset.end;
+                  return (
+                    <Button
+                      key={preset.id}
+                      size="small"
+                      onClick={() => handleSelectPreset(preset.start, preset.end)}
+                      sx={{
+                        borderRadius: 1,
+                        py: 0.35,
+                        px: 1.25,
+                        fontWeight: 600,
+                        fontSize: '12px',
+                        textTransform: 'none',
+                        ...(selected
+                          ? {
+                              bgcolor: '#059669',
+                              color: 'common.white',
+                              boxShadow: '0 2px 6px 0 rgba(5, 150, 105, 0.35)',
+                              '&:hover': { bgcolor: '#047857' },
+                            }
+                          : {
+                              bgcolor: (theme) => alpha(theme.palette.grey[500], 0.08),
+                              color: 'text.secondary',
+                              border: (theme) => `1px solid ${alpha(theme.palette.grey[500], 0.16)}`,
+                              '&:hover': {
+                                bgcolor: (theme) => alpha(theme.palette.grey[500], 0.16),
+                                color: 'text.primary',
+                              },
+                            }),
+                      }}
+                    >
+                      {preset.label}
+                    </Button>
+                  );
+                })}
+                {(manualFromDate || manualToDate) && (
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setManualFromDate('');
+                      setManualToDate('');
+                    }}
+                    sx={{
+                      py: 0.35,
+                      px: 1,
+                      fontSize: '12px',
+                      textTransform: 'none',
+                      color: 'error.main',
+                      fontWeight: 600,
+                      '&:hover': { bgcolor: (theme) => alpha(theme.palette.error.main, 0.08) },
+                    }}
+                  >
+                    Clear Range
+                  </Button>
+                )}
+              </Stack>
+
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <DateTimePicker
@@ -655,7 +761,8 @@ export function SettingsBiometric({ data, onChange, onRefresh, errors, onClearEr
                     onChange={(newValue) => setManualFromDate(newValue ? newValue.format('YYYY-MM-DD HH:mm:ss') : '')}
                     slotProps={{
                       textField: {
-                        sx: { minWidth: 240 },
+                        size: 'small',
+                        sx: { minWidth: 220 },
                       },
                     }}
                   />
@@ -667,7 +774,8 @@ export function SettingsBiometric({ data, onChange, onRefresh, errors, onClearEr
                     onChange={(newValue) => setManualToDate(newValue ? newValue.format('YYYY-MM-DD HH:mm:ss') : '')}
                     slotProps={{
                       textField: {
-                        sx: { minWidth: 240 },
+                        size: 'small',
+                        sx: { minWidth: 220 },
                       },
                     }}
                   />

@@ -1499,9 +1499,9 @@ export function AttendanceReportView() {
                                                                                 );
                                                                             })()}
                                                                         </TableCell>
-                                                                        <TableCell>{row.in_time || '---'}</TableCell>
-                                                                        <TableCell>{row.out_time || '---'}</TableCell>
-                                                                        <TableCell>{row.working_hours_display || '---'}</TableCell>
+                                                                        <TableCell sx={{ fontWeight: 600 }}>{row.in_time || '---'}</TableCell>
+                                                                        <TableCell sx={{ fontWeight: 600 }}>{row.out_time || '---'}</TableCell>
+                                                                        <TableCell sx={{ fontWeight: 600 }}>{row.working_hours_display || '---'}</TableCell>
                                                                         <TableCell>
                                                                             <Typography
                                                                                 variant="body2"
