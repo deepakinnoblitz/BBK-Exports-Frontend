@@ -265,6 +265,43 @@ export async function fetchRosterHistory(params: {
   return json.message || [];
 }
 
+export interface ApplicableShiftResponse {
+  shift: string;
+  shift_name: string;
+  source: 'ROSTER' | 'ROTATION' | 'DEFAULT';
+  details?: {
+    shift_name?: string;
+    start_time?: string;
+    end_time?: string;
+    lunch_hours?: string;
+    break_hours?: string;
+    allow_overtime?: number | boolean;
+    overtime_hours?: number | string;
+    min_overtime_minutes?: number | string;
+  };
+}
+
+// Resolve the employee's applicable shift for a given date (Roster -> Rotation -> Employee Default)
+export async function getApplicableShift(
+  employee: string,
+  attendanceDate: string
+): Promise<ApplicableShiftResponse | null> {
+  if (!employee || !attendanceDate) return null;
+  const headers = await getAuthHeaders();
+  const res = await frappeRequest('/api/method/company.company.shift_roster_api.get_applicable_shift', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ employee, attendance_date: attendanceDate }),
+  });
+
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(handleFrappeError(json, 'Failed to resolve applicable shift'));
+  }
+
+  return json?.message || null;
+}
+
 // Fetch the currently effective shift for an employee
 // Returns the active assignment's shift for today, or null if none
 export async function fetchEffectiveShiftForEmployee(employeeId: string): Promise<string | null> {

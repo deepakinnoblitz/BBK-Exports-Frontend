@@ -15,6 +15,12 @@ import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 
+import {
+    formatMinutesAsHHMM,
+    parseShiftDurationMinutes,
+    computeAttendanceElapsedMinutes,
+} from 'src/utils/format-time';
+
 import { getEmployee } from 'src/api/employees';
 import { getHRDoc } from 'src/api/hr-management';
 import { getAttendanceTransferDetails } from 'src/api/attendance-transfer';
@@ -45,6 +51,7 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
 
     const [attendance, setAttendance] = useState<any>(null);
     const [employeeDetails, setEmployeeDetails] = useState<any>(null);
+    const [shiftDetails, setShiftDetails] = useState<any>(null);
     const [transferDetails, setTransferDetails] = useState<any>(null);
     const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -62,6 +69,14 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                         getEmployee(empId).then(setEmployeeDetails).catch(console.error).finally(() => setFetching(false));
                     } else {
                         setFetching(false);
+                    }
+
+                    if (data.shift) {
+                        getHRDoc('Shift', encodeURIComponent(data.shift))
+                            .then(setShiftDetails)
+                            .catch(() => setShiftDetails(null));
+                    } else {
+                        setShiftDetails(null);
                     }
 
                     if (data.is_transferred || data.attendance_transfer_ref) {
@@ -101,6 +116,27 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
         }
     };
 
+    const totalShiftBreakMinutes = shiftDetails
+        ? parseShiftDurationMinutes(shiftDetails.lunch_hours) +
+          parseShiftDurationMinutes(shiftDetails.break_hours)
+        : 0;
+    const elapsedMinutes = attendance
+        ? computeAttendanceElapsedMinutes(attendance.in_time, attendance.out_time)
+        : 0;
+
+    let lunchBreakDisplay = '0:00 (No Shift)';
+    if (attendance?.shift) {
+        if (!shiftDetails) {
+            lunchBreakDisplay = '-';
+        } else if (totalShiftBreakMinutes <= 0) {
+            lunchBreakDisplay = '0:00';
+        } else if (elapsedMinutes > 0 && elapsedMinutes <= totalShiftBreakMinutes) {
+            lunchBreakDisplay = `0:00 (${formatMinutesAsHHMM(totalShiftBreakMinutes)} not deducted)`;
+        } else {
+            lunchBreakDisplay = `${formatMinutesAsHHMM(totalShiftBreakMinutes)} deducted`;
+        }
+    }
+
     return (
         <>
             <Dialog
@@ -112,6 +148,7 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                 onExited: () => {
                     setAttendance(null);
                     setEmployeeDetails(null);
+                    setShiftDetails(null);
                     setTransferDetails(null);
                     setReasonDialogOpen(false);
                 }
@@ -447,6 +484,16 @@ export function AttendanceDetailsDialog({ open, onClose, attendanceId }: Props) 
                                     icon={"solar:clock-circle-bold" as any}
                                 />
                                 <DetailRow label="Working Hours" value={attendance.working_hours_display || '00:00'} icon="solar:stopwatch-bold" />
+                                <DetailRow
+                                    label="Shift"
+                                    value={attendance.shift ? shiftDetails?.shift_name || attendance.shift : 'Not Assigned'}
+                                    icon="solar:calendar-date-bold"
+                                />
+                                <DetailRow
+                                    label="Lunch / Break"
+                                    value={lunchBreakDisplay}
+                                    icon="solar:cup-hot-bold"
+                                />
                                 <DetailRow label="Overtime" value={attendance.official_overtime || attendance.overtime_display || '00:00'} icon="solar:stopwatch-bold" />
                                 {isSystemManager && (
                                     <DetailRow label="Extra Overtime" value={attendance.unofficial_overtime || '00:00'} icon="solar:stopwatch-bold" />
