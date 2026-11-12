@@ -1542,9 +1542,36 @@ export function EmployeeView() {
                     return;
                 }
 
+                const pendingFaceSave = Boolean(dataToSave._faceBiometricsPendingSave && dataToSave.face_descriptor);
+                const pendingFacePayload = pendingFaceSave
+                    ? {
+                        face_descriptor: dataToSave.face_descriptor,
+                        face_3d_landmarks: dataToSave.face_3d_landmarks,
+                        face_image: dataToSave.face_enrolled_image,
+                    }
+                    : null;
+                delete dataToSave._faceBiometricsPendingSave;
+                delete dataToSave._faceBiometricsPendingClear;
+                if (dataToSave.face_descriptor && typeof dataToSave.face_descriptor === 'object') {
+                    dataToSave.face_descriptor = JSON.stringify(dataToSave.face_descriptor);
+                }
+                if (dataToSave.face_3d_landmarks && typeof dataToSave.face_3d_landmarks === 'object') {
+                    dataToSave.face_3d_landmarks = JSON.stringify(dataToSave.face_3d_landmarks);
+                }
+
                 dataToSave.name = customId;
                 dataToSave.employee_id = customId;
                 await createEmployee(dataToSave as any);
+                if (pendingFacePayload) {
+                    try {
+                        await saveEmployeeFaceEmbedding({
+                            employee: customId,
+                            ...pendingFacePayload,
+                        });
+                    } catch (bioErr) {
+                        console.error('Failed to save face biometrics after create:', bioErr);
+                    }
+                }
                 handleCloseCreate();
                 setSnackbar({ open: true, message: 'Employee created successfully', severity: 'success' });
             }
@@ -3970,32 +3997,7 @@ export function EmployeeView() {
 
                             {currentTab === 3 && (
                                 <Box sx={{ py: 1 }}>
-                                    {!currentEmployeeId ? (
-                                        <Card sx={{ p: 4, textAlign: 'center', borderRadius: 2, bgcolor: (t) => alpha(t.palette.grey[500], 0.04), border: (t) => `1px dashed ${alpha(t.palette.grey[500], 0.25)}` }}>
-                                            <Box
-                                                sx={{
-                                                    width: 64,
-                                                    height: 64,
-                                                    borderRadius: '50%',
-                                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
-                                                    color: COMMON_COLORS.emerald.main,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    mx: 'auto',
-                                                    mb: 2,
-                                                }}
-                                            >
-                                                <Iconify icon={"solar:face-scan-circle-bold" as any} width={34} />
-                                            </Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-                                                Create Employee Profile First
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 440, mx: 'auto', mb: 3 }}>
-                                                Face biometrics are linked to an active Employee record. Please save basic employee details first, then you can immediately capture their biometric face scan.
-                                            </Typography>
-                                        </Card>
-                                    ) : formData.face_enrolled ? (
+                                    {formData.face_enrolled ?(
                                         <Card sx={{ p: 3, borderRadius: 2, border: (t) => `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.3)}`, bgcolor: (t) => alpha(COMMON_COLORS.emerald.main, 0.02) }}>
                                             <Stack spacing={3}>
                                                 <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
@@ -4084,7 +4086,7 @@ export function EmployeeView() {
                                                                 onClick={() =>
                                                                     setEnrollModal({
                                                                         open: true,
-                                                                        employeeId: currentEmployeeId,
+                                                                        employeeId: currentEmployeeId || formData.employee_id || '',
                                                                         employeeName: formData.employee_name || '',
                                                                         department: formData.department,
                                                                         designation: formData.designation,
@@ -4147,7 +4149,7 @@ export function EmployeeView() {
                                                 onClick={() =>
                                                     setEnrollModal({
                                                         open: true,
-                                                        employeeId: currentEmployeeId,
+                                                        employeeId: currentEmployeeId || formData.employee_id || '',
                                                         employeeName: formData.employee_name || '',
                                                         department: formData.department,
                                                         designation: formData.designation,
@@ -4256,7 +4258,7 @@ export function EmployeeView() {
                     currentPhoto={enrollModal.currentPhoto}
                     saveImmediately={false}
                     onSuccess={(res) => {
-                        if (currentEmployeeId && currentEmployeeId === enrollModal.employeeId) {
+                        if (!currentEmployeeId || currentEmployeeId === enrollModal.employeeId) {
                             setFormData((prev) => ({
                                 ...prev,
                                 face_enrolled: 1,
@@ -4270,7 +4272,9 @@ export function EmployeeView() {
                         }
                         setSnackbar({
                             open: true,
-                            message: 'Face biometrics captured! Click "Update Employee" to save changes.',
+                            message: currentEmployeeId
+                                ? 'Face biometrics captured! Click "Update Employee" to save changes.'
+                                : 'Face biometrics captured! Click "Create Employee" to save employee & biometrics.',
                             severity: 'success',
                         });
                     }}
