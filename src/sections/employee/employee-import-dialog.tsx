@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { useSnackbar } from 'notistack';
+import { MuiTelInput } from 'mui-tel-input';
 import { useState, useRef, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -32,6 +33,18 @@ import TableContainer from '@mui/material/TableContainer';
 import LinearProgress from '@mui/material/LinearProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
+
+import {
+    validatePhoneNumber,
+    isDialCodeOnlyPhone,
+    cleanPhoneForDisplay,
+    normalizeIdentityField,
+    UNIQUE_EMPLOYEE_FIELDS,
+    normalizePhoneForStorage,
+    normalizePhoneComparisonKey,
+    validateIdentityFieldFormat,
+    EMPLOYEE_IDENTITY_FIELD_LABELS,
+} from 'src/utils/employee-validation';
 
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
@@ -146,20 +159,110 @@ const filterBankAccountOptions = (listOptions: any[], params: any) => {
     return filtered;
 };
 
-const cleanPhoneField = (val: any): string => {
-    if (val === undefined || val === null) return '';
-    let s = String(val).trim();
-    if (!s) return '';
-    if (/^[0-9.]+[eE]\+[0-9]+$/.test(s)) {
-        try {
-            s = BigInt(Math.round(Number(s))).toString();
-        } catch {
-            // fallback
+const cleanPhoneField = (val: any): string => normalizePhoneForStorage(val, 'IN');
+
+const collectSheetFieldCounts = (rows: any[]) => {
+    const idCounts = new Map<string, number>();
+    const uniqueCounts: Record<string, Map<string, number>> = {};
+    UNIQUE_EMPLOYEE_FIELDS.forEach((f) => {
+        uniqueCounts[f] = new Map<string, number>();
+    });
+
+    rows.forEach((row) => {
+        const empId = String(row.name || row.employee_id || '').trim().toUpperCase();
+        if (empId) {
+            idCounts.set(empId, (idCounts.get(empId) || 0) + 1);
         }
-    } else if (s.endsWith('.0')) {
-        s = s.slice(0, -2);
+        UNIQUE_EMPLOYEE_FIELDS.forEach((f) => {
+            const key =
+                f === 'phone'
+                    ? normalizePhoneComparisonKey(row.phone, 'IN')
+                    : normalizeIdentityField(f, row[f]);
+            if (key) {
+                uniqueCounts[f].set(key, (uniqueCounts[f].get(key) || 0) + 1);
+            }
+        });
+    });
+
+    return { idCounts, uniqueCounts };
+};
+
+const validateImportEmployeeRow = (
+    empRecord: any,
+    sheetCounts: { idCounts: Map<string, number>; uniqueCounts: Record<string, Map<string, number>> },
+    masterBankOptions: any[]
+): string[] => {
+    const errors: string[] = [];
+    const empDocName = String(empRecord.name || empRecord.employee_id || '').trim();
+
+    if (!empDocName) {
+        errors.push('Missing Employee ID');
+    } else if ((sheetCounts.idCounts.get(empDocName.toUpperCase()) || 0) > 1) {
+        errors.push('Duplicate Employee ID in sheet');
     }
-    return s;
+
+    if (!empRecord.employee_name?.trim()) {
+        errors.push('Missing Employee Name');
+    }
+
+    if (!empRecord.email?.trim()) {
+        errors.push('Missing Email');
+    }
+
+    const hasBankDetails = Boolean(
+        empRecord.bank_details ||
+        (empRecord.bank_account && String(empRecord.bank_account).trim() !== '') ||
+        (empRecord.account_number && String(empRecord.account_number).trim() !== '')
+    );
+    if (hasBankDetails) {
+        const matchedMaster = matchMasterBankAccount(
+            empRecord.bank_details,
+            empRecord.bank_account,
+            masterBankOptions
+        );
+        if (!matchedMaster) {
+            const displayBank =
+                (empRecord.bank_details?.bank_name && empRecord.bank_details?.account_number
+                    ? `${empRecord.bank_details.bank_name} (${empRecord.bank_details.account_number})`
+                    : empRecord.bank_details?.bank_name) ||
+                empRecord.bank_details?.bank_account_name ||
+                empRecord.bank_details?.account_number ||
+                empRecord.bank_account ||
+                'Specified';
+            errors.push(`Bank Account '${displayBank}' not found in master Bank Account List`);
+        }
+    }
+
+    for (const phoneField of ['phone', 'office_phone_number'] as const) {
+        const phoneErr = validatePhoneNumber(
+            empRecord[phoneField],
+            EMPLOYEE_IDENTITY_FIELD_LABELS[phoneField],
+            { defaultCountry: 'IN' }
+        );
+        if (phoneErr) {
+            errors.push(phoneErr);
+        }
+    }
+
+    for (const idField of ['aadhar_number', 'pan_number', 'uan_number', 'esi_no'] as const) {
+        const fmtErr = validateIdentityFieldFormat(idField, empRecord[idField]);
+        if (fmtErr) {
+            errors.push(fmtErr);
+        }
+    }
+
+    for (const uniqueField of UNIQUE_EMPLOYEE_FIELDS) {
+        const key =
+            uniqueField === 'phone'
+                ? normalizePhoneComparisonKey(empRecord.phone, 'IN')
+                : normalizeIdentityField(uniqueField, empRecord[uniqueField]);
+        if (key && (sheetCounts.uniqueCounts[uniqueField]?.get(key) || 0) > 1) {
+            const label = EMPLOYEE_IDENTITY_FIELD_LABELS[uniqueField] || uniqueField;
+            errors.push(`Duplicate ${label} in sheet`);
+        }
+    }
+
+    return errors;
 };
 
 const matchMasterBankAccount = (
@@ -730,7 +833,6 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
 
         // Transform rows
         const processedRows: any[] = [];
-        const seenIds = new Set<string>();
 
         sheetRows.forEach((row, rIdx) => {
             const empRecord: any = {
@@ -773,6 +875,14 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                     }
                 } else if (targetField === 'phone' || targetField === 'office_phone_number') {
                     empRecord[targetField] = cleanPhoneField(cellVal);
+                } else if (
+                    targetField === 'aadhar_number' ||
+                    targetField === 'pan_number' ||
+                    targetField === 'uan_number' ||
+                    targetField === 'esi_no' ||
+                    targetField === 'pf_number'
+                ) {
+                    empRecord[targetField] = normalizeIdentityField(targetField, cellVal);
                 } else {
                     empRecord[targetField] = cellVal;
                 }
@@ -799,56 +909,24 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 }
             }
 
-            // Bank details validation: only allow import if bank matches master Bank Account List
-            const hasBankDetails = Boolean(
-                matchedBank ||
-                (empRecord.bank_account && String(empRecord.bank_account).trim() !== '') ||
-                (empRecord.account_number && String(empRecord.account_number).trim() !== '')
+            // Normalize master bank reference when matched
+            const matchedMaster = matchMasterBankAccount(
+                matchedBank,
+                empRecord.bank_account,
+                fieldOptions.bank_account
             );
-
-            if (hasBankDetails) {
-                const matchedMaster = matchMasterBankAccount(
-                    matchedBank,
-                    empRecord.bank_account,
-                    fieldOptions.bank_account
-                );
-
-                if (matchedMaster) {
-                    empRecord.bank_account = matchedMaster.name || matchedMaster.account_number;
-                    empRecord.account_number = matchedMaster.account_number || empRecord.account_number;
-                    empRecord.bank_account_name = matchedMaster.bank_account_name || empRecord.bank_account_name;
-                } else {
-                    const displayBank = (
-                        (matchedBank?.bank_name && matchedBank?.account_number
-                            ? `${matchedBank.bank_name} (${matchedBank.account_number})`
-                            : matchedBank?.bank_name) ||
-                        matchedBank?.bank_account_name ||
-                        matchedBank?.account_number ||
-                        empRecord.bank_account ||
-                        'Specified'
-                    );
-                    empRecord._errors.push(`Bank Account '${displayBank}' not found in master Bank Account List`);
-                }
-            }
-
-            // Validation
-            if (!empDocName) {
-                empRecord._errors.push('Missing Employee ID');
-            } else if (seenIds.has(empDocName.toUpperCase())) {
-                empRecord._errors.push('Duplicate Employee ID in sheet');
-            } else {
-                seenIds.add(empDocName.toUpperCase());
-            }
-
-            if (!empRecord.employee_name) {
-                empRecord._errors.push('Missing Employee Name');
-            }
-
-            if (!empRecord.email) {
-                empRecord._errors.push('Missing Email');
+            if (matchedMaster) {
+                empRecord.bank_account = matchedMaster.name || matchedMaster.account_number;
+                empRecord.account_number = matchedMaster.account_number || empRecord.account_number;
+                empRecord.bank_account_name = matchedMaster.bank_account_name || empRecord.bank_account_name;
             }
 
             processedRows.push(empRecord);
+        });
+
+        const sheetCounts = collectSheetFieldCounts(processedRows);
+        processedRows.forEach((empRecord) => {
+            empRecord._errors = validateImportEmployeeRow(empRecord, sheetCounts, fieldOptions.bank_account);
         });
 
         setPreviewRows(processedRows);
@@ -860,20 +938,31 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
     // ----------------------------------------------------
     const handleOpenEdit = (index: number) => {
         setEditingIndex(index);
-        setEditForm(JSON.parse(JSON.stringify(previewRows[index])));
+        const clone = JSON.parse(JSON.stringify(previewRows[index]));
+        if (clone.phone) clone.phone = cleanPhoneForDisplay(clone.phone);
+        if (clone.office_phone_number) clone.office_phone_number = cleanPhoneForDisplay(clone.office_phone_number);
+        setEditForm(clone);
     };
 
     const handleSaveEdit = () => {
         if (editingIndex === null || !editForm) return;
 
-        const updatedErrors: string[] = [];
         const editDocName = String(editForm.name || editForm.employee_id || '').trim();
         editForm.name = editDocName;
         editForm.employee_id = editDocName;
 
-        if (!editDocName) updatedErrors.push('Missing Employee ID');
-        if (!editForm.employee_name?.trim()) updatedErrors.push('Missing Employee Name');
-        if (!editForm.email?.trim()) updatedErrors.push('Missing Email');
+        for (const pField of ['phone', 'office_phone_number'] as const) {
+            if (editForm[pField]) {
+                editForm[pField] = isDialCodeOnlyPhone(editForm[pField])
+                    ? ''
+                    : normalizePhoneForStorage(editForm[pField], 'IN');
+            }
+        }
+        for (const idField of ['aadhar_number', 'pan_number', 'uan_number', 'esi_no', 'pf_number'] as const) {
+            if (editForm[idField] !== undefined) {
+                editForm[idField] = normalizeIdentityField(idField, editForm[idField]);
+            }
+        }
 
         // Re-validate Bank Account if provided
         const hasBankDetailsInEdit = Boolean(
@@ -889,25 +978,21 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 fieldOptions.bank_account
             );
 
-            if (!matchedMaster) {
-                const displayBank = editForm.bank_account || editForm.account_number || 'Specified';
-                updatedErrors.push(`Bank Account '${displayBank}' not found in master Bank Account List`);
-            } else {
+            if (matchedMaster) {
                 editForm.bank_account = matchedMaster.name || matchedMaster.account_number;
                 editForm.account_number = matchedMaster.account_number || editForm.account_number;
                 editForm.bank_account_name = matchedMaster.bank_account_name || editForm.bank_account_name;
             }
         }
 
-        const updated = {
-            ...editForm,
-            _errors: updatedErrors,
-        };
-
         setPreviewRows((prev) => {
             const next = [...prev];
-            next[editingIndex] = updated;
-            return next;
+            next[editingIndex] = { ...editForm };
+            const sheetCounts = collectSheetFieldCounts(next);
+            return next.map((row) => ({
+                ...row,
+                _errors: validateImportEmployeeRow(row, sheetCounts, fieldOptions.bank_account),
+            }));
         });
 
         setEditingIndex(null);
@@ -1002,7 +1087,14 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
     };
 
     const handleDeletePreviewRow = (rowIndex: number) => {
-        setPreviewRows((prev) => prev.filter((_, idx) => idx !== rowIndex));
+        setPreviewRows((prev) => {
+            const next = prev.filter((_, idx) => idx !== rowIndex);
+            const sheetCounts = collectSheetFieldCounts(next);
+            return next.map((row) => ({
+                ...row,
+                _errors: validateImportEmployeeRow(row, sheetCounts, fieldOptions.bank_account),
+            }));
+        });
     };
 
     // ----------------------------------------------------
@@ -1990,11 +2082,31 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                         value={editForm.date_of_joining || ''}
                                         onChange={(e) => setEditForm({ ...editForm, date_of_joining: e.target.value })}
                                     />
-                                    <TextField
+                                    <MuiTelInput
                                         label="Personal Phone"
                                         size="small"
+                                        defaultCountry="IN"
                                         value={editForm.phone || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                                        onChange={(newVal: string) => setEditForm({ ...editForm, phone: newVal })}
+                                        error={!!validatePhoneNumber(editForm.phone, EMPLOYEE_IDENTITY_FIELD_LABELS.phone, { defaultCountry: 'IN' })}
+                                        helperText={validatePhoneNumber(editForm.phone, EMPLOYEE_IDENTITY_FIELD_LABELS.phone, { defaultCountry: 'IN' }) || ''}
+                                    />
+                                    <MuiTelInput
+                                        label="Office Phone"
+                                        size="small"
+                                        defaultCountry="IN"
+                                        value={editForm.office_phone_number || ''}
+                                        onChange={(newVal: string) => setEditForm({ ...editForm, office_phone_number: newVal })}
+                                        error={!!validatePhoneNumber(editForm.office_phone_number, EMPLOYEE_IDENTITY_FIELD_LABELS.office_phone_number, { defaultCountry: 'IN' })}
+                                        helperText={validatePhoneNumber(editForm.office_phone_number, EMPLOYEE_IDENTITY_FIELD_LABELS.office_phone_number, { defaultCountry: 'IN' }) || ''}
+                                    />
+                                    <TextField
+                                        label="Aadhar Number"
+                                        size="small"
+                                        value={editForm.aadhar_number || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, aadhar_number: e.target.value })}
+                                        error={!!validateIdentityFieldFormat('aadhar_number', editForm.aadhar_number)}
+                                        helperText={validateIdentityFieldFormat('aadhar_number', editForm.aadhar_number) || ''}
                                     />
                                     <TextField
                                         label="Date of Birth"
@@ -2393,16 +2505,29 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                         onChange={(e) => setEditForm({ ...editForm, pf_number: e.target.value })}
                                     />
                                     <TextField
+                                        label="UAN Number"
+                                        size="small"
+                                        value={editForm.uan_number || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, uan_number: e.target.value })}
+                                        error={!!validateIdentityFieldFormat('uan_number', editForm.uan_number)}
+                                        helperText={validateIdentityFieldFormat('uan_number', editForm.uan_number) || ''}
+                                    />
+                                    <TextField
                                         label="ESI No"
                                         size="small"
                                         value={editForm.esi_no || ''}
                                         onChange={(e) => setEditForm({ ...editForm, esi_no: e.target.value })}
+                                        error={!!validateIdentityFieldFormat('esi_no', editForm.esi_no)}
+                                        helperText={validateIdentityFieldFormat('esi_no', editForm.esi_no) || ''}
                                     />
                                     <TextField
                                         label="PAN Number"
                                         size="small"
+                                        inputProps={{ maxLength: 10 }}
                                         value={editForm.pan_number || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, pan_number: e.target.value })}
+                                        onChange={(e) => setEditForm({ ...editForm, pan_number: e.target.value.toUpperCase() })}
+                                        error={!!validateIdentityFieldFormat('pan_number', editForm.pan_number)}
+                                        helperText={validateIdentityFieldFormat('pan_number', editForm.pan_number) || ''}
                                     />
                                 </Box>
                             </Box>
