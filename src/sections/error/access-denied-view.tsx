@@ -10,8 +10,16 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { useSettingsContext } from 'src/hooks/settings-context';
+
+import {
+    getSafeLogoUrl,
+    DEFAULT_FULL_LOGO,
+    handleLogoImgError,
+    getCompanyDisplayName,
+} from 'src/utils/branding';
+
 import { logout } from 'src/api/auth';
-import { CONFIG } from 'src/config-global';
 import { hasValidRole } from 'src/layouts/nav-config-dashboard';
 
 import { Iconify } from 'src/components/iconify';
@@ -23,6 +31,9 @@ import { useAuth } from 'src/auth/auth-context';
 export function AccessDeniedView() {
     const router = useRouter();
     const { user, setUser } = useAuth();
+    const { settings } = useSettingsContext();
+    const logoUrl = getSafeLogoUrl(settings?.app_logo, DEFAULT_FULL_LOGO);
+    const companyName = getCompanyDisplayName(settings);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     // Redirect to dashboard if user gains valid access
@@ -61,12 +72,16 @@ export function AccessDeniedView() {
                 }}
             >
                 <Box
+                    key={logoUrl}
                     component="img"
-                    src={`${CONFIG.assetsDir}/logo/Innoblitz%20Logo%20Full.png`}
-                    alt="Innoblitz Logo"
+                    src={logoUrl}
+                    alt={companyName || 'Company Logo'}
+                    onError={(e) => handleLogoImgError(e, DEFAULT_FULL_LOGO)}
                     sx={{
                         width: 200,
                         height: 'auto',
+                        maxHeight: 120,
+                        objectFit: 'contain',
                         mb: 4,
                     }}
                 />

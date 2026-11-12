@@ -1,39 +1,45 @@
 import { useState, useEffect, useCallback } from 'react';
 
-import { getHRMSSettings } from 'src/api/settings';
+import { getAppBranding, getHRMSSettings } from 'src/api/settings';
 
-const SETTINGS_KEY = 'hrms_settings_cache';
+import { useOptionalSettingsContext } from './settings-context';
 
 export function useHRMSSettings() {
-    const [settings, setSettings] = useState<any>(() => {
-        const cached = localStorage.getItem(SETTINGS_KEY);
-        return cached ? JSON.parse(cached) : null;
-    });
-    const [loading, setLoading] = useState(!settings);
+    const context = useOptionalSettingsContext();
+    const [fallbackSettings, setFallbackSettings] = useState<any>(null);
+    const [fallbackLoading, setFallbackLoading] = useState(!context);
 
-    const fetchSettings = useCallback(async () => {
-        if (window.location.pathname.includes('/sign-in')) {
-            setLoading(false);
-            return;
-        }
-        setLoading(true);
+    const fetchFallback = useCallback(async () => {
+        setFallbackLoading(true);
         try {
-            const result = await getHRMSSettings();
+            const isSignInPage = window.location.pathname.includes('/sign-in');
+            const result = isSignInPage ? await getAppBranding() : await getHRMSSettings();
             if (result) {
-                setSettings(result);
-                localStorage.setItem(SETTINGS_KEY, JSON.stringify(result));
+                setFallbackSettings(result);
+                return result;
             }
         } catch (error) {
             console.error('Failed to fetch HRMS settings:', error);
         } finally {
-            setLoading(false);
+            setFallbackLoading(false);
         }
+        return null;
     }, []);
 
     useEffect(() => {
-        fetchSettings();
-    }, [fetchSettings]);
+        if (!context) {
+            fetchFallback();
+        }
+    }, [context, fetchFallback]);
 
-    return { settings, loading, refetch: fetchSettings };
+    if (context) {
+        return context;
+    }
+
+    return {
+        settings: fallbackSettings,
+        loading: fallbackLoading,
+        refetch: fetchFallback,
+    };
 }
 

@@ -30,7 +30,7 @@ import { SettingsNotifications } from '../settings-notifications';
 // ----------------------------------------------------------------------
 
 const TABS = [
-  { value: 'logo', label: 'Logo', icon: <RiImageLine size={22} /> },
+  { value: 'logo', label: 'Logo & Branding', icon: <RiImageLine size={22} /> },
   { value: 'biometric', label: 'Biometric Integration', icon: <RiFingerprintLine size={22} /> },
   // { value: 'sidebar', label: 'Sidebar', icon: <RiLayoutMasonryLine size={22} /> },
   // { value: 'dashboard', label: 'Dashboard', icon: <RiDashboardLine size={22} /> },
@@ -259,7 +259,14 @@ export function SettingsView() {
         {currentTab === 'logo' && (
           <SettingsLogo
             value={formData?.app_logo}
+            companyName={formData?.company_name}
             onUpload={(url) => handleUpdateField('app_logo', url)}
+            onCompanyNameChange={(name) => handleUpdateField('company_name', name)}
+            hasUnsavedChanges={
+              Boolean(formData) &&
+              ((formData?.app_logo ?? '') !== (settings?.app_logo ?? '') ||
+                (formData?.company_name ?? null) !== (settings?.company_name ?? null))
+            }
           />
         )}
 
