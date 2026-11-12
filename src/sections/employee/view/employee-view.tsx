@@ -1,3 +1,5 @@
+import type { MuiTelInputInfo } from 'mui-tel-input';
+
 import dayjs from 'dayjs';
 import { MuiTelInput } from 'mui-tel-input';
 import { LuUserCheck } from 'react-icons/lu';
@@ -43,6 +45,16 @@ import { useRouter } from 'src/routes/hooks';
 import { useEmployees } from 'src/hooks/useEmployees';
 
 import { fNumber } from 'src/utils/format-number';
+import {
+    validatePhoneNumber,
+    isDialCodeOnlyPhone,
+    cleanPhoneForDisplay,
+    normalizeIdentityField,
+    UNIQUE_EMPLOYEE_FIELDS,
+    normalizePhoneForStorage,
+    validateIdentityFieldFormat,
+    EMPLOYEE_IDENTITY_FIELD_LABELS,
+} from 'src/utils/employee-validation';
 
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
@@ -51,9 +63,9 @@ import { getStates, getCities } from 'src/api/location';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getBusTravelRoute, fetchBankAccounts } from 'src/api/masters';
 import { getHRSettings, fetchFrappeList, getHRPermissions, getDocTypeMetadata, fetchSalaryComponents } from 'src/api/hr-management';
-import { getEmployee, createEmployee, updateEmployee, deleteEmployee, renameEmployee, getNextEmployeeId, checkEmployeeIdAvailable } from 'src/api/employees';
 import { saveEmployeeFaceEmbedding, createLineRosterAssignment, clearEmployeeFaceEmbedding, fetchEffectiveLineForEmployee, deleteOrCancelLineRosterAssignment } from 'src/api/line-roster';
 import { fetchEffectiveShiftForEmployee, createRosterAssignment as createShiftRosterAssignment, deleteOrCancelRosterAssignment as deleteOrCancelShiftRosterAssignment } from 'src/api/shift-roster';
+import { getEmployee, renameEmployee, createEmployee, updateEmployee, deleteEmployee, getNextEmployeeId, checkEmployeeIdAvailable, checkEmployeeFieldAvailable, checkEmployeeFieldsAvailable } from 'src/api/employees';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -623,26 +635,83 @@ export function EmployeeView() {
 
     const cleanPhoneNumber = (val: string) => {
         if (!val) return '';
-        if (val.startsWith('+') && val.includes('-')) {
-            return val.replace('-', ' ');
+        if (val.includes('-') || (val.startsWith('+') && !val.includes(' '))) {
+            return cleanPhoneForDisplay(val);
         }
         return val;
     };
 
-    const formatPhoneNumberCustom = (val: string) => {
-        if (!val) return '';
-        let formatted = val.replace(/\s/g, '');
-        const parts = val.trim().split(/\s+/);
-        if (parts.length > 1 && parts[0].startsWith('+')) {
-            formatted = `${parts[0]}-${parts.slice(1).join('')}`;
+    const handlePhoneChange = (fieldname: string, newValue: string, _info?: MuiTelInputInfo) => {
+        setFormData((prev) => ({ ...prev, [fieldname]: newValue }));
+        if (formErrors[fieldname]) {
+            setFormErrors((prev) => ({ ...prev, [fieldname]: '' }));
         }
-        return formatted;
+    };
+
+    const handlePhoneBlur = async (fieldname: 'phone' | 'office_phone_number', info?: MuiTelInputInfo) => {
+        const label = EMPLOYEE_IDENTITY_FIELD_LABELS[fieldname] || 'Phone Number';
+        const rawVal = String(formData[fieldname] || '');
+
+        if (isDialCodeOnlyPhone(rawVal)) {
+            setFormData((prev) => ({ ...prev, [fieldname]: '' }));
+            setFormErrors((prev) => {
+                if (!prev[fieldname]) return prev;
+                const next = { ...prev };
+                delete next[fieldname];
+                return next;
+            });
+            return;
+        }
+
+        const formatErr = validatePhoneNumber(rawVal, label, { info });
+        if (formatErr) {
+            setFormErrors((prev) => ({ ...prev, [fieldname]: formatErr }));
+            return;
+        }
+
+        if (fieldname === 'phone') {
+            const normalized = normalizePhoneForStorage(rawVal);
+            const check = await checkEmployeeFieldAvailable('phone', normalized, currentEmployeeId);
+            if (!check.valid || !check.available) {
+                setFormErrors((prev) => ({ ...prev, phone: check.message }));
+            }
+        }
+    };
+
+    const handleIdentityFieldBlur = async (fieldname: string) => {
+        const rawVal = formData[fieldname];
+        const normalized = normalizeIdentityField(fieldname, rawVal);
+
+        if (rawVal !== normalized) {
+            setFormData((prev) => ({ ...prev, [fieldname]: normalized }));
+        }
+
+        if (!normalized) {
+            setFormErrors((prev) => {
+                if (!prev[fieldname]) return prev;
+                const next = { ...prev };
+                delete next[fieldname];
+                return next;
+            });
+            return;
+        }
+
+        const formatErr = validateIdentityFieldFormat(fieldname, normalized);
+        if (formatErr) {
+            setFormErrors((prev) => ({ ...prev, [fieldname]: formatErr }));
+            return;
+        }
+
+        const check = await checkEmployeeFieldAvailable(fieldname, normalized, currentEmployeeId);
+        if (!check.valid || !check.available) {
+            setFormErrors((prev) => ({ ...prev, [fieldname]: check.message }));
+        }
     };
 
     const handleInputChange = async (fieldname: string, value: any) => {
         let finalValue = value;
-        if (fieldname === 'phone' || fieldname === 'office_phone_number') {
-            finalValue = formatPhoneNumberCustom(value);
+        if (fieldname === 'pan_number' && typeof finalValue === 'string') {
+            finalValue = finalValue.toUpperCase();
         }
 
         if (fieldname === 'bus_travel_route') {
@@ -1157,6 +1226,29 @@ export function EmployeeView() {
             errors.personal_email = 'Invalid email format';
         }
 
+        const personalPhoneErr = validatePhoneNumber(
+            formData.phone,
+            EMPLOYEE_IDENTITY_FIELD_LABELS.phone
+        );
+        if (personalPhoneErr) {
+            errors.phone = personalPhoneErr;
+        }
+
+        const officePhoneErr = validatePhoneNumber(
+            formData.office_phone_number,
+            EMPLOYEE_IDENTITY_FIELD_LABELS.office_phone_number
+        );
+        if (officePhoneErr) {
+            errors.office_phone_number = officePhoneErr;
+        }
+
+        for (const idField of ['aadhar_number', 'pan_number', 'uan_number', 'esi_no'] as const) {
+            const idErr = validateIdentityFieldFormat(idField, formData[idField]);
+            if (idErr) {
+                errors[idField] = idErr;
+            }
+        }
+
         if (formData.status === 'Inactive' && formData.date_of_leaving && formData.date_of_joining) {
             if (new Date(formData.date_of_leaving) < new Date(formData.date_of_joining)) {
                 errors.date_of_leaving = 'Date of Leaving cannot be before Joining Date';
@@ -1229,6 +1321,55 @@ export function EmployeeView() {
             if (dataToSave.employee_name) dataToSave.employee_name = dataToSave.employee_name.trim();
             if (dataToSave.employee_id) dataToSave.employee_id = dataToSave.employee_id.trim();
             if (dataToSave.email) dataToSave.email = dataToSave.email.trim();
+            if (dataToSave.personal_email) dataToSave.personal_email = dataToSave.personal_email.trim();
+
+            dataToSave.phone = normalizePhoneForStorage(dataToSave.phone);
+            dataToSave.office_phone_number = normalizePhoneForStorage(dataToSave.office_phone_number);
+
+            for (const idField of UNIQUE_EMPLOYEE_FIELDS) {
+                if (idField === 'phone') continue;
+                dataToSave[idField] = normalizeIdentityField(idField, dataToSave[idField]);
+            }
+
+            // Server-side format & uniqueness verification before uploads, rename, or confirmation dialogs
+            const fieldsToVerify: Record<string, string> = {};
+            for (const field of UNIQUE_EMPLOYEE_FIELDS) {
+                if (dataToSave[field]) {
+                    fieldsToVerify[field] = dataToSave[field];
+                }
+            }
+            if (dataToSave.office_phone_number) {
+                fieldsToVerify.office_phone_number = dataToSave.office_phone_number;
+            }
+
+            if (Object.keys(fieldsToVerify).length > 0) {
+                const uniqueCheck = await checkEmployeeFieldsAvailable(fieldsToVerify, currentEmployeeId);
+                if (!uniqueCheck.valid) {
+                    const nextErrors: Record<string, string> = {};
+                    Object.entries(uniqueCheck.results || {}).forEach(([fname, res]) => {
+                        if (!res.valid || !res.available) {
+                            nextErrors[fname] = res.message;
+                        }
+                    });
+                    const firstField = Object.keys(nextErrors)[0];
+                    const firstMsg = nextErrors[firstField] || 'Please check duplicate or invalid fields';
+                    setCurrentTab(0);
+                    setFormErrors((prev) => ({ ...prev, ...nextErrors }));
+                    setServerAlert({ message: firstMsg, severity: 'error' });
+                    setSnackbar({ open: true, message: firstMsg, severity: 'error' });
+                    setTimeout(() => {
+                        if (firstField) {
+                            const el = document.querySelector(`[name="${firstField}"]`);
+                            if (el) {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                (el as HTMLElement).focus();
+                            }
+                        }
+                    }, 200);
+                    setCreating(false);
+                    return;
+                }
+            }
 
             // Handle pending document uploads
             const documents = [...(dataToSave.documents || [])];
@@ -1401,9 +1542,25 @@ export function EmployeeView() {
         } catch (err: any) {
             console.error(err);
             const msg = err.message || 'Error saving employee';
-            if (msg.toLowerCase().includes('employee_id') || msg.toLowerCase().includes('employee id') || msg.toLowerCase().includes('duplicate entry')) {
+            const lower = msg.toLowerCase();
+            const fieldErrorMatchers: Array<[string, string]> = [
+                ['aadhar', 'aadhar_number'],
+                ['pan number', 'pan_number'],
+                ['uan', 'uan_number'],
+                ['esi', 'esi_no'],
+                ['pf number', 'pf_number'],
+                ['personal phone', 'phone'],
+                ['office phone', 'office_phone_number'],
+                ['personal email', 'personal_email'],
+                ['employee_id', 'employee_id'],
+                ['employee id', 'employee_id'],
+            ];
+            const matched = fieldErrorMatchers.find(([needle]) => lower.includes(needle));
+            if (matched) {
                 setCurrentTab(0);
-                setFormErrors(prev => ({ ...prev, employee_id: 'This Employee ID already exists' }));
+                setFormErrors((prev) => ({ ...prev, [matched[1]]: msg }));
+            } else if (lower.includes('duplicate entry')) {
+                setCurrentTab(0);
             }
             setServerAlert({ message: msg, severity: 'error' });
         } finally {
@@ -1800,7 +1957,12 @@ export function EmployeeView() {
                     {...commonProps}
                     defaultCountry="IN"
                     value={cleanPhoneNumber(formData[fieldname] || '')}
-                    onChange={(newValue: string) => handleInputChange(fieldname, newValue)}
+                    onChange={(newValue: string, info: MuiTelInputInfo) =>
+                        handlePhoneChange(fieldname, newValue, info)
+                    }
+                    onBlur={(_event: any, info: MuiTelInputInfo) =>
+                        handlePhoneBlur(fieldname as 'phone' | 'office_phone_number', info)
+                    }
                 />
             );
         }
@@ -3625,7 +3787,10 @@ export function EmployeeView() {
                                             {renderField('sex', 'Gender', 'select', ['Male', 'Female', 'Other'])}
                                             {renderField('marital_status', 'Marital Status', 'select', ['Single', 'Married', 'Divorced', 'Widowed'])}
                                             {renderField('qualification', 'Qualification', 'link', fieldOptions['qualification'] || [])}
-                                            {renderField('aadhar_number', 'Aadhar Number')}
+                                            {renderField('aadhar_number', 'Aadhar Number', 'text', [], {
+                                                placeholder: 'Enter 12-digit Aadhar Number',
+                                                onBlur: () => handleIdentityFieldBlur('aadhar_number'),
+                                            })}
                                             {renderField('country', 'Country', 'autocomplete', fieldOptions['country'] || [])}
                                             {renderField('state', 'State', 'autocomplete', stateOptions)}
                                             {renderField('city', 'City', 'autocomplete', cityOptions)}
@@ -3661,10 +3826,21 @@ export function EmployeeView() {
                                         <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>Financial & Bank Details</Typography>
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
                                             {renderField('bank_account', 'Bank Account', 'autocomplete', fieldOptions['bank_account'] || [])}
-                                            {renderField('pf_number', 'PF Number')}
-                                            {renderField('uan_number', 'UAN Number')}
-                                            {renderField('esi_no', 'ESI No')}
-                                            {renderField('pan_number', 'PAN Number')}
+                                            {renderField('pf_number', 'PF Number', 'text', [], {
+                                                onBlur: () => handleIdentityFieldBlur('pf_number'),
+                                            })}
+                                            {renderField('uan_number', 'UAN Number', 'text', [], {
+                                                placeholder: 'Enter 12-digit UAN Number',
+                                                onBlur: () => handleIdentityFieldBlur('uan_number'),
+                                            })}
+                                            {renderField('esi_no', 'ESI No', 'text', [], {
+                                                onBlur: () => handleIdentityFieldBlur('esi_no'),
+                                            })}
+                                            {renderField('pan_number', 'PAN Number', 'text', [], {
+                                                placeholder: 'e.g. ABCDE1234F',
+                                                inputProps: { maxLength: 10 },
+                                                onBlur: () => handleIdentityFieldBlur('pan_number'),
+                                            })}
                                         </Box>
                                     </>
                                 </Box>
