@@ -71,6 +71,8 @@ export function SettingsView() {
   });
 
   const [biometricErrors, setBiometricErrors] = useState<Record<string, string>>({});
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const [logoErrorHighlightKey, setLogoErrorHighlightKey] = useState(0);
 
   const { user } = useAuth();
   const isAuthorized = (user?.roles || []).some((role: string) =>
@@ -149,6 +151,12 @@ export function SettingsView() {
         await updateBiometricSettings(biometricSettings);
         await fetchBioSettings();
       } else {
+        if (currentTab === 'logo' && logoError) {
+          setLogoErrorHighlightKey((prev) => prev + 1);
+          setSnackbar({ open: true, message: logoError, severity: 'error' });
+          setSaving(false);
+          return;
+        }
         await updateHRMSSettings(formData);
       }
       setSnackbar({ open: true, message: 'Settings updated successfully', severity: 'success' });
@@ -260,6 +268,9 @@ export function SettingsView() {
           <SettingsLogo
             value={formData?.app_logo}
             companyName={formData?.company_name}
+            error={logoError}
+            errorHighlightKey={logoErrorHighlightKey}
+            onErrorChange={setLogoError}
             onUpload={(url) => handleUpdateField('app_logo', url)}
             onCompanyNameChange={(name) => handleUpdateField('company_name', name)}
             hasUnsavedChanges={

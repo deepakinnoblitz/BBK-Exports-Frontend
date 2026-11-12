@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -6,6 +6,7 @@ import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
+import { alpha } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -26,6 +27,9 @@ import { Iconify } from 'src/components/iconify';
 type Props = {
   value?: string;
   companyName?: string | null;
+  error?: string | null;
+  errorHighlightKey?: number;
+  onErrorChange?: (error: string | null) => void;
   onUpload: (url: string) => void;
   onCompanyNameChange: (name: string) => void;
   hasUnsavedChanges?: boolean;
@@ -34,13 +38,28 @@ type Props = {
 export function SettingsLogo({
   value,
   companyName,
+  error = null,
+  errorHighlightKey = 0,
+  onErrorChange,
   onUpload,
   onCompanyNameChange,
   hasUnsavedChanges = false,
 }: Props) {
   const [uploading, setUploading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
+  const [isHighlighted, setIsHighlighted] = useState(false);
+  const alertRef = useRef<HTMLDivElement | null>(null);
+
+  const activeError = onErrorChange ? error : localError;
+
+  const setError = (msg: string | null) => {
+    if (onErrorChange) {
+      onErrorChange(msg);
+    } else {
+      setLocalError(msg);
+    }
+  };
 
   const previewUrl = getSafeLogoUrl(value, '');
   const displayCompanyName =
@@ -50,21 +69,29 @@ export function SettingsLogo({
     setPreviewError(false);
   }, [value]);
 
+  useEffect(() => {
+    if (!errorHighlightKey || !activeError) return undefined;
+    setIsHighlighted(true);
+    alertRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const timer = window.setTimeout(() => setIsHighlighted(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, [errorHighlightKey, activeError]);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
 
-    setErrorMsg(null);
+    setError(null);
     const lowerName = file.name.toLowerCase();
     const hasAllowedExt = ALLOWED_LOGO_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
     if (!hasAllowedExt) {
-      setErrorMsg('Please select a *.png, *.jpg, *.jpeg, or *.svg image file.');
+      setError('Please select a *.png, *.jpg, *.jpeg, or *.svg image file.');
       return;
     }
 
     if (file.size > MAX_LOGO_FILE_SIZE_BYTES) {
-      setErrorMsg('Logo image exceeds the maximum size of 2MB.');
+      setError('Logo image exceeds the maximum size of 2MB.');
       return;
     }
 
@@ -81,9 +108,9 @@ export function SettingsLogo({
       if (uploaded?.file_url) {
         onUpload(uploaded.file_url);
       }
-    } catch (error: any) {
-      console.error('Upload failed:', error);
-      setErrorMsg(error?.message || 'Failed to upload logo. Please try again.');
+    } catch (err: any) {
+      console.error('Upload failed:', err);
+      setError(err?.message || 'Failed to upload logo. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -96,9 +123,22 @@ export function SettingsLogo({
       </Typography>
 
       <Stack spacing={3}>
-        {errorMsg && (
-          <Alert severity="error" onClose={() => setErrorMsg(null)}>
-            {errorMsg}
+        {activeError && (
+          <Alert
+            ref={alertRef}
+            severity="error"
+            onClose={() => setError(null)}
+            sx={(theme) => ({
+              borderWidth: 1.5,
+              borderStyle: 'solid',
+              borderColor: isHighlighted ? theme.palette.error.main : alpha(theme.palette.error.main, 0.35),
+              boxShadow: isHighlighted
+                ? `0 0 0 4px ${alpha(theme.palette.error.main, 0.2)}`
+                : 'none',
+              transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
+            })}
+          >
+            {activeError}
           </Alert>
         )}
 
@@ -129,18 +169,27 @@ export function SettingsLogo({
           </Typography>
 
           <Box
-            sx={{
+            sx={(theme) => ({
               width: 140,
               height: 140,
               p: 1,
               borderRadius: 2,
-              border: (theme) => `1px dashed ${theme.palette.divider}`,
+              border: activeError
+                ? `2px dashed ${theme.palette.error.main}`
+                : `1px dashed ${theme.palette.divider}`,
+              boxShadow:
+                isHighlighted && activeError
+                  ? `0 0 0 4px ${alpha(theme.palette.error.main, 0.2)}`
+                  : 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               overflow: 'hidden',
-              bgcolor: (theme) => theme.palette.background.neutral,
-            }}
+              bgcolor: activeError
+                ? alpha(theme.palette.error.main, 0.04)
+                : theme.palette.background.neutral,
+              transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
+            })}
           >
             {previewUrl && !previewError ? (
               <Box
@@ -182,14 +231,20 @@ export function SettingsLogo({
                 variant="outlined"
                 color="inherit"
                 disabled={uploading}
-                onClick={() => onUpload('')}
+                onClick={() => {
+                  setError(null);
+                  onUpload('');
+                }}
               >
                 Reset to Default
               </Button>
             )}
           </Stack>
 
-          <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center' }}>
+          <Typography
+            variant="caption"
+            sx={{ color: activeError ? 'error.main' : 'text.secondary', textAlign: 'center', fontWeight: activeError ? 600 : 400 }}
+          >
             Allowed *.jpeg, *.jpg, *.png, *.svg
             <br /> max size of 2MB
           </Typography>
