@@ -180,6 +180,57 @@ export async function checkEmployeeIdAvailable(employeeId: string, currentEmploy
     }
 }
 
+export interface EmployeeFieldCheckResult {
+    valid: boolean;
+    available: boolean;
+    normalized?: string | null;
+    message: string;
+}
+
+export async function checkEmployeeFieldAvailable(
+    fieldname: string,
+    value: string,
+    currentEmployeeId?: string | null
+): Promise<EmployeeFieldCheckResult> {
+    try {
+        const params = new URLSearchParams({
+            fieldname: fieldname.trim(),
+            value: value ?? '',
+        });
+        if (currentEmployeeId && currentEmployeeId.trim()) {
+            params.append('current_employee_id', currentEmployeeId.trim());
+        }
+        const res = await frappeRequest(`/api/method/company.company.api.check_employee_field_available?${params.toString()}`);
+        if (!res.ok) return { valid: true, available: true, message: '' };
+        const json = await res.json();
+        return json.message || { valid: true, available: true, message: '' };
+    } catch {
+        return { valid: true, available: true, message: '' };
+    }
+}
+
+export async function checkEmployeeFieldsAvailable(
+    fields: Record<string, string>,
+    currentEmployeeId?: string | null
+): Promise<{ valid: boolean; results: Record<string, EmployeeFieldCheckResult> }> {
+    try {
+        const headers = await getAuthHeaders();
+        const res = await frappeRequest('/api/method/company.company.api.check_employee_fields_available', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                fields_json: JSON.stringify(fields),
+                current_employee_id: currentEmployeeId?.trim() || null,
+            }),
+        });
+        if (!res.ok) return { valid: true, results: {} };
+        const json = await res.json();
+        return json.message || { valid: true, results: {} };
+    } catch {
+        return { valid: true, results: {} };
+    }
+}
+
 export async function renameEmployee(oldName: string, newName: string): Promise<string> {
     const headers = await getAuthHeaders();
     const res = await frappeRequest('/api/method/frappe.client.rename_doc', {
