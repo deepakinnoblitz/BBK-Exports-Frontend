@@ -1200,9 +1200,37 @@ export function EmployeeView() {
         }
     };
 
+    const focusValidationField = (fieldname?: string, targetTab?: number) => {
+        if (targetTab !== undefined) {
+            setCurrentTab(targetTab);
+        }
+        if (!fieldname) return;
+
+        window.setTimeout(() => {
+            const container =
+                (document.querySelector(`[data-field="${fieldname}"]`) as HTMLElement | null) ||
+                (document.querySelector(`[name="${fieldname}"]`) as HTMLElement | null);
+            if (!container) return;
+
+            container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            const focusTarget =
+                (container.matches('input, select, textarea') ? container : null) ||
+                (container.querySelector(
+                    '[role="spinbutton"], input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled]), [role="combobox"], [tabindex="0"]'
+                ) as HTMLElement | null);
+
+            focusTarget?.focus({ preventScroll: true });
+        }, 180);
+    };
+
     const validateForm = (): { isValid: boolean; firstErrorField?: string; firstErrorMessage?: string; errorTab?: number } => {
         const errors: Record<string, string> = {};
         let errorTab = 0;
+
+        if (!(formData.name || formData.employee_id || '').trim()) {
+            errors.employee_id = 'Employee ID is required';
+        }
 
         const requiredFields = [
             { name: 'employee_name', label: 'Employee Name' },
@@ -1292,21 +1320,7 @@ export function EmployeeView() {
     const handleCreate = async () => {
         const validationResult = validateForm();
         if (!validationResult.isValid) {
-            // Switch to the tab containing the error
-            if (validationResult.errorTab !== undefined) {
-                setCurrentTab(validationResult.errorTab);
-            }
-
-            // Scroll to the first error field (if on current tab)
-            setTimeout(() => {
-                if (validationResult.firstErrorField) {
-                    const errorElement = document.querySelector(`[name="${validationResult.firstErrorField}"]`);
-                    if (errorElement) {
-                        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        (errorElement as HTMLElement).focus();
-                    }
-                }
-            }, 300);
+            focusValidationField(validationResult.firstErrorField, validationResult.errorTab);
 
             const errorMessage = validationResult.firstErrorMessage || 'Please correct the errors in the form';
             setSnackbar({ open: true, message: errorMessage, severity: 'error' });
@@ -1353,19 +1367,10 @@ export function EmployeeView() {
                     });
                     const firstField = Object.keys(nextErrors)[0];
                     const firstMsg = nextErrors[firstField] || 'Please check duplicate or invalid fields';
-                    setCurrentTab(0);
                     setFormErrors((prev) => ({ ...prev, ...nextErrors }));
                     setServerAlert({ message: firstMsg, severity: 'error' });
                     setSnackbar({ open: true, message: firstMsg, severity: 'error' });
-                    setTimeout(() => {
-                        if (firstField) {
-                            const el = document.querySelector(`[name="${firstField}"]`);
-                            if (el) {
-                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                (el as HTMLElement).focus();
-                            }
-                        }
-                    }, 200);
+                    focusValidationField(firstField, 0);
                     setCreating(false);
                     return;
                 }
@@ -1399,8 +1404,9 @@ export function EmployeeView() {
                 const newDocName = (formData.name || formData.employee_id || '').trim();
 
                 if (!newDocName) {
-                    setCurrentTab(0);
                     setFormErrors(prev => ({ ...prev, employee_id: 'Employee ID is required' }));
+                    setSnackbar({ open: true, message: 'Employee ID is required', severity: 'error' });
+                    focusValidationField('employee_id', 0);
                     setCreating(false);
                     return;
                 }
@@ -1409,9 +1415,10 @@ export function EmployeeView() {
                 if (newDocName && newDocName !== currentEmployeeId) {
                     const check = await checkEmployeeIdAvailable(newDocName, currentEmployeeId);
                     if (!check.available) {
-                        setCurrentTab(0);
                         setFormErrors(prev => ({ ...prev, employee_id: check.message }));
                         setServerAlert({ message: check.message, severity: 'error' });
+                        setSnackbar({ open: true, message: check.message, severity: 'error' });
+                        focusValidationField('employee_id', 0);
                         setCreating(false);
                         return;
                     }
@@ -1423,12 +1430,14 @@ export function EmployeeView() {
                         dataToSave.name = targetId;
                         dataToSave.employee_id = targetId;
                     } catch (renameErr: any) {
-                        setCurrentTab(0);
+                        const renameMsg = `Failed to rename Employee: ${renameErr.message || 'ID may already exist.'}`;
                         setFormErrors(prev => ({ ...prev, employee_id: renameErr.message || 'ID may already exist.' }));
                         setServerAlert({
-                            message: `Failed to rename Employee: ${renameErr.message || 'ID may already exist.'}`,
+                            message: renameMsg,
                             severity: 'error'
                         });
+                        setSnackbar({ open: true, message: renameMsg, severity: 'error' });
+                        focusValidationField('employee_id', 0);
                         setCreating(false);
                         return;
                     }
@@ -1515,8 +1524,9 @@ export function EmployeeView() {
             } else {
                 const customId = (formData.name || formData.employee_id || '').trim();
                 if (!customId) {
-                    setCurrentTab(0);
                     setFormErrors(prev => ({ ...prev, employee_id: 'Employee ID is required' }));
+                    setSnackbar({ open: true, message: 'Employee ID is required', severity: 'error' });
+                    focusValidationField('employee_id', 0);
                     setCreating(false);
                     return;
                 }
@@ -1524,9 +1534,10 @@ export function EmployeeView() {
                 // Check uniqueness before creating
                 const check = await checkEmployeeIdAvailable(customId);
                 if (!check.available) {
-                    setCurrentTab(0);
                     setFormErrors(prev => ({ ...prev, employee_id: check.message }));
                     setServerAlert({ message: check.message, severity: 'error' });
+                    setSnackbar({ open: true, message: check.message, severity: 'error' });
+                    focusValidationField('employee_id', 0);
                     setCreating(false);
                     return;
                 }
@@ -1552,13 +1563,17 @@ export function EmployeeView() {
                 ['personal phone', 'phone'],
                 ['office phone', 'office_phone_number'],
                 ['personal email', 'personal_email'],
+                ['joining date', 'date_of_joining'],
+                ['date of leaving', 'date_of_leaving'],
+                ['employee name', 'employee_name'],
                 ['employee_id', 'employee_id'],
                 ['employee id', 'employee_id'],
+                ['email', 'email'],
             ];
             const matched = fieldErrorMatchers.find(([needle]) => lower.includes(needle));
             if (matched) {
-                setCurrentTab(0);
                 setFormErrors((prev) => ({ ...prev, [matched[1]]: msg }));
+                focusValidationField(matched[1], 0);
             } else if (lower.includes('duplicate entry')) {
                 setCurrentTab(0);
             }
@@ -1932,7 +1947,7 @@ export function EmployeeView() {
         return parsed.isValid() ? parsed.format('hh:mm A') : timeStr;
     };
 
-    const renderField = (fieldname: string, label: string, type: string = 'text', options: any[] = [], extraProps: any = {}, required: boolean = false) => {
+    const renderFieldControl = (fieldname: string, label: string, type: string = 'text', options: any[] = [], extraProps: any = {}, required: boolean = false) => {
         if (!evaluateVisibility(fieldname)) return null;
 
         const defaultPlaceholder = (type === 'select' || type === 'link')
@@ -3160,6 +3175,7 @@ export function EmployeeView() {
                     onChange={(newValue) => handleInputChange(fieldname, newValue?.format('YYYY-MM-DD') || '')}
                     slotProps={{
                         textField: {
+                            name: fieldname,
                             fullWidth: true,
                             required,
                             error: !!formErrors[fieldname],
@@ -3216,6 +3232,27 @@ export function EmployeeView() {
         }
 
         return <TextField {...commonProps} />;
+    };
+
+    const renderField = (
+        fieldname: string,
+        label: string,
+        type: string = 'text',
+        options: any[] = [],
+        extraProps: any = {},
+        required: boolean = false
+    ) => {
+        const control = renderFieldControl(fieldname, label, type, options, extraProps, required);
+        if (!control) return null;
+
+        return (
+            <Box
+                data-field={fieldname}
+                sx={extraProps?.sx?.gridColumn ? { gridColumn: extraProps.sx.gridColumn } : undefined}
+            >
+                {control}
+            </Box>
+        );
     };
 
     const renderSalaryTable = (type: 'Earning' | 'Deduction') => {
@@ -3753,40 +3790,42 @@ export function EmployeeView() {
                                     <>
                                         <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>Personal Information</Typography>
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Employee ID *"
-                                                name="employee_id"
-                                                value={formData.name || formData.employee_id || ''}
-                                                onChange={(e) => {
-                                                    const val = e.target.value.trim();
-                                                    handleInputChange('name', val);
-                                                    handleInputChange('employee_id', val);
-                                                    if (formErrors.name || formErrors.employee_id) {
-                                                        setFormErrors((prev) => {
-                                                            const copy = { ...prev };
-                                                            delete copy.name;
-                                                            delete copy.employee_id;
-                                                            return copy;
-                                                        });
-                                                    }
-                                                }}
-                                                onBlur={async () => {
-                                                    const val = (formData.name || formData.employee_id || '').trim();
-                                                    if (!val) {
-                                                        setFormErrors((prev) => ({ ...prev, employee_id: 'Employee ID is required' }));
-                                                        return;
-                                                    }
-                                                    const check = await checkEmployeeIdAvailable(val, currentEmployeeId);
-                                                    if (!check.available) {
-                                                        setFormErrors((prev) => ({ ...prev, employee_id: check.message }));
-                                                    }
-                                                }}
-                                                placeholder="e.g. SDB111111, BEPL111111"
-                                                InputLabelProps={{ shrink: true }}
-                                                error={!!formErrors.name || !!formErrors.employee_id}
-                                                helperText={formErrors.employee_id || formErrors.name || "Enter custom Employee ID or keep the generated series ID"}
-                                            />
+                                            <Box data-field="employee_id">
+                                                <TextField
+                                                    fullWidth
+                                                    label="Employee ID *"
+                                                    name="employee_id"
+                                                    value={formData.name || formData.employee_id || ''}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.trim();
+                                                        handleInputChange('name', val);
+                                                        handleInputChange('employee_id', val);
+                                                        if (formErrors.name || formErrors.employee_id) {
+                                                            setFormErrors((prev) => {
+                                                                const copy = { ...prev };
+                                                                delete copy.name;
+                                                                delete copy.employee_id;
+                                                                return copy;
+                                                            });
+                                                        }
+                                                    }}
+                                                    onBlur={async () => {
+                                                        const val = (formData.name || formData.employee_id || '').trim();
+                                                        if (!val) {
+                                                            setFormErrors((prev) => ({ ...prev, employee_id: 'Employee ID is required' }));
+                                                            return;
+                                                        }
+                                                        const check = await checkEmployeeIdAvailable(val, currentEmployeeId);
+                                                        if (!check.available) {
+                                                            setFormErrors((prev) => ({ ...prev, employee_id: check.message }));
+                                                        }
+                                                    }}
+                                                    placeholder="e.g. SDB111111, BEPL111111"
+                                                    InputLabelProps={{ shrink: true }}
+                                                    error={!!formErrors.name || !!formErrors.employee_id}
+                                                    helperText={formErrors.employee_id || formErrors.name || "Enter custom Employee ID or keep the generated series ID"}
+                                                />
+                                            </Box>
                                             {renderField('employee_name', 'Employee Name', 'text', [], {}, true)}
                                             {renderField('father_husband_name', 'Father/Husband Name')}
                                             {renderField('email', 'Email', 'text', [], {}, true)}
@@ -3868,15 +3907,22 @@ export function EmployeeView() {
                                     </Box>
 
                                     {/* Two Column Layout: Earnings and Deductions */}
-                                    <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3}>
-                                        {/* Left Column - Earnings */}
-                                        <Box>
-                                            {renderSalaryTable('Earning')}
-                                        </Box>
+                                    <Box data-field="salary_components">
+                                        {formErrors.salary_components && (
+                                            <Alert severity="error" sx={{ mb: 2 }}>
+                                                {formErrors.salary_components}
+                                            </Alert>
+                                        )}
+                                        <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3}>
+                                            {/* Left Column - Earnings */}
+                                            <Box>
+                                                {renderSalaryTable('Earning')}
+                                            </Box>
 
-                                        {/* Right Column - Deductions */}
-                                        <Box>
-                                            {renderSalaryTable('Deduction')}
+                                            {/* Right Column - Deductions */}
+                                            <Box>
+                                                {renderSalaryTable('Deduction')}
+                                            </Box>
                                         </Box>
                                     </Box>
 
@@ -3912,7 +3958,12 @@ export function EmployeeView() {
                             )}
 
                             {currentTab === 2 && (
-                                <Box>
+                                <Box data-field="documents">
+                                    {formErrors.documents && (
+                                        <Alert severity="error" sx={{ mb: 2 }}>
+                                            {formErrors.documents}
+                                        </Alert>
+                                    )}
                                     {renderDocumentsTable()}
                                 </Box>
                             )}
