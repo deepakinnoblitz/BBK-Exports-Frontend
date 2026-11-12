@@ -1574,10 +1574,23 @@ export function EmployeeView() {
         try {
             setConfirmLineLoading(true);
 
-            // 1. Keep the employee's original default line record unchanged in Employee doctype
+            // 1. Save the newly added line assignment record before updating Employee so history captures the previous default line
+            const newAssignmentPayload: any = {
+                employee: currentEmployeeId,
+                line_order: formData.line_order,
+                effective_from: changeDate,
+                effective_to: null, // applies to all subsequent and future dates automatically
+                assignment_type: 'Line Change',
+                status: 'Active',
+                reason: changeReason || `Line changed from default "${originalEmployeeLine || 'None'}" to "${formData.line_order}" via Edit Employee on ${changeDate}`,
+            };
+
+            await createLineRosterAssignment(newAssignmentPayload);
+
+            // 2. Update Employee doctype with the newly selected line_order (and any other pending employee changes)
             const employeeData = {
                 ...pendingEmployeeData,
-                line_order: originalEmployeeLine,
+                line_order: formData.line_order,
             };
 
             if (employeeData._faceBiometricsPendingClear) {
@@ -1618,19 +1631,6 @@ export function EmployeeView() {
             }
 
             await updateEmployee(currentEmployeeId, employeeData as any);
-
-            // 2. Save only the newly added line assignment record for the selected employee (applies to all future dates)
-            const newAssignmentPayload: any = {
-                employee: currentEmployeeId,
-                line_order: formData.line_order,
-                effective_from: changeDate,
-                effective_to: null, // applies to all subsequent and future dates automatically
-                assignment_type: 'Line Change',
-                status: 'Active',
-                reason: changeReason || `Line changed from default "${originalEmployeeLine || 'None'}" to "${formData.line_order}" via Edit Employee on ${changeDate}`,
-            };
-
-            await createLineRosterAssignment(newAssignmentPayload);
 
             setOpenLineChangeConfirm(false);
             handleCloseCreate();
@@ -1678,11 +1678,30 @@ export function EmployeeView() {
         try {
             setConfirmShiftLoading(true);
 
-            // 1. Keep the employee's original default shift record unchanged in Employee doctype
+            // 1. Save the newly added shift assignment record before updating Employee so history captures the previous default shift
+            const newAssignmentPayload: any = {
+                employee: currentEmployeeId,
+                shift: formData.shift,
+                effective_from: changeDate,
+                effective_to: null, // applies to all subsequent and future dates automatically
+                assignment_type: 'Shift Change',
+                status: 'Active',
+                reason: changeReason || `Shift changed from default "${originalEmployeeShift || 'None'}" to "${formData.shift}" via Edit Employee on ${changeDate}`,
+            };
+
+            await createShiftRosterAssignment(newAssignmentPayload);
+
+            // 2. Update Employee doctype with the newly selected shift (keeping line_order unchanged until line confirm if also modified)
+            const defaultLine = (originalEmployeeLine || '').trim();
+            const newLine = (formData.line_order || '').trim();
+            const hasPendingLineChange = Boolean(newLine && newLine !== defaultLine);
+
             const employeeData = {
                 ...pendingEmployeeData,
-                shift: originalEmployeeShift,
-                line_order: originalEmployeeLine,
+                shift: formData.shift,
+                ...(hasPendingLineChange
+                    ? { line_order: originalEmployeeLine }
+                    : (newLine !== defaultLine && !newLine ? { line_order: null } : {})),
             };
 
             if (employeeData._faceBiometricsPendingClear) {
@@ -1722,27 +1741,19 @@ export function EmployeeView() {
                 employeeData.face_3d_landmarks = JSON.stringify(employeeData.face_3d_landmarks);
             }
 
-            await updateEmployee(currentEmployeeId, employeeData as any);
-
-            // 2. Save only the newly added shift assignment record for the selected employee (applies to all future dates)
-            const newAssignmentPayload: any = {
-                employee: currentEmployeeId,
-                shift: formData.shift,
-                effective_from: changeDate,
-                effective_to: null, // applies to all subsequent and future dates automatically
-                assignment_type: 'Shift Change',
-                status: 'Active',
-                reason: changeReason || `Shift changed from default "${originalEmployeeShift || 'None'}" to "${formData.shift}" via Edit Employee on ${changeDate}`,
-            };
-
-            await createShiftRosterAssignment(newAssignmentPayload);
+            const updatedEmp = await updateEmployee(currentEmployeeId, employeeData as any);
 
             setOpenShiftChangeConfirm(false);
 
             // Check if line was also changed
-            const defaultLine = (originalEmployeeLine || '').trim();
-            const newLine = (formData.line_order || '').trim();
-            if (newLine !== defaultLine) {
+            if (hasPendingLineChange) {
+                setPendingEmployeeData((prev: any) => ({
+                    ...prev,
+                    ...(updatedEmp?.modified ? { modified: updatedEmp.modified } : {}),
+                    ...(employeeData.face_enrolled_image !== undefined ? { face_enrolled_image: employeeData.face_enrolled_image } : {}),
+                    _faceBiometricsPendingSave: false,
+                    _faceBiometricsPendingClear: false,
+                }));
                 setOpenLineChangeConfirm(true);
                 return;
             }
