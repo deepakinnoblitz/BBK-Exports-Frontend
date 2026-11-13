@@ -27,7 +27,7 @@ import { Chart, useChart } from 'src/components/chart';
 type Props = CardProps & {
     title: string;
     subheader?: string;
-    data: Array<{ date: string; day: string; present: number; absent: number }>;
+    data: Array<{ date: string; day: string; present: number; absent: number; missing?: number }>;
     filter: string;
     onFilterChange: (filter: string, from?: string, to?: string) => void;
     loading?: boolean;
@@ -41,9 +41,10 @@ const FILTER_LABELS: Record<string, string> = {
     Custom: 'Custom Range',
 };
 
-// Vibrant Emerald Green and Cherry Red matching Line-Wise Workforce chart
+// Vibrant Emerald Green, Cherry Red, and Amber Orange matching Line-Wise Workforce chart
 const EMERALD_GREEN = '#10b981';
 const CHERRY_RED = '#e11d48';
+const AMBER_ORANGE = '#f59e0b';
 
 // ----------------------------------------------------------------------
 
@@ -112,6 +113,7 @@ export function WeeklyPresentAbsentChart({
     // Trend calculations
     const totalPresent = useMemo(() => data.reduce((s, d) => s + (d.present || 0), 0), [data]);
     const totalAbsent = useMemo(() => data.reduce((s, d) => s + (d.absent || 0), 0), [data]);
+    const totalMissing = useMemo(() => data.reduce((s, d) => s + (d.missing || 0), 0), [data]);
 
     // Categories and series for ApexCharts
     const categories = useMemo(
@@ -136,12 +138,16 @@ export function WeeklyPresentAbsentChart({
                 name: 'Absent',
                 data: data.map((d) => d.absent || 0),
             },
+            {
+                name: 'Missing',
+                data: data.map((d) => d.missing || 0),
+            },
         ],
         [data]
     );
 
     const chartOptions: ChartOptions = useChart({
-        colors: [EMERALD_GREEN, CHERRY_RED],
+        colors: [EMERALD_GREEN, CHERRY_RED, AMBER_ORANGE],
         stroke: { show: true, width: 2, colors: ['transparent'] },
         xaxis: {
             categories,
@@ -337,6 +343,34 @@ export function WeeklyPresentAbsentChart({
                                     }}
                                 >
                                     {fNumber(totalAbsent)}
+                                </Typography>
+                            </Stack>
+
+                            <Stack direction="row" alignItems="center" spacing={0.75}>
+                                <Box
+                                    sx={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: '50%',
+                                        bgcolor: AMBER_ORANGE,
+                                        boxShadow: `0 0 6px ${alpha(AMBER_ORANGE, 0.6)}`,
+                                    }}
+                                />
+                                <Typography variant="caption" fontWeight={600} color="text.secondary">
+                                    Missing
+                                </Typography>
+                                <Typography
+                                    variant="caption"
+                                    fontWeight={700}
+                                    color={AMBER_ORANGE}
+                                    sx={{
+                                        bgcolor: alpha(AMBER_ORANGE, 0.12),
+                                        px: 0.8,
+                                        py: 0.2,
+                                        borderRadius: '6px',
+                                    }}
+                                >
+                                    {fNumber(totalMissing)}
                                 </Typography>
                             </Stack>
                         </Stack>

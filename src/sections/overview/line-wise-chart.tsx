@@ -54,6 +54,10 @@ export function LineWiseChart({ title = 'Line-Wise Workforce & Attendance', subh
             name: 'Absent Today',
             data: data.map((d) => d.absent),
         },
+        {
+            name: 'Missing Today',
+            data: data.map((d) => d.missing || 0),
+        },
     ];
 
     const rateSeries = [
@@ -65,14 +69,15 @@ export function LineWiseChart({ title = 'Line-Wise Workforce & Attendance', subh
 
     const isRate = viewMode === 'rate';
 
-    // Cherry Red and Green matching the Attendance Chart above
+    // Cherry Red, Green, and Amber Orange matching the Attendance Chart above
     const CHERRY_RED = '#e11d48';
     const EMERALD_GREEN = '#10b981';
     const TOTAL_STAFF_COLOR = '#0284c7';
+    const AMBER_ORANGE = '#f59e0b';
 
     const chartColors = isRate
         ? [EMERALD_GREEN]
-        : [TOTAL_STAFF_COLOR, EMERALD_GREEN, CHERRY_RED];
+        : [TOTAL_STAFF_COLOR, EMERALD_GREEN, CHERRY_RED, AMBER_ORANGE];
 
     const chartOptions: ChartOptions = useChart({
         colors: chartColors,
