@@ -1057,6 +1057,11 @@ export function SalarySlipDetailsView({ id: propId }: Props) {
                             color="error.main"
                             hrSettings={hrSettings}
                         />
+                        {slip.tds_breakdown && Number(slip.tds_amount || 0) > 0 && (
+                            <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
+                                FY {slip.tds_breakdown.fy} TDS: Proj. Annual Gross ₹{fNumber(slip.tds_breakdown.projected_annual_gross, { locale: hrSettings.default_locale })} | Std Ded ₹{fNumber(slip.tds_breakdown.standard_deduction, { locale: hrSettings.default_locale })} | Taxable ₹{fNumber(slip.tds_breakdown.taxable_income, { locale: hrSettings.default_locale })} | Annual Tax ₹{fNumber(slip.tds_breakdown.total_annual_tax, { locale: hrSettings.default_locale })} ÷ {slip.tds_breakdown.remaining_months} mo
+                            </Typography>
+                        )}
                     </Stack>
                 </Box>
             </Box>

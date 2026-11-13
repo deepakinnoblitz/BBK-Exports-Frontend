@@ -270,6 +270,26 @@ export async function previewSalarySlip(employee: string, start_date: string, en
     return (await res.json()).message;
 }
 
+export async function calculateSalarySlipTDS(params: {
+    employee: string;
+    grand_gross_pay: number;
+    pay_period_start: string;
+    current_slip_name?: string;
+    base_monthly_gross?: number;
+}) {
+    const res = await frappeRequest("/api/method/company.company.doctype.salary_slip.salary_slip.calculate_salary_slip_tds", {
+        method: "POST",
+        body: JSON.stringify(params),
+    });
+
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to calculate TDS");
+    }
+
+    return (await res.json()).message;
+}
+
 export async function generateSalarySlipFromEmployee(employee: string, year: number, month: number, start_date?: string, end_date?: string) {
     const res = await frappeRequest("/api/method/company.company.doctype.salary_slip.salary_slip.generate_salary_slips_from_employee", {
         method: "POST",
