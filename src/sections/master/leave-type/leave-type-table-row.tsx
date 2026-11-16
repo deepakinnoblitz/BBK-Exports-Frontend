@@ -122,7 +122,7 @@ export function LeaveTypeTableRow({
 
       <TableCell align="right">
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-          <IconButton size="small" onClick={() => setOpenView(true)} sx={{ color: '#059669' }}>
+          <IconButton size="small" onClick={() => setOpenView(true)} sx={{ color: 'info.main' }}>
             <Iconify icon="solar:eye-bold" />
           </IconButton>
 
