@@ -1,9 +1,22 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
+import { getDoctypeList } from 'src/api/leads';
+
 export interface SalaryComponentConfig {
     name: string;
     type: 'Earning' | 'Deduction';
+}
+
+export interface TemplateMasterOptions {
+    department?: string[];
+    designation?: string[];
+    employee_type?: string[];
+    line_order?: string[];
+    shift?: string[];
+    bus_travel_route?: string[];
+    bus_route_point?: string[];
+    blood_group?: string[];
 }
 
 export interface TemplateOptions {
@@ -11,7 +24,26 @@ export interface TemplateOptions {
     earnings: string[];
     deductions: string[];
     includeSampleRow?: boolean;
+    masterOptions?: TemplateMasterOptions;
 }
+
+const DEFAULT_BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+const fetchMasterList = async (doctype: string): Promise<string[]> => {
+    try {
+        const res = await getDoctypeList(doctype, ['name']);
+        if (Array.isArray(res)) {
+            return res
+                .map((item: any) => (typeof item === 'string' ? item : item?.name || ''))
+                .map((s: string) => s.trim())
+                .filter(Boolean);
+        }
+        return [];
+    } catch (err) {
+        console.warn(`Failed to fetch master list for ${doctype}:`, err);
+        return [];
+    }
+};
 
 export const STAFF_DEFAULT_EARNINGS = [
     'Basic Salary',
@@ -98,6 +130,61 @@ export const BANK_ACCOUNT_SHEET_FIELDS = [
 
 export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
     const { profileName, earnings, deductions, includeSampleRow = true } = options;
+
+    // Resolve master values for the 7 requested dropdown fields:
+    // Department, Designation, Employee Type, Line, Shift, Bus – Travel Route and Blood Group
+    const resolvedMasterOptions: TemplateMasterOptions = { ...(options.masterOptions || {}) };
+
+    const fetchTasks: Promise<void>[] = [];
+
+    if (!resolvedMasterOptions.department || resolvedMasterOptions.department.length === 0) {
+        fetchTasks.push(fetchMasterList('Department').then((vals) => { resolvedMasterOptions.department = vals; }));
+    }
+    if (!resolvedMasterOptions.designation || resolvedMasterOptions.designation.length === 0) {
+        fetchTasks.push(fetchMasterList('Designation').then((vals) => { resolvedMasterOptions.designation = vals; }));
+    }
+    if (!resolvedMasterOptions.employee_type || resolvedMasterOptions.employee_type.length === 0) {
+        fetchTasks.push(fetchMasterList('Employee Type').then((vals) => { resolvedMasterOptions.employee_type = vals; }));
+    }
+    if (!resolvedMasterOptions.line_order || resolvedMasterOptions.line_order.length === 0) {
+        fetchTasks.push(fetchMasterList('Line Order').then((vals) => { resolvedMasterOptions.line_order = vals; }));
+    }
+    if (!resolvedMasterOptions.shift || resolvedMasterOptions.shift.length === 0) {
+        fetchTasks.push(fetchMasterList('Shift').then((vals) => { resolvedMasterOptions.shift = vals; }));
+    }
+    if (!resolvedMasterOptions.bus_travel_route || resolvedMasterOptions.bus_travel_route.length === 0) {
+        fetchTasks.push(fetchMasterList('Bus Travel Route').then((vals) => { resolvedMasterOptions.bus_travel_route = vals; }));
+    }
+    if (!resolvedMasterOptions.bus_route_point || resolvedMasterOptions.bus_route_point.length === 0) {
+        fetchTasks.push(
+            getDoctypeList('Bus Route Point', ['point_name'])
+                .then((res) => {
+                    if (Array.isArray(res)) {
+                        const points = res
+                            .map((item: any) => (typeof item === 'string' ? item : item?.point_name || item?.name || ''))
+                            .map((s: string) => s.trim())
+                            .filter(Boolean);
+                        resolvedMasterOptions.bus_route_point = Array.from(new Set(points));
+                    }
+                })
+                .catch((err) => {
+                    console.warn('Failed to fetch Bus Route Point:', err);
+                })
+        );
+    }
+    if (!resolvedMasterOptions.blood_group || resolvedMasterOptions.blood_group.length === 0) {
+        fetchTasks.push(fetchMasterList('Blood Group').then((vals) => {
+            resolvedMasterOptions.blood_group = vals.length > 0 ? vals : DEFAULT_BLOOD_GROUPS;
+        }));
+    }
+
+    if (fetchTasks.length > 0) {
+        await Promise.allSettled(fetchTasks);
+    }
+
+    if (!resolvedMasterOptions.blood_group || resolvedMasterOptions.blood_group.length === 0) {
+        resolvedMasterOptions.blood_group = DEFAULT_BLOOD_GROUPS;
+    }
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'BBK Exports';
@@ -416,6 +503,53 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
             cell.numFmt = '@';
         });
     }
+
+    // ----------------------------------------------------
+    // WORKSHEET 3: Master Data for Dropdowns (Hidden)
+    // ----------------------------------------------------
+    const masterSheet = workbook.addWorksheet('MasterData', {
+        views: [{ showGridLines: true }],
+    });
+    masterSheet.state = 'hidden';
+
+    // The requested master fields with dropdown functionality
+    const DROPDOWN_MASTERS: { key: keyof TemplateMasterOptions; header: string }[] = [
+        { key: 'department', header: 'Department' },
+        { key: 'designation', header: 'Designation' },
+        { key: 'employee_type', header: 'Employee Type' },
+        { key: 'line_order', header: 'Line' },
+        { key: 'shift', header: 'Shift' },
+        { key: 'bus_travel_route', header: 'Bus - Travel Route' },
+        { key: 'bus_route_point', header: 'Bus Route Point' },
+        { key: 'blood_group', header: 'Blood Group' },
+    ];
+
+    DROPDOWN_MASTERS.forEach((mField, mIdx) => {
+        const masterColNum = mIdx + 1;
+        const masterColLetter = getColumnLetter(masterColNum);
+        masterSheet.getCell(1, masterColNum).value = mField.header;
+
+        const optionsList = (resolvedMasterOptions[mField.key] || []).filter(Boolean);
+        optionsList.forEach((val, valIdx) => {
+            masterSheet.getCell(valIdx + 2, masterColNum).value = val;
+        });
+
+        if (optionsList.length > 0) {
+            const empColIdx = columnDefs.findIndex((c) => c.key === mField.key);
+            if (empColIdx !== -1) {
+                const empColLetter = getColumnLetter(empColIdx + 1);
+                (sheet as any).dataValidations.add(`${empColLetter}5:${empColLetter}1000`, {
+                    type: 'list',
+                    allowBlank: true,
+                    formulae: [`MasterData!$${masterColLetter}$2:$${masterColLetter}$${optionsList.length + 1}`],
+                    showErrorMessage: true,
+                    errorTitle: 'Invalid Selection',
+                    error: `Please select a valid ${mField.header} from the dropdown list.`,
+                    errorStyle: 'stop',
+                });
+            }
+        }
+    });
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], {
