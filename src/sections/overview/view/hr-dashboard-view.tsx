@@ -64,10 +64,103 @@ export function HRDashboardView() {
     });
 
     const [attendanceFilter, setAttendanceFilter] = useState('Last 7 Days');
+    const [attendanceStartDate, setAttendanceStartDate] = useState<Dayjs>(dayjs().subtract(6, 'day'));
+    const [attendanceEndDate, setAttendanceEndDate] = useState<Dayjs>(dayjs());
+    const [attendancePreset, setAttendancePreset] = useState<string>('Last 7 Days');
+    const [attendanceLoading, setAttendanceLoading] = useState(false);
     const [, setAttendanceDates] = useState<{ from: string; to: string }>({
         from: '',
         to: ''
     });
+
+    const [lineWiseStartDate, setLineWiseStartDate] = useState<Dayjs>(dayjs());
+    const [lineWiseEndDate, setLineWiseEndDate] = useState<Dayjs>(dayjs());
+    const [lineWiseLoading, setLineWiseLoading] = useState(false);
+
+    const handleAttendanceDateChange = async (start: Dayjs, end: Dayjs, presetKey?: string) => {
+        setAttendanceStartDate(start);
+        setAttendanceEndDate(end);
+        const resolvedPreset = presetKey || 'Custom';
+        setAttendancePreset(resolvedPreset);
+        setAttendanceFilter(resolvedPreset);
+        const from = start.format('YYYY-MM-DD');
+        const to = end.format('YYYY-MM-DD');
+        setAttendanceDates({ from, to });
+        setAttendanceLoading(true);
+        try {
+            const weeklyPresentAbsent = await fetchWeeklyPresentAbsentChartData({
+                filter_type: resolvedPreset,
+                from_date: from,
+                to_date: to,
+            });
+            setData((prev: any) => ({ ...prev, weekly_present_absent: weeklyPresentAbsent }));
+        } catch (error) {
+            console.error('Failed to update attendance chart:', error);
+        } finally {
+            setAttendanceLoading(false);
+        }
+    };
+
+    const handleAttendanceResetDate = async () => {
+        const end = dayjs();
+        const start = dayjs().subtract(6, 'day');
+        setAttendanceStartDate(start);
+        setAttendanceEndDate(end);
+        setAttendancePreset('Last 7 Days');
+        setAttendanceFilter('Last 7 Days');
+        const from = start.format('YYYY-MM-DD');
+        const to = end.format('YYYY-MM-DD');
+        setAttendanceDates({ from, to });
+        setAttendanceLoading(true);
+        try {
+            const weeklyPresentAbsent = await fetchWeeklyPresentAbsentChartData({
+                filter_type: 'Last 7 Days',
+                from_date: from,
+                to_date: to,
+            });
+            setData((prev: any) => ({ ...prev, weekly_present_absent: weeklyPresentAbsent }));
+        } catch (error) {
+            console.error('Failed to reset attendance chart:', error);
+        } finally {
+            setAttendanceLoading(false);
+        }
+    };
+
+    const handleLineWiseDateChange = async (start: Dayjs, end: Dayjs, presetKey?: string) => {
+        setLineWiseStartDate(start);
+        setLineWiseEndDate(end);
+        setLineWiseLoading(true);
+        try {
+            const startStr = start.format('YYYY-MM-DD');
+            const endStr = end.format('YYYY-MM-DD');
+            const wfAnalytics = await fetchWorkforceAnalytics(endStr, startStr, endStr);
+            if (wfAnalytics) {
+                setWorkforceData(wfAnalytics);
+            }
+        } catch (error) {
+            console.error('Failed to update line-wise workforce analytics:', error);
+        } finally {
+            setLineWiseLoading(false);
+        }
+    };
+
+    const handleLineWiseResetDate = async () => {
+        const today = dayjs();
+        setLineWiseStartDate(today);
+        setLineWiseEndDate(today);
+        setLineWiseLoading(true);
+        try {
+            const todayStr = today.format('YYYY-MM-DD');
+            const wfAnalytics = await fetchWorkforceAnalytics(todayStr, todayStr, todayStr);
+            if (wfAnalytics) {
+                setWorkforceData(wfAnalytics);
+            }
+        } catch (error) {
+            console.error('Failed to reset line-wise workforce analytics:', error);
+        } finally {
+            setLineWiseLoading(false);
+        }
+    };
 
     const loadData = useCallback(async (start?: Dayjs, end?: Dayjs, presetKey?: string) => {
         const s = start || selectedStartDate;
@@ -95,11 +188,11 @@ export function HRDashboardView() {
                 fetchMissingAttendanceChartData(),
                 fetchWeeklyPresentChartData(),
                 fetchWeeklyPresentAbsentChartData({
-                    filter_type: presetKey || (isSingleDay ? 'Last 7 Days' : 'Custom'),
-                    from_date: startStr,
-                    to_date: endStr,
+                    filter_type: attendancePreset,
+                    from_date: attendanceStartDate.format('YYYY-MM-DD'),
+                    to_date: attendanceEndDate.format('YYYY-MM-DD'),
                 }),
-                fetchWorkforceAnalytics(endStr)
+                fetchWorkforceAnalytics(endStr, startStr, endStr)
             ]);
 
             setWorkforceData(wfAnalytics);
@@ -267,11 +360,14 @@ export function HRDashboardView() {
                 {/* Weekly Present/Absent Chart */}
                 <Grid size={{ xs: 12 }}>
                     <WeeklyPresentAbsentChart
-                        title="Attendance Summary (Present & Absent)"
+                        title="Attendance Summary (Present, Absent & Missing)"
                         data={data.weekly_present_absent}
-                        filter={attendanceFilter}
-                        loading={loading || chartLoading}
-                        onFilterChange={handleAttendanceFilterChange}
+                        loading={loading || attendanceLoading}
+                        startDate={attendanceStartDate}
+                        endDate={attendanceEndDate}
+                        preset={attendancePreset}
+                        onDateChange={handleAttendanceDateChange}
+                        onResetDate={handleAttendanceResetDate}
                     />
                 </Grid>
 
@@ -279,7 +375,11 @@ export function HRDashboardView() {
                 <Grid size={{ xs: 12 }}>
                     <LineWiseChart
                         data={workforceData?.line_wise || []}
-                        loading={loading || chartLoading}
+                        loading={loading || chartLoading || lineWiseLoading}
+                        startDate={lineWiseStartDate}
+                        endDate={lineWiseEndDate}
+                        onDateChange={handleLineWiseDateChange}
+                        onResetDate={handleLineWiseResetDate}
                     />
                 </Grid>
 
