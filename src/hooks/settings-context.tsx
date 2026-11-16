@@ -1,8 +1,8 @@
-import type { ReactNode} from 'react';
+import type { ReactNode } from 'react';
 
 import { useMemo, useState, useEffect, useContext, useCallback, createContext } from 'react';
 
-import { getHRMSSettings } from 'src/api/settings';
+import { getAppBranding, getHRMSSettings } from 'src/api/settings';
 
 // ----------------------------------------------------------------------
 
@@ -16,24 +16,54 @@ type SettingsContextType = {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<any>(() => {
+function readCachedSettings(): any {
+  try {
     const cached = localStorage.getItem(SETTINGS_KEY);
     return cached ? JSON.parse(cached) : null;
-  });
+  } catch {
+    return null;
+  }
+}
+
+export function SettingsProvider({ children }: { children: ReactNode }) {
+  const [settings, setSettings] = useState<any>(() => readCachedSettings());
   const [loading, setLoading] = useState(!settings);
 
   const fetchSettings = useCallback(async () => {
-    if (window.location.pathname.includes('/sign-in')) {
-      setLoading(false);
-      return null;
-    }
     try {
+      const isSignInPage = window.location.pathname.includes('/sign-in');
+      if (isSignInPage) {
+        const branding = await getAppBranding();
+        if (branding) {
+          setSettings((prev: any) => {
+            const merged = { ...(prev || {}), ...branding };
+            try {
+              localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
+            } catch {
+              // ignore storage errors
+            }
+            return merged;
+          });
+          return branding;
+        }
+        return null;
+      }
+
       const result = await getHRMSSettings();
       if (result) {
         setSettings(result);
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(result));
+        try {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(result));
+        } catch {
+          // ignore storage errors
+        }
         return result;
+      }
+
+      const branding = await getAppBranding();
+      if (branding) {
+        setSettings((prev: any) => ({ ...(prev || {}), ...branding }));
+        return branding;
       }
     } catch (error) {
       console.error('Failed to fetch HRMS settings:', error);
@@ -65,4 +95,8 @@ export function useSettingsContext() {
     throw new Error('useSettingsContext must be used within a SettingsProvider');
   }
   return context;
+}
+
+export function useOptionalSettingsContext() {
+  return useContext(SettingsContext);
 }

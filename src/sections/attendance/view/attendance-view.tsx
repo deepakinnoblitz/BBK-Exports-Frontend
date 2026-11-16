@@ -1279,7 +1279,15 @@ export function AttendanceView() {
                                     return false;
                                 }
                             }, true)}
-                            {renderField('status', 'Status', 'select', ['Present', 'Absent', 'Half Day', 'On Leave', 'Holiday', 'Compensatory Off', 'Missing'], { hidden: false })}
+                            {renderField(
+                                'status',
+                                'Status',
+                                'select',
+                                formData.status && !['Present', 'Absent', 'Half Day', 'Missing'].includes(formData.status)
+                                    ? ['Present', 'Absent', 'Half Day', 'Missing', formData.status]
+                                    : ['Present', 'Absent', 'Half Day', 'Missing'],
+                                { hidden: false }
+                            )}
 
                             <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={2}>
                                 {renderField('in_time', 'In Time', 'time')}

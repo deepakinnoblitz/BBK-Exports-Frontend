@@ -1,10 +1,17 @@
 import { frappeRequest } from 'src/utils/csrf';
 import { handleFrappeError } from 'src/utils/api-error-handler';
 
-export async function uploadFile(file: File, doctype?: string, docname?: string, fieldname?: string) {
+export async function uploadFile(
+    file: File,
+    doctype?: string,
+    docname?: string,
+    fieldname?: string,
+    options?: { isPrivate?: boolean }
+) {
+    const isPrivate = options?.isPrivate ?? true;
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("is_private", "1");
+    formData.append("is_private", isPrivate ? "1" : "0");
     formData.append("folder", "Home");
 
     if (doctype) formData.append("doctype", doctype);

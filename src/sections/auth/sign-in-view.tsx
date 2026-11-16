@@ -13,6 +13,10 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { useSettingsContext } from 'src/hooks/settings-context';
+
+import { getCompanyDisplayName } from 'src/utils/branding';
+
 import { login, getCurrentUserInfo } from 'src/api/auth';
 
 import { Logo } from 'src/components/logo';
@@ -25,6 +29,8 @@ import { useAuth } from 'src/auth/auth-context';
 export function SignInView() {
   const router = useRouter();
   const { setUser } = useAuth();
+  const { settings } = useSettingsContext();
+  const companyName = getCompanyDisplayName(settings);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -161,7 +167,22 @@ export function SignInView() {
           mb: 4,
         }}
       >
-        <Logo disabled sx={{ mb: 1 }} />
+        <Logo disabled sx={{ mb: companyName ? 0.5 : 1 }} />
+
+        {companyName && (
+          <Typography
+            variant="subtitle2"
+            sx={{
+              fontWeight: 700,
+              letterSpacing: '0.12em',
+              color: 'text.primary',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+            }}
+          >
+            {companyName}
+          </Typography>
+        )}
 
         <Typography variant="h5">Sign in</Typography>
 

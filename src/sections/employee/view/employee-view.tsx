@@ -1200,9 +1200,37 @@ export function EmployeeView() {
         }
     };
 
+    const focusValidationField = (fieldname?: string, targetTab?: number) => {
+        if (targetTab !== undefined) {
+            setCurrentTab(targetTab);
+        }
+        if (!fieldname) return;
+
+        window.setTimeout(() => {
+            const container =
+                (document.querySelector(`[data-field="${fieldname}"]`) as HTMLElement | null) ||
+                (document.querySelector(`[name="${fieldname}"]`) as HTMLElement | null);
+            if (!container) return;
+
+            container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            const focusTarget =
+                (container.matches('input, select, textarea') ? container : null) ||
+                (container.querySelector(
+                    '[role="spinbutton"], input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled]), [role="combobox"], [tabindex="0"]'
+                ) as HTMLElement | null);
+
+            focusTarget?.focus({ preventScroll: true });
+        }, 180);
+    };
+
     const validateForm = (): { isValid: boolean; firstErrorField?: string; firstErrorMessage?: string; errorTab?: number } => {
         const errors: Record<string, string> = {};
         let errorTab = 0;
+
+        if (!(formData.name || formData.employee_id || '').trim()) {
+            errors.employee_id = 'Employee ID is required';
+        }
 
         const requiredFields = [
             { name: 'employee_name', label: 'Employee Name' },
@@ -1292,21 +1320,7 @@ export function EmployeeView() {
     const handleCreate = async () => {
         const validationResult = validateForm();
         if (!validationResult.isValid) {
-            // Switch to the tab containing the error
-            if (validationResult.errorTab !== undefined) {
-                setCurrentTab(validationResult.errorTab);
-            }
-
-            // Scroll to the first error field (if on current tab)
-            setTimeout(() => {
-                if (validationResult.firstErrorField) {
-                    const errorElement = document.querySelector(`[name="${validationResult.firstErrorField}"]`);
-                    if (errorElement) {
-                        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        (errorElement as HTMLElement).focus();
-                    }
-                }
-            }, 300);
+            focusValidationField(validationResult.firstErrorField, validationResult.errorTab);
 
             const errorMessage = validationResult.firstErrorMessage || 'Please correct the errors in the form';
             setSnackbar({ open: true, message: errorMessage, severity: 'error' });
@@ -1353,19 +1367,10 @@ export function EmployeeView() {
                     });
                     const firstField = Object.keys(nextErrors)[0];
                     const firstMsg = nextErrors[firstField] || 'Please check duplicate or invalid fields';
-                    setCurrentTab(0);
                     setFormErrors((prev) => ({ ...prev, ...nextErrors }));
                     setServerAlert({ message: firstMsg, severity: 'error' });
                     setSnackbar({ open: true, message: firstMsg, severity: 'error' });
-                    setTimeout(() => {
-                        if (firstField) {
-                            const el = document.querySelector(`[name="${firstField}"]`);
-                            if (el) {
-                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                (el as HTMLElement).focus();
-                            }
-                        }
-                    }, 200);
+                    focusValidationField(firstField, 0);
                     setCreating(false);
                     return;
                 }
@@ -1399,8 +1404,9 @@ export function EmployeeView() {
                 const newDocName = (formData.name || formData.employee_id || '').trim();
 
                 if (!newDocName) {
-                    setCurrentTab(0);
                     setFormErrors(prev => ({ ...prev, employee_id: 'Employee ID is required' }));
+                    setSnackbar({ open: true, message: 'Employee ID is required', severity: 'error' });
+                    focusValidationField('employee_id', 0);
                     setCreating(false);
                     return;
                 }
@@ -1409,9 +1415,10 @@ export function EmployeeView() {
                 if (newDocName && newDocName !== currentEmployeeId) {
                     const check = await checkEmployeeIdAvailable(newDocName, currentEmployeeId);
                     if (!check.available) {
-                        setCurrentTab(0);
                         setFormErrors(prev => ({ ...prev, employee_id: check.message }));
                         setServerAlert({ message: check.message, severity: 'error' });
+                        setSnackbar({ open: true, message: check.message, severity: 'error' });
+                        focusValidationField('employee_id', 0);
                         setCreating(false);
                         return;
                     }
@@ -1423,12 +1430,14 @@ export function EmployeeView() {
                         dataToSave.name = targetId;
                         dataToSave.employee_id = targetId;
                     } catch (renameErr: any) {
-                        setCurrentTab(0);
+                        const renameMsg = `Failed to rename Employee: ${renameErr.message || 'ID may already exist.'}`;
                         setFormErrors(prev => ({ ...prev, employee_id: renameErr.message || 'ID may already exist.' }));
                         setServerAlert({
-                            message: `Failed to rename Employee: ${renameErr.message || 'ID may already exist.'}`,
+                            message: renameMsg,
                             severity: 'error'
                         });
+                        setSnackbar({ open: true, message: renameMsg, severity: 'error' });
+                        focusValidationField('employee_id', 0);
                         setCreating(false);
                         return;
                     }
@@ -1515,8 +1524,9 @@ export function EmployeeView() {
             } else {
                 const customId = (formData.name || formData.employee_id || '').trim();
                 if (!customId) {
-                    setCurrentTab(0);
                     setFormErrors(prev => ({ ...prev, employee_id: 'Employee ID is required' }));
+                    setSnackbar({ open: true, message: 'Employee ID is required', severity: 'error' });
+                    focusValidationField('employee_id', 0);
                     setCreating(false);
                     return;
                 }
@@ -1524,16 +1534,44 @@ export function EmployeeView() {
                 // Check uniqueness before creating
                 const check = await checkEmployeeIdAvailable(customId);
                 if (!check.available) {
-                    setCurrentTab(0);
                     setFormErrors(prev => ({ ...prev, employee_id: check.message }));
                     setServerAlert({ message: check.message, severity: 'error' });
+                    setSnackbar({ open: true, message: check.message, severity: 'error' });
+                    focusValidationField('employee_id', 0);
                     setCreating(false);
                     return;
+                }
+
+                const pendingFaceSave = Boolean(dataToSave._faceBiometricsPendingSave && dataToSave.face_descriptor);
+                const pendingFacePayload = pendingFaceSave
+                    ? {
+                        face_descriptor: dataToSave.face_descriptor,
+                        face_3d_landmarks: dataToSave.face_3d_landmarks,
+                        face_image: dataToSave.face_enrolled_image,
+                    }
+                    : null;
+                delete dataToSave._faceBiometricsPendingSave;
+                delete dataToSave._faceBiometricsPendingClear;
+                if (dataToSave.face_descriptor && typeof dataToSave.face_descriptor === 'object') {
+                    dataToSave.face_descriptor = JSON.stringify(dataToSave.face_descriptor);
+                }
+                if (dataToSave.face_3d_landmarks && typeof dataToSave.face_3d_landmarks === 'object') {
+                    dataToSave.face_3d_landmarks = JSON.stringify(dataToSave.face_3d_landmarks);
                 }
 
                 dataToSave.name = customId;
                 dataToSave.employee_id = customId;
                 await createEmployee(dataToSave as any);
+                if (pendingFacePayload) {
+                    try {
+                        await saveEmployeeFaceEmbedding({
+                            employee: customId,
+                            ...pendingFacePayload,
+                        });
+                    } catch (bioErr) {
+                        console.error('Failed to save face biometrics after create:', bioErr);
+                    }
+                }
                 handleCloseCreate();
                 setSnackbar({ open: true, message: 'Employee created successfully', severity: 'success' });
             }
@@ -1552,13 +1590,17 @@ export function EmployeeView() {
                 ['personal phone', 'phone'],
                 ['office phone', 'office_phone_number'],
                 ['personal email', 'personal_email'],
+                ['joining date', 'date_of_joining'],
+                ['date of leaving', 'date_of_leaving'],
+                ['employee name', 'employee_name'],
                 ['employee_id', 'employee_id'],
                 ['employee id', 'employee_id'],
+                ['email', 'email'],
             ];
             const matched = fieldErrorMatchers.find(([needle]) => lower.includes(needle));
             if (matched) {
-                setCurrentTab(0);
                 setFormErrors((prev) => ({ ...prev, [matched[1]]: msg }));
+                focusValidationField(matched[1], 0);
             } else if (lower.includes('duplicate entry')) {
                 setCurrentTab(0);
             }
@@ -1574,10 +1616,23 @@ export function EmployeeView() {
         try {
             setConfirmLineLoading(true);
 
-            // 1. Keep the employee's original default line record unchanged in Employee doctype
+            // 1. Save the newly added line assignment record before updating Employee so history captures the previous default line
+            const newAssignmentPayload: any = {
+                employee: currentEmployeeId,
+                line_order: formData.line_order,
+                effective_from: changeDate,
+                effective_to: null, // applies to all subsequent and future dates automatically
+                assignment_type: 'Line Change',
+                status: 'Active',
+                reason: changeReason || `Line changed from default "${originalEmployeeLine || 'None'}" to "${formData.line_order}" via Edit Employee on ${changeDate}`,
+            };
+
+            await createLineRosterAssignment(newAssignmentPayload);
+
+            // 2. Update Employee doctype with the newly selected line_order (and any other pending employee changes)
             const employeeData = {
                 ...pendingEmployeeData,
-                line_order: originalEmployeeLine,
+                line_order: formData.line_order,
             };
 
             if (employeeData._faceBiometricsPendingClear) {
@@ -1618,19 +1673,6 @@ export function EmployeeView() {
             }
 
             await updateEmployee(currentEmployeeId, employeeData as any);
-
-            // 2. Save only the newly added line assignment record for the selected employee (applies to all future dates)
-            const newAssignmentPayload: any = {
-                employee: currentEmployeeId,
-                line_order: formData.line_order,
-                effective_from: changeDate,
-                effective_to: null, // applies to all subsequent and future dates automatically
-                assignment_type: 'Line Change',
-                status: 'Active',
-                reason: changeReason || `Line changed from default "${originalEmployeeLine || 'None'}" to "${formData.line_order}" via Edit Employee on ${changeDate}`,
-            };
-
-            await createLineRosterAssignment(newAssignmentPayload);
 
             setOpenLineChangeConfirm(false);
             handleCloseCreate();
@@ -1678,11 +1720,30 @@ export function EmployeeView() {
         try {
             setConfirmShiftLoading(true);
 
-            // 1. Keep the employee's original default shift record unchanged in Employee doctype
+            // 1. Save the newly added shift assignment record before updating Employee so history captures the previous default shift
+            const newAssignmentPayload: any = {
+                employee: currentEmployeeId,
+                shift: formData.shift,
+                effective_from: changeDate,
+                effective_to: null, // applies to all subsequent and future dates automatically
+                assignment_type: 'Shift Change',
+                status: 'Active',
+                reason: changeReason || `Shift changed from default "${originalEmployeeShift || 'None'}" to "${formData.shift}" via Edit Employee on ${changeDate}`,
+            };
+
+            await createShiftRosterAssignment(newAssignmentPayload);
+
+            // 2. Update Employee doctype with the newly selected shift (keeping line_order unchanged until line confirm if also modified)
+            const defaultLine = (originalEmployeeLine || '').trim();
+            const newLine = (formData.line_order || '').trim();
+            const hasPendingLineChange = Boolean(newLine && newLine !== defaultLine);
+
             const employeeData = {
                 ...pendingEmployeeData,
-                shift: originalEmployeeShift,
-                line_order: originalEmployeeLine,
+                shift: formData.shift,
+                ...(hasPendingLineChange
+                    ? { line_order: originalEmployeeLine }
+                    : (newLine !== defaultLine && !newLine ? { line_order: null } : {})),
             };
 
             if (employeeData._faceBiometricsPendingClear) {
@@ -1722,27 +1783,19 @@ export function EmployeeView() {
                 employeeData.face_3d_landmarks = JSON.stringify(employeeData.face_3d_landmarks);
             }
 
-            await updateEmployee(currentEmployeeId, employeeData as any);
-
-            // 2. Save only the newly added shift assignment record for the selected employee (applies to all future dates)
-            const newAssignmentPayload: any = {
-                employee: currentEmployeeId,
-                shift: formData.shift,
-                effective_from: changeDate,
-                effective_to: null, // applies to all subsequent and future dates automatically
-                assignment_type: 'Shift Change',
-                status: 'Active',
-                reason: changeReason || `Shift changed from default "${originalEmployeeShift || 'None'}" to "${formData.shift}" via Edit Employee on ${changeDate}`,
-            };
-
-            await createShiftRosterAssignment(newAssignmentPayload);
+            const updatedEmp = await updateEmployee(currentEmployeeId, employeeData as any);
 
             setOpenShiftChangeConfirm(false);
 
             // Check if line was also changed
-            const defaultLine = (originalEmployeeLine || '').trim();
-            const newLine = (formData.line_order || '').trim();
-            if (newLine !== defaultLine) {
+            if (hasPendingLineChange) {
+                setPendingEmployeeData((prev: any) => ({
+                    ...prev,
+                    ...(updatedEmp?.modified ? { modified: updatedEmp.modified } : {}),
+                    ...(employeeData.face_enrolled_image !== undefined ? { face_enrolled_image: employeeData.face_enrolled_image } : {}),
+                    _faceBiometricsPendingSave: false,
+                    _faceBiometricsPendingClear: false,
+                }));
                 setOpenLineChangeConfirm(true);
                 return;
             }
@@ -1921,7 +1974,7 @@ export function EmployeeView() {
         return parsed.isValid() ? parsed.format('hh:mm A') : timeStr;
     };
 
-    const renderField = (fieldname: string, label: string, type: string = 'text', options: any[] = [], extraProps: any = {}, required: boolean = false) => {
+    const renderFieldControl = (fieldname: string, label: string, type: string = 'text', options: any[] = [], extraProps: any = {}, required: boolean = false) => {
         if (!evaluateVisibility(fieldname)) return null;
 
         const defaultPlaceholder = (type === 'select' || type === 'link')
@@ -3149,6 +3202,7 @@ export function EmployeeView() {
                     onChange={(newValue) => handleInputChange(fieldname, newValue?.format('YYYY-MM-DD') || '')}
                     slotProps={{
                         textField: {
+                            name: fieldname,
                             fullWidth: true,
                             required,
                             error: !!formErrors[fieldname],
@@ -3205,6 +3259,27 @@ export function EmployeeView() {
         }
 
         return <TextField {...commonProps} />;
+    };
+
+    const renderField = (
+        fieldname: string,
+        label: string,
+        type: string = 'text',
+        options: any[] = [],
+        extraProps: any = {},
+        required: boolean = false
+    ) => {
+        const control = renderFieldControl(fieldname, label, type, options, extraProps, required);
+        if (!control) return null;
+
+        return (
+            <Box
+                data-field={fieldname}
+                sx={extraProps?.sx?.gridColumn ? { gridColumn: extraProps.sx.gridColumn } : undefined}
+            >
+                {control}
+            </Box>
+        );
     };
 
     const renderSalaryTable = (type: 'Earning' | 'Deduction') => {
@@ -3742,40 +3817,42 @@ export function EmployeeView() {
                                     <>
                                         <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>Personal Information</Typography>
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Employee ID *"
-                                                name="employee_id"
-                                                value={formData.name || formData.employee_id || ''}
-                                                onChange={(e) => {
-                                                    const val = e.target.value.trim();
-                                                    handleInputChange('name', val);
-                                                    handleInputChange('employee_id', val);
-                                                    if (formErrors.name || formErrors.employee_id) {
-                                                        setFormErrors((prev) => {
-                                                            const copy = { ...prev };
-                                                            delete copy.name;
-                                                            delete copy.employee_id;
-                                                            return copy;
-                                                        });
-                                                    }
-                                                }}
-                                                onBlur={async () => {
-                                                    const val = (formData.name || formData.employee_id || '').trim();
-                                                    if (!val) {
-                                                        setFormErrors((prev) => ({ ...prev, employee_id: 'Employee ID is required' }));
-                                                        return;
-                                                    }
-                                                    const check = await checkEmployeeIdAvailable(val, currentEmployeeId);
-                                                    if (!check.available) {
-                                                        setFormErrors((prev) => ({ ...prev, employee_id: check.message }));
-                                                    }
-                                                }}
-                                                placeholder="e.g. SDB111111, BEPL111111"
-                                                InputLabelProps={{ shrink: true }}
-                                                error={!!formErrors.name || !!formErrors.employee_id}
-                                                helperText={formErrors.employee_id || formErrors.name || "Enter custom Employee ID or keep the generated series ID"}
-                                            />
+                                            <Box data-field="employee_id">
+                                                <TextField
+                                                    fullWidth
+                                                    label="Employee ID *"
+                                                    name="employee_id"
+                                                    value={formData.name || formData.employee_id || ''}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.trim();
+                                                        handleInputChange('name', val);
+                                                        handleInputChange('employee_id', val);
+                                                        if (formErrors.name || formErrors.employee_id) {
+                                                            setFormErrors((prev) => {
+                                                                const copy = { ...prev };
+                                                                delete copy.name;
+                                                                delete copy.employee_id;
+                                                                return copy;
+                                                            });
+                                                        }
+                                                    }}
+                                                    onBlur={async () => {
+                                                        const val = (formData.name || formData.employee_id || '').trim();
+                                                        if (!val) {
+                                                            setFormErrors((prev) => ({ ...prev, employee_id: 'Employee ID is required' }));
+                                                            return;
+                                                        }
+                                                        const check = await checkEmployeeIdAvailable(val, currentEmployeeId);
+                                                        if (!check.available) {
+                                                            setFormErrors((prev) => ({ ...prev, employee_id: check.message }));
+                                                        }
+                                                    }}
+                                                    placeholder="e.g. SDB111111, BEPL111111"
+                                                    InputLabelProps={{ shrink: true }}
+                                                    error={!!formErrors.name || !!formErrors.employee_id}
+                                                    helperText={formErrors.employee_id || formErrors.name || "Enter custom Employee ID or keep the generated series ID"}
+                                                />
+                                            </Box>
                                             {renderField('employee_name', 'Employee Name', 'text', [], {}, true)}
                                             {renderField('father_husband_name', 'Father/Husband Name')}
                                             {renderField('email', 'Email', 'text', [], {}, true)}
@@ -3857,15 +3934,22 @@ export function EmployeeView() {
                                     </Box>
 
                                     {/* Two Column Layout: Earnings and Deductions */}
-                                    <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3}>
-                                        {/* Left Column - Earnings */}
-                                        <Box>
-                                            {renderSalaryTable('Earning')}
-                                        </Box>
+                                    <Box data-field="salary_components">
+                                        {formErrors.salary_components && (
+                                            <Alert severity="error" sx={{ mb: 2 }}>
+                                                {formErrors.salary_components}
+                                            </Alert>
+                                        )}
+                                        <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3}>
+                                            {/* Left Column - Earnings */}
+                                            <Box>
+                                                {renderSalaryTable('Earning')}
+                                            </Box>
 
-                                        {/* Right Column - Deductions */}
-                                        <Box>
-                                            {renderSalaryTable('Deduction')}
+                                            {/* Right Column - Deductions */}
+                                            <Box>
+                                                {renderSalaryTable('Deduction')}
+                                            </Box>
                                         </Box>
                                     </Box>
 
@@ -3901,39 +3985,19 @@ export function EmployeeView() {
                             )}
 
                             {currentTab === 2 && (
-                                <Box>
+                                <Box data-field="documents">
+                                    {formErrors.documents && (
+                                        <Alert severity="error" sx={{ mb: 2 }}>
+                                            {formErrors.documents}
+                                        </Alert>
+                                    )}
                                     {renderDocumentsTable()}
                                 </Box>
                             )}
 
                             {currentTab === 3 && (
                                 <Box sx={{ py: 1 }}>
-                                    {!currentEmployeeId ? (
-                                        <Card sx={{ p: 4, textAlign: 'center', borderRadius: 2, bgcolor: (t) => alpha(t.palette.grey[500], 0.04), border: (t) => `1px dashed ${alpha(t.palette.grey[500], 0.25)}` }}>
-                                            <Box
-                                                sx={{
-                                                    width: 64,
-                                                    height: 64,
-                                                    borderRadius: '50%',
-                                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
-                                                    color: COMMON_COLORS.emerald.main,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    mx: 'auto',
-                                                    mb: 2,
-                                                }}
-                                            >
-                                                <Iconify icon={"solar:face-scan-circle-bold" as any} width={34} />
-                                            </Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-                                                Create Employee Profile First
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 440, mx: 'auto', mb: 3 }}>
-                                                Face biometrics are linked to an active Employee record. Please save basic employee details first, then you can immediately capture their biometric face scan.
-                                            </Typography>
-                                        </Card>
-                                    ) : formData.face_enrolled ? (
+                                    {formData.face_enrolled ?(
                                         <Card sx={{ p: 3, borderRadius: 2, border: (t) => `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.3)}`, bgcolor: (t) => alpha(COMMON_COLORS.emerald.main, 0.02) }}>
                                             <Stack spacing={3}>
                                                 <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
@@ -4022,7 +4086,7 @@ export function EmployeeView() {
                                                                 onClick={() =>
                                                                     setEnrollModal({
                                                                         open: true,
-                                                                        employeeId: currentEmployeeId,
+                                                                        employeeId: currentEmployeeId || formData.employee_id || '',
                                                                         employeeName: formData.employee_name || '',
                                                                         department: formData.department,
                                                                         designation: formData.designation,
@@ -4085,7 +4149,7 @@ export function EmployeeView() {
                                                 onClick={() =>
                                                     setEnrollModal({
                                                         open: true,
-                                                        employeeId: currentEmployeeId,
+                                                        employeeId: currentEmployeeId || formData.employee_id || '',
                                                         employeeName: formData.employee_name || '',
                                                         department: formData.department,
                                                         designation: formData.designation,
@@ -4194,7 +4258,7 @@ export function EmployeeView() {
                     currentPhoto={enrollModal.currentPhoto}
                     saveImmediately={false}
                     onSuccess={(res) => {
-                        if (currentEmployeeId && currentEmployeeId === enrollModal.employeeId) {
+                        if (!currentEmployeeId || currentEmployeeId === enrollModal.employeeId) {
                             setFormData((prev) => ({
                                 ...prev,
                                 face_enrolled: 1,
@@ -4208,7 +4272,9 @@ export function EmployeeView() {
                         }
                         setSnackbar({
                             open: true,
-                            message: 'Face biometrics captured! Click "Update Employee" to save changes.',
+                            message: currentEmployeeId
+                                ? 'Face biometrics captured! Click "Update Employee" to save changes.'
+                                : 'Face biometrics captured! Click "Create Employee" to save employee & biometrics.',
                             severity: 'success',
                         });
                     }}

@@ -29,6 +29,14 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { useSettingsContext } from 'src/hooks/settings-context';
+
+import {
+  getSafeLogoUrl,
+  DEFAULT_FULL_LOGO,
+  handleLogoImgError,
+  getCompanyDisplayName,
+} from 'src/utils/branding';
 import {
   faceapi,
   compareTargetFace,
@@ -40,7 +48,6 @@ import {
 } from 'src/utils/face-recognition';
 
 import { COMMON_COLORS } from 'src/theme';
-import { CONFIG } from 'src/config-global';
 import {
   fetchFaceCatalog,
   type FaceCatalogItem,
@@ -529,6 +536,9 @@ export function FaceLineChangeView() {
   const theme = useTheme();
   const router = useRouter();
   const { enqueueSnackbar } = useSnackbar();
+  const { settings } = useSettingsContext();
+  const companyName = getCompanyDisplayName(settings);
+  const logoUrl = getSafeLogoUrl(settings?.app_logo, DEFAULT_FULL_LOGO);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const queryMode = searchParams.get('mode') as LineChangeMode | null;
@@ -1537,9 +1547,11 @@ export function FaceLineChangeView() {
               }}
             >
               <Box
+                key={logoUrl}
                 component="img"
-                src={`${CONFIG.assetsDir}/logo/Innoblitz%20Logo%20Full.png`}
-                alt="BBK Logo"
+                src={logoUrl}
+                alt={companyName || 'Company Logo'}
+                onError={(e) => handleLogoImgError(e, DEFAULT_FULL_LOGO)}
                 sx={{
                   height: 48,
                   width: 'auto',
@@ -1548,18 +1560,20 @@ export function FaceLineChangeView() {
                 }}
               />
               <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                <Typography
-                  component="span"
-                  sx={{
-                    fontSize: '0.95rem',
-                    fontWeight: 800,
-                    color: '#1e293b',
-                    textTransform: 'uppercase',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  BBK EXPORTS
-                </Typography>
+                {companyName && (
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: '0.95rem',
+                      fontWeight: 800,
+                      color: '#1e293b',
+                      textTransform: 'uppercase',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {companyName}
+                  </Typography>
+                )}
                 <Typography
                   component="span"
                   sx={{

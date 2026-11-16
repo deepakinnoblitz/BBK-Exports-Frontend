@@ -582,6 +582,11 @@ export function SalarySlipPreviewDialog({ open, onClose, onConfirm, data }: Prop
                             color="error.main"
                             hrSettings={hrSettings}
                         />
+                        {data.tds_breakdown && Number(data.tds_amount || 0) > 0 && (
+                            <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
+                                FY {data.tds_breakdown.fy} TDS: Proj. Annual Gross ₹{fNumber(data.tds_breakdown.projected_annual_gross, { locale: hrSettings.default_locale })} | Std Ded ₹{fNumber(data.tds_breakdown.standard_deduction, { locale: hrSettings.default_locale })} | Taxable ₹{fNumber(data.tds_breakdown.taxable_income, { locale: hrSettings.default_locale })} | Annual Tax ₹{fNumber(data.tds_breakdown.total_annual_tax, { locale: hrSettings.default_locale })} ÷ {data.tds_breakdown.remaining_months} mo
+                            </Typography>
+                        )}
                     </Stack>
                 </Box>
             </Box>

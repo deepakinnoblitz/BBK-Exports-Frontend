@@ -1,7 +1,9 @@
+import type { Dayjs } from 'dayjs';
 import type { CardProps } from '@mui/material/Card';
 import type { ChartOptions } from 'src/components/chart';
 import type { WorkforceLineItem } from 'src/api/dashboard';
 
+import dayjs from 'dayjs';
 import { useState } from 'react';
 
 import Box from '@mui/material/Box';
@@ -19,6 +21,7 @@ import { fNumber } from 'src/utils/format-number';
 import { Chart, useChart } from 'src/components/chart';
 
 import { ChartEmptyState } from './chart-empty-state';
+import { DateRangeFilterButton } from './date-range-filter-button';
 
 // ----------------------------------------------------------------------
 
@@ -27,11 +30,50 @@ type Props = CardProps & {
     subheader?: string;
     data: WorkforceLineItem[];
     loading?: boolean;
+    startDate?: Dayjs;
+    endDate?: Dayjs;
+    onDateChange?: (start: Dayjs, end: Dayjs, presetKey?: string) => void;
+    onResetDate?: () => void;
 };
 
-export function LineWiseChart({ title = 'Line-Wise Workforce & Attendance', subheader = 'Live headcount and attendance across production lines', data = [], loading, sx, ...other }: Props) {
+export function LineWiseChart({
+    title = 'Line-Wise Workforce & Attendance',
+    subheader = 'Live headcount and attendance across production lines',
+    data = [],
+    loading,
+    startDate,
+    endDate,
+    onDateChange,
+    onResetDate,
+    sx,
+    ...other
+}: Props) {
     const theme = useTheme();
     const [viewMode, setViewMode] = useState<'counts' | 'rate'>('counts');
+    const [internalStart, setInternalStart] = useState<Dayjs>(dayjs());
+    const [internalEnd, setInternalEnd] = useState<Dayjs>(dayjs());
+
+    const activeStart = startDate || internalStart;
+    const activeEnd = endDate || internalEnd;
+
+    const handleDateChange = (start: Dayjs, end: Dayjs, presetKey?: string) => {
+        setInternalStart(start);
+        setInternalEnd(end);
+        onDateChange?.(start, end, presetKey);
+    };
+
+    const handleResetDate = () => {
+        const today = dayjs();
+        setInternalStart(today);
+        setInternalEnd(today);
+        if (onResetDate) {
+            onResetDate();
+        } else if (onDateChange) {
+            onDateChange(today, today, 'Today');
+        }
+    };
+
+    const isToday = activeStart.isSame(dayjs(), 'day') && activeEnd.isSame(dayjs(), 'day');
 
     const handleViewChange = (_: React.MouseEvent<HTMLElement>, newView: 'counts' | 'rate' | null) => {
         if (newView !== null) {
@@ -47,12 +89,16 @@ export function LineWiseChart({ title = 'Line-Wise Workforce & Attendance', subh
             data: data.map((d) => d.total),
         },
         {
-            name: 'Present Today',
+            name: isToday ? 'Present Today' : 'Present',
             data: data.map((d) => d.present),
         },
         {
-            name: 'Absent Today',
+            name: isToday ? 'Absent Today' : 'Absent',
             data: data.map((d) => d.absent),
+        },
+        {
+            name: isToday ? 'Missing Today' : 'Missing',
+            data: data.map((d) => d.missing || 0),
         },
     ];
 
@@ -65,14 +111,15 @@ export function LineWiseChart({ title = 'Line-Wise Workforce & Attendance', subh
 
     const isRate = viewMode === 'rate';
 
-    // Cherry Red and Green matching the Attendance Chart above
+    // Cherry Red, Green, and Amber Orange matching the Attendance Chart above
     const CHERRY_RED = '#e11d48';
     const EMERALD_GREEN = '#10b981';
     const TOTAL_STAFF_COLOR = '#0284c7';
+    const AMBER_ORANGE = '#f59e0b';
 
     const chartColors = isRate
         ? [EMERALD_GREEN]
-        : [TOTAL_STAFF_COLOR, EMERALD_GREEN, CHERRY_RED];
+        : [TOTAL_STAFF_COLOR, EMERALD_GREEN, CHERRY_RED, AMBER_ORANGE];
 
     const chartOptions: ChartOptions = useChart({
         colors: chartColors,
@@ -144,54 +191,77 @@ export function LineWiseChart({ title = 'Line-Wise Workforce & Attendance', subh
                     </Stack>
                 }
                 subheader={subheader}
+                sx={{
+                    p: 2.5,
+                    pb: 1,
+                    '& .MuiCardHeader-action': {
+                        alignSelf: { xs: 'flex-start', md: 'center' },
+                        m: 0,
+                    },
+                }}
                 action={
-                    <ToggleButtonGroup
-                        size="small"
-                        value={viewMode}
-                        exclusive
-                        onChange={handleViewChange}
-                        sx={{
-                            p: '3px',
-                            borderRadius: '24px',
-                            bgcolor: (t) => alpha(t.palette.grey[500], 0.08),
-                            border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.12)}`,
-                            '& .MuiToggleButtonGroup-grouped': {
-                                border: 0,
-                                '&:not(:first-of-type)': {
-                                    borderRadius: '20px',
-                                },
-                                '&:first-of-type': {
-                                    borderRadius: '20px',
-                                },
-                            },
-                            '& .MuiToggleButton-root': {
-                                px: 1.75,
-                                py: 0.5,
-                                fontSize: 12,
-                                fontWeight: 700,
-                                textTransform: 'none',
-                                borderRadius: '20px',
-                                color: 'text.secondary',
-                                transition: 'all 0.2s ease-in-out',
-                                '&:hover': {
-                                    bgcolor: 'transparent',
-                                    color: 'text.primary',
-                                },
-                                '&.Mui-selected': {
-                                    bgcolor: 'primary.main',
-                                    color: '#ffffff',
-                                    boxShadow: (t) => `0 2px 8px ${alpha(t.palette.primary.main, 0.35)}`,
-                                    '&:hover': {
-                                        bgcolor: 'primary.dark',
-                                        color: '#ffffff',
+                    <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        spacing={2.5}
+                    >
+                        <ToggleButtonGroup
+                            size="small"
+                            value={viewMode}
+                            exclusive
+                            onChange={handleViewChange}
+                            sx={{
+                                p: '3px',
+                                borderRadius: '24px',
+                                bgcolor: (t) => alpha(t.palette.grey[500], 0.08),
+                                border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.12)}`,
+                                '& .MuiToggleButtonGroup-grouped': {
+                                    border: 0,
+                                    '&:not(:first-of-type)': {
+                                        borderRadius: '20px',
+                                    },
+                                    '&:first-of-type': {
+                                        borderRadius: '20px',
                                     },
                                 },
-                            },
-                        }}
-                    >
-                        <ToggleButton value="counts">Headcount & Attendance</ToggleButton>
-                        <ToggleButton value="rate">Attendance %</ToggleButton>
-                    </ToggleButtonGroup>
+                                '& .MuiToggleButton-root': {
+                                    px: 1.75,
+                                    py: 0.5,
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    textTransform: 'none',
+                                    borderRadius: '20px',
+                                    color: 'text.secondary',
+                                    transition: 'all 0.2s ease-in-out',
+                                    '&:hover': {
+                                        bgcolor: 'transparent',
+                                        color: 'text.primary',
+                                    },
+                                    '&.Mui-selected': {
+                                        bgcolor: 'primary.main',
+                                        color: '#ffffff',
+                                        boxShadow: (t) => `0 2px 8px ${alpha(t.palette.primary.main, 0.35)}`,
+                                        '&:hover': {
+                                            bgcolor: 'primary.dark',
+                                            color: '#ffffff',
+                                        },
+                                    },
+                                },
+                            }}
+                        >
+                            <ToggleButton value="counts">Headcount & Attendance</ToggleButton>
+                            <ToggleButton value="rate">Attendance %</ToggleButton>
+                        </ToggleButtonGroup>
+
+                        <DateRangeFilterButton
+                            startDate={activeStart}
+                            endDate={activeEnd}
+                            onChange={handleDateChange}
+                            onReset={handleResetDate}
+                            disabled={loading}
+                            singleDate
+                        />
+                    </Stack>
                 }
             />
 

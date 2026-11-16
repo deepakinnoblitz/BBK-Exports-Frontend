@@ -28,8 +28,8 @@ import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
 import { fNumber } from 'src/utils/format-number';
 
 import { COMMON_COLORS } from 'src/theme';
-import { saveSalarySlip } from 'src/api/salary-slips';
 import { getHRSettings, fetchSalaryComponents } from 'src/api/hr-management';
+import { saveSalarySlip, calculateSalarySlipTDS } from 'src/api/salary-slips';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -58,6 +58,7 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
 
     const [formData, setFormData] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isRecalculatingTds, setIsRecalculatingTds] = useState(false);
     const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
 
     const [componentDialogOpen, setComponentDialogOpen] = useState(false);
@@ -603,6 +604,61 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
 
     if (!formData) return null;
 
+    async function handleRecalculateTds() {
+        if (!formData?.employee || !formData?.pay_period_start) return;
+        try {
+            setIsRecalculatingTds(true);
+            const currentGross = Number(formData.grand_gross_pay || formData.gross_pay || 0);
+            const baseGross = Number(formData.base_gross_pay || 0) || undefined;
+            const tdsRes = await calculateSalarySlipTDS({
+                employee: formData.employee,
+                grand_gross_pay: currentGross,
+                pay_period_start: formData.pay_period_start,
+                current_slip_name: formData.name,
+                base_monthly_gross: baseGross,
+            });
+            const compName = tdsRes?.tds_component || 'TDS';
+            const computedTds = Number(tdsRes?.tds_amount || 0);
+
+            setFormData((prev: any) => {
+                if (!prev) return prev;
+                const currentDeductions = [...(prev.deductions || [])];
+                const existingIdx = currentDeductions.findIndex((item: any) => {
+                    const n = getCompName(item).trim().toLowerCase();
+                    return n === compName.toLowerCase() || n === 'tds' || n === 'income tax' || n === 'tds deduction';
+                });
+
+                if (existingIdx >= 0) {
+                    currentDeductions[existingIdx] = {
+                        ...currentDeductions[existingIdx],
+                        component_name: compName,
+                        amount: computedTds.toFixed(2),
+                        isManual: false,
+                    };
+                } else if (computedTds > 0) {
+                    currentDeductions.push({
+                        component_name: compName,
+                        type: 'Deduction',
+                        amount: computedTds.toFixed(2),
+                        standard_amount: 0,
+                        isManual: false,
+                    });
+                }
+
+                const recalced = recalculateTotals({ ...prev, deductions: currentDeductions });
+                return {
+                    ...recalced,
+                    tds_amount: computedTds.toFixed(2),
+                    tds_breakdown: tdsRes?.breakdown || null,
+                };
+            });
+        } catch (error) {
+            console.error('Failed to recalculate TDS:', error);
+        } finally {
+            setIsRecalculatingTds(false);
+        }
+    }
+
     async function handleSave() {
         try {
             setIsSaving(true);
@@ -1056,6 +1112,21 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
                             DEDUCTIONS
                         </Typography>
                         <Stack direction="row" spacing={1} alignItems="center">
+                            <Button
+                                size="small"
+                                variant="text"
+                                disabled={isRecalculatingTds}
+                                startIcon={<Iconify icon="solar:calculator-minimalistic-bold-duotone" width={16} />}
+                                onClick={handleRecalculateTds}
+                                sx={{
+                                    color: 'primary.main',
+                                    fontWeight: 700,
+                                    fontSize: '0.8rem',
+                                    '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08) }
+                                }}
+                            >
+                                {isRecalculatingTds ? 'Calculating...' : 'Recalc TDS'}
+                            </Button>
                             <Button
                                 size="small"
                                 variant="text"

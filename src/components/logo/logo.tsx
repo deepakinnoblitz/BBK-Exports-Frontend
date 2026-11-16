@@ -10,7 +10,12 @@ import { RouterLink } from 'src/routes/components';
 
 import { useHRMSSettings } from 'src/hooks/use-hrms-settings';
 
-import { CONFIG } from 'src/config-global';
+import {
+  getSafeLogoUrl,
+  DEFAULT_FULL_LOGO,
+  handleLogoImgError,
+  getCompanyDisplayName,
+} from 'src/utils/branding';
 
 import { logoClasses } from './classes';
 
@@ -30,23 +35,28 @@ export function Logo({
   ...other
 }: LogoProps) {
   const { settings } = useHRMSSettings();
-  const logoUrl = `${CONFIG.assetsDir}/logo/Innoblitz%20Logo%20Full.png`;
+  const logoUrl = getSafeLogoUrl(settings?.app_logo, DEFAULT_FULL_LOGO);
+  const companyName = getCompanyDisplayName(settings);
 
   const singleLogo = (
     <Box
+      key={logoUrl}
       component="img"
       src={logoUrl}
-      alt="Single logo"
-      sx={{ width: 1, height: 100, objectFit: 'contain', mt: 2 }}
+      alt={companyName || 'Company Logo'}
+      onError={(e) => handleLogoImgError(e, DEFAULT_FULL_LOGO)}
+      sx={{ width: 'auto', maxWidth: 220, height: 100, objectFit: 'contain', mt: 2 }}
     />
   );
 
   const fullLogo = (
     <Box
+      key={logoUrl}
       component="img"
       src={logoUrl}
-      alt="Full logo"
-      sx={{ width: 1, height: 100, objectFit: 'contain' }}
+      alt={companyName || 'Company Logo'}
+      onError={(e) => handleLogoImgError(e, DEFAULT_FULL_LOGO)}
+      sx={{ width: 'auto', maxWidth: 220, height: 100, objectFit: 'contain' }}
     />
   );
 

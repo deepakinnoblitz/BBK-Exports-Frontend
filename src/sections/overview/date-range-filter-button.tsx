@@ -1,7 +1,7 @@
 import type { Dayjs } from 'dayjs';
 
 import dayjs from 'dayjs';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -25,6 +25,8 @@ interface DateRangeFilterButtonProps {
     onChange: (start: Dayjs, end: Dayjs, presetKey?: string) => void;
     onReset: () => void;
     disabled?: boolean;
+    singleDate?: boolean;
+    preset?: string;
 }
 
 export function DateRangeFilterButton({
@@ -33,19 +35,36 @@ export function DateRangeFilterButton({
     onChange,
     onReset,
     disabled = false,
+    singleDate = false,
+    preset,
 }: DateRangeFilterButtonProps) {
     const theme = useTheme();
 
     const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
     const [tempStart, setTempStart] = useState<Dayjs | null>(startDate);
     const [tempEnd, setTempEnd] = useState<Dayjs | null>(endDate);
-    const [activePreset, setActivePreset] = useState<string>('Today');
+    const [activePreset, setActivePreset] = useState<string>(preset || (singleDate ? 'Today' : 'Last 7 Days'));
+
+    useEffect(() => {
+        if (preset) {
+            setActivePreset(preset);
+        }
+    }, [preset]);
 
     const open = Boolean(anchorEl);
 
     const handleOpenPopover = (event: React.MouseEvent<HTMLButtonElement>) => {
         setTempStart(startDate);
         setTempEnd(endDate);
+        if (startDate.isSame(endDate, 'day')) {
+            if (startDate.isSame(dayjs(), 'day')) {
+                setActivePreset('Today');
+            } else if (startDate.isSame(dayjs().subtract(1, 'day'), 'day')) {
+                setActivePreset('Yesterday');
+            } else {
+                setActivePreset('Custom');
+            }
+        }
         setAnchorEl(event.currentTarget);
     };
 
@@ -55,6 +74,12 @@ export function DateRangeFilterButton({
 
     const presets = useMemo(() => {
         const now = dayjs();
+        if (singleDate) {
+            return [
+                { key: 'Today', label: 'Today', start: now, end: now },
+                { key: 'Yesterday', label: 'Yesterday', start: now.subtract(1, 'day'), end: now.subtract(1, 'day') },
+            ];
+        }
         return [
             { key: 'Today', label: 'Today', start: now, end: now },
             { key: 'Yesterday', label: 'Yesterday', start: now.subtract(1, 'day'), end: now.subtract(1, 'day') },
@@ -63,7 +88,7 @@ export function DateRangeFilterButton({
             { key: 'This Month', label: 'This Month', start: now.startOf('month'), end: now.endOf('month') },
             { key: 'Last Month', label: 'Last Month', start: now.subtract(1, 'month').startOf('month'), end: now.subtract(1, 'month').endOf('month') },
         ];
-    }, []);
+    }, [singleDate]);
 
     const handleSelectPreset = (p: typeof presets[0]) => {
         setActivePreset(p.key);
@@ -74,24 +99,55 @@ export function DateRangeFilterButton({
     };
 
     const handleApplyCustom = () => {
-        if (tempStart && tempEnd) {
+        if (singleDate) {
+            if (tempStart) {
+                setActivePreset('Custom');
+                onChange(tempStart, tempStart, 'Custom');
+                handleClosePopover();
+            }
+        } else if (tempStart && tempEnd) {
+            const start = tempStart.isAfter(tempEnd) ? tempEnd : tempStart;
+            const end = tempStart.isAfter(tempEnd) ? tempStart : tempEnd;
             setActivePreset('Custom');
-            onChange(tempStart, tempEnd, 'Custom');
+            onChange(start, end, 'Custom');
             handleClosePopover();
         }
     };
 
     const handleResetClick = () => {
-        setActivePreset('Today');
+        const defaultPreset = singleDate ? 'Today' : 'Last 7 Days';
+        setActivePreset(defaultPreset);
         onReset();
     };
 
-    // Format display string matching exact design: "Mar 20, 2026 - Mar 20, 2026"
+    // Format display string matching exact design:
+    // When preset (e.g. "Last 7 Days") is active on range: displays "Last 7 Days"
+    // When single day: displays "Today: Nov 13, 2026" or "Nov 13, 2026"
+    // When custom range: displays "Nov 01, 2026 - Nov 07, 2026"
     const displayText = useMemo(() => {
+        if (activePreset && activePreset !== 'Custom') {
+            if (singleDate) {
+                const startStr = startDate.format('MMM DD, YYYY');
+                if (activePreset === 'Today' || activePreset === 'Yesterday') {
+                    return `${activePreset}: ${startStr}`;
+                }
+                return startStr;
+            }
+            if (activePreset === 'Today' || activePreset === 'Yesterday') {
+                return `${activePreset}: ${startDate.format('MMM DD, YYYY')}`;
+            }
+            return activePreset;
+        }
         const startStr = startDate.format('MMM DD, YYYY');
         const endStr = endDate.format('MMM DD, YYYY');
+        if (startDate.isSame(endDate, 'day')) {
+            if (startDate.isSame(dayjs(), 'day')) {
+                return `Today: ${startStr}`;
+            }
+            return startStr;
+        }
         return `${startStr} - ${endStr}`;
-    }, [startDate, endDate]);
+    }, [startDate, endDate, activePreset, singleDate]);
 
     return (
         <Stack direction="row" alignItems="center" spacing={1}>
@@ -100,10 +156,10 @@ export function DateRangeFilterButton({
                 variant="contained"
                 onClick={handleOpenPopover}
                 disabled={disabled}
-                endIcon={<Iconify icon={"solar:alt-arrow-down-bold" as any} width={13} sx={{ color: '#ffffffff', ml: -0.25 }} />}
+                endIcon={<Iconify icon={"solar:alt-arrow-down-bold" as any} width={13} sx={{ color: '#ffffff', ml: -0.25 }} />}
                 sx={{
                     bgcolor: '#1e293b',
-                    color: '#ffffffff',
+                    color: '#ffffff',
                     fontWeight: 700,
                     fontSize: '0.8125rem',
                     height: 38,
@@ -130,7 +186,7 @@ export function DateRangeFilterButton({
                 {displayText}
             </Button>
 
-            {/* Emerald Green Reset Button as explicitly requested by user */}
+            {/* Emerald Green Reset Button */}
             <Button
                 variant="contained"
                 onClick={handleResetClick}
@@ -187,10 +243,10 @@ export function DateRangeFilterButton({
             >
                 <Box sx={{ mb: 1.5 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
-                        Filter by Date Range
+                        {singleDate ? 'Select Date' : 'Filter by Date Range'}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        Choose a quick preset or customize your date range
+                        {singleDate ? 'Choose a quick preset or select a date' : 'Choose a quick preset or customize your date range'}
                     </Typography>
                 </Box>
 
@@ -227,9 +283,15 @@ export function DateRangeFilterButton({
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <Stack spacing={1.5} sx={{ mt: 1 }}>
                         <DatePicker
-                            label="Start Date"
+                            label={singleDate ? 'Date' : 'Start Date'}
                             value={tempStart}
-                            onChange={(val) => setTempStart(val)}
+                            onChange={(val) => {
+                                setTempStart(val);
+                                if (singleDate) {
+                                    setTempEnd(val);
+                                }
+                            }}
+                            format="DD-MM-YYYY"
                             slotProps={{
                                 textField: {
                                     size: 'small',
@@ -238,18 +300,21 @@ export function DateRangeFilterButton({
                                 },
                             }}
                         />
-                        <DatePicker
-                            label="End Date"
-                            value={tempEnd}
-                            onChange={(val) => setTempEnd(val)}
-                            slotProps={{
-                                textField: {
-                                    size: 'small',
-                                    fullWidth: true,
-                                    sx: { '& .MuiOutlinedInput-root': { borderRadius: 1.25 } },
-                                },
-                            }}
-                        />
+                        {!singleDate && (
+                            <DatePicker
+                                label="End Date"
+                                value={tempEnd}
+                                onChange={(val) => setTempEnd(val)}
+                                format="DD-MM-YYYY"
+                                slotProps={{
+                                    textField: {
+                                        size: 'small',
+                                        fullWidth: true,
+                                        sx: { '& .MuiOutlinedInput-root': { borderRadius: 1.25 } },
+                                    },
+                                }}
+                            />
+                        )}
                     </Stack>
                 </LocalizationProvider>
 
@@ -267,7 +332,7 @@ export function DateRangeFilterButton({
                         size="small"
                         variant="contained"
                         onClick={handleApplyCustom}
-                        disabled={!tempStart || !tempEnd}
+                        disabled={singleDate ? !tempStart : (!tempStart || !tempEnd)}
                         sx={{
                             bgcolor: '#10b981',
                             color: '#fff',
@@ -277,7 +342,7 @@ export function DateRangeFilterButton({
                             '&:hover': { bgcolor: '#059669' },
                         }}
                     >
-                        Apply Range
+                        {singleDate ? 'Apply Date' : 'Apply Range'}
                     </Button>
                 </Stack>
             </Popover>

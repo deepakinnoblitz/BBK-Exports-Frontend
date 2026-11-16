@@ -18,7 +18,15 @@ import Drawer, { drawerClasses } from '@mui/material/Drawer';
 import { usePathname } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
-import { CONFIG } from 'src/config-global';
+import { useSettingsContext } from 'src/hooks/settings-context';
+
+import {
+  getSafeLogoUrl,
+  DEFAULT_FULL_LOGO,
+  handleLogoImgError,
+  getCompanyDisplayName,
+  DEFAULT_COLLAPSED_LOGO,
+} from 'src/utils/branding';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -172,8 +180,12 @@ export function NavContent({
 }: Omit<NavContentProps, 'workspaces'> & { onCloseMobile?: () => void }) {
   const pathname = usePathname();
   const { search } = useLocation();
+  const { settings } = useSettingsContext();
 
   const fullPath = pathname + search;
+  const companyName = getCompanyDisplayName(settings);
+  const fullLogoUrl = getSafeLogoUrl(settings?.app_logo, DEFAULT_FULL_LOGO);
+  const collapsedLogoUrl = getSafeLogoUrl(settings?.app_logo, DEFAULT_COLLAPSED_LOGO);
 
   return (
     <Box
@@ -219,9 +231,11 @@ export function NavContent({
             }}
           >
             <Box
+              key={fullLogoUrl}
               component="img"
-              src={`${CONFIG.assetsDir}/logo/Innoblitz%20Logo%20Full.png`}
-              alt="Logo"
+              src={fullLogoUrl}
+              alt={companyName || 'Company Logo'}
+              onError={(e) => handleLogoImgError(e, DEFAULT_FULL_LOGO)}
               sx={{
                 height: 88,
                 width: 'auto',
@@ -231,22 +245,25 @@ export function NavContent({
                 '&:hover': { opacity: 0.85, transform: 'scale(1.02)' },
               }}
             />
-            <Typography
-              component="span"
-              sx={{
-                mt: 1,
-                fontSize: '0.785rem',
-                fontWeight: 700,
-                letterSpacing: '0.14em',
-                color: '#1e293b',
-                textTransform: 'uppercase',
-                lineHeight: 1.25,
-                textAlign: 'center',
-                fontFamily: 'inherit',
-              }}
-            >
-              BBK EXPORTS
-            </Typography>
+            {companyName && (
+              <Typography
+                component="span"
+                sx={{
+                  mt: 1,
+                  fontSize: '0.785rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.14em',
+                  color: '#1e293b',
+                  textTransform: 'uppercase',
+                  lineHeight: 1.25,
+                  textAlign: 'center',
+                  fontFamily: 'inherit',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {companyName}
+              </Typography>
+            )}
           </Box>
         ) : (
           <Box
@@ -261,12 +278,15 @@ export function NavContent({
             }}
           >
             <Box
+              key={collapsedLogoUrl}
               component="img"
-              src={`${CONFIG.assetsDir}/logo/Innoblitz_logo.png`}
-              alt="Logo"
+              src={collapsedLogoUrl}
+              alt={companyName || 'Company Logo'}
+              onError={(e) => handleLogoImgError(e, DEFAULT_COLLAPSED_LOGO)}
               sx={{
-                height: 50,
-                width: 50,
+                height: 46,
+                width: 46,
+                maxWidth: 48,
                 objectFit: 'contain',
               }}
             />

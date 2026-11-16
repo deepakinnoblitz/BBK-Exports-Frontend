@@ -235,12 +235,13 @@ export interface TDSSlabItem {
 }
 
 const DEFAULT_TDS_NEW_SLABS: TDSSlabItem[] = [
-  { from_amount: 0, to_amount: 300000, rate_percent: 0 },
-  { from_amount: 300001, to_amount: 700000, rate_percent: 5 },
-  { from_amount: 700001, to_amount: 1000000, rate_percent: 10 },
-  { from_amount: 1000001, to_amount: 1200000, rate_percent: 15 },
-  { from_amount: 1200001, to_amount: 1500000, rate_percent: 20 },
-  { from_amount: 1500001, to_amount: null, rate_percent: 30 },
+  { from_amount: 0, to_amount: 400000, rate_percent: 0 },
+  { from_amount: 400001, to_amount: 800000, rate_percent: 5 },
+  { from_amount: 800001, to_amount: 1200000, rate_percent: 10 },
+  { from_amount: 1200001, to_amount: 1600000, rate_percent: 15 },
+  { from_amount: 1600001, to_amount: 2000000, rate_percent: 20 },
+  { from_amount: 2000001, to_amount: 2400000, rate_percent: 25 },
+  { from_amount: 2400001, to_amount: null, rate_percent: 30 },
 ];
 
 const DEFAULT_TDS_OLD_SLABS: TDSSlabItem[] = [
@@ -1151,6 +1152,21 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
 
   const handleResetTdsNewSlabs = () => {
     onChange('tds_new_regime_slabs', JSON.stringify(DEFAULT_TDS_NEW_SLABS));
+  };
+
+  const handleResetAllTdsDefaults = () => {
+    onChange('enable_tds', 1);
+    onChange('tds_active_financial_year', '2026-2027');
+    onChange('tds_default_regime', 'New Tax Regime u/s 115BAC');
+    onChange('tds_deduction_component', 'TDS');
+    onChange('tds_standard_deduction_new', '75000');
+    onChange('tds_standard_deduction_old', '50000');
+    onChange('tds_rebate_limit_87a_new', '1200000');
+    onChange('tds_rebate_limit_87a_old', '500000');
+    onChange('tds_enable_marginal_relief', 1);
+    onChange('tds_cess_rate', '4.0');
+    onChange('tds_new_regime_slabs', JSON.stringify(DEFAULT_TDS_NEW_SLABS));
+    onChange('tds_old_regime_slabs', JSON.stringify(DEFAULT_TDS_OLD_SLABS));
   };
 
   const getParsedTdsOldSlabs = (): TDSSlabItem[] => {
@@ -7179,6 +7195,16 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                 </Stack>
 
                 <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="inherit"
+                    onClick={handleResetAllTdsDefaults}
+                    startIcon={<LuRotateCcw size={14} />}
+                    sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                  >
+                    Reset FY 2026–27 Defaults
+                  </Button>
                   <Typography
                     variant="subtitle2"
                     sx={{
@@ -7361,9 +7387,9 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                     fullWidth
                     type="number"
                     label="87A Rebate Threshold - New Regime (₹)"
-                    value={data.tds_rebate_limit_87a_new ?? '700000'}
+                    value={data.tds_rebate_limit_87a_new ?? '1200000'}
                     onChange={(e) => onChange('tds_rebate_limit_87a_new', e.target.value)}
-                    helperText="Full tax rebate if net taxable <= threshold (default ₹7,00,000)"
+                    helperText="Full tax rebate if net taxable <= threshold (default ₹12,00,000; ₹12,75,000 gross)"
                     disabled={!isCheckEnabled(data.enable_tds ?? 1)}
                     slotProps={{
                       input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> },
@@ -7387,6 +7413,45 @@ export function SettingsSalarySlip({ data, onChange }: Props) {
                   />
                 </Grid>
               </Grid>
+
+              <Box
+                sx={{
+                  mt: 2,
+                  p: 2,
+                  borderRadius: 1.5,
+                  bgcolor: (theme) => alpha('#059669', 0.06),
+                  border: (theme) => `1px solid ${alpha('#059669', 0.25)}`,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#065f46' }}>
+                    Effective New Regime Zero-TDS Gross Ceiling: ₹
+                    {(
+                      (Number(data.tds_standard_deduction_new ?? 75000) || 0) +
+                      (Number(data.tds_rebate_limit_87a_new ?? 1200000) || 0)
+                    ).toLocaleString('en-IN')}
+                    /year
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                    Salaried employees with projected annual gross up to this ceiling incur ₹0 TDS (Standard Deduction + Section 87A Rebate). Above this ceiling, slab rates apply with optional Marginal Relief u/s 87A.
+                  </Typography>
+                </Box>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    87A Marginal Relief (New Regime)
+                  </Typography>
+                  <CustomSwitch
+                    checked={isCheckEnabled(data.tds_enable_marginal_relief ?? 1)}
+                    disabled={!isCheckEnabled(data.enable_tds ?? 1)}
+                    onChange={(e) => onChange('tds_enable_marginal_relief', e.target.checked ? 1 : 0)}
+                  />
+                </Stack>
+              </Box>
 
               <Divider sx={{ my: 3 }} />
 
