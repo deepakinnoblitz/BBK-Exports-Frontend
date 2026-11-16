@@ -2,7 +2,7 @@ import type { CardProps } from '@mui/material/Card';
 import type { ChartOptions } from 'src/components/chart';
 import type { SkillMatrixGroupItem, SkillDistributionItem } from 'src/api/dashboard';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -70,9 +70,45 @@ export function WorkersSkillMatrixChart({
     };
 
     const isLine = dimension === 'line';
-    const activeData = isLine ? lineMatrix : departmentMatrix;
 
-    const categories = activeData.map((d) => (isLine ? (d.line || 'Unassigned').replace('Line ', 'L') : d.department || 'Unassigned'));
+    const activeData = useMemo(() => {
+        if (isLine) {
+            return (lineMatrix || [])
+                .filter((d) => {
+                    if (!d || !d.line) return false;
+                    const trimmed = d.line.trim().toLowerCase();
+                    return trimmed !== '' && trimmed !== 'unassigned' && trimmed !== 'none' && trimmed !== 'null';
+                })
+                .map((d) => {
+                    let formattedLine = (d.line || '').trim();
+                    const match = formattedLine.match(/^L\s*(\d+)$/i);
+                    if (match) {
+                        formattedLine = `Line ${match[1]}`;
+                    }
+                    return {
+                        ...d,
+                        line: formattedLine,
+                    };
+                })
+                .sort((a, b) => {
+                    const lineA = a.line || '';
+                    const lineB = b.line || '';
+                    const numA = parseInt(lineA.replace(/\D/g, ''), 10);
+                    const numB = parseInt(lineB.replace(/\D/g, ''), 10);
+                    if (!isNaN(numA) && !isNaN(numB)) {
+                        return numA - numB;
+                    }
+                    return lineA.localeCompare(lineB, undefined, { numeric: true, sensitivity: 'base' });
+                });
+        }
+        return (departmentMatrix || []).filter((d) => {
+            if (!d || !d.department) return false;
+            const trimmed = d.department.trim().toLowerCase();
+            return trimmed !== '' && trimmed !== 'unassigned' && trimmed !== 'none' && trimmed !== 'null';
+        });
+    }, [isLine, lineMatrix, departmentMatrix]);
+
+    const categories = activeData.map((d) => (isLine ? (d.line || '') : (d.department || 'Unassigned')));
 
     const series = [
         {
@@ -225,17 +261,27 @@ export function WorkersSkillMatrixChart({
                             sx={{
                                 p: 1.5,
                                 borderRadius: 1.5,
-                                bgcolor: (t) => alpha(t.palette.grey[500], 0.06),
-                                border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.14)}`,
+                                bgcolor: alpha('#6366f1', 0.06),
+                                border: `1px solid ${alpha('#6366f1', 0.24)}`,
                             }}
                         >
-                            <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: 10 }}>
+                            <Typography variant="caption" sx={{ color: '#6366f1', fontWeight: 800, textTransform: 'uppercase', fontSize: 10 }}>
                                 Total Workers
                             </Typography>
-                            <Typography variant="h5" fontWeight={800} color="text.primary" sx={{ mt: 0.25 }}>
+                            <Typography variant="h5" fontWeight={800} sx={{ color: '#4338ca', mt: 0.25 }}>
                                 {fNumber(totalWorkers)}
                             </Typography>
-                            <Label color="default" variant="soft" sx={{ mt: 0.5, fontSize: 10, height: 18, fontWeight: 700 }}>
+                            <Label
+                                variant="soft"
+                                sx={{
+                                    mt: 0.5,
+                                    fontSize: 10,
+                                    height: 18,
+                                    fontWeight: 700,
+                                    bgcolor: alpha('#6366f1', 0.12),
+                                    color: '#6366f1',
+                                }}
+                            >
                                 100% Workforce
                             </Label>
                         </Box>
