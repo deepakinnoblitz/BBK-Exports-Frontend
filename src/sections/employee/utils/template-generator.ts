@@ -372,13 +372,17 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
         }
     });
 
-    // Pre-format data rows (up to 100 rows) as text format for text/phone fields so Excel won't convert numbers to scientific notation
+    // Pre-format data rows (up to 100 rows) as text format for text/phone fields and apply clean, consistent font styling
     for (let r = 5; r <= 100; r++) {
         const row = sheet.getRow(r);
         columnDefs.forEach((col, idx) => {
+            const cell = row.getCell(idx + 1);
             if (col.type === 'text' || col.key === 'phone' || col.key === 'office_phone_number') {
-                row.getCell(idx + 1).numFmt = '@';
+                cell.numFmt = '@';
             }
+            cell.font = { name: 'Calibri', size: 10, color: { argb: 'FF1E293B' } };
+            cell.alignment = { horizontal: col.type === 'currency' ? 'right' : 'left', vertical: 'middle' };
+            cell.border = thinBorder;
         });
     }
 
@@ -527,11 +531,16 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
     DROPDOWN_MASTERS.forEach((mField, mIdx) => {
         const masterColNum = mIdx + 1;
         const masterColLetter = getColumnLetter(masterColNum);
-        masterSheet.getCell(1, masterColNum).value = mField.header;
+        const headerCell = masterSheet.getCell(1, masterColNum);
+        headerCell.value = mField.header;
+        headerCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1E293B' } };
 
         const optionsList = (resolvedMasterOptions[mField.key] || []).filter(Boolean);
         optionsList.forEach((val, valIdx) => {
-            masterSheet.getCell(valIdx + 2, masterColNum).value = val;
+            const cell = masterSheet.getCell(valIdx + 2, masterColNum);
+            cell.value = val;
+            cell.font = { name: 'Calibri', size: 10, color: { argb: 'FF1E293B' } };
+            cell.alignment = { horizontal: 'left', vertical: 'middle' };
         });
 
         if (optionsList.length > 0) {
