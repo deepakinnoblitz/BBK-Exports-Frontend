@@ -1,44 +1,37 @@
 import type { CardProps } from '@mui/material/Card';
 import type { ChartOptions } from 'src/components/chart';
 
-import { FaFilter } from 'react-icons/fa';
 import dayjs, { type Dayjs } from 'dayjs';
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CircularProgress from '@mui/material/CircularProgress';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { fNumber } from 'src/utils/format-number';
 
 import { Iconify } from 'src/components/iconify';
 import { Chart, useChart } from 'src/components/chart';
 
+import { DateRangeFilterButton } from './date-range-filter-button';
+
 // ----------------------------------------------------------------------
 
 type Props = CardProps & {
-    title: string;
+    title?: string;
     subheader?: string;
     data: Array<{ date: string; day: string; present: number; absent: number; missing?: number }>;
-    filter: string;
-    onFilterChange: (filter: string, from?: string, to?: string) => void;
+    filter?: string;
+    onFilterChange?: (filter: string, from?: string, to?: string) => void;
+    startDate?: Dayjs;
+    endDate?: Dayjs;
+    preset?: string;
+    onDateChange?: (start: Dayjs, end: Dayjs, presetKey?: string) => void;
+    onResetDate?: () => void;
     loading?: boolean;
-};
-
-// Custom pill-style select trigger label map
-const FILTER_LABELS: Record<string, string> = {
-    'Last 7 Days': 'Last 7 Days',
-    'This Month': 'This Month',
-    'Last Month': 'Last Month',
-    Custom: 'Custom Range',
 };
 
 // Vibrant Emerald Green, Cherry Red, and Amber Orange matching Line-Wise Workforce chart
@@ -96,19 +89,59 @@ function EmptyState() {
 // ----------------------------------------------------------------------
 
 export function WeeklyPresentAbsentChart({
-    title,
-    subheader: subheaderProp,
-    data,
+    title = 'Attendance Summary (Present, Absent & Missing)',
+    subheader,
+    data = [],
     filter,
     onFilterChange,
+    startDate,
+    endDate,
+    preset,
+    onDateChange,
+    onResetDate,
     loading,
     sx,
     ...other
 }: Props) {
     const theme = useTheme();
 
-    const [startDate, setStartDate] = useState<Dayjs | null>(dayjs().subtract(6, 'day'));
-    const [endDate, setEndDate] = useState<Dayjs | null>(dayjs());
+    const [internalStart, setInternalStart] = useState<Dayjs>(startDate || dayjs().subtract(6, 'day'));
+    const [internalEnd, setInternalEnd] = useState<Dayjs>(endDate || dayjs());
+    const [internalPreset, setInternalPreset] = useState<string>(preset || filter || 'Last 7 Days');
+
+    const activeStart = startDate || internalStart;
+    const activeEnd = endDate || internalEnd;
+    const activePreset = preset || internalPreset;
+
+    const handleDateChange = (start: Dayjs, end: Dayjs, presetKey?: string) => {
+        setInternalStart(start);
+        setInternalEnd(end);
+        if (presetKey) setInternalPreset(presetKey);
+
+        if (onDateChange) {
+            onDateChange(start, end, presetKey);
+        } else if (onFilterChange) {
+            const startStr = start.format('YYYY-MM-DD');
+            const endStr = end.format('YYYY-MM-DD');
+            onFilterChange(presetKey || 'Custom', startStr, endStr);
+        }
+    };
+
+    const handleResetDate = () => {
+        const end = dayjs();
+        const start = dayjs().subtract(6, 'day');
+        setInternalStart(start);
+        setInternalEnd(end);
+        setInternalPreset('Last 7 Days');
+
+        if (onResetDate) {
+            onResetDate();
+        } else if (onDateChange) {
+            onDateChange(start, end, 'Last 7 Days');
+        } else if (onFilterChange) {
+            onFilterChange('Last 7 Days', start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
+        }
+    };
 
     // Trend calculations
     const totalPresent = useMemo(() => data.reduce((s, d) => s + (d.present || 0), 0), [data]);
@@ -193,57 +226,6 @@ export function WeeklyPresentAbsentChart({
         },
     });
 
-    const handleFilterChange = useCallback(
-        (value: string) => {
-            if (value !== 'Custom') {
-                onFilterChange(value);
-            } else {
-                onFilterChange(value, startDate?.format('YYYY-MM-DD'), endDate?.format('YYYY-MM-DD'));
-            }
-        },
-        [onFilterChange, startDate, endDate]
-    );
-
-    const handleDateChange = (type: 'start' | 'end', newValue: Dayjs | null) => {
-        if (type === 'start') {
-            setStartDate(newValue);
-            if (newValue && endDate && filter === 'Custom') {
-                onFilterChange('Custom', newValue.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD'));
-            }
-        } else {
-            setEndDate(newValue);
-            if (startDate && newValue && filter === 'Custom') {
-                onFilterChange('Custom', startDate.format('YYYY-MM-DD'), newValue.format('YYYY-MM-DD'));
-            }
-        }
-    };
-
-    const pillDatePickerSx = {
-        width: { xs: '100%', sm: 148 },
-        '& .MuiOutlinedInput-root': {
-            borderRadius: '20px',
-            height: 36,
-            fontSize: '13px',
-            fontWeight: 500,
-            bgcolor: alpha(theme.palette.grey[500], 0.06),
-            transition: 'all 0.2s',
-            '& fieldset': {
-                borderColor: alpha(theme.palette.grey[500], 0.18),
-                transition: 'border-color 0.2s',
-            },
-            '&:hover fieldset': {
-                borderColor: theme.palette.primary.main,
-            },
-            '&.Mui-focused fieldset': {
-                borderColor: theme.palette.primary.main,
-                borderWidth: '1.5px',
-            },
-        },
-        '& .MuiInputLabel-root': {
-            fontSize: '12px',
-        },
-    };
-
     return (
         <Card
             sx={[
@@ -274,10 +256,17 @@ export function WeeklyPresentAbsentChart({
                     gap: 2,
                 }}
             >
-                {/* Left: Clean Title */}
-                <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.3px', lineHeight: 1.3 }}>
-                    {title}
-                </Typography>
+                {/* Left: Clean Title & optional subheader */}
+                <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.3px', lineHeight: 1.3 }}>
+                        {title}
+                    </Typography>
+                    {subheader && (
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                            {subheader}
+                        </Typography>
+                    )}
+                </Box>
 
                 {/* Right: Filters & KPI Summary Badges */}
                 <Box
@@ -376,76 +365,14 @@ export function WeeklyPresentAbsentChart({
                         </Stack>
                     )}
 
-                    {/* Custom range date pickers */}
-                    {filter === 'Custom' && (
-                        <LocalizationProvider dateAdapter={AdapterDayjs}>
-                            <Box
-                                sx={{
-                                    display: 'flex',
-                                    gap: 1,
-                                    flexWrap: 'wrap',
-                                    width: { xs: '100%', sm: 'auto' },
-                                }}
-                            >
-                                <DatePicker
-                                    label="From"
-                                    value={startDate}
-                                    onChange={(val) => handleDateChange('start', val)}
-                                    slotProps={{
-                                        textField: {
-                                            size: 'small',
-                                            sx: pillDatePickerSx,
-                                        },
-                                    }}
-                                />
-                                <DatePicker
-                                    label="To"
-                                    value={endDate}
-                                    onChange={(val) => handleDateChange('end', val)}
-                                    slotProps={{
-                                        textField: {
-                                            size: 'small',
-                                            sx: pillDatePickerSx,
-                                        },
-                                    }}
-                                />
-                            </Box>
-                        </LocalizationProvider>
-                    )}
-
-                    {/* Filter Selector */}
-                    <Select
-                        size="small"
-                        value={filter}
-                        onChange={(e) => handleFilterChange(e.target.value)}
-                        startAdornment={<FaFilter size={13} style={{ marginRight: 8, color: '#64748B' }} />}
-                        sx={{
-                            minWidth: 145,
-                            height: 36,
-                            borderRadius: '20px',
-                            fontWeight: 600,
-                            fontSize: '13px',
-                            bgcolor: alpha(theme.palette.grey[500], 0.06),
-                            transition: 'all 0.2s',
-                            '& .MuiOutlinedInput-notchedOutline': {
-                                borderColor: alpha(theme.palette.grey[500], 0.18),
-                                transition: 'border-color 0.2s',
-                            },
-                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                                borderColor: theme.palette.primary.main,
-                            },
-                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                borderColor: theme.palette.primary.main,
-                                borderWidth: '1.5px',
-                            },
-                        }}
-                    >
-                        {Object.entries(FILTER_LABELS).map(([value, label]) => (
-                            <MenuItem key={value} value={value} sx={{ fontSize: '13px', fontWeight: 500 }}>
-                                {label}
-                            </MenuItem>
-                        ))}
-                    </Select>
+                    <DateRangeFilterButton
+                        startDate={activeStart}
+                        endDate={activeEnd}
+                        preset={activePreset}
+                        onChange={handleDateChange}
+                        onReset={handleResetDate}
+                        disabled={loading}
+                    />
                 </Box>
             </Box>
 

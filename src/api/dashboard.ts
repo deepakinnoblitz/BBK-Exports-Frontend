@@ -751,11 +751,20 @@ export interface WorkforceAnalyticsData {
     };
 }
 
-export async function fetchWorkforceAnalytics(date?: string): Promise<WorkforceAnalyticsData | null> {
+export async function fetchWorkforceAnalytics(
+    date?: string,
+    startDate?: string,
+    endDate?: string
+): Promise<WorkforceAnalyticsData | null> {
     try {
         let url = '/api/method/company.company.frontend_api.get_workforce_dashboard_analytics';
-        if (date) {
-            url += `?date=${date}`;
+        const params = new URLSearchParams();
+        if (date) params.append('date', date);
+        if (startDate) params.append('from_date', startDate);
+        if (endDate) params.append('to_date', endDate);
+        const qs = params.toString();
+        if (qs) {
+            url += `?${qs}`;
         }
         const res = await frappeRequest(url);
 
