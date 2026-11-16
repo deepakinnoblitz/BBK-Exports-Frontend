@@ -108,12 +108,6 @@ export function SettingsBiometric({ data, onChange, onRefresh, errors, onClearEr
       start: dayjs().startOf('month').format('YYYY-MM-DD 00:00:00'),
       end: dayjs().endOf('day').format('YYYY-MM-DD 23:59:59'),
     },
-    {
-      id: 'sample_logs',
-      label: 'Sample Data (Nov 01 - 09)',
-      start: '2026-11-01 00:00:00',
-      end: '2026-11-09 23:59:59',
-    },
   ];
 
   const handleSelectPreset = (start: string, end: string) => {
