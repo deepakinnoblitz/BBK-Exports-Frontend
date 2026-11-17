@@ -11,7 +11,7 @@ export interface BiometricSettingsData {
   sync_mode: 'Manual Only' | 'Interval in Minutes' | 'Specific Times Daily';
   sync_interval_minutes: number;
   daily_sync_times?: string;
-  overlap_minutes: number;
+  overlap_minutes?: number;
   auto_reconciliation_enabled: number;
   last_successful_sync?: string | null;
   last_sync_from?: string | null;

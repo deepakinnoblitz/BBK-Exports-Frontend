@@ -2,7 +2,7 @@ import type { CardProps } from '@mui/material/Card';
 import type { ChartOptions } from 'src/components/chart';
 import type { SkillMatrixGroupItem, SkillDistributionItem } from 'src/api/dashboard';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -31,22 +31,37 @@ type Props = CardProps & {
     overall: SkillDistributionItem[];
     lineMatrix: SkillMatrixGroupItem[];
     departmentMatrix: SkillMatrixGroupItem[];
-    summary: {
-        highly_skilled: number;
-        skilled: number;
-        semi_skilled: number;
-        unskilled: number;
-        unassigned: number;
-    };
+    summary?: Record<string, number>;
     loading?: boolean;
 };
 
-const SKILL_COLORS = {
-    'Highly Skilled': '#10b981',  // Emerald
+const KNOWN_SKILL_COLORS: Record<string, string> = {
+    'Highly Skilled': '#10b981',  // Emerald Green
     'Skilled': '#3b82f6',         // Blue
     'Semi Skilled': '#f59e0b',    // Amber
     'Unskilled': '#64748b',       // Slate Grey
+    'Unassigned': '#94a3b8',      // Muted Slate
 };
+
+const EXTENDED_PALETTE = [
+    '#8b5cf6', // Purple
+    '#ec4899', // Pink / Rose
+    '#06b6d4', // Cyan
+    '#f97316', // Orange
+    '#14b8a6', // Teal
+    '#6366f1', // Indigo
+    '#eab308', // Yellow
+    '#d946ef', // Fuchsia
+    '#84cc16', // Lime
+];
+
+function getSkillColor(skillName: string, index = 0): string {
+    const trimmed = (skillName || '').trim();
+    if (KNOWN_SKILL_COLORS[trimmed]) {
+        return KNOWN_SKILL_COLORS[trimmed];
+    }
+    return EXTENDED_PALETTE[index % EXTENDED_PALETTE.length];
+}
 
 export function WorkersSkillMatrixChart({
     title = 'Workers Skill Matrix',
@@ -70,35 +85,76 @@ export function WorkersSkillMatrixChart({
     };
 
     const isLine = dimension === 'line';
-    const activeData = isLine ? lineMatrix : departmentMatrix;
 
-    const categories = activeData.map((d) => (isLine ? (d.line || 'Unassigned').replace('Line ', 'L') : d.department || 'Unassigned'));
+    const activeData = useMemo(() => {
+        if (isLine) {
+            return (lineMatrix || [])
+                .filter((d) => {
+                    if (!d || !d.line) return false;
+                    const trimmed = d.line.trim().toLowerCase();
+                    return trimmed !== '' && trimmed !== 'unassigned' && trimmed !== 'none' && trimmed !== 'null';
+                })
+                .map((d) => {
+                    let formattedLine = (d.line || '').trim();
+                    const match = formattedLine.match(/^L\s*(\d+)$/i);
+                    if (match) {
+                        formattedLine = `Line ${match[1]}`;
+                    }
+                    return {
+                        ...d,
+                        line: formattedLine,
+                    };
+                })
+                .sort((a, b) => {
+                    const lineA = a.line || '';
+                    const lineB = b.line || '';
+                    const numA = parseInt(lineA.replace(/\D/g, ''), 10);
+                    const numB = parseInt(lineB.replace(/\D/g, ''), 10);
+                    if (!isNaN(numA) && !isNaN(numB)) {
+                        return numA - numB;
+                    }
+                    return lineA.localeCompare(lineB, undefined, { numeric: true, sensitivity: 'base' });
+                });
+        }
+        return (departmentMatrix || []).filter((d) => {
+            if (!d || !d.department) return false;
+            const trimmed = d.department.trim().toLowerCase();
+            return trimmed !== '' && trimmed !== 'unassigned' && trimmed !== 'none' && trimmed !== 'null';
+        });
+    }, [isLine, lineMatrix, departmentMatrix]);
 
-    const series = [
-        {
-            name: 'Highly Skilled',
-            data: activeData.map((d) => d['Highly Skilled'] || 0),
-        },
-        {
-            name: 'Skilled',
-            data: activeData.map((d) => d['Skilled'] || 0),
-        },
-        {
-            name: 'Semi Skilled',
-            data: activeData.map((d) => d['Semi Skilled'] || 0),
-        },
-        {
-            name: 'Unskilled',
-            data: activeData.map((d) => d['Unskilled'] || 0),
-        },
-    ];
+    // Filter display skills (hide Unassigned if count is 0)
+    const displaySkills = useMemo(
+        () =>
+            (overall || []).filter((item) => {
+                if (!item || !item.skill) return false;
+                if (item.skill.toLowerCase() === 'unassigned' && item.count === 0) return false;
+                return true;
+            }),
+        [overall]
+    );
 
-    const chartColors = [
-        SKILL_COLORS['Highly Skilled'],
-        SKILL_COLORS['Skilled'],
-        SKILL_COLORS['Semi Skilled'],
-        SKILL_COLORS['Unskilled'],
-    ];
+    // Distinct skill names for series and chart
+    const skillList = useMemo(() => {
+        const names = displaySkills.map((d) => d.skill);
+        return names.length > 0 ? names : ['Highly Skilled', 'Skilled', 'Semi Skilled', 'Unskilled'];
+    }, [displaySkills]);
+
+    const categories = activeData.map((d) => (isLine ? (d.line || '') : (d.department || 'Unassigned')));
+
+    const series = useMemo(
+        () =>
+            skillList.map((skillName) => ({
+                name: skillName,
+                data: activeData.map((d) => (d as Record<string, any>)[skillName] || 0),
+            })),
+        [skillList, activeData]
+    );
+
+    const chartColors = useMemo(
+        () => skillList.map((s, idx) => getSkillColor(s, idx)),
+        [skillList]
+    );
 
     const chartOptions: ChartOptions = useChart({
         chart: {
@@ -220,110 +276,85 @@ export function WorkersSkillMatrixChart({
             {/* Quick Summary Metric Badges */}
             <Box sx={{ px: 2.5, pt: 2 }}>
                 <Grid container spacing={1.5}>
+                    {/* 1. Total Workers Badge (Distinct Indigo/Violet) */}
                     <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
                         <Box
                             sx={{
                                 p: 1.5,
                                 borderRadius: 1.5,
-                                bgcolor: (t) => alpha(t.palette.grey[500], 0.06),
-                                border: (t) => `1px solid ${alpha(t.palette.grey[500], 0.14)}`,
+                                bgcolor: alpha('#6366f1', 0.06),
+                                border: `1px solid ${alpha('#6366f1', 0.24)}`,
                             }}
                         >
-                            <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: 10 }}>
+                            <Typography variant="caption" sx={{ color: '#6366f1', fontWeight: 800, textTransform: 'uppercase', fontSize: 10 }}>
                                 Total Workers
                             </Typography>
-                            <Typography variant="h5" fontWeight={800} color="text.primary" sx={{ mt: 0.25 }}>
+                            <Typography variant="h5" fontWeight={800} sx={{ color: '#4338ca', mt: 0.25 }}>
                                 {fNumber(totalWorkers)}
                             </Typography>
-                            <Label color="default" variant="soft" sx={{ mt: 0.5, fontSize: 10, height: 18, fontWeight: 700 }}>
+                            <Label
+                                variant="soft"
+                                sx={{
+                                    mt: 0.5,
+                                    fontSize: 10,
+                                    height: 18,
+                                    fontWeight: 700,
+                                    bgcolor: alpha('#6366f1', 0.12),
+                                    color: '#6366f1',
+                                }}
+                            >
                                 100% Workforce
                             </Label>
                         </Box>
                     </Grid>
 
-                    <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
-                        <Box
-                            sx={{
-                                p: 1.5,
-                                borderRadius: 1.5,
-                                bgcolor: alpha(SKILL_COLORS['Highly Skilled'], 0.06),
-                                border: `1px solid ${alpha(SKILL_COLORS['Highly Skilled'], 0.24)}`,
-                            }}
-                        >
-                            <Typography variant="caption" sx={{ color: SKILL_COLORS['Highly Skilled'], fontWeight: 800, textTransform: 'uppercase', fontSize: 10 }}>
-                                Highly Skilled
-                            </Typography>
-                            <Typography variant="h5" fontWeight={800} sx={{ color: SKILL_COLORS['Highly Skilled'], mt: 0.25 }}>
-                                {fNumber(summary?.highly_skilled || 0)}
-                            </Typography>
-                            <Label color="success" variant="soft" sx={{ mt: 0.5, fontSize: 10, height: 18, fontWeight: 700 }}>
-                                {totalWorkers > 0 ? Math.round(((summary?.highly_skilled || 0) / totalWorkers) * 100) : 0}% of Workers
-                            </Label>
-                        </Box>
-                    </Grid>
-
-                    <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
-                        <Box
-                            sx={{
-                                p: 1.5,
-                                borderRadius: 1.5,
-                                bgcolor: alpha(SKILL_COLORS['Skilled'], 0.06),
-                                border: `1px solid ${alpha(SKILL_COLORS['Skilled'], 0.24)}`,
-                            }}
-                        >
-                            <Typography variant="caption" sx={{ color: SKILL_COLORS['Skilled'], fontWeight: 800, textTransform: 'uppercase', fontSize: 10 }}>
-                                Skilled
-                            </Typography>
-                            <Typography variant="h5" fontWeight={800} sx={{ color: SKILL_COLORS['Skilled'], mt: 0.25 }}>
-                                {fNumber(summary?.skilled || 0)}
-                            </Typography>
-                            <Label color="info" variant="soft" sx={{ mt: 0.5, fontSize: 10, height: 18, fontWeight: 700 }}>
-                                {totalWorkers > 0 ? Math.round(((summary?.skilled || 0) / totalWorkers) * 100) : 0}% of Workers
-                            </Label>
-                        </Box>
-                    </Grid>
-
-                    <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
-                        <Box
-                            sx={{
-                                p: 1.5,
-                                borderRadius: 1.5,
-                                bgcolor: alpha(SKILL_COLORS['Semi Skilled'], 0.06),
-                                border: `1px solid ${alpha(SKILL_COLORS['Semi Skilled'], 0.24)}`,
-                            }}
-                        >
-                            <Typography variant="caption" sx={{ color: SKILL_COLORS['Semi Skilled'], fontWeight: 800, textTransform: 'uppercase', fontSize: 10 }}>
-                                Semi Skilled
-                            </Typography>
-                            <Typography variant="h5" fontWeight={800} sx={{ color: SKILL_COLORS['Semi Skilled'], mt: 0.25 }}>
-                                {fNumber(summary?.semi_skilled || 0)}
-                            </Typography>
-                            <Label color="warning" variant="soft" sx={{ mt: 0.5, fontSize: 10, height: 18, fontWeight: 700 }}>
-                                {totalWorkers > 0 ? Math.round(((summary?.semi_skilled || 0) / totalWorkers) * 100) : 0}% of Workers
-                            </Label>
-                        </Box>
-                    </Grid>
-
-                    <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
-                        <Box
-                            sx={{
-                                p: 1.5,
-                                borderRadius: 1.5,
-                                bgcolor: alpha(SKILL_COLORS['Unskilled'], 0.06),
-                                border: `1px solid ${alpha(SKILL_COLORS['Unskilled'], 0.24)}`,
-                            }}
-                        >
-                            <Typography variant="caption" sx={{ color: SKILL_COLORS['Unskilled'], fontWeight: 800, textTransform: 'uppercase', fontSize: 10 }}>
-                                Unskilled
-                            </Typography>
-                            <Typography variant="h5" fontWeight={800} sx={{ color: SKILL_COLORS['Unskilled'], mt: 0.25 }}>
-                                {fNumber(summary?.unskilled || 0)}
-                            </Typography>
-                            <Label color="default" variant="soft" sx={{ mt: 0.5, fontSize: 10, height: 18, fontWeight: 700 }}>
-                                {totalWorkers > 0 ? Math.round(((summary?.unskilled || 0) / totalWorkers) * 100) : 0}% of Workers
-                            </Label>
-                        </Box>
-                    </Grid>
+                    {/* 2. Dynamic Master Skills Badges */}
+                    {displaySkills.map((item, index) => {
+                        const color = getSkillColor(item.skill, index);
+                        return (
+                            <Grid key={item.skill} size={{ xs: 6, sm: 4, md: 2.4 }}>
+                                <Box
+                                    sx={{
+                                        p: 1.5,
+                                        borderRadius: 1.5,
+                                        bgcolor: alpha(color, 0.06),
+                                        border: `1px solid ${alpha(color, 0.24)}`,
+                                    }}
+                                >
+                                    <Typography
+                                        variant="caption"
+                                        noWrap
+                                        sx={{
+                                            color,
+                                            fontWeight: 800,
+                                            textTransform: 'uppercase',
+                                            fontSize: 10,
+                                            display: 'block',
+                                        }}
+                                        title={item.skill}
+                                    >
+                                        {item.skill}
+                                    </Typography>
+                                    <Typography variant="h5" fontWeight={800} sx={{ color, mt: 0.25 }}>
+                                        {fNumber(item.count || 0)}
+                                    </Typography>
+                                    <Label
+                                        variant="soft"
+                                        sx={{
+                                            mt: 0.5,
+                                            fontSize: 10,
+                                            height: 18,
+                                            fontWeight: 700,
+                                            bgcolor: alpha(color, 0.12),
+                                            color,
+                                        }}
+                                    >
+                                        {item.percentage}% of Workers
+                                    </Label>
+                                </Box>
+                            </Grid>
+                        );
+                    })}
                 </Grid>
             </Box>
 
@@ -361,23 +392,18 @@ export function WorkersSkillMatrixChart({
                     Active Factory Workers Tracked: <strong>{totalWorkers} employees</strong> across {activeData.length} {isLine ? 'production lines' : 'departments'}
                 </Typography>
 
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Stack direction="row" alignItems="center" spacing={0.5}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: SKILL_COLORS['Highly Skilled'] }} />
-                        <Typography variant="caption" fontWeight={600} color="text.secondary">Highly Skilled</Typography>
-                    </Stack>
-                    <Stack direction="row" alignItems="center" spacing={0.5}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: SKILL_COLORS['Skilled'] }} />
-                        <Typography variant="caption" fontWeight={600} color="text.secondary">Skilled</Typography>
-                    </Stack>
-                    <Stack direction="row" alignItems="center" spacing={0.5}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: SKILL_COLORS['Semi Skilled'] }} />
-                        <Typography variant="caption" fontWeight={600} color="text.secondary">Semi Skilled</Typography>
-                    </Stack>
-                    <Stack direction="row" alignItems="center" spacing={0.5}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: SKILL_COLORS['Unskilled'] }} />
-                        <Typography variant="caption" fontWeight={600} color="text.secondary">Unskilled</Typography>
-                    </Stack>
+                <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+                    {displaySkills.map((item, idx) => {
+                        const color = getSkillColor(item.skill, idx);
+                        return (
+                            <Stack key={item.skill} direction="row" alignItems="center" spacing={0.5} sx={{ my: 0.5 }}>
+                                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color }} />
+                                <Typography variant="caption" fontWeight={600} color="text.secondary">
+                                    {item.skill}
+                                </Typography>
+                            </Stack>
+                        );
+                    })}
                 </Stack>
             </Stack>
         </Card>

@@ -235,6 +235,7 @@ export const hrNavData = [
       // { title: 'Activity Type', path: '/activity-type' },
       { title: 'Line', path: '/line-order' },
       { title: 'Shift', path: '/shift' },
+      { title: 'Skill', path: '/skill' },
       { title: 'Bus - Travel Route', path: '/bus-travel-route' },
       { title: 'Claim Type', path: '/claim-type' },
       { title: 'Bank Account', path: '/bank-account' },

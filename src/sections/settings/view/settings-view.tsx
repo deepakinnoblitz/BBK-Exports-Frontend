@@ -66,7 +66,6 @@ export function SettingsView() {
     sync_mode: 'Manual Only',
     sync_interval_minutes: 15,
     daily_sync_times: '',
-    overlap_minutes: 15,
     auto_reconciliation_enabled: 0,
   });
 

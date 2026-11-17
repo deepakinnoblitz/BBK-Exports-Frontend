@@ -3862,7 +3862,7 @@ export function EmployeeView() {
                                             {renderField('dob', 'Date of Birth', 'date')}
                                             {renderField('blood_group', 'Blood Group', 'link', fieldOptions['blood_group'] || [])}
                                             {renderField('sex', 'Gender', 'select', ['Male', 'Female', 'Other'])}
-                                            {renderField('marital_status', 'Marital Status', 'select', ['Single', 'Married', 'Divorced', 'Widowed'])}
+                                            {renderField('marital_status', 'Marital Status', 'select', ['Single', 'Married', 'Other'])}
                                             {renderField('qualification', 'Qualification', 'link', fieldOptions['qualification'] || [])}
                                             {renderField('aadhar_number', 'Aadhar Number', 'text', [], {
                                                 placeholder: 'Enter 12-digit Aadhar Number',
