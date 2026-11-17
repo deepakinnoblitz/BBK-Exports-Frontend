@@ -1,0 +1,150 @@
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Badge from '@mui/material/Badge';
+import Drawer from '@mui/material/Drawer';
+import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+
+import { Iconify } from 'src/components/iconify';
+import { Scrollbar } from 'src/components/scrollbar';
+
+// ----------------------------------------------------------------------
+
+type Props = {
+  open: boolean;
+  onOpen: VoidFunction;
+  onClose: VoidFunction;
+  canReset: boolean;
+  filters: {
+    status: string;
+  };
+  onFilters: (name: string, value: string) => void;
+  onResetFilters: VoidFunction;
+};
+
+export default function SkillTableFiltersDrawer({
+  open,
+  onOpen,
+  onClose,
+  canReset,
+  filters,
+  onFilters,
+  onResetFilters,
+}: Props) {
+  const renderHead = (
+    <Box
+      sx={{
+        py: 2.5,
+        pl: 3,
+        pr: 2,
+        display: 'flex',
+        alignItems: 'center',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
+        Filters
+      </Typography>
+
+      <IconButton
+        onClick={onResetFilters}
+        disabled={!canReset}
+        sx={{
+          mr: 0.5,
+          color: canReset ? 'primary.main' : 'text.disabled',
+          '&:hover': {
+            bgcolor: canReset ? 'primary.lighter' : 'transparent',
+          },
+        }}
+      >
+        <Badge color="error" variant="dot" invisible={!canReset}>
+          <Iconify icon="solar:restart-bold" width={20} />
+        </Badge>
+      </IconButton>
+
+      <IconButton
+        onClick={onClose}
+        sx={{
+          color: 'text.secondary',
+          '&:hover': {
+            bgcolor: 'action.hover',
+          },
+        }}
+      >
+        <Iconify icon="mingcute:close-line" width={20} />
+      </IconButton>
+    </Box>
+  );
+
+  const renderStatus = (
+    <Stack spacing={1.5}>
+      <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+        Status
+      </Typography>
+      <TextField
+        select
+        fullWidth
+        value={filters.status || 'all'}
+        onChange={(e) => onFilters('status', e.target.value)}
+        size="small"
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 1.5,
+            bgcolor: 'background.neutral',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          },
+        }}
+      >
+        <MenuItem value="all">All</MenuItem>
+        <MenuItem value="Active">Active</MenuItem>
+        <MenuItem value="Inactive">Inactive</MenuItem>
+      </TextField>
+    </Stack>
+  );
+
+  return (
+    <Drawer
+      anchor="right"
+      open={open}
+      onClose={onClose}
+      slotProps={{
+        backdrop: { invisible: true },
+      }}
+      PaperProps={{
+        sx: {
+          width: 320,
+          border: 'none',
+          boxShadow: (theme) => theme.customShadows.z24,
+        },
+      }}
+    >
+      {renderHead}
+
+      <Scrollbar>
+        <Stack spacing={3} sx={{ p: 3 }}>
+          {renderStatus}
+        </Stack>
+      </Scrollbar>
+
+      <Box sx={{ p: 2.5, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Button
+          fullWidth
+          size="medium"
+          color="inherit"
+          variant="outlined"
+          startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
+          onClick={onResetFilters}
+          disabled={!canReset}
+        >
+          Clear
+        </Button>
+      </Box>
+    </Drawer>
+  );
+}

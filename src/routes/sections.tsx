@@ -220,6 +220,7 @@ export const Page404 = lazy(() => import('src/pages/page-not-found'));
 export const DailyLogPage = lazy(() => import('src/pages/daily-log'));
 export const SettingsPage = lazy(() => import('src/pages/settings'));
 export const DepartmentPage = lazy(() => import('src/pages/department'));
+export const SkillPage = lazy(() => import('src/pages/skill'));
 export const ProjectPage = lazy(() => import('src/pages/project'));
 export const ActivityTypePage = lazy(() => import('src/pages/activity-type'));
 export const ClaimTypePage = lazy(() => import('src/pages/claim-type'));
@@ -509,6 +510,7 @@ export const routesSection: RouteObject[] = [
       { path: 'daily-log', element: <RolePermissionGuard actionKey="daily_log"><DailyLogPage /></RolePermissionGuard> },
       { path: 'import-attendance', element: <RolePermissionGuard actionKey="attendance_list"><ImportAttendancePage /></RolePermissionGuard> },
       { path: 'department', element: <RolePermissionGuard actionKey="master_department"><DepartmentPage /></RolePermissionGuard> },
+      { path: 'skill', element: <RolePermissionGuard actionKey="master_skill"><SkillPage /></RolePermissionGuard> },
       { path: 'project', element: <RolePermissionGuard actionKey="master_project"><ProjectPage /></RolePermissionGuard> },
       { path: 'activity-type', element: <RolePermissionGuard actionKey="master_activity_type"><ActivityTypePage /></RolePermissionGuard> },
       { path: 'claim-type', element: <RolePermissionGuard actionKey="master_claim_type"><ClaimTypePage /></RolePermissionGuard> },

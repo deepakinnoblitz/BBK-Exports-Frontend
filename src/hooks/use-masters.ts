@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-import { fetchItems, fetchShifts, fetchProjects, fetchServices, fetchLeadFroms, fetchClaimTypes, fetchLeaveTypes, fetchLineOrders, fetchDepartments, fetchBloodGroups, fetchBankAccounts, fetchDesignations, fetchPaymentTerms, fetchCallStatuses, fetchActivityTypes, fetchEmployeeTypes, fetchTaxTypesCustom, fetchQualifications, fetchMeetingStatuses, fetchAssetCategories, fetchBusTravelRoutes, fetchPaymentTypesCustom, fetchCompanyBankAccounts, fetchEvaluationTraitCategories, fetchSalaryStructureComponents, fetchCrmEmailTemplateCategories, fetchHRDocumentCategoriesMaster, fetchCrmWhatsAppTemplateCategories } from 'src/api/masters';
+import { fetchItems, fetchShifts, fetchSkills, fetchProjects, fetchServices, fetchLeadFroms, fetchClaimTypes, fetchLeaveTypes, fetchLineOrders, fetchDepartments, fetchBloodGroups, fetchBankAccounts, fetchDesignations, fetchPaymentTerms, fetchCallStatuses, fetchActivityTypes, fetchEmployeeTypes, fetchTaxTypesCustom, fetchQualifications, fetchMeetingStatuses, fetchAssetCategories, fetchBusTravelRoutes, fetchPaymentTypesCustom, fetchCompanyBankAccounts, fetchEvaluationTraitCategories, fetchSalaryStructureComponents, fetchCrmEmailTemplateCategories, fetchHRDocumentCategoriesMaster, fetchCrmWhatsAppTemplateCategories } from 'src/api/masters';
 
 export function useDepartments(
   page: number = 1,
@@ -1223,6 +1223,69 @@ export function useEmployeeTypes(
       setLoading(false);
     }
   }, [page, pageSize, search, orderBy, order]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  return { data, total, loading, error, refetch };
+}
+
+export function useSkills(
+  page: number = 1,
+  pageSize: number = 10,
+  search: string = '',
+  orderBy: string = 'creation',
+  order: 'asc' | 'desc' = 'desc',
+  status: string = 'all'
+) {
+  const [data, setData] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async (overrides?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    orderBy?: string;
+    order?: 'asc' | 'desc';
+    status?: string;
+  }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const activeStatus = overrides?.status ?? status;
+      const filters: any[] = [];
+      if (activeStatus === 'Active') {
+        filters.push(['Skill', 'is_active', '=', 1]);
+      } else if (activeStatus === 'Inactive') {
+        filters.push(['Skill', 'is_active', '=', 0]);
+      }
+
+      const result = await fetchSkills({
+        page: overrides?.page ?? page,
+        page_size: overrides?.pageSize ?? pageSize,
+        search: overrides?.search ?? search,
+        orderBy: overrides?.orderBy ?? orderBy,
+        order: overrides?.order ?? order,
+        filters: filters.length ? filters : undefined,
+      });
+
+      const formatted = (result.data || []).map((item: any) => ({
+        ...item,
+        status: item.is_active ? 'Active' : 'Inactive',
+      }));
+
+      setData(formatted);
+      setTotal(result.total || 0);
+    } catch (err: any) {
+      console.error('Failed to fetch Skills:', err);
+      setError(err.message || 'Failed to fetch Skills');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, search, orderBy, order, status]);
 
   useEffect(() => {
     refetch();

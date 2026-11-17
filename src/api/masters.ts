@@ -2616,7 +2616,20 @@ export interface EmployeeSalaryHistory {
     reason?: string;
 }
 
-export const fetchSkills = (params: any) => fetchFrappeList("Skill", params);
+export const fetchSkills = (params: any) => {
+    const { search, ...restParams } = params || {};
+    const or_filters = search ? [
+        ["Skill", "skill_name", "like", `%${search}%`],
+        ["Skill", "description", "like", `%${search}%`],
+    ] : undefined;
+
+    return fetchFrappeList("Skill", {
+        ...restParams,
+        search: undefined,
+        or_filters,
+        fields: ["name", "skill_name", "description", "is_active", "creation", "modified"]
+    });
+};
 
 export async function createSkill(data: Partial<Skill>) {
     const headers = await getAuthHeaders();
