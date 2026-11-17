@@ -738,16 +738,11 @@ export interface WorkforceAnalyticsData {
     shift_wise: WorkforceShiftItem[];
     skill_matrix: {
         total_workers: number;
+        skills?: string[];
         overall: SkillDistributionItem[];
         line_matrix: SkillMatrixGroupItem[];
         department_matrix: SkillMatrixGroupItem[];
-        summary: {
-            highly_skilled: number;
-            skilled: number;
-            semi_skilled: number;
-            unskilled: number;
-            unassigned: number;
-        };
+        summary: Record<string, number>;
     };
 }
 
