@@ -123,12 +123,12 @@ export function WorkersSkillMatrixChart({
         });
     }, [isLine, lineMatrix, departmentMatrix]);
 
-    // Filter display skills (hide Unassigned if count is 0)
+    // Filter display skills (exclude Unassigned from chart and cards)
     const displaySkills = useMemo(
         () =>
             (overall || []).filter((item) => {
                 if (!item || !item.skill) return false;
-                if (item.skill.toLowerCase() === 'unassigned' && item.count === 0) return false;
+                if (item.skill.toLowerCase() === 'unassigned') return false;
                 return true;
             }),
         [overall]
