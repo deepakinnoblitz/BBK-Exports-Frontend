@@ -35,7 +35,7 @@ import {
 import { Iconify } from 'src/components/iconify';
 import { RichTextEditor } from 'src/components/rich-text-editor/rich-text-editor';
 
-import { CustomSwitch } from 'src/sections/reminders/reminders-settings-view';
+import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
 
 export function HRDocumentTemplateCreateView() {
     const router = useRouter();
