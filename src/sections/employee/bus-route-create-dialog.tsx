@@ -27,6 +27,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { COMMON_COLORS } from 'src/theme';
+import { getDoctypeList } from 'src/api/leads';
 import { createBusTravelRoute } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
@@ -56,6 +57,19 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
     const [points, setPoints] = useState<BusRoutePoint[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [existingRoutes, setExistingRoutes] = useState<any[]>([]);
+
+    const isDuplicateBusNumber = (numToCheck: string) => {
+        const trimmed = numToCheck.trim().toLowerCase();
+        if (!trimmed) return false;
+        return existingRoutes.some((r) => (r.bus_number || '').trim().toLowerCase() === trimmed);
+    };
+
+    const isDuplicateDriverContact = (contactToCheck: string) => {
+        const trimmed = contactToCheck.trim().toLowerCase();
+        if (!trimmed) return false;
+        return existingRoutes.some((r) => (r.driver_contact || '').trim().toLowerCase() === trimmed);
+    };
 
     useEffect(() => {
         if (open) {
@@ -65,6 +79,10 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
             setDescription('');
             setPoints([]);
             setError('');
+
+            getDoctypeList('Bus Travel Route', ['name', 'route_name', 'bus_number', 'driver_contact'], undefined, 1000)
+                .then((data) => setExistingRoutes(data || []))
+                .catch(console.error);
         }
     }, [open, currentRouteName]);
 
@@ -87,6 +105,16 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
     const handleSubmit = async () => {
         if (!routeName.trim()) {
             setError('Route Name is required');
+            return;
+        }
+
+        if (busNumber.trim() && isDuplicateBusNumber(busNumber)) {
+            setError('bus_number_duplicate');
+            return;
+        }
+
+        if (driverContact.trim() && isDuplicateDriverContact(driverContact)) {
+            setError('driver_contact_duplicate');
             return;
         }
 
@@ -158,7 +186,16 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
                             label="Bus / Vehicle Number"
                             placeholder="e.g. TN-05-AB-1234"
                             value={busNumber}
-                            onChange={(e) => setBusNumber(e.target.value)}
+                            onChange={(e) => {
+                                setBusNumber(e.target.value);
+                                if (error === 'bus_number_duplicate') setError('');
+                            }}
+                            error={error === 'bus_number_duplicate' || (busNumber.trim() !== '' && isDuplicateBusNumber(busNumber))}
+                            helperText={
+                                (error === 'bus_number_duplicate' || (busNumber.trim() !== '' && isDuplicateBusNumber(busNumber)))
+                                    ? 'Bus / Vehicle Number already exists'
+                                    : ''
+                            }
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                         />
@@ -168,7 +205,16 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
                             label="Driver Contact"
                             placeholder="e.g. 9876543210"
                             value={driverContact}
-                            onChange={(e) => setDriverContact(e.target.value)}
+                            onChange={(e) => {
+                                setDriverContact(e.target.value);
+                                if (error === 'driver_contact_duplicate') setError('');
+                            }}
+                            error={error === 'driver_contact_duplicate' || (driverContact.trim() !== '' && isDuplicateDriverContact(driverContact))}
+                            helperText={
+                                (error === 'driver_contact_duplicate' || (driverContact.trim() !== '' && isDuplicateDriverContact(driverContact)))
+                                    ? 'Driver Contact already exists'
+                                    : ''
+                            }
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                         />

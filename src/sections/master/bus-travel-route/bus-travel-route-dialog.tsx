@@ -33,6 +33,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import { getDoctypeList } from 'src/api/leads';
 import { getBusTravelRoute, createBusTravelRoute, updateBusTravelRoute, renameBusTravelRoute } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
@@ -63,15 +64,44 @@ export function BusTravelRouteDialog({ open, onClose, onSuccess, id }: Props) {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [existingRoutes, setExistingRoutes] = useState<any[]>([]);
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false,
         message: '',
         severity: 'success',
     });
 
+    const isDuplicateBusNumber = (numToCheck: string) => {
+        const trimmed = numToCheck.trim().toLowerCase();
+        if (!trimmed) return false;
+        return existingRoutes.some((r) => {
+            if (id && (r.name === id || r.route_name === id)) return false;
+            return (r.bus_number || '').trim().toLowerCase() === trimmed;
+        });
+    };
+
+    const isDuplicateDriverContact = (contactToCheck: string) => {
+        const trimmed = contactToCheck.trim().toLowerCase();
+        if (!trimmed) return false;
+        return existingRoutes.some((r) => {
+            if (id && (r.name === id || r.route_name === id)) return false;
+            return (r.driver_contact || '').trim().toLowerCase() === trimmed;
+        });
+    };
+
     useEffect(() => {
+        const loadRoutes = async () => {
+            try {
+                const res = await getDoctypeList('Bus Travel Route', ['name', 'route_name', 'bus_number', 'driver_contact'], undefined, 1000);
+                setExistingRoutes(res || []);
+            } catch (err) {
+                console.error('Failed to fetch bus travel routes:', err);
+            }
+        };
+
         const fetchData = async () => {
             if (open) {
+                await loadRoutes();
                 if (id) {
                     try {
                         setLoading(true);
@@ -120,9 +150,22 @@ export function BusTravelRouteDialog({ open, onClose, onSuccess, id }: Props) {
     };
 
     const handleSubmit = async () => {
-        if (!routeName.trim()) {
-            setError('required');
-            setSnackbar({ open: true, message: 'Route Name is required', severity: 'error' });
+        const errs: string[] = [];
+        if (!routeName.trim()) errs.push('required');
+        if (busNumber.trim() && isDuplicateBusNumber(busNumber)) errs.push('bus_number_duplicate');
+        if (driverContact.trim() && isDuplicateDriverContact(driverContact)) errs.push('driver_contact_duplicate');
+
+        if (errs.length > 0) {
+            setError(errs.join(','));
+            let msg = 'Please fill in all required fields';
+            if (errs.includes('required')) {
+                msg = 'Route Name is required';
+            } else if (errs.includes('bus_number_duplicate')) {
+                msg = 'Bus / Vehicle Number already exists. Vehicle number must be unique.';
+            } else if (errs.includes('driver_contact_duplicate')) {
+                msg = 'Driver Contact already exists. Driver contact must be unique.';
+            }
+            setSnackbar({ open: true, message: msg, severity: 'error' });
             return;
         }
 
@@ -149,8 +192,8 @@ export function BusTravelRouteDialog({ open, onClose, onSuccess, id }: Props) {
 
             const data: Partial<BusTravelRoute> = {
                 route_name: trimmedRouteName,
-                bus_number: busNumber.trim() || undefined,
-                driver_contact: driverContact.trim() || undefined,
+                bus_number: busNumber.trim(),
+                driver_contact: driverContact.trim(),
                 status,
                 description: description.trim(),
                 points: validPoints,
@@ -167,7 +210,25 @@ export function BusTravelRouteDialog({ open, onClose, onSuccess, id }: Props) {
         } catch (err: any) {
             console.error(err);
             const msg = err.message || 'Failed to save';
-            setError(msg);
+            const lower = msg.toLowerCase();
+            const newErrs: string[] = [];
+            if (lower.includes('vehicle number') || lower.includes('bus_number') || (lower.includes('vehicle') && lower.includes('unique'))) {
+                newErrs.push('bus_number_duplicate');
+            }
+            if (lower.includes('driver contact') || lower.includes('driver_contact') || (lower.includes('contact') && lower.includes('unique')) || (lower.includes('mobile') && lower.includes('unique'))) {
+                newErrs.push('driver_contact_duplicate');
+            }
+            if (newErrs.length > 0) {
+                setError((prev) => {
+                    const list = prev ? prev.split(',') : [];
+                    newErrs.forEach((e) => {
+                        if (!list.includes(e)) list.push(e);
+                    });
+                    return list.join(',');
+                });
+            } else {
+                setError(msg);
+            }
             setSnackbar({ open: true, message: msg, severity: 'error' });
         } finally {
             setLoading(false);
@@ -217,7 +278,18 @@ export function BusTravelRouteDialog({ open, onClose, onSuccess, id }: Props) {
                             label="Bus / Vehicle Number"
                             placeholder="e.g. TN-05-AB-1234"
                             value={busNumber}
-                            onChange={(e) => setBusNumber(e.target.value)}
+                            onChange={(e) => {
+                                setBusNumber(e.target.value);
+                                if (error.split(',').includes('bus_number_duplicate')) {
+                                    setError(error.split(',').filter((err) => err !== 'bus_number_duplicate').join(','));
+                                }
+                            }}
+                            error={error.split(',').includes('bus_number_duplicate') || (busNumber.trim() !== '' && isDuplicateBusNumber(busNumber))}
+                            helperText={
+                                (error.split(',').includes('bus_number_duplicate') || (busNumber.trim() !== '' && isDuplicateBusNumber(busNumber)))
+                                    ? 'Bus / Vehicle Number already exists'
+                                    : ''
+                            }
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                         />
@@ -227,7 +299,18 @@ export function BusTravelRouteDialog({ open, onClose, onSuccess, id }: Props) {
                             label="Driver Contact"
                             placeholder="e.g. 9876543210"
                             value={driverContact}
-                            onChange={(e) => setDriverContact(e.target.value)}
+                            onChange={(e) => {
+                                setDriverContact(e.target.value);
+                                if (error.split(',').includes('driver_contact_duplicate')) {
+                                    setError(error.split(',').filter((err) => err !== 'driver_contact_duplicate').join(','));
+                                }
+                            }}
+                            error={error.split(',').includes('driver_contact_duplicate') || (driverContact.trim() !== '' && isDuplicateDriverContact(driverContact))}
+                            helperText={
+                                (error.split(',').includes('driver_contact_duplicate') || (driverContact.trim() !== '' && isDuplicateDriverContact(driverContact)))
+                                    ? 'Driver Contact already exists'
+                                    : ''
+                            }
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                         />
