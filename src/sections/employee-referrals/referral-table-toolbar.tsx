@@ -44,6 +44,7 @@ export function ReferralTableToolbar({
   canReset,
 }: Props) {
   const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const handleSortClick = (event: React.MouseEvent<HTMLElement>) => {
     setSortAnchorEl(event.currentTarget);
@@ -98,6 +99,8 @@ export function ReferralTableToolbar({
           fullWidth
           value={filterName}
           onChange={onFilterName}
+          onFocus={() => setIsSearchFocused(true)}
+          onBlur={() => setIsSearchFocused(false)}
           placeholder={placeholder}
           startAdornment={
             <InputAdornment position="start">
@@ -105,8 +108,8 @@ export function ReferralTableToolbar({
             </InputAdornment>
           }
           endAdornment={
-            <InputAdornment position="end">
-              {filterName ? (
+            filterName ? (
+              <InputAdornment position="end">
                 <IconButton
                   size="small"
                   onClick={handleClearSearch}
@@ -120,7 +123,9 @@ export function ReferralTableToolbar({
                 >
                   <Iconify icon="solar:close-circle-bold" width={18} />
                 </IconButton>
-              ) : (
+              </InputAdornment>
+            ) : !isSearchFocused ? (
+              <InputAdornment position="end">
                 <Box
                   sx={{
                     display: { xs: 'none', sm: 'inline-flex' },
@@ -141,8 +146,8 @@ export function ReferralTableToolbar({
                 >
                   Ctrl K
                 </Box>
-              )}
-            </InputAdornment>
+              </InputAdornment>
+            ) : null
           }
           sx={{
             maxWidth: { xs: '100%', md: 480 },
