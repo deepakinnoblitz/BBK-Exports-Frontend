@@ -62,6 +62,10 @@ export function DepartmentCreateDialog({ open, onClose, onCreate, currentDepartm
             setError('Department name is required');
             return;
         }
+        if (departmentName.trim().length > 140 || departmentName.length > 140) {
+            setError('Maximum character limit is 140 characters');
+            return;
+        }
 
         try {
             setLoading(true);
@@ -77,7 +81,17 @@ export function DepartmentCreateDialog({ open, onClose, onCreate, currentDepartm
             onClose();
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Failed to create department');
+            const msg = err.message || 'Failed to create department';
+            const lowerMsg = msg.toLowerCase();
+            if (
+                lowerMsg.includes('max characters allowed is 140') ||
+                lowerMsg.includes('will get truncated') ||
+                lowerMsg.includes('character limit is 140')
+            ) {
+                setError('Maximum character limit is 140 characters');
+            } else {
+                setError(msg);
+            }
         } finally {
             setLoading(false);
         }
@@ -108,8 +122,16 @@ export function DepartmentCreateDialog({ open, onClose, onCreate, currentDepartm
                                 setDepartmentName(e.target.value);
                                 if (error) setError('');
                             }}
-                            error={!!error && error.includes('name')}
-                            helperText={error && error.includes('name') ? error : ''}
+                            error={
+                                (!!error && (error.includes('name') || error.includes('140'))) ||
+                                departmentName.length > 140 ||
+                                departmentName.trim().length > 140
+                            }
+                            helperText={
+                                departmentName.length > 140 || departmentName.trim().length > 140 || (error && error.includes('140'))
+                                    ? 'Maximum character limit is 140 characters'
+                                    : (error && error.includes('name') ? error : '')
+                            }
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                             sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
@@ -177,9 +199,14 @@ export function DepartmentCreateDialog({ open, onClose, onCreate, currentDepartm
                         />
                     </Box>
 
-                    {error && !error.includes('name') && !error.includes('code') && (
-                        <Typography color="error" variant="body2">{error}</Typography>
-                    )}
+                    {error &&
+                        !error.includes('name') &&
+                        !error.includes('code') &&
+                        !error.includes('140') &&
+                        !error.toLowerCase().includes('max characters') &&
+                        !error.toLowerCase().includes('truncated') && (
+                            <Typography color="error" variant="body2">{error}</Typography>
+                        )}
                 </Box>
             </DialogContent>
 
