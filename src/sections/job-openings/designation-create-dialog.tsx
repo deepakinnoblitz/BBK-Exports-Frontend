@@ -66,6 +66,11 @@ export function DesignationCreateDialog({ open, onClose, onCreate, currentDesign
             return;
         }
 
+        if (designationName.trim().length > 140 || designationName.length > 140) {
+            setError('Maximum character limit is 140 characters');
+            return;
+        }
+
         if (!department) {
             setError('Department is required');
             return;
@@ -83,7 +88,17 @@ export function DesignationCreateDialog({ open, onClose, onCreate, currentDesign
             onClose();
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Failed to create designation');
+            const msg = err.message || 'Failed to create designation';
+            const lowerMsg = msg.toLowerCase();
+            if (
+                lowerMsg.includes('max characters allowed is 140') ||
+                lowerMsg.includes('will get truncated') ||
+                lowerMsg.includes('character limit is 140')
+            ) {
+                setError('Maximum character limit is 140 characters');
+            } else {
+                setError(msg);
+            }
         } finally {
             setLoading(false);
         }
@@ -113,8 +128,12 @@ export function DesignationCreateDialog({ open, onClose, onCreate, currentDesign
                             setDesignationName(e.target.value);
                             if (error) setError('');
                         }}
-                        error={!!error}
-                        helperText={error}
+                        error={!!error || designationName.length > 140 || designationName.trim().length > 140}
+                        helperText={
+                            designationName.length > 140 || designationName.trim().length > 140
+                                ? 'Maximum character limit is 140 characters'
+                                : error
+                        }
                         disabled={loading}
                         InputLabelProps={{ shrink: true }}
                         sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}

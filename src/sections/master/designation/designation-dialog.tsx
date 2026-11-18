@@ -127,15 +127,29 @@ export function DesignationDialog({ open, onClose, onSuccess, id }: Props) {
     }, [open, id]);
 
     const handleSubmit = async () => {
+        const nameTrimmed = designationName.trim();
+        const codeTrimmed = designationCode.trim();
         const errs: string[] = [];
-        if (!designationName.trim()) errs.push('name');
+        if (!nameTrimmed) {
+            errs.push('name');
+        } else if (nameTrimmed.length > 140 || designationName.length > 140) {
+            errs.push('name_max_length');
+        }
         if (!department) errs.push('department');
-        if (designationCode.trim() && isDuplicateCode(designationCode)) errs.push('code_duplicate');
+        if (codeTrimmed.length > 140 || designationCode.length > 140) {
+            errs.push('code_max_length');
+        } else if (codeTrimmed && isDuplicateCode(designationCode)) {
+            errs.push('code_duplicate');
+        }
 
         if (errs.length > 0) {
             setError(errs.join(','));
             let msg = 'Please fill in all required fields';
-            if (errs.includes('code_duplicate')) {
+            if (errs.includes('code_max_length')) {
+                msg = 'Maximum character limit is 140 characters for Designation Code.';
+            } else if (errs.includes('name_max_length')) {
+                msg = 'Maximum character limit is 140 characters for Designation Name.';
+            } else if (errs.includes('code_duplicate')) {
                 msg = 'Designation code already exists. Please enter a unique designation code.';
             } else if (errs.length === 1) {
                 if (errs[0] === 'name') msg = 'Designation name is required';
@@ -187,8 +201,38 @@ export function DesignationDialog({ open, onClose, onSuccess, id }: Props) {
         } catch (err: any) {
             console.error(err);
             const msg = err.message || 'Failed to save';
-            setError(msg);
-            setSnackbar({ open: true, message: msg, severity: 'error' });
+            const lowerMsg = msg.toLowerCase();
+            if (lowerMsg.includes('designation code') && (lowerMsg.includes('unique') || lowerMsg.includes('already exists'))) {
+                setError((prev) => {
+                    const list = prev ? prev.split(',') : [];
+                    if (!list.includes('code_duplicate')) list.push('code_duplicate');
+                    return list.join(',');
+                });
+                setSnackbar({ open: true, message: 'Designation code already exists. Please enter a unique designation code.', severity: 'error' });
+            } else if (
+                lowerMsg.includes('max characters allowed is 140') ||
+                lowerMsg.includes('will get truncated') ||
+                lowerMsg.includes('character limit is 140')
+            ) {
+                if (lowerMsg.includes('designation name') || (!lowerMsg.includes('designation code') && !lowerMsg.includes('code') && (designationName.length > 140 || designationName.trim().length > 140))) {
+                    setError((prev) => {
+                        const list = prev ? prev.split(',') : [];
+                        if (!list.includes('name_max_length')) list.push('name_max_length');
+                        return list.join(',');
+                    });
+                    setSnackbar({ open: true, message: 'Maximum character limit is 140 characters for Designation Name.', severity: 'error' });
+                } else {
+                    setError((prev) => {
+                        const list = prev ? prev.split(',') : [];
+                        if (!list.includes('code_max_length')) list.push('code_max_length');
+                        return list.join(',');
+                    });
+                    setSnackbar({ open: true, message: 'Maximum character limit is 140 characters for Designation Code.', severity: 'error' });
+                }
+            } else {
+                setError(msg);
+                setSnackbar({ open: true, message: msg, severity: 'error' });
+            }
         } finally {
             setLoading(false);
         }
@@ -220,13 +264,29 @@ export function DesignationDialog({ open, onClose, onSuccess, id }: Props) {
                             label="Designation Name"
                             value={designationName}
                             onChange={(e) => {
-                                 setDesignationName(e.target.value);
-                                 if (error.split(',').includes('name')) {
-                                     setError(error.split(',').filter(err => err !== 'name').join(','));
-                                 }
+                                const val = e.target.value;
+                                setDesignationName(val);
+                                const errList = error.split(',').filter(Boolean);
+                                const nextErrs = errList.filter((err) => {
+                                    if (err === 'name' || err === 'required') return false;
+                                    if (err === 'name_max_length' && val.trim().length <= 140 && val.length <= 140) return false;
+                                    return true;
+                                });
+                                setError(nextErrs.join(','));
                             }}
-                            error={error.split(',').includes('name')}
-                            helperText={error.split(',').includes('name') ? 'Designation name is required' : ''}
+                            error={
+                                error.split(',').includes('name') ||
+                                error.split(',').includes('name_max_length') ||
+                                designationName.length > 140 ||
+                                designationName.trim().length > 140
+                            }
+                            helperText={
+                                error.split(',').includes('name')
+                                    ? 'Designation name is required'
+                                    : (error.split(',').includes('name_max_length') || designationName.length > 140 || designationName.trim().length > 140)
+                                    ? 'Maximum character limit is 140 characters'
+                                    : ''
+                            }
                             disabled={loading}
                             autoFocus
                             InputLabelProps={{ shrink: true }}
@@ -237,14 +297,27 @@ export function DesignationDialog({ open, onClose, onSuccess, id }: Props) {
                             label="Designation Code"
                             value={designationCode}
                             onChange={(e) => {
-                                setDesignationCode(e.target.value);
-                                if (error.split(',').includes('code_duplicate')) {
-                                    setError(error.split(',').filter(err => err !== 'code_duplicate').join(','));
-                                }
+                                const val = e.target.value;
+                                setDesignationCode(val);
+                                const errList = error.split(',').filter(Boolean);
+                                const nextErrs = errList.filter((err) => {
+                                    if (err === 'code_duplicate') return false;
+                                    if (err === 'code_max_length' && val.trim().length <= 140 && val.length <= 140) return false;
+                                    return true;
+                                });
+                                setError(nextErrs.join(','));
                             }}
-                            error={error.split(',').includes('code_duplicate') || (designationCode.trim() !== '' && isDuplicateCode(designationCode))}
+                            error={
+                                error.split(',').includes('code_duplicate') ||
+                                error.split(',').includes('code_max_length') ||
+                                designationCode.length > 140 ||
+                                designationCode.trim().length > 140 ||
+                                (designationCode.trim() !== '' && isDuplicateCode(designationCode))
+                            }
                             helperText={
-                                (error.split(',').includes('code_duplicate') || (designationCode.trim() !== '' && isDuplicateCode(designationCode)))
+                                (designationCode.length > 140 || designationCode.trim().length > 140 || error.split(',').includes('code_max_length'))
+                                    ? 'Maximum character limit is 140 characters'
+                                    : (error.split(',').includes('code_duplicate') || (designationCode.trim() !== '' && isDuplicateCode(designationCode)))
                                     ? 'Designation code already exists'
                                     : ''
                             }
