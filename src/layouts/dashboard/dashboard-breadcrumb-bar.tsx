@@ -54,6 +54,11 @@ type ActiveHierarchy = {
   allParentGroups: NavItem[];
 };
 
+const STANDALONE_ROUTES: Record<string, { title: string }> = {
+  '/user-profile': { title: 'Profile' },
+  '/settings': { title: 'HRMS Settings' },
+};
+
 export function DashboardBreadcrumbBar({
   navData,
   rightArea,
@@ -104,13 +109,20 @@ export function DashboardBreadcrumbBar({
       if (parentItem) break;
     }
 
+    if (!parentItem && !childItem) {
+      const standalone = STANDALONE_ROUTES[pathname];
+      if (standalone) {
+        childItem = { title: standalone.title, path: pathname };
+      }
+    }
+
     return {
       parentItem,
       childItem,
       siblingPages,
       allParentGroups: navData.filter((p) => p.children && p.children.length > 0),
     };
-  }, [navData, fullPath]);
+  }, [navData, fullPath, pathname]);
 
   const handleOpenGroupMenu = useCallback((event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -275,7 +287,7 @@ export function DashboardBreadcrumbBar({
         )}
 
         {/* Separator / */}
-        {hierarchy.childItem && (
+        {hierarchy.parentItem && hierarchy.childItem && (
           <Typography variant="body2" sx={{ color: 'text.disabled', userSelect: 'none', px: 0.25 }}>
             /
           </Typography>
