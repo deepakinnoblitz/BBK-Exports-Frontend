@@ -48,9 +48,14 @@ export function DesignationCreateDialog({
             setDescription('');
             setError('');
 
-            // Fetch departments
-            getDoctypeList('Department', ['name', 'department_name'])
-                .then(setDepartmentOptions)
+            // Fetch active departments
+            getDoctypeList('Department', ['name', 'department_name', 'status'], { status: 'Active' })
+                .then((data) => {
+                    const activeDepts = (data || []).filter(
+                        (dept: any) => (dept.status || '').toLowerCase() !== 'inactive'
+                    );
+                    setDepartmentOptions(activeDepts);
+                })
                 .catch(console.error);
         }
     }, [open, currentDesignationName, defaultDepartment]);

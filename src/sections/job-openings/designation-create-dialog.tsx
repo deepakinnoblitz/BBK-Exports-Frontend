@@ -39,8 +39,11 @@ export function DesignationCreateDialog({ open, onClose, onCreate, currentDesign
         const fetchDepartments = async () => {
             try {
                 setFetching(true);
-                const data = await getDoctypeList('Department', ['name']);
-                setDepartments(data);
+                const data = await getDoctypeList('Department', ['name', 'status'], { status: 'Active' });
+                const activeDepts = (data || []).filter(
+                    (dept: any) => (dept.status || '').toLowerCase() !== 'inactive'
+                );
+                setDepartments(activeDepts);
             } catch (err) {
                 console.error('Failed to fetch departments:', err);
             } finally {

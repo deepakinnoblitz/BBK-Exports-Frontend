@@ -70,8 +70,14 @@ export function DesignationDialog({ open, onClose, onSuccess, id }: Props) {
     useEffect(() => {
         const loadDepartments = async () => {
             try {
-                const res = await fetchDepartments({ page_size: 100 });
-                setDepartments(res.data || []);
+                const res = await fetchDepartments({ 
+                    page_size: 500,
+                    filters: [['Department', 'status', '=', 'Active']]
+                });
+                const activeDepts = (res.data || []).filter(
+                    (dept: any) => (dept.status || '').toLowerCase() !== 'inactive'
+                );
+                setDepartments(activeDepts);
             } catch (err) {
                 console.error('Failed to fetch departments:', err);
             }
