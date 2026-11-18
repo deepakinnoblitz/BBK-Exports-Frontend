@@ -53,10 +53,30 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
     const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
     const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
+    const [existingDepartments, setExistingDepartments] = useState<any[]>([]);
+
+    const isDuplicateCode = (codeToCheck: string) => {
+        const trimmed = codeToCheck.trim().toLowerCase();
+        if (!trimmed) return false;
+        return existingDepartments.some((d) => {
+            if (id && (d.name === id || d.department_name === id)) return false;
+            return (d.department_code || '').trim().toLowerCase() === trimmed;
+        });
+    };
 
     useEffect(() => {
+        const loadDepartments = async () => {
+            try {
+                const res = await getDoctypeList('Department', ['name', 'department_name', 'department_code'], undefined, 1000);
+                setExistingDepartments(res || []);
+            } catch (err) {
+                console.error('Failed to fetch departments:', err);
+            }
+        };
+
         const fetchData = async () => {
             if (open) {
+                await loadDepartments();
                 if (id) {
                     try {
                         setLoading(true);
@@ -93,9 +113,19 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
     }, [open, id]);
 
     const handleSubmit = async () => {
-        if (!departmentName.trim()) {
-            setError('required');
-            setSnackbar({ open: true, message: 'Department name is required', severity: 'error' });
+        const errs: string[] = [];
+        if (!departmentName.trim()) errs.push('name');
+        if (departmentCode.trim() && isDuplicateCode(departmentCode)) errs.push('code_duplicate');
+
+        if (errs.length > 0) {
+            setError(errs.join(','));
+            let msg = 'Please fill in all required fields';
+            if (errs.includes('code_duplicate')) {
+                msg = 'Department code already exists. Please enter a unique department code.';
+            } else if (errs.includes('name')) {
+                msg = 'Department name is required';
+            }
+            setSnackbar({ open: true, message: msg, severity: 'error' });
             return;
         }
 
@@ -113,7 +143,7 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
 
                 const data: Partial<Department> = {
                     department_name: departmentName,
-                    department_code: departmentCode,
+                    department_code: departmentCode.trim(),
                     department_head: departmentHead?.name || "",
                     status,
                     description
@@ -122,7 +152,7 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
             } else {
                 const data: Partial<Department> = {
                     department_name: departmentName,
-                    department_code: departmentCode,
+                    department_code: departmentCode.trim(),
                     department_head: departmentHead?.name || "",
                     status,
                     description
@@ -135,7 +165,15 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
         } catch (err: any) {
             console.error(err);
             const msg = err.message || 'Failed to save department';
-            setError(msg);
+            if (msg.toLowerCase().includes('department code') && (msg.toLowerCase().includes('unique') || msg.toLowerCase().includes('already exists'))) {
+                setError((prev) => {
+                    const list = prev ? prev.split(',') : [];
+                    if (!list.includes('code_duplicate')) list.push('code_duplicate');
+                    return list.join(',');
+                });
+            } else {
+                setError(msg);
+            }
             setSnackbar({ open: true, message: msg, severity: 'error' });
         } finally {
             setLoading(false);
@@ -175,10 +213,12 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
                             value={departmentName}
                             onChange={(e) => {
                                 setDepartmentName(e.target.value);
-                                if (error === 'required') setError('');
+                                if (error.split(',').includes('name') || error === 'required') {
+                                    setError(error.split(',').filter((err) => err !== 'name' && err !== 'required').join(','));
+                                }
                             }}
-                            error={error === 'required'}
-                            helperText={error === 'required' ? 'Department name is required' : ''}
+                            error={error.split(',').includes('name') || error === 'required'}
+                            helperText={(error.split(',').includes('name') || error === 'required') ? 'Department name is required' : ''}
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                             sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
@@ -189,8 +229,16 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
                             value={departmentCode}
                             onChange={(e) => {
                                 setDepartmentCode(e.target.value);
-                                if (error) setError('');
+                                if (error.split(',').includes('code_duplicate')) {
+                                    setError(error.split(',').filter((err) => err !== 'code_duplicate').join(','));
+                                }
                             }}
+                            error={error.split(',').includes('code_duplicate') || (departmentCode.trim() !== '' && isDuplicateCode(departmentCode))}
+                            helperText={
+                                (error.split(',').includes('code_duplicate') || (departmentCode.trim() !== '' && isDuplicateCode(departmentCode)))
+                                    ? 'Department code already exists'
+                                    : ''
+                            }
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                         />
