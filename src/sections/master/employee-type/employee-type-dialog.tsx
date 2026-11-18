@@ -153,14 +153,14 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
                 const data: Partial<EmployeeType> = {
                     employee_type: finalName,
                     category_type: categoryType,
-                    description: description.trim() || undefined,
+                    description: description.trim(),
                 };
                 await updateEmployeeType(currentId, data);
             } else {
                 const data: Partial<EmployeeType> = {
                     employee_type: employeeType.trim(),
                     category_type: categoryType,
-                    description: description.trim() || undefined,
+                    description: description.trim(),
                 };
                 await createEmployeeType(data);
             }

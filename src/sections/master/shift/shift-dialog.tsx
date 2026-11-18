@@ -151,7 +151,7 @@ export function ShiftDialog({ open, onClose, onSuccess, id }: Props) {
                     allow_overtime: allowOvertime ? 1 : 0,
                     overtime_hours: allowOvertime && overtimeHours !== '' ? Number(overtimeHours) : 0,
                     min_overtime_minutes: allowOvertime && minOvertimeMinutes !== '' ? Number(minOvertimeMinutes) : 0,
-                    description: description.trim() || undefined,
+                    description: description.trim(),
                 };
 
                 await createShift(data);

@@ -152,7 +152,7 @@ export function BusTravelRouteDialog({ open, onClose, onSuccess, id }: Props) {
                 bus_number: busNumber.trim() || undefined,
                 driver_contact: driverContact.trim() || undefined,
                 status,
-                description: description.trim() || undefined,
+                description: description.trim(),
                 points: validPoints,
             };
 
