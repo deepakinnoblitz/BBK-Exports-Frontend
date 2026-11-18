@@ -5,6 +5,8 @@ import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 
+import { cleanPhoneForDisplay } from 'src/utils/employee-validation';
+
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
@@ -89,7 +91,7 @@ export function BusTravelRouteTableRow({
 
       <TableCell sx={{ whiteSpace: 'nowrap' }}>
         <Typography variant="body2" color="text.secondary">
-          {driver_contact || '-'}
+          {cleanPhoneForDisplay(driver_contact) || driver_contact || '-'}
         </Typography>
       </TableCell>
 

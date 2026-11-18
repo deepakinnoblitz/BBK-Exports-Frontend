@@ -1,6 +1,7 @@
 import type { BusRoutePoint } from 'src/api/masters';
 
 import dayjs from 'dayjs';
+import { MuiTelInput } from 'mui-tel-input';
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -25,6 +26,14 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import CircularProgress from '@mui/material/CircularProgress';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+
+import {
+    isDialCodeOnlyPhone,
+    validatePhoneNumber,
+    cleanPhoneForDisplay,
+    normalizePhoneForStorage,
+    normalizePhoneComparisonKey,
+} from 'src/utils/employee-validation';
 
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
@@ -59,6 +68,14 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
     const [error, setError] = useState('');
     const [existingRoutes, setExistingRoutes] = useState<any[]>([]);
 
+    const cleanPhoneNumber = (val: string) => {
+        if (!val) return '';
+        if (val.includes('-') || (val.startsWith('+') && !val.includes(' '))) {
+            return cleanPhoneForDisplay(val);
+        }
+        return val;
+    };
+
     const isDuplicateBusNumber = (numToCheck: string) => {
         const trimmed = numToCheck.trim().toLowerCase();
         if (!trimmed) return false;
@@ -66,9 +83,20 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
     };
 
     const isDuplicateDriverContact = (contactToCheck: string) => {
-        const trimmed = contactToCheck.trim().toLowerCase();
+        if (!contactToCheck || isDialCodeOnlyPhone(contactToCheck)) return false;
+        const key = normalizePhoneComparisonKey(contactToCheck) || contactToCheck.replace(/\D/g, '').trim();
+        if (!key) return false;
+        return existingRoutes.some((r) => {
+            const existingKey = normalizePhoneComparisonKey(r.driver_contact) || (r.driver_contact || '').replace(/\D/g, '').trim();
+            if (!existingKey) return false;
+            return existingKey === key || (key.length >= 10 && existingKey.endsWith(key.slice(-10)));
+        });
+    };
+
+    const isDuplicatePointName = (index: number, nameToCheck: string) => {
+        const trimmed = (nameToCheck || '').trim().toLowerCase();
         if (!trimmed) return false;
-        return existingRoutes.some((r) => (r.driver_contact || '').trim().toLowerCase() === trimmed);
+        return points.some((p, i) => i !== index && (p.point_name || '').trim().toLowerCase() === trimmed);
     };
 
     useEffect(() => {
@@ -113,9 +141,30 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
             return;
         }
 
-        if (driverContact.trim() && isDuplicateDriverContact(driverContact)) {
-            setError('driver_contact_duplicate');
-            return;
+        const hasContact = Boolean(driverContact && !isDialCodeOnlyPhone(driverContact));
+        if (hasContact) {
+            const formatErr = validatePhoneNumber(driverContact, 'Driver Contact');
+            if (formatErr) {
+                setError(formatErr);
+                return;
+            }
+            if (isDuplicateDriverContact(driverContact)) {
+                setError('driver_contact_duplicate');
+                return;
+            }
+        }
+
+        // Check for duplicate point names
+        const seenPointNames = new Set<string>();
+        for (const pt of points) {
+            const pName = (pt.point_name || '').trim();
+            if (!pName) continue;
+            const lowerP = pName.toLowerCase();
+            if (seenPointNames.has(lowerP)) {
+                setError(`Point / Stop Name '${pName}' already exists in Route Points. Duplicate point names are not allowed.`);
+                return;
+            }
+            seenPointNames.add(lowerP);
         }
 
         try {
@@ -130,10 +179,12 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
                 }))
                 .filter((p) => p.point_name);
 
+            const finalDriverContact = hasContact ? normalizePhoneForStorage(driverContact) : undefined;
+
             await createBusTravelRoute({
                 route_name: routeName.trim(),
                 bus_number: busNumber.trim() || undefined,
-                driver_contact: driverContact.trim() || undefined,
+                driver_contact: finalDriverContact,
                 description: description.trim() || undefined,
                 status: 'Active',
                 points: validPoints,
@@ -142,7 +193,15 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
             onClose();
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Failed to create bus travel route');
+            const msg = err.message || 'Failed to create bus travel route';
+            const lower = msg.toLowerCase();
+            if (lower.includes('vehicle number') || lower.includes('bus_number') || (lower.includes('vehicle') && lower.includes('unique'))) {
+                setError('bus_number_duplicate');
+            } else if (lower.includes('driver contact') || lower.includes('driver_contact') || (lower.includes('contact') && lower.includes('unique')) || (lower.includes('mobile') && lower.includes('unique'))) {
+                setError('driver_contact_duplicate');
+            } else {
+                setError(msg);
+            }
         } finally {
             setLoading(false);
         }
@@ -200,18 +259,31 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
                             InputLabelProps={{ shrink: true }}
                         />
 
-                        <TextField
+                        <MuiTelInput
                             fullWidth
+                            defaultCountry="IN"
                             label="Driver Contact"
                             placeholder="e.g. 9876543210"
-                            value={driverContact}
-                            onChange={(e) => {
-                                setDriverContact(e.target.value);
-                                if (error === 'driver_contact_duplicate') setError('');
+                            value={cleanPhoneNumber(driverContact)}
+                            onChange={(newValue: string) => {
+                                setDriverContact(newValue);
+                                if (error === 'driver_contact_duplicate' || error.includes('Driver Contact')) setError('');
                             }}
-                            error={error === 'driver_contact_duplicate' || (driverContact.trim() !== '' && isDuplicateDriverContact(driverContact))}
+                            onBlur={() => {
+                                if (isDialCodeOnlyPhone(driverContact)) {
+                                    setDriverContact('');
+                                    return;
+                                }
+                                const err = validatePhoneNumber(driverContact, 'Driver Contact');
+                                if (err) {
+                                    setError(err);
+                                }
+                            }}
+                            error={error === 'driver_contact_duplicate' || error.includes('Driver Contact') || (!isDialCodeOnlyPhone(driverContact) && isDuplicateDriverContact(driverContact))}
                             helperText={
-                                (error === 'driver_contact_duplicate' || (driverContact.trim() !== '' && isDuplicateDriverContact(driverContact)))
+                                error.includes('Driver Contact')
+                                    ? error
+                                    : (error === 'driver_contact_duplicate' || (!isDialCodeOnlyPhone(driverContact) && isDuplicateDriverContact(driverContact)))
                                     ? 'Driver Contact already exists'
                                     : ''
                             }
@@ -342,7 +414,12 @@ export function BusRouteCreateDialog({ open, onClose, onCreate, currentRouteName
                                                             fullWidth
                                                             placeholder="e.g. Ambattur OT"
                                                             value={pt.point_name}
-                                                            onChange={(e) => handlePointChange(idx, 'point_name', e.target.value)}
+                                                            onChange={(e) => {
+                                                                handlePointChange(idx, 'point_name', e.target.value);
+                                                                if (error.includes('Route Points')) setError('');
+                                                            }}
+                                                            error={isDuplicatePointName(idx, pt.point_name)}
+                                                            helperText={isDuplicatePointName(idx, pt.point_name) ? 'Point name already exists' : ''}
                                                             disabled={loading}
                                                             sx={{ bgcolor: 'background.paper' }}
                                                         />
