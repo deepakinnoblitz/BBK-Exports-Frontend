@@ -301,13 +301,35 @@ export function SalarySlipEditDialog({ open, onClose, slip, onSuccess }: Props) 
 
         // PT Calculation
         let ptAmount = 0;
-        const ptFrequency = hrSettings.pt_deduction_frequency || 'Half-Yearly Deduction';
+        const getCatSetting = (field: string, defVal: any) => {
+            const cleanType = (data.employee_type || '').toLowerCase();
+            let prefixes: string[] = [];
+            if (cleanType.includes('staff')) {
+                if (cleanType.includes('non ctc') || cleanType.includes('non-ctc')) prefixes = ['staff_non_ctc_', 'staff_'];
+                else if (cleanType.includes('ctc')) prefixes = ['staff_ctc_', 'staff_'];
+                else prefixes = ['staff_non_ctc_', 'staff_ctc_', 'staff_'];
+            } else if (cleanType.includes('worker')) prefixes = ['workers_'];
+            else if (cleanType.includes('north indian')) prefixes = ['north_indian_'];
+            else if (cleanType.includes('driver')) prefixes = ['drivers_'];
+
+            for (const p of prefixes) {
+                if (hrSettings[`${p}${field}`] !== undefined && hrSettings[`${p}${field}`] !== null && hrSettings[`${p}${field}`] !== '') {
+                    return hrSettings[`${p}${field}`];
+                }
+            }
+            return hrSettings[field] !== undefined && hrSettings[field] !== null && hrSettings[field] !== '' ? hrSettings[field] : defVal;
+        };
+
+        const ptFrequency = getCatSetting('pt_deduction_frequency', 'Half-Yearly Deduction');
+        const ptMonthsSetting = getCatSetting('pt_half_yearly_months', 'April, September');
         let ptApplicable = true;
 
-        if (ptFrequency === 'Half-Yearly Deduction') {
-            const halfYearlyMonths = (hrSettings.pt_half_yearly_months || 'April, September')
+        if (ptFrequency !== 'Every Month Deduction') {
+            const halfYearlyMonths = String(ptMonthsSetting)
+                .replace(/&/g, ',')
                 .split(',')
-                .map((m: string) => m.trim().toLowerCase());
+                .map((m: string) => m.trim().toLowerCase())
+                .filter(Boolean);
             const slipDate = data.start_date || data.end_date || data.posting_date;
             const monthName = slipDate ? dayjs(slipDate).format('MMMM').toLowerCase() : '';
             ptApplicable = halfYearlyMonths.includes(monthName);
