@@ -17,6 +17,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { getDoctypeList } from 'src/api/leads';
 import { 
     getDesignation, 
     fetchDepartments, 
@@ -50,11 +51,21 @@ export function DesignationDialog({ open, onClose, onSuccess, id }: Props) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [departments, setDepartments] = useState<any[]>([]);
+    const [existingDesignations, setExistingDesignations] = useState<any[]>([]);
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false,
         message: '',
         severity: 'success',
     });
+
+    const isDuplicateCode = (codeToCheck: string) => {
+        const trimmed = codeToCheck.trim().toLowerCase();
+        if (!trimmed) return false;
+        return existingDesignations.some((d) => {
+            if (id && (d.name === id || d.designation_name === id)) return false;
+            return (d.designation_code || '').trim().toLowerCase() === trimmed;
+        });
+    };
 
     useEffect(() => {
         const loadDepartments = async () => {
@@ -66,9 +77,18 @@ export function DesignationDialog({ open, onClose, onSuccess, id }: Props) {
             }
         };
 
+        const loadDesignations = async () => {
+            try {
+                const res = await getDoctypeList('Designation', ['name', 'designation_name', 'designation_code'], undefined, 1000);
+                setExistingDesignations(res || []);
+            } catch (err) {
+                console.error('Failed to fetch designations:', err);
+            }
+        };
+
         const fetchData = async () => {
             if (open) {
-                await loadDepartments();
+                await Promise.all([loadDepartments(), loadDesignations()]);
                 if (id) {
                     try {
                         setLoading(true);
@@ -104,12 +124,20 @@ export function DesignationDialog({ open, onClose, onSuccess, id }: Props) {
         const errs: string[] = [];
         if (!designationName.trim()) errs.push('name');
         if (!department) errs.push('department');
+        if (designationCode.trim() && isDuplicateCode(designationCode)) errs.push('code_duplicate');
 
         if (errs.length > 0) {
             setError(errs.join(','));
+            let msg = 'Please fill in all required fields';
+            if (errs.includes('code_duplicate')) {
+                msg = 'Designation code already exists. Please enter a unique designation code.';
+            } else if (errs.length === 1) {
+                if (errs[0] === 'name') msg = 'Designation name is required';
+                if (errs[0] === 'department') msg = 'Department is required';
+            }
             setSnackbar({ 
                 open: true, 
-                message: errs.length > 1 ? 'Please fill in all required fields' : (errs[0] === 'name' ? 'Designation name is required' : 'Department is required'), 
+                message: msg, 
                 severity: 'error' 
             });
             return;
@@ -129,7 +157,7 @@ export function DesignationDialog({ open, onClose, onSuccess, id }: Props) {
 
                 const data: Partial<Designation> = {
                     designation_name: designationName,
-                    designation_code: designationCode,
+                    designation_code: designationCode.trim(),
                     department: department!,
                     level: level as any,
                     status,
@@ -139,7 +167,7 @@ export function DesignationDialog({ open, onClose, onSuccess, id }: Props) {
             } else {
                 const data: Partial<Designation> = {
                     designation_name: designationName,
-                    designation_code: designationCode,
+                    designation_code: designationCode.trim(),
                     department: department!,
                     level: level as any,
                     status,
@@ -202,7 +230,18 @@ export function DesignationDialog({ open, onClose, onSuccess, id }: Props) {
                             fullWidth
                             label="Designation Code"
                             value={designationCode}
-                            onChange={(e) => setDesignationCode(e.target.value)}
+                            onChange={(e) => {
+                                setDesignationCode(e.target.value);
+                                if (error.split(',').includes('code_duplicate')) {
+                                    setError(error.split(',').filter(err => err !== 'code_duplicate').join(','));
+                                }
+                            }}
+                            error={error.split(',').includes('code_duplicate') || (designationCode.trim() !== '' && isDuplicateCode(designationCode))}
+                            helperText={
+                                (error.split(',').includes('code_duplicate') || (designationCode.trim() !== '' && isDuplicateCode(designationCode)))
+                                    ? 'Designation code already exists'
+                                    : ''
+                            }
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                         />
