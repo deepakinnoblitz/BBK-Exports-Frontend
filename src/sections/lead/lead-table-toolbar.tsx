@@ -77,6 +77,7 @@ export function LeadTableToolbar({
   filterCount,
 }: LeadTableToolbarProps) {
   const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const activeFilterCount = filterCount !== undefined ? filterCount : (canReset ? 1 : 0);
@@ -154,6 +155,8 @@ export function LeadTableToolbar({
             inputRef={searchInputRef}
             value={filterName}
             onChange={onFilterName}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             placeholder={searchPlaceholder}
             startAdornment={
               <InputAdornment position="start">
@@ -161,8 +164,8 @@ export function LeadTableToolbar({
               </InputAdornment>
             }
             endAdornment={
-              <InputAdornment position="end">
-                {filterName ? (
+              filterName ? (
+                <InputAdornment position="end">
                   <IconButton
                     size="small"
                     onClick={handleClearSearch}
@@ -176,7 +179,9 @@ export function LeadTableToolbar({
                   >
                     <Iconify icon="solar:close-circle-bold" width={18} />
                   </IconButton>
-                ) : (
+                </InputAdornment>
+              ) : !isSearchFocused ? (
+                <InputAdornment position="end">
                   <Box
                     sx={{
                       display: { xs: 'none', sm: 'inline-flex' },
@@ -197,8 +202,8 @@ export function LeadTableToolbar({
                   >
                     Ctrl K
                   </Box>
-                )}
-              </InputAdornment>
+                </InputAdornment>
+              ) : null
             }
             sx={{
               maxWidth: { xs: '100%', md: 480 },

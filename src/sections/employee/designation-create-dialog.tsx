@@ -48,9 +48,14 @@ export function DesignationCreateDialog({
             setDescription('');
             setError('');
 
-            // Fetch departments
-            getDoctypeList('Department', ['name', 'department_name'])
-                .then(setDepartmentOptions)
+            // Fetch active departments
+            getDoctypeList('Department', ['name', 'department_name', 'status'], { status: 'Active' })
+                .then((data) => {
+                    const activeDepts = (data || []).filter(
+                        (dept: any) => (dept.status || '').toLowerCase() !== 'inactive'
+                    );
+                    setDepartmentOptions(activeDepts);
+                })
                 .catch(console.error);
         }
     }, [open, currentDesignationName, defaultDepartment]);
@@ -58,6 +63,10 @@ export function DesignationCreateDialog({
     const handleSubmit = async () => {
         if (!designationName.trim()) {
             setError('Designation Name is required');
+            return;
+        }
+        if (designationName.trim().length > 140 || designationName.length > 140) {
+            setError('Maximum character limit is 140 characters');
             return;
         }
 
@@ -75,7 +84,17 @@ export function DesignationCreateDialog({
             onClose();
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Failed to create designation');
+            const msg = err.message || 'Failed to create designation';
+            const lowerMsg = msg.toLowerCase();
+            if (
+                lowerMsg.includes('max characters allowed is 140') ||
+                lowerMsg.includes('will get truncated') ||
+                lowerMsg.includes('character limit is 140')
+            ) {
+                setError('Maximum character limit is 140 characters');
+            } else {
+                setError(msg);
+            }
         } finally {
             setLoading(false);
         }
@@ -106,8 +125,12 @@ export function DesignationCreateDialog({
                             setDesignationName(e.target.value);
                             if (error) setError('');
                         }}
-                        error={!!error}
-                        helperText={error}
+                        error={!!error || designationName.length > 140 || designationName.trim().length > 140}
+                        helperText={
+                            designationName.length > 140 || designationName.trim().length > 140
+                                ? 'Maximum character limit is 140 characters'
+                                : error
+                        }
                         disabled={loading}
                         InputLabelProps={{ shrink: true }}
                         sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}

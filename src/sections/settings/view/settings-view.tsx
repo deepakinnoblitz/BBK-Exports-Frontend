@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RiKey2Line, RiMailLine, RiImageLine, RiGlobalLine, RiFingerprintLine, RiNotification3Line, RiCheckboxCircleLine } from "react-icons/ri";
+import { RiKey2Line, RiMailLine, RiImageLine, RiFingerprintLine, RiNotification3Line, RiCheckboxCircleLine } from "react-icons/ri";
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
@@ -22,10 +22,9 @@ import { useAuth } from 'src/auth/auth-context';
 
 import { SettingsLogo } from '../settings-logo';
 import { SettingsLiveKit } from '../settings-livekit';
-import { SettingsCurrency } from '../settings-currency';
 import { SettingsBiometric } from '../settings-biometric';
-import { SettingsCompanyEmail } from '../settings-company-email';
 import { SettingsNotifications } from '../settings-notifications';
+import { EMAIL_REGEX, SettingsCompanyEmail } from '../settings-company-email';
 
 // ----------------------------------------------------------------------
 
@@ -36,7 +35,6 @@ const TABS = [
   // { value: 'dashboard', label: 'Dashboard', icon: <RiDashboardLine size={22} /> },
   { value: 'notifications', label: 'Notifications', icon: <RiNotification3Line size={22} /> },
   { value: 'email', label: 'Email', icon: <RiMailLine size={22} /> },
-  { value: 'currency', label: 'Currency & Locale', icon: <RiGlobalLine size={22} /> },
   { value: 'api', label: 'API', icon: <RiKey2Line size={22} /> },
 ];
 
@@ -66,7 +64,6 @@ export function SettingsView() {
     sync_mode: 'Manual Only',
     sync_interval_minutes: 15,
     daily_sync_times: '',
-    overlap_minutes: 15,
     auto_reconciliation_enabled: 0,
   });
 
@@ -121,6 +118,34 @@ export function SettingsView() {
     try {
       setSaving(true);
       if (currentTab === 'email') {
+        const hrEmail = (emailSettings?.hr_email || '').trim();
+        if (hrEmail && !EMAIL_REGEX.test(hrEmail)) {
+          setSnackbar({
+            open: true,
+            message: 'Primary HR Email is invalid. Please enter a valid email address.',
+            severity: 'error',
+          });
+          setSaving(false);
+          return;
+        }
+
+        const ccRaw = emailSettings?.hr_cc_emails || '';
+        const ccEmails = ccRaw
+          .split(',')
+          .map((e: string) => e.trim())
+          .filter(Boolean);
+
+        const invalidCc = ccEmails.filter((e: string) => !EMAIL_REGEX.test(e));
+        if (invalidCc.length > 0) {
+          setSnackbar({
+            open: true,
+            message: `Invalid CC email(s): ${invalidCc.join(', ')}. Please remove or correct them.`,
+            severity: 'error',
+          });
+          setSaving(false);
+          return;
+        }
+
         if (emailSettingsName) {
           await updateCompanyEmailSettings(emailSettingsName, emailSettings);
         } else {
@@ -295,12 +320,6 @@ export function SettingsView() {
           />
         )} */}
 
-        {currentTab === 'currency' && (
-          <SettingsCurrency
-            data={formData}
-            onChange={handleUpdateField}
-          />
-        )}
 
         {currentTab === 'notifications' && (
           <SettingsNotifications

@@ -94,7 +94,7 @@ export function LineOrderDialog({ open, onClose, onSuccess, id }: Props) {
             const data: Partial<LineOrder> = {
                 line_name: trimmedLineName,
                 status,
-                description: description.trim() || undefined,
+                description: description.trim(),
             };
 
             if (currentId) {

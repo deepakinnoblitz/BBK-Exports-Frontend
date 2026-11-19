@@ -23,7 +23,7 @@ import {
 
 import { Iconify } from 'src/components/iconify';
 
-import { CustomSwitch } from 'src/sections/reminders/reminders-settings-view';
+import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
 
 // ----------------------------------------------------------------------
 

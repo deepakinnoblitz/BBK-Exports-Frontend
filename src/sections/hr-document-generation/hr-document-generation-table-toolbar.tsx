@@ -49,6 +49,7 @@ export function HRDocumentGenerationTableToolbar({
     onCreateNew,
 }: HRDocumentGenerationTableToolbarProps) {
     const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     const handleSortClick = (event: React.MouseEvent<HTMLElement>) => {
         setSortAnchorEl(event.currentTarget);
@@ -110,6 +111,8 @@ export function HRDocumentGenerationTableToolbar({
                         fullWidth
                         value={filterName}
                         onChange={onFilterName}
+                        onFocus={() => setIsSearchFocused(true)}
+                        onBlur={() => setIsSearchFocused(false)}
                         placeholder="Search documents..."
                         startAdornment={
                             <InputAdornment position="start">
@@ -117,8 +120,8 @@ export function HRDocumentGenerationTableToolbar({
                             </InputAdornment>
                         }
                         endAdornment={
-                            <InputAdornment position="end">
-                                {filterName ? (
+                            filterName ? (
+                                <InputAdornment position="end">
                                     <IconButton
                                         size="small"
                                         onClick={handleClearSearch}
@@ -132,7 +135,9 @@ export function HRDocumentGenerationTableToolbar({
                                     >
                                         <Iconify icon="solar:close-circle-bold" width={18} />
                                     </IconButton>
-                                ) : (
+                                </InputAdornment>
+                            ) : !isSearchFocused ? (
+                                <InputAdornment position="end">
                                     <Box
                                         sx={{
                                             display: { xs: 'none', sm: 'inline-flex' },
@@ -153,8 +158,8 @@ export function HRDocumentGenerationTableToolbar({
                                     >
                                         Ctrl K
                                     </Box>
-                                )}
-                            </InputAdornment>
+                                </InputAdornment>
+                            ) : null
                         }
                         sx={{
                             maxWidth: { xs: '100%', md: 480 },

@@ -37,8 +37,8 @@ type Props = {
 
 export const EMPLOYEE_TYPE_OPTIONS = [
     'Staff',
-    'North Indian',
     'Workers',
+    'North Indian',
     'Drivers',
     'Contractor',
     'House Keeping',
@@ -46,10 +46,9 @@ export const EMPLOYEE_TYPE_OPTIONS = [
     'STP Employees',
 ];
 
-export const CATEGORY_OPTIONS = [
+export const STAFF_CATEGORY_OPTIONS = [
     'CTC',
     'Non CTC',
-    'General',
 ];
 
 export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
@@ -65,6 +64,8 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
         severity: 'success',
     });
 
+    const isStaff = employeeType === 'Staff';
+
     useEffect(() => {
         const fetchData = async () => {
             if (open) {
@@ -79,14 +80,26 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
 
                         if (rawType.includes(' - ')) {
                             const parts = rawType.split(' - ');
-                            rawType = parts[0].trim();
-                            if (parts.length > 1 && !data.category_type) {
-                                rawCategory = parts[1].trim();
+                            const base = parts[0].trim();
+                            if (base === 'Staff') {
+                                rawType = 'Staff';
+                                if (parts.length > 1 && !data.category_type) {
+                                    rawCategory = parts[1].trim();
+                                }
+                            } else {
+                                // For non-staff (e.g. legacy Workers - Skilled), treat as Workers / General
+                                rawType = base;
+                                rawCategory = 'General';
                             }
                         }
 
+                        const staffSelected = rawType === 'Staff';
                         setEmployeeType(rawType);
-                        setCategoryType(rawCategory);
+                        setCategoryType(
+                            staffSelected
+                                ? (['CTC', 'Non CTC'].includes(rawCategory) ? rawCategory : 'CTC')
+                                : 'General'
+                        );
                         setDescription(data.description || '');
                     } catch (err) {
                         console.error('Failed to fetch employee type:', err);
@@ -110,14 +123,9 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
         setEmployeeType(newType);
         if (error === 'required') setError('');
 
-        // Auto-suggest logical category based on selected Employee Type
-        if (newType === 'Staff' || newType === 'North Indian') {
+        if (newType === 'Staff') {
             if (!['CTC', 'Non CTC'].includes(categoryType)) {
                 setCategoryType('CTC');
-            }
-        } else if (newType === 'Workers') {
-            if (!['Skilled', 'Semi Skilled', 'Unskilled'].includes(categoryType)) {
-                setCategoryType('Skilled');
             }
         } else {
             setCategoryType('General');
@@ -125,8 +133,8 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
     };
 
     const previewName = employeeType.trim()
-        ? (categoryType && categoryType !== 'General' && !employeeType.toLowerCase().includes(`- ${categoryType.toLowerCase()}`)
-            ? `${employeeType.trim()} - ${categoryType}`
+        ? (isStaff && categoryType && categoryType !== 'General'
+            ? `Staff - ${categoryType}`
             : employeeType.trim())
         : '';
 
@@ -152,15 +160,15 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
 
                 const data: Partial<EmployeeType> = {
                     employee_type: finalName,
-                    category_type: categoryType,
-                    description: description.trim() || undefined,
+                    category_type: isStaff ? categoryType : 'General',
+                    description: description.trim(),
                 };
                 await updateEmployeeType(currentId, data);
             } else {
                 const data: Partial<EmployeeType> = {
-                    employee_type: employeeType.trim(),
-                    category_type: categoryType,
-                    description: description.trim() || undefined,
+                    employee_type: finalName,
+                    category_type: isStaff ? categoryType : 'General',
+                    description: description.trim(),
                 };
                 await createEmployeeType(data);
             }
@@ -204,9 +212,15 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         value={employeeType}
                         onChange={(e) => handleEmployeeTypeChange(e.target.value)}
                         error={error === 'required'}
-                        helperText={error === 'required' ? 'Employee Type is required' : ''}
-                        disabled={loading}
-                        autoFocus
+                        helperText={
+                            error === 'required'
+                                ? 'Employee Type is required'
+                                : id
+                                  ? 'Employee Type cannot be modified in edit mode'
+                                  : ''
+                        }
+                        disabled={loading || !!id}
+                        autoFocus={!id}
                         InputLabelProps={{ shrink: true }}
                         sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
                     >
@@ -217,21 +231,23 @@ export function EmployeeTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         ))}
                     </TextField>
 
-                    <TextField
-                        select
-                        fullWidth
-                        label="Category Type"
-                        value={categoryType}
-                        onChange={(e) => setCategoryType(e.target.value)}
-                        disabled={loading}
-                        InputLabelProps={{ shrink: true }}
-                    >
-                        {CATEGORY_OPTIONS.map((cat) => (
-                            <MenuItem key={cat} value={cat}>
-                                {cat}
-                            </MenuItem>
-                        ))}
-                    </TextField>
+                    {isStaff && (
+                        <TextField
+                            select
+                            fullWidth
+                            label="Category Type"
+                            value={categoryType}
+                            onChange={(e) => setCategoryType(e.target.value)}
+                            disabled={loading}
+                            InputLabelProps={{ shrink: true }}
+                        >
+                            {STAFF_CATEGORY_OPTIONS.map((cat) => (
+                                <MenuItem key={cat} value={cat}>
+                                    {cat}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    )}
 
                     {previewName && (
                         <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: 'action.hover', border: (theme) => `1px dashed ${theme.palette.divider}` }}>

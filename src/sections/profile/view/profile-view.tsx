@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
 import { LuShieldCheck } from 'react-icons/lu';
 import { useBoolean } from 'minimal-shared/hooks';
+import { useMemo, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -11,6 +11,7 @@ import Stack from '@mui/material/Stack';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import { alpha } from '@mui/material/styles';
 import Snackbar from '@mui/material/Snackbar';
 import Container from '@mui/material/Container';
 import TextField from '@mui/material/TextField';
@@ -22,6 +23,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import InputAdornment from '@mui/material/InputAdornment';
+import LinearProgress from '@mui/material/LinearProgress';
 
 import { frappeRequest } from 'src/utils/csrf';
 import { stringToColor, stringToDarkColor } from 'src/utils/color-utils';
@@ -31,6 +33,50 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { Iconify } from 'src/components/iconify';
 
 import { useAuth } from 'src/auth/auth-context';
+
+// ----------------------------------------------------------------------
+
+export const validateRequired = (value: unknown, fieldLabel: string = 'This field'): string => {
+    if (value === null || value === undefined) {
+        return `${fieldLabel} is required`;
+    }
+    if (typeof value === 'string' && !value.trim()) {
+        return `${fieldLabel} is required`;
+    }
+    return '';
+};
+
+export const renderRequiredLabel = (label: string, required: boolean = true) => (
+    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center' }}>
+        {label}
+        {required && (
+            <Box component="span" sx={{ color: 'error.main', ml: 0.5, fontWeight: 700 }}>
+                *
+            </Box>
+        )}
+    </Box>
+);
+
+export const getRequiredFieldProps = (label: string, error?: string) => ({
+    required: true,
+    label,
+    error: Boolean(error),
+    helperText: error || '',
+    InputLabelProps: { shrink: true },
+    sx: {
+        '& .MuiFormLabel-asterisk': {
+            color: 'error.main',
+        },
+    },
+});
+
+const PASSWORD_RULES = [
+    { id: 'length', label: 'At least 8 characters', test: (pwd: string) => pwd.length >= 8 },
+    { id: 'uppercase', label: 'At least 1 uppercase letter (A-Z)', test: (pwd: string) => /[A-Z]/.test(pwd) },
+    { id: 'lowercase', label: 'At least 1 lowercase letter (a-z)', test: (pwd: string) => /[a-z]/.test(pwd) },
+    { id: 'number', label: 'At least 1 number (0-9)', test: (pwd: string) => /[0-9]/.test(pwd) },
+    { id: 'special', label: 'At least 1 special character (!@#$%^&*)', test: (pwd: string) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd) },
+];
 
 export function ProfileView() {
     const { user, setUser } = useAuth();
@@ -54,24 +100,72 @@ export function ProfileView() {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    const [oldPasswordError, setOldPasswordError] = useState(false);
+    const [passwordErrors, setPasswordErrors] = useState<{
+        oldPassword?: string;
+        newPassword?: string;
+        confirmPassword?: string;
+    }>({});
 
-    const [errorMessage, setErrorMessage] = useState('');
+    // Password criteria verification
+    const passwordCriteriaStatus = useMemo(
+        () => PASSWORD_RULES.map((rule) => ({ ...rule, passed: rule.test(newPassword) })),
+        [newPassword]
+    );
+
+    const passedCount = useMemo(
+        () => passwordCriteriaStatus.filter((c) => c.passed).length,
+        [passwordCriteriaStatus]
+    );
+
+    const strengthLevel = useMemo(() => {
+        if (!newPassword) return { label: 'None', color: '#94a3b8', percent: 0 };
+        if (passedCount <= 2) return { label: 'Weak', color: '#ef4444', percent: 25 };
+        if (passedCount <= 3) return { label: 'Fair', color: '#f59e0b', percent: 50 };
+        if (passedCount <= 4) return { label: 'Good', color: '#3b82f6', percent: 75 };
+        return { label: 'Strong', color: '#10b981', percent: 100 };
+    }, [newPassword, passedCount]);
 
     // Password visibility state
     const showOldPassword = useBoolean();
     const showNewPassword = useBoolean();
     const showConfirmPassword = useBoolean();
 
+    const handleClosePasswordDialog = () => {
+        changePassword.onFalse();
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordErrors({});
+    };
+
     // Handler for password change
     const handleChangePassword = async () => {
-        setErrorMessage('');
-        setOldPasswordError(false);
+        const errors: { oldPassword?: string; newPassword?: string; confirmPassword?: string } = {};
 
-        if (newPassword !== confirmPassword) {
-            setErrorMessage('New passwords do not match');
+        if (!oldPassword.trim()) {
+            errors.oldPassword = 'Current password is required';
+        }
+
+        if (!newPassword) {
+            errors.newPassword = 'New password is required';
+        } else if (passedCount < 5) {
+            errors.newPassword = 'Please satisfy all password strength requirements below';
+        }
+
+        if (!confirmPassword) {
+            errors.confirmPassword = 'Confirm password is required';
+        } else if (newPassword !== confirmPassword) {
+            errors.confirmPassword = 'Passwords do not match';
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setPasswordErrors(errors);
+            const firstMsg = errors.oldPassword || errors.newPassword || errors.confirmPassword;
+            setSnackbar({ open: true, message: firstMsg || 'Please fill in all required fields', severity: 'error' });
             return;
         }
+
+        setPasswordErrors({});
 
         try {
             const response = await frappeRequest('/api/method/company.company.frontend_api.update_my_password', {
@@ -91,13 +185,13 @@ export function ProfileView() {
                 setOldPassword('');
                 setNewPassword('');
                 setConfirmPassword('');
-                setErrorMessage('');
+                setPasswordErrors({});
             } else {
                 let msg = 'Failed to update password';
 
                 if (data.exception) {
                     if (data.exception.includes('Incorrect old password')) {
-                        setOldPasswordError(true);
+                        setPasswordErrors((prev) => ({ ...prev, oldPassword: 'Incorrect old password' }));
                         msg = 'Incorrect old password';
                     } else {
                         const parts = data.exception.split(':');
@@ -111,7 +205,7 @@ export function ProfileView() {
                             // Strip HTML tags if present
                             msg = firstMsg.message.replace(/<[^>]*>?/gm, '');
                         }
-                    } catch (e) {
+                    } catch {
                         // Fallback
                     }
                 } else if (data.message) {
@@ -123,14 +217,12 @@ export function ProfileView() {
                     }
                 }
 
-                setErrorMessage(msg);
-                // Also show snackbar for good measure, or maybe skip it if alert is there?
-                // enqueueSnackbar(msg, { variant: 'error' }); 
+                setSnackbar({ open: true, message: msg, severity: 'error' });
             }
         } catch (error: any) {
             console.error(error);
             const msg = error.message || 'An error occurred';
-            setErrorMessage(msg);
+            setSnackbar({ open: true, message: msg, severity: 'error' });
         }
     };
 
@@ -138,28 +230,34 @@ export function ProfileView() {
     const [firstName, setFirstName] = useState('');
     const [middleName, setMiddleName] = useState('');
     const [lastName, setLastName] = useState('');
+    const [firstNameError, setFirstNameError] = useState('');
 
     useEffect(() => {
         if (user) {
             setFirstName(user.first_name || '');
             setMiddleName(user.middle_name || '');
             setLastName(user.last_name || '');
+            setFirstNameError('');
         }
     }, [user]);
 
     const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
 
-
-
-
     const handleSaveProfile = async () => {
+        const requiredError = validateRequired(firstName, 'First Name');
+        if (requiredError) {
+            setFirstNameError(requiredError);
+            setSnackbar({ open: true, message: requiredError, severity: 'error' });
+            return;
+        }
+
         try {
             const response = await frappeRequest('/api/method/company.company.frontend_api.update_profile_info', {
                 method: 'POST',
                 body: JSON.stringify({
-                    first_name: firstName,
-                    middle_name: middleName,
-                    last_name: lastName
+                    first_name: firstName.trim(),
+                    middle_name: middleName.trim(),
+                    last_name: lastName.trim()
                 })
             });
 
@@ -171,19 +269,23 @@ export function ProfileView() {
                 if (user) {
                     setUser({
                         ...user,
-                        first_name: firstName,
-                        middle_name: middleName,
-                        last_name: lastName,
+                        first_name: firstName.trim(),
+                        middle_name: middleName.trim(),
+                        last_name: lastName.trim(),
                         full_name: fullName
                     });
                 }
             } else {
-                setSnackbar({ open: true, message: data.message?.message || 'Failed to update profile', severity: 'error' });
+                const msg = data.message?.message || data.message || 'Failed to update profile';
+                setSnackbar({ open: true, message: msg, severity: 'error' });
+                if (String(msg).toLowerCase().includes('first name')) {
+                    setFirstNameError(msg);
+                }
             }
-
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            setSnackbar({ open: true, message: 'An error occurred while saving profile', severity: 'error' });
+            const msg = error.message || 'An error occurred while saving profile';
+            setSnackbar({ open: true, message: msg, severity: 'error' });
         }
     };
 
@@ -197,7 +299,7 @@ export function ProfileView() {
                 <Stack spacing={4} sx={{ maxWidth: 1200, mx: 'auto' }}>
                     <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: { xs: 2, md: 0 } }}>
                         <Typography variant="h4" sx={{ fontWeight: 800 }}>
-                            My Profile
+                            Profile
                         </Typography>
                     </Stack>
 
@@ -305,9 +407,13 @@ export function ProfileView() {
                                 <Grid size={{ xs: 12, sm: 6 }}>
                                     <TextField
                                         fullWidth
-                                        label="First Name"
+                                        {...getRequiredFieldProps('First Name', firstNameError)}
                                         value={firstName}
-                                        onChange={(e) => setFirstName(e.target.value)}
+                                        onChange={(e) => {
+                                            const cleanVal = e.target.value.replace(/[0-9]/g, '');
+                                            setFirstName(cleanVal);
+                                            setFirstNameError(validateRequired(cleanVal, 'First Name'));
+                                        }}
                                     />
                                 </Grid>
 
@@ -316,7 +422,7 @@ export function ProfileView() {
                                         fullWidth
                                         label="Middle Name"
                                         value={middleName}
-                                        onChange={(e) => setMiddleName(e.target.value)}
+                                        onChange={(e) => setMiddleName(e.target.value.replace(/[0-9]/g, ''))}
                                     />
                                 </Grid>
 
@@ -325,17 +431,44 @@ export function ProfileView() {
                                         fullWidth
                                         label="Last Name"
                                         value={lastName}
-                                        onChange={(e) => setLastName(e.target.value)}
+                                        onChange={(e) => setLastName(e.target.value.replace(/[0-9]/g, ''))}
                                     />
                                 </Grid>
 
                                 <Grid size={{ xs: 12, sm: 6 }}>
                                     <TextField
                                         fullWidth
+                                        disabled
                                         label="Full Name"
-                                        value={fullName}
-                                        InputProps={{ readOnly: true }}
+                                        value={fullName || ''}
                                         placeholder="Full name will be generated"
+                                        InputLabelProps={{ shrink: true }}
+                                        helperText="Auto-generated from First, Middle, and Last name"
+                                        inputProps={{ readOnly: true, tabIndex: -1 }}
+                                        sx={{
+                                            bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04),
+                                            borderRadius: 1,
+                                            cursor: 'default',
+                                            pointerEvents: 'none',
+                                            '& *': {
+                                                cursor: 'default !important',
+                                                pointerEvents: 'none !important',
+                                                userSelect: 'none !important',
+                                            },
+                                            '& .MuiInputBase-root': {
+                                                cursor: 'default !important',
+                                            },
+                                            '& .MuiInputBase-input.Mui-disabled': {
+                                                WebkitTextFillColor: (theme) =>
+                                                    fullName ? theme.palette.text.primary : theme.palette.text.disabled,
+                                                cursor: 'default !important',
+                                                caretColor: 'transparent !important',
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: (theme) => theme.palette.text.secondary,
+                                                cursor: 'default !important',
+                                            },
+                                        }}
                                     />
                                 </Grid>
 
@@ -400,25 +533,20 @@ export function ProfileView() {
                 </Stack>
             </Container>
 
-            <Dialog open={changePassword.value} onClose={changePassword.onFalse} maxWidth="sm" fullWidth>
+            <Dialog open={changePassword.value} onClose={handleClosePasswordDialog} maxWidth="sm" fullWidth>
                 <DialogTitle sx={{ mt: 1 }}>Change Password</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
-                        {errorMessage && (
-                            <Alert severity="error" sx={{ mb: 2 }}>
-                                {errorMessage}
-                            </Alert>
-                        )}
                         <TextField
                             fullWidth
-                            label="Current Password"
+                            {...getRequiredFieldProps('Current Password', passwordErrors.oldPassword)}
                             type={showOldPassword.value ? 'text' : 'password'}
                             value={oldPassword}
-                            error={oldPasswordError}
-                            helperText={oldPasswordError ? "Incorrect old password" : ""}
                             onChange={(e) => {
                                 setOldPassword(e.target.value);
-                                setOldPasswordError(false);
+                                if (passwordErrors.oldPassword) {
+                                    setPasswordErrors((prev) => ({ ...prev, oldPassword: '' }));
+                                }
                             }}
                             InputProps={{
                                 endAdornment: (
@@ -433,10 +561,15 @@ export function ProfileView() {
 
                         <TextField
                             fullWidth
-                            label="New Password"
+                            {...getRequiredFieldProps('New Password', passwordErrors.newPassword)}
                             type={showNewPassword.value ? 'text' : 'password'}
                             value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
+                            onChange={(e) => {
+                                setNewPassword(e.target.value);
+                                if (passwordErrors.newPassword) {
+                                    setPasswordErrors((prev) => ({ ...prev, newPassword: '' }));
+                                }
+                            }}
                             InputProps={{
                                 endAdornment: (
                                     <InputAdornment position="end">
@@ -450,10 +583,21 @@ export function ProfileView() {
 
                         <TextField
                             fullWidth
-                            label="Confirm New Password"
+                            {...getRequiredFieldProps(
+                                'Confirm New Password',
+                                passwordErrors.confirmPassword ||
+                                    (confirmPassword && newPassword && confirmPassword !== newPassword
+                                        ? 'Passwords do not match'
+                                        : '')
+                            )}
                             type={showConfirmPassword.value ? 'text' : 'password'}
                             value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            onChange={(e) => {
+                                setConfirmPassword(e.target.value);
+                                if (passwordErrors.confirmPassword) {
+                                    setPasswordErrors((prev) => ({ ...prev, confirmPassword: '' }));
+                                }
+                            }}
                             InputProps={{
                                 endAdornment: (
                                     <InputAdornment position="end">
@@ -464,11 +608,85 @@ export function ProfileView() {
                                 ),
                             }}
                         />
+
+                        {/* Password Strength Indicator */}
+                        <Box
+                            sx={{
+                                p: 2,
+                                borderRadius: 1.5,
+                                bgcolor: (theme) => alpha(theme.palette.grey[500], 0.05),
+                                border: (theme) => `1px solid ${theme.palette.divider}`,
+                            }}
+                        >
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                                <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    Password Strength
+                                </Typography>
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 800,
+                                        color: strengthLevel.color,
+                                        px: 1,
+                                        py: 0.25,
+                                        borderRadius: 0.5,
+                                        bgcolor: alpha(strengthLevel.color, 0.12),
+                                    }}
+                                >
+                                    {strengthLevel.label}
+                                </Typography>
+                            </Stack>
+
+                            <LinearProgress
+                                variant="determinate"
+                                value={strengthLevel.percent}
+                                sx={{
+                                    height: 6,
+                                    borderRadius: 1,
+                                    bgcolor: (theme) => alpha(theme.palette.grey[500], 0.16),
+                                    '& .MuiLinearProgress-bar': {
+                                        bgcolor: strengthLevel.color,
+                                        borderRadius: 1,
+                                    },
+                                    mb: 2,
+                                }}
+                            />
+
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 1 }}>
+                                Password Requirements:
+                            </Typography>
+
+                            <Stack spacing={0.75}>
+                                {passwordCriteriaStatus.map((criterion) => (
+                                    <Stack key={criterion.id} direction="row" alignItems="center" spacing={1}>
+                                        <Iconify
+                                            icon={criterion.passed ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
+                                            width={16}
+                                            sx={{
+                                                color: criterion.passed ? '#10b981' : '#94a3b8',
+                                                flexShrink: 0,
+                                                transition: 'color 0.2s ease',
+                                            }}
+                                        />
+                                        <Typography
+                                            variant="caption"
+                                            sx={{
+                                                color: criterion.passed ? 'text.primary' : 'text.secondary',
+                                                fontWeight: criterion.passed ? 600 : 400,
+                                                transition: 'color 0.2s ease',
+                                            }}
+                                        >
+                                            {criterion.label}
+                                        </Typography>
+                                    </Stack>
+                                ))}
+                            </Stack>
+                        </Box>
                     </Stack>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 3 }}>
                     <Button
-                        onClick={changePassword.onFalse}
+                        onClick={handleClosePasswordDialog}
                         variant="outlined"
                         color="inherit"
                         sx={{
@@ -501,6 +719,7 @@ export function ProfileView() {
                 autoHideDuration={6000}
                 onClose={handleCloseSnackbar}
                 anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                sx={{ zIndex: 999999 }}
             >
                 <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
                     {snackbar.message}

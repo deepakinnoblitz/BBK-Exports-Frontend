@@ -51,6 +51,7 @@ export function SalaryComponentFormDialog({
     const [availableEarningOptions, setAvailableEarningOptions] = useState<string[]>([]);
     const [staticAmount, setStaticAmount] = useState<string>('');
     const [isDefault, setIsDefault] = useState(false);
+    const [isPercentageFocused, setIsPercentageFocused] = useState(false);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -129,7 +130,7 @@ export function SalaryComponentFormDialog({
                 percentage: percentNum,
                 percentage_basis: percentNum > 0 ? percentageBasis : 'Full (Total Gross / CTC)',
                 selected_components: percentNum > 0 && percentageBasis === 'Selected Component(s)' ? JSON.stringify(selectedComponents) : '[]',
-                static_amount: staticAmount !== '' && !Number.isNaN(parseFloat(staticAmount)) ? parseFloat(staticAmount) : 0,
+                static_amount: percentNum > 0 ? 0 : (staticAmount !== '' && !Number.isNaN(parseFloat(staticAmount)) ? parseFloat(staticAmount) : 0),
                 is_default: isDefault ? 1 : 0,
             };
 
@@ -147,7 +148,10 @@ export function SalaryComponentFormDialog({
         }
     };
 
-    const hasPercentage = percentage !== '' && parseFloat(percentage) > 0;
+    const hasPercentage =
+        isPercentageFocused ||
+        (percentage.trim() !== '' && !Number.isNaN(parseFloat(percentage)) && parseFloat(percentage) > 0) ||
+        percentage.trim() !== '';
 
     return (
         <Dialog
@@ -216,7 +220,20 @@ export function SalaryComponentFormDialog({
                             label="Percentage (%)"
                             type="number"
                             value={percentage}
-                            onChange={(e) => setPercentage(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setPercentage(val);
+                                if (val.trim() !== '') {
+                                    setStaticAmount('');
+                                }
+                            }}
+                            onFocus={() => {
+                                setIsPercentageFocused(true);
+                                if (staticAmount) setStaticAmount('');
+                            }}
+                            onBlur={() => {
+                                setIsPercentageFocused(false);
+                            }}
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                             inputProps={{ min: 0, max: 100, step: 0.01 }}
@@ -245,7 +262,14 @@ export function SalaryComponentFormDialog({
                                 label="Static Amount"
                                 type="number"
                                 value={staticAmount}
-                                onChange={(e) => setStaticAmount(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setStaticAmount(val);
+                                    if (val.trim() !== '') {
+                                        setPercentage('');
+                                        setSelectedComponents([]);
+                                    }
+                                }}
                                 disabled={loading}
                                 InputLabelProps={{ shrink: true }}
                                 inputProps={{ min: 0, step: 0.01 }}
@@ -285,26 +309,12 @@ export function SalaryComponentFormDialog({
                             </Box>
                         )}
 
-                        {hasPercentage && (
-                            <TextField
-                                fullWidth
-                                label="Static Amount"
-                                type="number"
-                                value={staticAmount}
-                                onChange={(e) => setStaticAmount(e.target.value)}
-                                disabled={loading}
-                                InputLabelProps={{ shrink: true }}
-                                inputProps={{ min: 0, step: 0.01 }}
-                                helperText="Optional fallback amount"
-                            />
-                        )}
-
                         <Box
                             sx={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 height: 56,
-                                gridColumn: hasPercentage ? { xs: '1 / -1', sm: 'auto' } : '1 / -1',
+                                gridColumn: '1 / -1',
                             }}
                         >
                             <FormControlLabel

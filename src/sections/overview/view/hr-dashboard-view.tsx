@@ -405,7 +405,7 @@ export function HRDashboardView() {
                         overall={workforceData?.skill_matrix?.overall || []}
                         lineMatrix={workforceData?.skill_matrix?.line_matrix || []}
                         departmentMatrix={workforceData?.skill_matrix?.department_matrix || []}
-                        summary={workforceData?.skill_matrix?.summary || { highly_skilled: 0, skilled: 0, semi_skilled: 0, unskilled: 0, unassigned: 0 }}
+                        summary={workforceData?.skill_matrix?.summary || {}}
                         loading={loading || chartLoading}
                     />
                 </Grid>

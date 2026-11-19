@@ -108,12 +108,6 @@ export function SettingsBiometric({ data, onChange, onRefresh, errors, onClearEr
       start: dayjs().startOf('month').format('YYYY-MM-DD 00:00:00'),
       end: dayjs().endOf('day').format('YYYY-MM-DD 23:59:59'),
     },
-    {
-      id: 'sample_logs',
-      label: 'Sample Data (Nov 01 - 09)',
-      start: '2026-11-01 00:00:00',
-      end: '2026-11-09 23:59:59',
-    },
   ];
 
   const handleSelectPreset = (start: string, end: string) => {
@@ -533,21 +527,6 @@ export function SettingsBiometric({ data, onChange, onRefresh, errors, onClearEr
                       </Alert>
                     </Box>
                   )}
-
-                  <TextField
-                    fullWidth
-                    label="Overlap Window (Minutes)"
-                    type="number"
-                    value={data?.overlap_minutes !== undefined && data?.overlap_minutes !== null ? data.overlap_minutes : 15}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      onChange('overlap_minutes', isNaN(val) ? '' : Math.max(1, val));
-                    }}
-                    slotProps={{
-                      htmlInput: { min: 1, max: 1440, step: 1 }
-                    }}
-                    helperText="Overlap window in minutes queried before the last sync to catch delayed device punches (Recommended 5–15 mins)."
-                  />
                 </>
               )}
             </Stack>

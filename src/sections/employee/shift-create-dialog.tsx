@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Switch from '@mui/material/Switch';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -22,6 +21,8 @@ import { COMMON_COLORS } from 'src/theme';
 import { createShift } from 'src/api/masters';
 
 import { Iconify } from 'src/components/iconify';
+
+import { CustomSwitch } from 'src/sections/email-settings/view/email-settings-view';
 
 // ----------------------------------------------------------------------
 
@@ -187,47 +188,51 @@ export function ShiftCreateDialog({ open, onClose, onCreate, currentShiftName = 
                         </Box>
                     </LocalizationProvider>
 
-                    <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: (theme) => theme.palette.mode === 'light' ? 'grey.50' : 'background.neutral' }}>
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={allowOvertime}
-                                    onChange={(e) => setAllowOvertime(e.target.checked)}
-                                    disabled={loading}
-                                />
-                            }
-                            label={<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Allow Overtime</Typography>}
-                        />
+                    <FormControlLabel
+                        control={
+                            <CustomSwitch
+                                checked={allowOvertime}
+                                onChange={(e) => setAllowOvertime(e.target.checked)}
+                                disabled={loading}
+                            />
+                        }
+                        label="Allow Overtime"
+                        sx={{
+                            m: 0,
+                            '& .MuiFormControlLabel-label': {
+                                ml: 1,
+                            },
+                        }}
+                    />
 
-                        {allowOvertime && (
-                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 2 }}>
-                                <TextField
-                                    fullWidth
-                                    type="number"
-                                    label="Official Overtime (Hours)"
-                                    placeholder="e.g. 2.0"
-                                    value={overtimeHours}
-                                    onChange={(e) => setOvertimeHours(e.target.value)}
-                                    disabled={loading}
-                                    InputLabelProps={{ shrink: true }}
-                                    inputProps={{ min: 0, step: 0.5 }}
-                                    helperText="Max official overtime"
-                                />
-                                <TextField
-                                    fullWidth
-                                    type="number"
-                                    label="Min Threshold (Minutes)"
-                                    placeholder="e.g. 30"
-                                    value={minOvertimeMinutes}
-                                    onChange={(e) => setMinOvertimeMinutes(e.target.value)}
-                                    disabled={loading}
-                                    InputLabelProps={{ shrink: true }}
-                                    inputProps={{ min: 0, step: 5 }}
-                                    helperText="Min minutes before OT counts"
-                                />
-                            </Box>
-                        )}
-                    </Box>
+                    {allowOvertime && (
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                            <TextField
+                                fullWidth
+                                type="number"
+                                label="Official Overtime (Hours)"
+                                placeholder="e.g. 2.0"
+                                value={overtimeHours}
+                                onChange={(e) => setOvertimeHours(e.target.value)}
+                                disabled={loading}
+                                InputLabelProps={{ shrink: true }}
+                                inputProps={{ min: 0, step: 0.5 }}
+                                helperText="Max official overtime"
+                            />
+                            <TextField
+                                fullWidth
+                                type="number"
+                                label="Min Threshold (Minutes)"
+                                placeholder="e.g. 30"
+                                value={minOvertimeMinutes}
+                                onChange={(e) => setMinOvertimeMinutes(e.target.value)}
+                                disabled={loading}
+                                InputLabelProps={{ shrink: true }}
+                                inputProps={{ min: 0, step: 5 }}
+                                helperText="Min minutes before OT counts"
+                            />
+                        </Box>
+                    )}
 
                     <TextField
                         fullWidth

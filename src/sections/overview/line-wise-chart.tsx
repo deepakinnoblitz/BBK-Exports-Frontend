@@ -4,7 +4,7 @@ import type { ChartOptions } from 'src/components/chart';
 import type { WorkforceLineItem } from 'src/api/dashboard';
 
 import dayjs from 'dayjs';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -81,31 +81,60 @@ export function LineWiseChart({
         }
     };
 
-    const categories = data.map((d) => d.line.replace('Line ', 'L'));
+    // Filter out Unassigned and empty lines, normalize line names (e.g. L1 -> Line 1), and sort naturally
+    const assignedData = useMemo(() => (data || [])
+            .filter((d) => {
+                if (!d || !d.line) return false;
+                const trimmed = d.line.trim().toLowerCase();
+                return trimmed !== '' && trimmed !== 'unassigned' && trimmed !== 'none' && trimmed !== 'null';
+            })
+            .map((d) => {
+                let formattedLine = (d.line || '').trim();
+                const match = formattedLine.match(/^L\s*(\d+)$/i);
+                if (match) {
+                    formattedLine = `Line ${match[1]}`;
+                }
+                return {
+                    ...d,
+                    line: formattedLine,
+                };
+            })
+            .sort((a, b) => {
+                const lineA = a.line || '';
+                const lineB = b.line || '';
+                const numA = parseInt(lineA.replace(/\D/g, ''), 10);
+                const numB = parseInt(lineB.replace(/\D/g, ''), 10);
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return numA - numB;
+                }
+                return lineA.localeCompare(lineB, undefined, { numeric: true, sensitivity: 'base' });
+            }), [data]);
+
+    const categories = assignedData.map((d) => d.line);
 
     const countsSeries = [
         {
             name: 'Total Employees',
-            data: data.map((d) => d.total),
+            data: assignedData.map((d) => d.total),
         },
         {
             name: isToday ? 'Present Today' : 'Present',
-            data: data.map((d) => d.present),
+            data: assignedData.map((d) => d.present),
         },
         {
             name: isToday ? 'Absent Today' : 'Absent',
-            data: data.map((d) => d.absent),
+            data: assignedData.map((d) => d.absent),
         },
         {
             name: isToday ? 'Missing Today' : 'Missing',
-            data: data.map((d) => d.missing || 0),
+            data: assignedData.map((d) => d.missing || 0),
         },
     ];
 
     const rateSeries = [
         {
             name: 'Attendance Rate (%)',
-            data: data.map((d) => d.attendance_rate),
+            data: assignedData.map((d) => d.attendance_rate),
         },
     ];
 
@@ -171,7 +200,9 @@ export function LineWiseChart({
         },
     });
 
-    const totalHeadcount = data.reduce((acc, curr) => acc + curr.total, 0);
+    const totalAssignedHeadcount = assignedData.reduce((acc, curr) => acc + curr.total, 0);
+    const totalLinesCount = assignedData.length;
+    const avgPerLine = totalLinesCount > 0 ? Math.round(totalAssignedHeadcount / totalLinesCount) : 0;
 
     return (
         <Card
@@ -266,7 +297,7 @@ export function LineWiseChart({
             />
 
             <Box sx={{ p: 2.5, pb: 1 }}>
-                {data.length > 0 ? (
+                {assignedData.length > 0 ? (
                     <Chart
                         type="bar"
                         series={isRate ? rateSeries : countsSeries}
@@ -296,7 +327,7 @@ export function LineWiseChart({
                         Total Lines
                     </Typography>
                     <Typography variant="subtitle1" fontWeight={800} color="text.primary">
-                        {data.length}
+                        {totalLinesCount}
                     </Typography>
                 </Box>
                 <Box sx={{ flex: 1, textAlign: 'center' }}>
@@ -304,7 +335,7 @@ export function LineWiseChart({
                         Total Assigned
                     </Typography>
                     <Typography variant="subtitle1" fontWeight={800} color="primary.main">
-                        {fNumber(totalHeadcount)}
+                        {fNumber(totalAssignedHeadcount)}
                     </Typography>
                 </Box>
                 <Box sx={{ flex: 1, textAlign: 'center' }}>
@@ -312,7 +343,7 @@ export function LineWiseChart({
                         Average / Line
                     </Typography>
                     <Typography variant="subtitle1" fontWeight={800} color="info.main">
-                        {data.length > 0 ? Math.round(totalHeadcount / data.length) : 0}
+                        {avgPerLine}
                     </Typography>
                 </Box>
             </Stack>
