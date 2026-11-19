@@ -1,4 +1,5 @@
 import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import { alpha } from '@mui/material/styles';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
@@ -77,14 +78,14 @@ export function DepartmentTableRow({
       )}
 
       <TableCell>
-        <Box>
+        <Stack spacing={0.25}>
           <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
             {department_name}
           </Typography>
-          {/* <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
             {department_code || 'No Code'}
-          </Typography> */}
-        </Box>
+          </Typography>
+        </Stack>
       </TableCell>
 
       <TableCell sx={{ whiteSpace: 'nowrap' }}>

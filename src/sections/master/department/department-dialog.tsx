@@ -53,10 +53,30 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
     const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
     const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
+    const [existingDepartments, setExistingDepartments] = useState<any[]>([]);
+
+    const isDuplicateCode = (codeToCheck: string) => {
+        const trimmed = codeToCheck.trim().toLowerCase();
+        if (!trimmed) return false;
+        return existingDepartments.some((d) => {
+            if (id && (d.name === id || d.department_name === id)) return false;
+            return (d.department_code || '').trim().toLowerCase() === trimmed;
+        });
+    };
 
     useEffect(() => {
+        const loadDepartments = async () => {
+            try {
+                const res = await getDoctypeList('Department', ['name', 'department_name', 'department_code'], undefined, 1000);
+                setExistingDepartments(res || []);
+            } catch (err) {
+                console.error('Failed to fetch departments:', err);
+            }
+        };
+
         const fetchData = async () => {
             if (open) {
+                await loadDepartments();
                 if (id) {
                     try {
                         setLoading(true);
@@ -93,9 +113,26 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
     }, [open, id]);
 
     const handleSubmit = async () => {
-        if (!departmentName.trim()) {
-            setError('required');
-            setSnackbar({ open: true, message: 'Department name is required', severity: 'error' });
+        const nameTrimmed = departmentName.trim();
+        const errs: string[] = [];
+        if (!nameTrimmed) {
+            errs.push('name');
+        } else if (nameTrimmed.length > 140 || departmentName.length > 140) {
+            errs.push('name_max_length');
+        }
+        if (departmentCode.trim() && isDuplicateCode(departmentCode)) errs.push('code_duplicate');
+
+        if (errs.length > 0) {
+            setError(errs.join(','));
+            let msg = 'Please fill in all required fields';
+            if (errs.includes('name_max_length')) {
+                msg = 'Maximum character limit is 140 characters for Department Name.';
+            } else if (errs.includes('code_duplicate')) {
+                msg = 'Department code already exists. Please enter a unique department code.';
+            } else if (errs.includes('name')) {
+                msg = 'Department name is required';
+            }
+            setSnackbar({ open: true, message: msg, severity: 'error' });
             return;
         }
 
@@ -113,7 +150,7 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
 
                 const data: Partial<Department> = {
                     department_name: departmentName,
-                    department_code: departmentCode,
+                    department_code: departmentCode.trim(),
                     department_head: departmentHead?.name || "",
                     status,
                     description
@@ -122,7 +159,7 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
             } else {
                 const data: Partial<Department> = {
                     department_name: departmentName,
-                    department_code: departmentCode,
+                    department_code: departmentCode.trim(),
                     department_head: departmentHead?.name || "",
                     status,
                     description
@@ -135,8 +172,29 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
         } catch (err: any) {
             console.error(err);
             const msg = err.message || 'Failed to save department';
-            setError(msg);
-            setSnackbar({ open: true, message: msg, severity: 'error' });
+            const lowerMsg = msg.toLowerCase();
+            if (lowerMsg.includes('department code') && (lowerMsg.includes('unique') || lowerMsg.includes('already exists'))) {
+                setError((prev) => {
+                    const list = prev ? prev.split(',') : [];
+                    if (!list.includes('code_duplicate')) list.push('code_duplicate');
+                    return list.join(',');
+                });
+                setSnackbar({ open: true, message: 'Department code already exists. Please enter a unique department code.', severity: 'error' });
+            } else if (
+                lowerMsg.includes('max characters allowed is 140') ||
+                lowerMsg.includes('will get truncated') ||
+                lowerMsg.includes('character limit is 140')
+            ) {
+                setError((prev) => {
+                    const list = prev ? prev.split(',') : [];
+                    if (!list.includes('name_max_length')) list.push('name_max_length');
+                    return list.join(',');
+                });
+                setSnackbar({ open: true, message: 'Maximum character limit is 140 characters for Department Name.', severity: 'error' });
+            } else {
+                setError(msg);
+                setSnackbar({ open: true, message: msg, severity: 'error' });
+            }
         } finally {
             setLoading(false);
         }
@@ -174,11 +232,30 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
                             label="Department Name"
                             value={departmentName}
                             onChange={(e) => {
-                                setDepartmentName(e.target.value);
-                                if (error === 'required') setError('');
+                                const val = e.target.value;
+                                setDepartmentName(val);
+                                const errList = error.split(',').filter(Boolean);
+                                const nextErrs = errList.filter((err) => {
+                                    if (err === 'name' || err === 'required') return false;
+                                    if (err === 'name_max_length' && val.trim().length <= 140 && val.length <= 140) return false;
+                                    return true;
+                                });
+                                setError(nextErrs.join(','));
                             }}
-                            error={error === 'required'}
-                            helperText={error === 'required' ? 'Department name is required' : ''}
+                            error={
+                                error.split(',').includes('name') ||
+                                error === 'required' ||
+                                error.split(',').includes('name_max_length') ||
+                                departmentName.length > 140 ||
+                                departmentName.trim().length > 140
+                            }
+                            helperText={
+                                (error.split(',').includes('name') || error === 'required')
+                                    ? 'Department name is required'
+                                    : (error.split(',').includes('name_max_length') || departmentName.length > 140 || departmentName.trim().length > 140)
+                                    ? 'Maximum character limit is 140 characters'
+                                    : ''
+                            }
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                             sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
@@ -189,8 +266,16 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
                             value={departmentCode}
                             onChange={(e) => {
                                 setDepartmentCode(e.target.value);
-                                if (error) setError('');
+                                if (error.split(',').includes('code_duplicate')) {
+                                    setError(error.split(',').filter((err) => err !== 'code_duplicate').join(','));
+                                }
                             }}
+                            error={error.split(',').includes('code_duplicate') || (departmentCode.trim() !== '' && isDuplicateCode(departmentCode))}
+                            helperText={
+                                (error.split(',').includes('code_duplicate') || (departmentCode.trim() !== '' && isDuplicateCode(departmentCode)))
+                                    ? 'Department code already exists'
+                                    : ''
+                            }
                             disabled={loading}
                             InputLabelProps={{ shrink: true }}
                         />
@@ -269,9 +354,12 @@ export function DepartmentDialog({ open, onClose, onSuccess, id }: Props) {
                         />
                     </Box>
 
-                    {error && !error.includes('name') && !error.includes('code') && (
-                        <Typography color="error" variant="body2">{error}</Typography>
-                    )}
+                    {error &&
+                        !error.split(',').some((err) => ['name', 'required', 'name_max_length', 'code_duplicate'].includes(err)) &&
+                        !error.toLowerCase().includes('max characters') &&
+                        !error.toLowerCase().includes('truncated') && (
+                            <Typography color="error" variant="body2">{error}</Typography>
+                        )}
                 </Box>
             </DialogContent>
 

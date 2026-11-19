@@ -663,6 +663,7 @@ export const fetchDesignations = (params: any) => {
 
     const or_filters = search ? [
         ["Designation", "designation_name", "like", `%${search}%`],
+        ["Designation", "designation_code", "like", `%${search}%`],
         ["Designation", "department", "like", `%${search}%`],
     ] : undefined;
 

@@ -49,6 +49,7 @@ function RolePermissionTableToolbar({
     onSortChange,
 }: RolePermissionTableToolbarProps) {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     const sortOptions = [
         { value: 'modified_desc', label: 'Newest First' },
@@ -87,6 +88,8 @@ function RolePermissionTableToolbar({
                     fullWidth
                     value={filterName}
                     onChange={onFilterName}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
                     placeholder="Search role permissions..."
                     startAdornment={
                         <InputAdornment position="start">
@@ -94,8 +97,8 @@ function RolePermissionTableToolbar({
                         </InputAdornment>
                     }
                     endAdornment={
-                        <InputAdornment position="end">
-                            {filterName ? (
+                        filterName ? (
+                            <InputAdornment position="end">
                                 <IconButton
                                     size="small"
                                     onClick={handleClearSearch}
@@ -109,7 +112,9 @@ function RolePermissionTableToolbar({
                                 >
                                     <Iconify icon="solar:close-circle-bold" width={18} />
                                 </IconButton>
-                            ) : (
+                            </InputAdornment>
+                        ) : !isSearchFocused ? (
+                            <InputAdornment position="end">
                                 <Box
                                     sx={{
                                         display: { xs: 'none', sm: 'inline-flex' },
@@ -130,8 +135,8 @@ function RolePermissionTableToolbar({
                                 >
                                     Ctrl K
                                 </Box>
-                            )}
-                        </InputAdornment>
+                            </InputAdornment>
+                        ) : null
                     }
                     sx={{
                         maxWidth: { xs: '100%', md: 480 },
@@ -390,15 +395,15 @@ export function RolePermissionListView({ onEdit, onView }: RolePermissionListVie
                                                         <IconButton onClick={() => onView?.(row.name) || router.push(`/role-permissions/${row.name}/view`)} sx={{ color: 'info.main' }}>
                                                             <Iconify icon="solar:eye-bold" />
                                                         </IconButton>
-                                                        {displayEdit &&(
+                                                        {displayEdit && (
                                                             <IconButton onClick={() => onEdit?.(row.name) || router.push(`/role-permissions/${row.name}/edit`)} sx={{ color: 'primary.main' }}>
                                                                 <Iconify icon="solar:pen-bold" />
                                                             </IconButton>
                                                         )}
-                                                        {displayDelete &&(
-                                                        <IconButton onClick={() => handleDeleteRow(row.name)} sx={{ color: 'error.main' }}>
-                                                            <Iconify icon="solar:trash-bin-trash-bold" />
-                                                        </IconButton>
+                                                        {displayDelete && (
+                                                            <IconButton onClick={() => handleDeleteRow(row.name)} sx={{ color: 'error.main' }}>
+                                                                <Iconify icon="solar:trash-bin-trash-bold" />
+                                                            </IconButton>
                                                         )}
                                                     </TableCell>
                                                 </TableRow>
