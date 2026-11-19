@@ -1,5 +1,5 @@
 import { useBoolean } from 'minimal-shared/hooks';
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
@@ -24,6 +24,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import { alpha, styled } from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
+import LinearProgress from '@mui/material/LinearProgress';
 import InputAdornment from '@mui/material/InputAdornment';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -41,6 +42,8 @@ import {
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+
+import { useAuth } from 'src/auth/auth-context';
 
 import { isActionAllowed } from './view/role-permission-create-view';
 import { UserPermissionFormDialog } from '../user-permission/user-permission-form-dialog';
@@ -190,6 +193,13 @@ const Android12LoadingButton = styled(LoadingButton)(({ theme }) => ({
 
 // ----------------------------------------------------------------------
 
+const PASSWORD_RULES = [
+  { id: 'length', label: 'At least 8 characters', test: (pwd: string) => pwd.length >= 8 },
+  { id: 'uppercase', label: 'At least 1 uppercase letter (A-Z)', test: (pwd: string) => /[A-Z]/.test(pwd) },
+  { id: 'lowercase', label: 'At least 1 lowercase letter (a-z)', test: (pwd: string) => /[a-z]/.test(pwd) },
+  { id: 'number', label: 'At least 1 number (0-9)', test: (pwd: string) => /[0-9]/.test(pwd) },
+  { id: 'special', label: 'At least 1 special character (!@#$%^&*)', test: (pwd: string) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd) },
+];
 
 type Props = {
   open: boolean;
@@ -200,6 +210,8 @@ type Props = {
   onSubmit: VoidFunction;
   onChangePassword?: (userId: string, newPassword: string) => Promise<void>;
   isSubmitting?: boolean;
+  existingUsers?: any[];
+  apiError?: string;
 };
 
 export function UserFormDialog({
@@ -211,10 +223,27 @@ export function UserFormDialog({
   onSubmit,
   onChangePassword,
   isSubmitting = false,
+  existingUsers = [],
+  apiError = '',
 }: Props) {
+  const { user: currentUser } = useAuth();
+  const isCurrentUser = Boolean(
+    currentUser && (
+      currentUser.email?.toLowerCase() === selectedUser?.email?.toLowerCase() ||
+      currentUser.name?.toLowerCase() === selectedUser?.name?.toLowerCase() ||
+      (selectedUser && currentUser.email?.toLowerCase() === formData.email?.toLowerCase())
+    )
+  );
+
   const [currentTab, setCurrentTab] = useState('details');
   const [roles, setRoles] = useState<any[]>([]);
   const [modules, setModules] = useState<any[]>([]);
+
+  const tabList = selectedUser
+    ? ['details', 'roles', 'role-permissions', 'permissions', 'password']
+    : ['details', 'roles', 'role-permissions', 'password'];
+  const currentIndex = Math.max(0, tabList.indexOf(currentTab));
+  const isLastTab = currentIndex === tabList.length - 1;
 
   // User Permissions state
   const [userPermissions, setUserPermissions] = useState<any[]>([]);
@@ -239,6 +268,30 @@ export function UserFormDialog({
   const [isSubmittingPermission, setIsSubmittingPermission] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  // Password criteria verification
+  const passwordCriteriaStatus = useMemo(
+    () => PASSWORD_RULES.map((rule) => ({ ...rule, passed: rule.test(newPassword) })),
+    [newPassword]
+  );
+
+  const passedCount = useMemo(
+    () => passwordCriteriaStatus.filter((c) => c.passed).length,
+    [passwordCriteriaStatus]
+  );
+
+  const isPasswordValid = passedCount === PASSWORD_RULES.length;
+
+  const strengthLevel = useMemo(() => {
+    if (!newPassword) return { label: 'None', color: '#94a3b8', percent: 0 };
+    if (passedCount <= 2) return { label: 'Weak', color: '#ef4444', percent: 25 };
+    if (passedCount <= 3) return { label: 'Fair', color: '#f59e0b', percent: 50 };
+    if (passedCount <= 4) return { label: 'Good', color: '#3b82f6', percent: 75 };
+    return { label: 'Strong', color: '#10b981', percent: 100 };
+  }, [newPassword, passedCount]);
+
+  const hasConfirmMismatch = Boolean(confirmPassword && newPassword !== confirmPassword);
+  const isConfirmMatching = Boolean(newPassword && confirmPassword && newPassword === confirmPassword);
+
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -259,6 +312,30 @@ export function UserFormDialog({
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [validationSnackbar, setValidationSnackbar] = useState('');
 
+  useEffect(() => {
+    if (apiError) {
+      setValidationSnackbar(apiError);
+      if (
+        apiError.toLowerCase().includes('already exists') ||
+        apiError.toLowerCase().includes('duplicate')
+      ) {
+        setErrors((prev) => ({ ...prev, email: apiError }));
+        setCurrentTab('details');
+      }
+    }
+  }, [apiError]);
+
+  useEffect(() => {
+    if (open) {
+      setCurrentTab('details');
+      setErrors({});
+      setValidationSnackbar('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordError('');
+    }
+  }, [open]);
+
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
 
@@ -266,29 +343,100 @@ export function UserFormDialog({
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
+    } else if (
+      !selectedUser &&
+      existingUsers.some(
+        (u: any) => u.email?.toLowerCase() === formData.email?.trim().toLowerCase()
+      )
+    ) {
+      newErrors.email = 'A user with this email address already exists';
     }
 
     if (!formData.first_name) {
       newErrors.first_name = 'First Name is required';
     }
 
-    // New user validation
+    // Roles validation (at least one role is required for both new and edit user)
+    if (!formData.roles || formData.roles.length === 0) {
+      newErrors.roles = 'At least one role is required';
+    }
+
+    // Password validation
     if (!selectedUser) {
       if (!newPassword) {
         newErrors.password = 'Password is required';
-      } else if (newPassword.length < 6) {
-        newErrors.password = 'Password must be at least 6 characters';
-      } else if (newPassword !== confirmPassword) {
-        newErrors.password = 'Passwords do not match';
+      } else if (!isPasswordValid) {
+        newErrors.password = 'Password does not meet the strength requirements';
       }
 
-      if (!formData.roles || formData.roles.length === 0) {
-        newErrors.roles = 'At least one role is required';
+      if (!confirmPassword) {
+        newErrors.confirmPassword = 'Confirm Password is required';
+      } else if (newPassword !== confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      }
+    } else if (newPassword || confirmPassword) {
+      if (!newPassword) {
+        newErrors.password = 'New password is required';
+      } else if (!isPasswordValid) {
+        newErrors.password = 'Password does not meet the strength requirements';
+      }
+
+      if (!confirmPassword) {
+        newErrors.confirmPassword = 'Confirm Password is required';
+      } else if (newPassword !== confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
       }
     }
 
     setErrors(newErrors);
     return newErrors;
+  };
+
+  const handleNext = () => {
+    if (currentTab === 'details') {
+      const stepErrors: { [key: string]: string } = {};
+
+      if (!formData.email) {
+        stepErrors.email = 'Email is required';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        stepErrors.email = 'Invalid email format';
+      } else if (
+        !selectedUser &&
+        existingUsers.some(
+          (u: any) => u.email?.toLowerCase() === formData.email?.trim().toLowerCase()
+        )
+      ) {
+        stepErrors.email = 'A user with this email address already exists';
+      }
+
+      if (!formData.first_name) {
+        stepErrors.first_name = 'First Name is required';
+      }
+
+      if (Object.keys(stepErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...stepErrors }));
+        setValidationSnackbar(
+          stepErrors.email || stepErrors.first_name || 'Please fill in all required fields'
+        );
+        return;
+      }
+    } else if (currentTab === 'roles') {
+      if (!formData.roles || formData.roles.length === 0) {
+        setErrors((prev) => ({ ...prev, roles: 'At least one role is required' }));
+        setValidationSnackbar('At least one role is required');
+        return;
+      }
+    }
+
+    if (currentIndex < tabList.length - 1) {
+      setCurrentTab(tabList[currentIndex + 1]);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentIndex > 0) {
+      setCurrentTab(tabList[currentIndex - 1]);
+    }
   };
 
   const handleSubmitWrapper = () => {
@@ -309,7 +457,7 @@ export function UserFormDialog({
         setCurrentTab('details');
       } else if (validationErrors.roles) {
         setCurrentTab('roles');
-      } else if (validationErrors.password) {
+      } else if (validationErrors.password || validationErrors.confirmPassword) {
         setCurrentTab('password');
       }
     }
@@ -344,22 +492,19 @@ export function UserFormDialog({
   }, [formData.first_name, formData.middle_name, formData.last_name]);
 
   useEffect(() => {
-    if (newPassword && confirmPassword && newPassword === confirmPassword) {
-      // Only sync if it meets minimum length to prevent backend crash on super-weak passwords
-      if (newPassword.length >= 6) {
-        if (formData.new_password !== newPassword) {
-          setFormData({ ...formData, new_password: newPassword });
-        }
-      } else if (formData.new_password !== '') {
-        setFormData({ ...formData, new_password: '' });
+    if (newPassword && confirmPassword && newPassword === confirmPassword && isPasswordValid) {
+      if (formData.new_password !== newPassword) {
+        setFormData({ ...formData, new_password: newPassword });
       }
     } else if (!newPassword && !confirmPassword) {
       if (formData.new_password !== '') {
         setFormData({ ...formData, new_password: '' });
       }
+    } else if (formData.new_password !== '') {
+      setFormData({ ...formData, new_password: '' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newPassword, confirmPassword]);
+  }, [newPassword, confirmPassword, isPasswordValid]);
 
   const loadUserPermissions = async () => {
     if (!selectedUser?.email) return;
@@ -422,6 +567,9 @@ export function UserFormDialog({
       ? currentRoles.filter((r: string) => r !== roleName)
       : [...currentRoles, roleName];
     setFormData({ ...formData, roles: newRoles });
+    if (newRoles.length > 0 && errors.roles) {
+      setErrors((prev) => ({ ...prev, roles: '' }));
+    }
   };
 
   const handleModuleToggle = (moduleName: string) => {
@@ -434,6 +582,9 @@ export function UserFormDialog({
 
   const handleSelectAllRoles = () => {
     setFormData({ ...formData, roles: roles.map((r) => r.name) });
+    if (errors.roles) {
+      setErrors((prev) => ({ ...prev, roles: '' }));
+    }
   };
 
   const handleUnselectAllRoles = () => {
@@ -446,40 +597,6 @@ export function UserFormDialog({
 
   const handleBlockAllModules = () => {
     setFormData({ ...formData, block_modules: modules.map((m) => m.name) });
-  };
-
-  const handlePasswordChange = async () => {
-    setPasswordError('');
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match');
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
-      return;
-    }
-
-    if (onChangePassword && selectedUser) {
-      try {
-        await onChangePassword(selectedUser.name, newPassword);
-        setNewPassword('');
-        setConfirmPassword('');
-        setPasswordError('');
-      } catch (error: any) {
-        setPasswordError(error.message || 'Failed to change password');
-      }
-    } else {
-      // For new user, update formData
-      if (newPassword.length < 6) {
-        setFormData({ ...formData, new_password: '' }); // Reset if invalid
-      } else {
-        setFormData({ ...formData, new_password: newPassword });
-      }
-      // Don't reset newPassword/confirmPassword yet, let user see it's synced
-      setPasswordError('');
-    }
   };
 
   const handleCreatePermission = async () => {
@@ -591,10 +708,20 @@ export function UserFormDialog({
             control={
               <Android12Switch
                 checked={formData.enabled === 1}
+                disabled={isCurrentUser}
                 onChange={(e) => setFormData({ ...formData, enabled: e.target.checked ? 1 : 0 })}
               />
             }
-            label="Enabled"
+            label={
+              <Stack direction="row" spacing={1} alignItems="center">
+                <span>Enabled</span>
+                {isCurrentUser && (
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                    (Cannot disable your own logged-in account)
+                  </Typography>
+                )}
+              </Stack>
+            }
           />
         </Grid>
 
@@ -617,10 +744,26 @@ export function UserFormDialog({
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             fullWidth
+            disabled
             label="Full Name"
             value={formData.full_name || ''}
-            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-            InputProps={{ readOnly: true }}
+            helperText="Auto-generated from First, Middle, and Last name"
+            sx={{
+              bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04),
+              borderRadius: 1,
+              cursor: 'default',
+              '& *': {
+                cursor: 'default !important',
+              },
+              '& .MuiInputBase-input.Mui-disabled': {
+                WebkitTextFillColor: (theme) => theme.palette.text.primary,
+                cursor: 'default !important',
+              },
+              '& .MuiInputLabel-root.Mui-disabled': {
+                color: (theme) => theme.palette.text.secondary,
+                cursor: 'default !important',
+              },
+            }}
           />
         </Grid>
 
@@ -777,12 +920,14 @@ export function UserFormDialog({
 
         <TextField
           fullWidth
+          required={!selectedUser}
           label="New Password"
           type={showNewPassword.value ? 'text' : 'password'}
           value={newPassword}
           onChange={(e) => {
             setNewPassword(e.target.value);
-            if (errors.password) setErrors({ ...errors, password: '' });
+            if (errors.password) setErrors((prev) => ({ ...prev, password: '' }));
+            if (passwordError) setPasswordError('');
           }}
           autoComplete="new-password"
           error={!!errors.password}
@@ -802,17 +947,31 @@ export function UserFormDialog({
 
         <TextField
           fullWidth
+          required={!selectedUser || Boolean(newPassword)}
           label="Confirm New Password"
           type={showConfirmPassword.value ? 'text' : 'password'}
           value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          onChange={(e) => {
+            setConfirmPassword(e.target.value);
+            if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: '' }));
+            if (passwordError) setPasswordError('');
+          }}
           autoComplete="new-password"
-          error={!!newPassword && !!confirmPassword && newPassword !== confirmPassword}
+          error={Boolean(errors.confirmPassword || hasConfirmMismatch)}
           helperText={
-            !!newPassword && !!confirmPassword && newPassword !== confirmPassword
+            errors.confirmPassword ||
+            (hasConfirmMismatch
               ? 'Passwords do not match'
-              : ''
+              : isConfirmMatching
+                ? 'Passwords match'
+                : '')
           }
+          FormHelperTextProps={{
+            sx: {
+              color: !errors.confirmPassword && isConfirmMatching ? 'success.main' : undefined,
+              fontWeight: !errors.confirmPassword && isConfirmMatching ? 600 : undefined,
+            },
+          }}
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
@@ -826,7 +985,90 @@ export function UserFormDialog({
           }}
         />
 
-        {/* Password button removed, synced to formData and triggered by main Update/Create button */}
+        {/* Password Strength Indicator */}
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 1.5,
+            bgcolor: (theme) => alpha(theme.palette.grey[500], 0.05),
+            border: (theme) => `1px solid ${theme.palette.divider}`,
+          }}
+        >
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: 'text.secondary',
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+              }}
+            >
+              Password Strength
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 800,
+                color: strengthLevel.color,
+                px: 1,
+                py: 0.25,
+                borderRadius: 0.5,
+                bgcolor: alpha(strengthLevel.color, 0.12),
+              }}
+            >
+              {strengthLevel.label}
+            </Typography>
+          </Stack>
+
+          <LinearProgress
+            variant="determinate"
+            value={strengthLevel.percent}
+            sx={{
+              height: 6,
+              borderRadius: 1,
+              bgcolor: (theme) => alpha(theme.palette.grey[500], 0.16),
+              '& .MuiLinearProgress-bar': {
+                bgcolor: strengthLevel.color,
+                borderRadius: 1,
+              },
+              mb: 2,
+            }}
+          />
+
+          <Typography
+            variant="caption"
+            sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 1 }}
+          >
+            Password Requirements:
+          </Typography>
+
+          <Stack spacing={0.75}>
+            {passwordCriteriaStatus.map((criterion) => (
+              <Stack key={criterion.id} direction="row" alignItems="center" spacing={1}>
+                <Iconify
+                  icon={criterion.passed ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
+                  width={16}
+                  sx={{
+                    color: criterion.passed ? '#10b981' : '#94a3b8',
+                    flexShrink: 0,
+                    transition: 'color 0.2s ease',
+                  }}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: criterion.passed ? 'text.primary' : 'text.secondary',
+                    fontWeight: criterion.passed ? 600 : 400,
+                    transition: 'color 0.2s ease',
+                  }}
+                >
+                  {criterion.label}
+                </Typography>
+              </Stack>
+            ))}
+          </Stack>
+        </Box>
       </Stack>
     </Box>
   );
@@ -1031,14 +1273,36 @@ export function UserFormDialog({
           {currentTab === 'password' && renderPasswordTab}
         </DialogContent>
 
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2.5, display: 'flex', justifyContent: 'space-between' }}>
+          {currentIndex > 0 ? (
+            <Button
+              variant="outlined"
+              onClick={handleBack}
+              disabled={isSubmitting}
+              sx={{
+                borderRadius: 20,
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3,
+              }}
+            >
+              Back
+            </Button>
+          ) : (
+            <Box />
+          )}
+
           <Android12LoadingButton
             variant="contained"
-            onClick={handleSubmitWrapper}
+            onClick={isLastTab ? handleSubmitWrapper : handleNext}
             loading={isSubmitting}
-            sx={{ bgcolor: COMMON_COLORS.primaryButton.bg, '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg } }}
+            sx={{
+              bgcolor: COMMON_COLORS.primaryButton.bg,
+              '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+              px: 3,
+            }}
           >
-            {selectedUser ? 'Update' : 'Create'}
+            {isLastTab ? (selectedUser ? 'Update' : 'Save') : 'Next'}
           </Android12LoadingButton>
         </DialogActions>
       </Dialog>

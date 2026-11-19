@@ -93,9 +93,11 @@ export const UserView = forwardRef(
     const [userToDelete, setUserToDelete] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [apiError, setApiError] = useState('');
 
     const handleOpenCreate = () => {
       setSelectedUser(null);
+      setApiError('');
       setFormData({
         email: '',
         first_name: '',
@@ -154,15 +156,20 @@ export const UserView = forwardRef(
         });
 
         setOpenCreate(true);
+        setApiError('');
       } catch (error: any) {
         enqueueSnackbar(error.message || 'Failed to load user data', { variant: 'error' });
       }
     };
 
-    const handleCloseCreate = () => setOpenCreate(false);
+    const handleCloseCreate = () => {
+      setOpenCreate(false);
+      setApiError('');
+    };
 
     const handleSubmit = async () => {
       setIsSubmitting(true);
+      setApiError('');
       try {
         let cleanedCustomPermissions = formData.custom_permissions || [];
         if (formData.roles && formData.roles.length > 0) {
@@ -225,7 +232,9 @@ export const UserView = forwardRef(
         refetch();
         handleCloseCreate();
       } catch (error: any) {
-        enqueueSnackbar(error.message || 'Operation failed', { variant: 'error' });
+        const msg = error.message || 'Operation failed';
+        setApiError(msg);
+        enqueueSnackbar(msg, { variant: 'error' });
       } finally {
         setIsSubmitting(false);
       }
@@ -422,6 +431,8 @@ export const UserView = forwardRef(
           setFormData={setFormData}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
+          existingUsers={data}
+          apiError={apiError}
           onChangePassword={async (userId: string, newPassword: string) => {
             const { changeUserPassword } = await import('src/api/users');
             try {

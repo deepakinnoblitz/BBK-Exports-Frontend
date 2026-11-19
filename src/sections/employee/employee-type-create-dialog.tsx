@@ -25,34 +25,32 @@ type Props = {
     currentTypeName?: string;
 };
 
-const CATEGORY_OPTIONS = [
+const STAFF_CATEGORY_OPTIONS = [
     'CTC',
     'Non CTC',
-    'Skilled',
-    'Semi Skilled',
-    'Unskilled',
-    'General',
 ];
 
 export function EmployeeTypeCreateDialog({ open, onClose, onCreate, currentTypeName = '' }: Props) {
     const [employeeType, setEmployeeType] = useState(currentTypeName);
-    const [categoryType, setCategoryType] = useState('General');
+    const [categoryType, setCategoryType] = useState('CTC');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const isStaff = employeeType.trim().toLowerCase() === 'staff';
+
     useEffect(() => {
         if (open) {
             setEmployeeType(currentTypeName);
-            setCategoryType('General');
+            setCategoryType('CTC');
             setDescription('');
             setError('');
         }
     }, [open, currentTypeName]);
 
     const previewName = employeeType.trim()
-        ? (categoryType && categoryType !== 'General' && !employeeType.toLowerCase().includes(`- ${categoryType.toLowerCase()}`)
-            ? `${employeeType.trim()} - ${categoryType}`
+        ? (isStaff && categoryType && categoryType !== 'General'
+            ? `Staff - ${categoryType}`
             : employeeType.trim())
         : '';
 
@@ -65,12 +63,13 @@ export function EmployeeTypeCreateDialog({ open, onClose, onCreate, currentTypeN
         try {
             setLoading(true);
             setError('');
+            const finalName = previewName || employeeType.trim();
             const res = await createEmployeeType({
-                employee_type: employeeType.trim(),
-                category_type: categoryType,
+                employee_type: finalName,
+                category_type: isStaff ? categoryType : 'General',
                 description: description.trim() || undefined,
             });
-            const createdName = res?.name || previewName || employeeType.trim();
+            const createdName = res?.name || finalName;
             onCreate(createdName);
             onClose();
         } catch (err: any) {
@@ -100,7 +99,7 @@ export function EmployeeTypeCreateDialog({ open, onClose, onCreate, currentTypeN
                         required
                         fullWidth
                         label="Employee Type"
-                        placeholder="e.g. Staff - CTC, Workers - Skilled"
+                        placeholder="e.g. Staff, Workers, Drivers"
                         value={employeeType}
                         onChange={(e) => {
                             setEmployeeType(e.target.value);
@@ -113,21 +112,23 @@ export function EmployeeTypeCreateDialog({ open, onClose, onCreate, currentTypeN
                         sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
                     />
 
-                    <TextField
-                        select
-                        fullWidth
-                        label="Category Type"
-                        value={categoryType}
-                        onChange={(e) => setCategoryType(e.target.value)}
-                        disabled={loading}
-                        InputLabelProps={{ shrink: true }}
-                    >
-                        {CATEGORY_OPTIONS.map((cat) => (
-                            <MenuItem key={cat} value={cat}>
-                                {cat}
-                            </MenuItem>
-                        ))}
-                    </TextField>
+                    {isStaff && (
+                        <TextField
+                            select
+                            fullWidth
+                            label="Category Type"
+                            value={categoryType}
+                            onChange={(e) => setCategoryType(e.target.value)}
+                            disabled={loading}
+                            InputLabelProps={{ shrink: true }}
+                        >
+                            {STAFF_CATEGORY_OPTIONS.map((cat) => (
+                                <MenuItem key={cat} value={cat}>
+                                    {cat}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    )}
 
                     {previewName && (
                         <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: 'action.hover', border: (theme) => `1px dashed ${theme.palette.divider}` }}>
