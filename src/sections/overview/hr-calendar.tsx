@@ -45,9 +45,9 @@ export function HRCalendar({ title, subheader, events, onDateChange, ...other }:
             dayNumber.style.fontWeight = '700';
         }
 
-        const frameEl = cellEl.querySelector('.fc-daygrid-day-frame');
-        if (frameEl) {
-            const existing = frameEl.querySelector('.holiday-desc-label');
+        const targetContainer = cellEl.querySelector('.fc-daygrid-day-events') || cellEl.querySelector('.fc-daygrid-day-frame');
+        if (targetContainer) {
+            const existing = cellEl.querySelector('.holiday-desc-label');
             if (existing) {
                 existing.remove();
             }
@@ -65,8 +65,8 @@ export function HRCalendar({ title, subheader, events, onDateChange, ...other }:
             descEl.style.overflow = 'hidden';
             descEl.style.textOverflow = 'ellipsis';
             descEl.style.width = 'calc(100% - 12px)';
-            descEl.style.margin = '8px auto 0 auto';
-            frameEl.appendChild(descEl);
+            descEl.style.margin = '4px auto 0 auto';
+            targetContainer.appendChild(descEl);
         }
     };
 
@@ -440,6 +440,7 @@ export function HRCalendar({ title, subheader, events, onDateChange, ...other }:
                     eventTextColor={theme.palette.primary.contrastText}
                     displayEventTime={false}
                     dayHeaderFormat={{ weekday: 'long' }}
+                    dayCellContent={(arg) => arg.date.getDate()}
                     datesSet={(arg) => {
                         setCalendarTitle(arg.view.title);
                         if (onDateChange) {
@@ -460,7 +461,16 @@ export function HRCalendar({ title, subheader, events, onDateChange, ...other }:
                             clearHolidayStyle(arg.el);
                         }
                     }}
-                    eventContent={() => null}
+                    eventContent={(arg) => {
+                        if (arg.view.type === 'listMonth') {
+                            return (
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    {arg.event.title}
+                                </Typography>
+                            );
+                        }
+                        return null;
+                    }}
                 />
             </Box>
         </Card >
