@@ -437,10 +437,27 @@ export function ProfileView() {
                                 <Grid size={{ xs: 12, sm: 6 }}>
                                     <TextField
                                         fullWidth
+                                        disabled
                                         label="Full Name"
                                         value={fullName}
-                                        InputProps={{ readOnly: true }}
                                         placeholder="Full name will be generated"
+                                        helperText="Auto-generated from First, Middle, and Last name"
+                                        sx={{
+                                            bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04),
+                                            borderRadius: 1,
+                                            cursor: 'default',
+                                            '& *': {
+                                                cursor: 'default !important',
+                                            },
+                                            '& .MuiInputBase-input.Mui-disabled': {
+                                                WebkitTextFillColor: (theme) => theme.palette.text.primary,
+                                                cursor: 'default !important',
+                                            },
+                                            '& .MuiInputLabel-root.Mui-disabled': {
+                                                color: (theme) => theme.palette.text.secondary,
+                                                cursor: 'default !important',
+                                            },
+                                        }}
                                     />
                                 </Grid>
 
