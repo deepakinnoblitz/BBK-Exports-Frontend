@@ -410,8 +410,9 @@ export function ProfileView() {
                                         {...getRequiredFieldProps('First Name', firstNameError)}
                                         value={firstName}
                                         onChange={(e) => {
-                                            setFirstName(e.target.value);
-                                            setFirstNameError(validateRequired(e.target.value, 'First Name'));
+                                            const cleanVal = e.target.value.replace(/[0-9]/g, '');
+                                            setFirstName(cleanVal);
+                                            setFirstNameError(validateRequired(cleanVal, 'First Name'));
                                         }}
                                     />
                                 </Grid>
@@ -421,7 +422,7 @@ export function ProfileView() {
                                         fullWidth
                                         label="Middle Name"
                                         value={middleName}
-                                        onChange={(e) => setMiddleName(e.target.value)}
+                                        onChange={(e) => setMiddleName(e.target.value.replace(/[0-9]/g, ''))}
                                     />
                                 </Grid>
 
@@ -430,7 +431,7 @@ export function ProfileView() {
                                         fullWidth
                                         label="Last Name"
                                         value={lastName}
-                                        onChange={(e) => setLastName(e.target.value)}
+                                        onChange={(e) => setLastName(e.target.value.replace(/[0-9]/g, ''))}
                                     />
                                 </Grid>
 
@@ -439,21 +440,31 @@ export function ProfileView() {
                                         fullWidth
                                         disabled
                                         label="Full Name"
-                                        value={fullName}
+                                        value={fullName || ''}
                                         placeholder="Full name will be generated"
+                                        InputLabelProps={{ shrink: true }}
                                         helperText="Auto-generated from First, Middle, and Last name"
+                                        inputProps={{ readOnly: true, tabIndex: -1 }}
                                         sx={{
                                             bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04),
                                             borderRadius: 1,
                                             cursor: 'default',
+                                            pointerEvents: 'none',
                                             '& *': {
+                                                cursor: 'default !important',
+                                                pointerEvents: 'none !important',
+                                                userSelect: 'none !important',
+                                            },
+                                            '& .MuiInputBase-root': {
                                                 cursor: 'default !important',
                                             },
                                             '& .MuiInputBase-input.Mui-disabled': {
-                                                WebkitTextFillColor: (theme) => theme.palette.text.primary,
+                                                WebkitTextFillColor: (theme) =>
+                                                    fullName ? theme.palette.text.primary : theme.palette.text.disabled,
                                                 cursor: 'default !important',
+                                                caretColor: 'transparent !important',
                                             },
-                                            '& .MuiInputLabel-root.Mui-disabled': {
+                                            '& .MuiInputLabel-root': {
                                                 color: (theme) => theme.palette.text.secondary,
                                                 cursor: 'default !important',
                                             },

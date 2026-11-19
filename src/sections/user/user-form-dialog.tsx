@@ -354,6 +354,8 @@ export function UserFormDialog({
 
     if (!formData.first_name) {
       newErrors.first_name = 'First Name is required';
+    } else if (/[0-9]/.test(formData.first_name)) {
+      newErrors.first_name = 'Numbers are not allowed in name fields';
     }
 
     // Roles validation (at least one role is required for both new and edit user)
@@ -411,6 +413,8 @@ export function UserFormDialog({
 
       if (!formData.first_name) {
         stepErrors.first_name = 'First Name is required';
+      } else if (/[0-9]/.test(formData.first_name)) {
+        stepErrors.first_name = 'Numbers are not allowed in name fields';
       }
 
       if (Object.keys(stepErrors).length > 0) {
@@ -747,19 +751,30 @@ export function UserFormDialog({
             disabled
             label="Full Name"
             value={formData.full_name || ''}
+            placeholder="Auto-generated"
+            InputLabelProps={{ shrink: true }}
             helperText="Auto-generated from First, Middle, and Last name"
+            inputProps={{ readOnly: true, tabIndex: -1 }}
             sx={{
               bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04),
               borderRadius: 1,
               cursor: 'default',
+              pointerEvents: 'none',
               '& *': {
+                cursor: 'default !important',
+                pointerEvents: 'none !important',
+                userSelect: 'none !important',
+              },
+              '& .MuiInputBase-root': {
                 cursor: 'default !important',
               },
               '& .MuiInputBase-input.Mui-disabled': {
-                WebkitTextFillColor: (theme) => theme.palette.text.primary,
+                WebkitTextFillColor: (theme) =>
+                  formData.full_name ? theme.palette.text.primary : theme.palette.text.disabled,
                 cursor: 'default !important',
+                caretColor: 'transparent !important',
               },
-              '& .MuiInputLabel-root.Mui-disabled': {
+              '& .MuiInputLabel-root': {
                 color: (theme) => theme.palette.text.secondary,
                 cursor: 'default !important',
               },
@@ -774,7 +789,8 @@ export function UserFormDialog({
             label="First Name"
             value={formData.first_name || ''}
             onChange={(e) => {
-              setFormData({ ...formData, first_name: e.target.value });
+              const cleanVal = e.target.value.replace(/[0-9]/g, '');
+              setFormData({ ...formData, first_name: cleanVal });
               if (errors.first_name) setErrors({ ...errors, first_name: '' });
             }}
             error={!!errors.first_name}
@@ -796,7 +812,10 @@ export function UserFormDialog({
             fullWidth
             label="Middle Name"
             value={formData.middle_name || ''}
-            onChange={(e) => setFormData({ ...formData, middle_name: e.target.value })}
+            onChange={(e) => {
+              const cleanVal = e.target.value.replace(/[0-9]/g, '');
+              setFormData({ ...formData, middle_name: cleanVal });
+            }}
           />
         </Grid>
 
@@ -805,7 +824,10 @@ export function UserFormDialog({
             fullWidth
             label="Last Name"
             value={formData.last_name || ''}
-            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+            onChange={(e) => {
+              const cleanVal = e.target.value.replace(/[0-9]/g, '');
+              setFormData({ ...formData, last_name: cleanVal });
+            }}
           />
         </Grid>
 
