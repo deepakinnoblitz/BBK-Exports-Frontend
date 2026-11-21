@@ -359,8 +359,11 @@ export function UserFormDialog({
     }
 
     // Roles validation (at least one role is required for both new and edit user)
-    if (!formData.roles || formData.roles.length === 0) {
+    const currentRoles = formData.roles || [];
+    if (currentRoles.length === 0) {
       newErrors.roles = 'At least one role is required';
+    } else if (currentRoles.includes('Employee') && currentRoles.includes('HR')) {
+      newErrors.roles = 'Only one role can be selected: either Employee or HR';
     }
 
     // Password validation
@@ -425,9 +428,15 @@ export function UserFormDialog({
         return;
       }
     } else if (currentTab === 'roles') {
-      if (!formData.roles || formData.roles.length === 0) {
+      const selectedRoles = formData.roles || [];
+      if (selectedRoles.length === 0) {
         setErrors((prev) => ({ ...prev, roles: 'At least one role is required' }));
         setValidationSnackbar('At least one role is required');
+        return;
+      }
+      if (selectedRoles.includes('Employee') && selectedRoles.includes('HR')) {
+        setErrors((prev) => ({ ...prev, roles: 'Only one role can be selected: either Employee or HR' }));
+        setValidationSnackbar('Only one role can be selected: either Employee or HR');
         return;
       }
     }
@@ -562,16 +571,44 @@ export function UserFormDialog({
   }, [open, loadRolePermissions]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
+    if (currentTab === 'roles' && newValue !== 'roles') {
+      const selectedRoles = formData.roles || [];
+      if (selectedRoles.length === 0) {
+        setErrors((prev) => ({ ...prev, roles: 'At least one role is required' }));
+        setValidationSnackbar('At least one role is required');
+        return;
+      }
+      if (selectedRoles.includes('Employee') && selectedRoles.includes('HR')) {
+        setErrors((prev) => ({ ...prev, roles: 'Only one role can be selected: either Employee or HR' }));
+        setValidationSnackbar('Only one role can be selected: either Employee or HR');
+        return;
+      }
+    }
     setCurrentTab(newValue);
   };
 
   const handleRoleToggle = (roleName: string) => {
     const currentRoles = formData.roles || [];
-    const newRoles = currentRoles.includes(roleName)
-      ? currentRoles.filter((r: string) => r !== roleName)
-      : [...currentRoles, roleName];
+    let newRoles: string[];
+
+    if (currentRoles.includes(roleName)) {
+      newRoles = currentRoles.filter((r: string) => r !== roleName);
+    } else {
+      // Mutual exclusivity: only one role can be selected between Employee and HR
+      if (roleName === 'Employee') {
+        newRoles = [...currentRoles.filter((r: string) => r !== 'HR'), roleName];
+      } else if (roleName === 'HR') {
+        newRoles = [...currentRoles.filter((r: string) => r !== 'Employee'), roleName];
+      } else {
+        newRoles = [...currentRoles, roleName];
+      }
+    }
+
     setFormData({ ...formData, roles: newRoles });
-    if (newRoles.length > 0 && errors.roles) {
+
+    const hasEmployee = newRoles.includes('Employee');
+    const hasHR = newRoles.includes('HR');
+    if (newRoles.length > 0 && !(hasEmployee && hasHR) && errors.roles) {
       setErrors((prev) => ({ ...prev, roles: '' }));
     }
   };
@@ -585,7 +622,11 @@ export function UserFormDialog({
   };
 
   const handleSelectAllRoles = () => {
-    setFormData({ ...formData, roles: roles.map((r) => r.name) });
+    const currentRoles = formData.roles || [];
+    // If HR is already selected, keep HR and exclude Employee; otherwise default to Employee and exclude HR
+    const excludeRole = currentRoles.includes('HR') ? 'Employee' : 'HR';
+    const newRoles = roles.map((r) => r.name).filter((name) => name !== excludeRole);
+    setFormData({ ...formData, roles: newRoles });
     if (errors.roles) {
       setErrors((prev) => ({ ...prev, roles: '' }));
     }
@@ -867,14 +908,25 @@ export function UserFormDialog({
   const renderRolesTab = (
     <Box sx={{ p: 3 }}>
       <Stack spacing={3}>
-        <Stack direction="row" spacing={2}>
-          <Android12Button variant="outlined" size="small" onClick={handleSelectAllRoles}>
-            Select All
-          </Android12Button>
-          <Android12Button variant="outlined" size="small" onClick={handleUnselectAllRoles}>
-            Unselect All
-          </Android12Button>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" flexWrap="wrap">
+          <Stack direction="row" spacing={2}>
+            <Android12Button variant="outlined" size="small" onClick={handleSelectAllRoles}>
+              Select All
+            </Android12Button>
+            <Android12Button variant="outlined" size="small" onClick={handleUnselectAllRoles}>
+              Unselect All
+            </Android12Button>
+          </Stack>
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+            * Note: Only one role can be selected: either Employee or HR
+          </Typography>
         </Stack>
+
+        {errors.roles && (
+          <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
+            {errors.roles}
+          </Typography>
+        )}
 
         <Grid container spacing={3}>
           {roles.map((role) => (
