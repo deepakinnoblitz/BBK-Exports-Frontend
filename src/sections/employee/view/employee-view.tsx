@@ -536,7 +536,7 @@ export function EmployeeView() {
 
             // Fetch Link options
             meta.fields.forEach((field: any) => {
-                if (field.fieldtype === 'Link' && field.options) {
+                if (field.fieldtype === 'Link' && field.options && field.fieldname !== 'user') {
                     getDoctypeList(field.options, ['name'])
                         .then((options) => {
                             setFieldOptions(prev => ({ ...prev, [field.fieldname]: options }));
@@ -544,6 +544,13 @@ export function EmployeeView() {
                         .catch(console.error);
                 }
             });
+
+            // Explicitly fetch options for user (User Login Email) with full_name, email, and roles
+            getDoctypeList('User', ['name', 'full_name', 'email'], { enabled: 1 })
+                .then((options) => {
+                    setFieldOptions(prev => ({ ...prev, 'user': options }));
+                })
+                .catch(console.error);
 
             // Explicitly fetch initial 50 rich options for bank_account
             loadBankAccounts('');
@@ -2224,6 +2231,110 @@ export function EmployeeView() {
                             </Box>
                         );
                     }}
+                />
+            );
+        }
+
+        if (fieldname === 'user') {
+            const selectedUserOption = (options || []).find(
+                (opt: any) => (typeof opt === 'object' ? opt?.name : opt) === formData.user
+            );
+
+            return (
+                <Autocomplete
+                    fullWidth
+                    options={options}
+                    value={selectedUserOption || (formData.user ? { name: formData.user, full_name: formData.user, email: formData.user } : null)}
+                    onChange={(event, newValue: any) => {
+                        const value = typeof newValue === 'object' && newValue ? (newValue.name || newValue.email || '') : (newValue || '');
+                        handleInputChange('user', value || '');
+                    }}
+                    getOptionLabel={(option) => {
+                        if (typeof option === 'string') return option;
+                        return option?.name || option?.email || '';
+                    }}
+                    isOptionEqualToValue={(option: any, value: any) => {
+                        const optVal = typeof option === 'string' ? option : (option?.name || option?.email);
+                        const valVal = typeof value === 'string' ? value : (value?.name || value?.email);
+                        return optVal === valVal;
+                    }}
+                    filterOptions={(opts: any[], state) => {
+                        const query = state.inputValue.toLowerCase().trim();
+                        if (!query) return opts;
+                        return opts.filter((opt: any) => {
+                            const name = (opt?.name || '').toLowerCase();
+                            const fullName = (opt?.full_name || '').toLowerCase();
+                            const email = (opt?.email || '').toLowerCase();
+                            const roles = (opt?.roles || '').toLowerCase();
+                            return name.includes(query) || fullName.includes(query) || email.includes(query) || roles.includes(query);
+                        });
+                    }}
+                    renderOption={(props, option: any) => {
+                        const { key, ...optionProps } = props;
+                        const fullName = typeof option === 'object' ? (option.full_name || option.name) : option;
+                        const email = typeof option === 'object' ? (option.email || option.name) : option;
+
+                        let rolesDisplay = 'Role: None';
+                        if (typeof option === 'object' && option.roles) {
+                            const rolesArr = Array.isArray(option.roles_list)
+                                ? option.roles_list
+                                : (typeof option.roles === 'string'
+                                    ? option.roles.split(',').map((r: string) => r.trim()).filter(Boolean)
+                                    : []);
+
+                            if (rolesArr.length > 5) {
+                                const first5 = rolesArr.slice(0, 5).join(', ');
+                                const remaining = rolesArr.length - 5;
+                                rolesDisplay = `Roles: ${first5} (+${remaining} more)`;
+                            } else if (rolesArr.length > 1) {
+                                rolesDisplay = `Roles: ${rolesArr.join(', ')}`;
+                            } else if (rolesArr.length === 1) {
+                                rolesDisplay = `Role: ${rolesArr[0]}`;
+                            }
+                        }
+
+                        return (
+                            <Box component="li" key={key || email} {...optionProps}>
+                                <Stack spacing={0.5} sx={{ width: '100%', py: 0.5 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                        {fullName}
+                                        {email && email !== fullName && (
+                                            <Box
+                                                component="span"
+                                                sx={{
+                                                    color: 'text.secondary',
+                                                    fontWeight: 400,
+                                                    ml: 0.5,
+                                                }}
+                                            >
+                                                • {email}
+                                            </Box>
+                                        )}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: 'primary.main', display: 'block', fontSize: '13px' }}>
+                                        {rolesDisplay}
+                                    </Typography>
+                                </Stack>
+                            </Box>
+                        );
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label={label}
+                            placeholder={`Select ${label}`}
+                            required={required}
+                            error={!!formErrors[fieldname]}
+                            helperText={formErrors[fieldname]}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiFormLabel-asterisk': {
+                                    color: 'red',
+                                },
+                                ...extraProps.sx
+                            }}
+                        />
+                    )}
                 />
             );
         }
