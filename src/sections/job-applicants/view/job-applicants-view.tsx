@@ -55,6 +55,33 @@ import { JobApplicantsTableFiltersDrawer } from 'src/sections/job-applicants/job
 import { useAuth } from 'src/auth/auth-context';
 // ----------------------------------------------------------------------
 
+const VIDEO_EXTENSIONS = [
+  '.mp4', '.webm', '.mkv', '.mov', '.avi', '.flv',
+  '.wmv', '.m4v', '.3gp', '.ogg', '.ogv', '.ts', '.mpg', '.mpeg',
+];
+const ALLOWED_RESUME_EXTENSIONS = ['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg'];
+
+const isVideoFile = (file: File) => {
+  const fileType = file.type?.toLowerCase() || '';
+  if (fileType.startsWith('video/')) return true;
+  const fileName = file.name || '';
+  const ext = fileName.includes('.') ? `.${fileName.split('.').pop()?.toLowerCase()}` : '';
+  return VIDEO_EXTENSIONS.includes(ext);
+};
+
+const isAllowedResumeFile = (file: File) => {
+  if (isVideoFile(file)) return false;
+  const fileName = file.name || '';
+  const ext = fileName.includes('.') ? `.${fileName.split('.').pop()?.toLowerCase()}` : '';
+  if (!ext) return false;
+  return ALLOWED_RESUME_EXTENSIONS.includes(ext);
+};
+
+const isVideoUrl = (url: string) => {
+  if (!url) return false;
+  const cleanUrl = url.split('?')[0].toLowerCase();
+  return VIDEO_EXTENSIONS.some((ext) => cleanUrl.endsWith(ext));
+};
 
 export function JobApplicantsView() {
   const { user } = useAuth();
@@ -320,14 +347,46 @@ export function JobApplicantsView() {
   const handleResumeFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Reset input so selecting the same file triggers onChange
+    event.target.value = '';
+
+    if (isVideoFile(file)) {
+      setErrors((prev: any) => ({
+        ...prev,
+        resume_attachment: 'Video files are not allowed for resume. Please upload a valid document (PDF, DOC, DOCX, JPG, PNG).',
+      }));
+      setSnackbar({
+        open: true,
+        message: 'Video files are not allowed for resume attachment. Please upload PDF, DOC, DOCX, JPG, or PNG.',
+        severity: 'error',
+      });
+      return;
+    }
+
+    if (!isAllowedResumeFile(file)) {
+      setErrors((prev: any) => ({
+        ...prev,
+        resume_attachment: 'Invalid file format. Allowed formats: PDF, DOC, DOCX, JPG, PNG.',
+      }));
+      setSnackbar({
+        open: true,
+        message: 'Invalid file format. Please upload PDF, DOC, DOCX, JPG, or PNG.',
+        severity: 'error',
+      });
+      return;
+    }
+
     setResumeAttachments([file]);
+    setFormData((prev: any) => ({ ...prev, resume_attachment: '' }));
     if (errors.resume_attachment) {
-      setErrors({ ...errors, resume_attachment: '' });
+      setErrors((prev: any) => ({ ...prev, resume_attachment: '' }));
     }
   };
 
   const handleRemoveResumeAttachment = (index: number) => {
     setResumeAttachments((prev) => prev.filter((_, i) => i !== index));
+    setFormData((prev: any) => ({ ...prev, resume_attachment: '' }));
   };
 
   const handleSubmit = async () => {
@@ -373,6 +432,9 @@ export function JobApplicantsView() {
       }
       if (lower.includes('phone') && (lower.includes('already exists') || lower.includes('unique'))) {
         setErrors((prev: any) => ({ ...prev, phone_number: 'An applicant with this phone number already exists for this job opening' }));
+      }
+      if (lower.includes('video') || (lower.includes('resume') && lower.includes('not allowed'))) {
+        setErrors((prev: any) => ({ ...prev, resume_attachment: errMsg }));
       }
       setSnackbar({ open: true, message: errMsg, severity: 'error' });
     }
@@ -544,6 +606,23 @@ export function JobApplicantsView() {
     if (resumeAttachments.length === 0) {
       newErrors.resume_attachment = 'Resume Attachment is required';
       valid = false;
+    } else {
+      const firstAttachment = resumeAttachments[0];
+      if (firstAttachment instanceof File) {
+        if (isVideoFile(firstAttachment)) {
+          newErrors.resume_attachment = 'Video files are not allowed for resume. Please upload a valid document (PDF, DOC, DOCX, JPG, PNG).';
+          valid = false;
+        } else if (!isAllowedResumeFile(firstAttachment)) {
+          newErrors.resume_attachment = 'Invalid file format. Allowed formats: PDF, DOC, DOCX, JPG, PNG.';
+          valid = false;
+        }
+      } else {
+        const fileUrl = typeof firstAttachment === 'string' ? firstAttachment : firstAttachment?.url || '';
+        if (isVideoUrl(fileUrl)) {
+          newErrors.resume_attachment = 'Video files are not allowed for resume attachment. Please replace with a valid document.';
+          valid = false;
+        }
+      }
     }
 
     setErrors(newErrors);
@@ -783,7 +862,7 @@ export function JobApplicantsView() {
               />
               <MuiTelInput
                 fullWidth
-                label="Phone Number *"
+                label="Phone Number"
                 required
                 defaultCountry="IN"
                 value={formData.phone_number || ''}
@@ -906,6 +985,7 @@ export function JobApplicantsView() {
                   uploading={uploading}
                   onFileChange={handleResumeFileUpload}
                   onRemove={handleRemoveResumeAttachment}
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
                   error={!!errors.resume_attachment}
                   helperText={errors.resume_attachment}
                 />

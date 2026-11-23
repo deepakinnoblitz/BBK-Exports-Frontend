@@ -15,6 +15,7 @@ interface AttachmentsUploadProps {
   onRemove: (index: number) => void;
   error?: boolean;
   helperText?: string;
+  accept?: string;
 }
 
 export function AttachmentsUpload({
@@ -24,6 +25,7 @@ export function AttachmentsUpload({
   onRemove,
   error,
   helperText,
+  accept = '.pdf,.doc,.docx,.png,.jpg,.jpeg',
 }: AttachmentsUploadProps) {
   return (
     <Box
@@ -57,7 +59,7 @@ export function AttachmentsUpload({
           disabled={uploading}
         >
           {uploading ? 'Uploading...' : 'Upload File'}
-          <input type="file" hidden onChange={onFileChange} />
+          <input type="file" hidden accept={accept} onChange={onFileChange} />
         </Button>
       </Stack>
 
