@@ -27,6 +27,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useJobApplicants } from 'src/hooks/useJobApplicants';
 
+import { validatePhoneNumber, isDialCodeOnlyPhone } from 'src/utils/employee-validation';
+
 import { getDoctypeList } from 'src/api/leads';
 import { uploadFile } from 'src/api/data-import';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -559,6 +561,23 @@ export function JobApplicantsView() {
     [existingApplicants, isSameJobTitle]
   );
 
+  const getPhoneValidationError = useCallback(
+    (phone: string, jobTitle?: string, excludeId?: string) => {
+      if (!phone || isDialCodeOnlyPhone(phone)) {
+        return 'Phone Number is required';
+      }
+      const formatErr = validatePhoneNumber(phone, 'Phone Number', { required: true, defaultCountry: 'IN' });
+      if (formatErr) {
+        return formatErr;
+      }
+      if (jobTitle && checkDuplicatePhone(phone, jobTitle, excludeId)) {
+        return 'An applicant with this phone number already exists for this job opening';
+      }
+      return '';
+    },
+    [checkDuplicatePhone]
+  );
+
   const validateForm = () => {
     const newErrors = {
       applicant_name: '',
@@ -586,15 +605,9 @@ export function JobApplicantsView() {
       valid = false;
     }
 
-    const cleanDigits = (formData.phone_number || '').replace(/\D/g, '');
-    if (!formData.phone_number?.trim() || cleanDigits.length <= 2) {
-      newErrors.phone_number = 'Phone Number is required';
-      valid = false;
-    } else if (cleanDigits.length < 10 || cleanDigits.length > 15) {
-      newErrors.phone_number = 'Please enter a valid phone number';
-      valid = false;
-    } else if (formData.job_title && checkDuplicatePhone(formData.phone_number, formData.job_title, editApplicant?.name)) {
-      newErrors.phone_number = 'An applicant with this phone number already exists for this job opening';
+    const phoneError = getPhoneValidationError(formData.phone_number, formData.job_title, editApplicant?.name);
+    if (phoneError) {
+      newErrors.phone_number = phoneError;
       valid = false;
     }
 
@@ -869,27 +882,13 @@ export function JobApplicantsView() {
                 onChange={(newValue) => {
                   setFormData({ ...formData, phone_number: newValue });
                   if (errors.phone_number) {
-                    const cleanDigits = (newValue || '').replace(/\D/g, '');
-                    if (cleanDigits.length < 10 || cleanDigits.length > 15) {
-                      setErrors((prev: any) => ({ ...prev, phone_number: 'Please enter a valid phone number' }));
-                    } else if (formData.job_title && checkDuplicatePhone(newValue, formData.job_title, editApplicant?.name)) {
-                      setErrors((prev: any) => ({ ...prev, phone_number: 'An applicant with this phone number already exists for this job opening' }));
-                    } else {
-                      setErrors((prev: any) => ({ ...prev, phone_number: '' }));
-                    }
+                    const err = getPhoneValidationError(newValue, formData.job_title, editApplicant?.name);
+                    setErrors((prev: any) => ({ ...prev, phone_number: err }));
                   }
                 }}
                 onBlur={() => {
-                  const cleanDigits = (formData.phone_number || '').replace(/\D/g, '');
-                  if (!formData.phone_number?.trim() || cleanDigits.length <= 2) {
-                    setErrors((prev: any) => ({ ...prev, phone_number: 'Phone Number is required' }));
-                  } else if (cleanDigits.length < 10 || cleanDigits.length > 15) {
-                    setErrors((prev: any) => ({ ...prev, phone_number: 'Please enter a valid phone number' }));
-                  } else if (formData.job_title && checkDuplicatePhone(formData.phone_number, formData.job_title, editApplicant?.name)) {
-                    setErrors((prev: any) => ({ ...prev, phone_number: 'An applicant with this phone number already exists for this job opening' }));
-                  } else {
-                    setErrors((prev: any) => ({ ...prev, phone_number: '' }));
-                  }
+                  const err = getPhoneValidationError(formData.phone_number, formData.job_title, editApplicant?.name);
+                  setErrors((prev: any) => ({ ...prev, phone_number: err }));
                 }}
                 error={!!errors.phone_number}
                 helperText={errors.phone_number}
@@ -922,13 +921,9 @@ export function JobApplicantsView() {
                       setErrors((prev: any) => ({ ...prev, email_id: '' }));
                     }
                   }
-                  const phoneDigits = (formData.phone_number || '').replace(/\D/g, '');
-                  if (phoneDigits.length >= 10 && phoneDigits.length <= 15) {
-                    if (checkDuplicatePhone(formData.phone_number, newJobTitle, editApplicant?.name)) {
-                      setErrors((prev: any) => ({ ...prev, phone_number: 'An applicant with this phone number already exists for this job opening' }));
-                    } else if (errors.phone_number?.includes('already exists')) {
-                      setErrors((prev: any) => ({ ...prev, phone_number: '' }));
-                    }
+                  if (formData.phone_number && !isDialCodeOnlyPhone(formData.phone_number)) {
+                    const err = getPhoneValidationError(formData.phone_number, newJobTitle, editApplicant?.name);
+                    setErrors((prev: any) => ({ ...prev, phone_number: err }));
                   }
                 }}
                 isOptionEqualToValue={(option: any, value: any) =>
