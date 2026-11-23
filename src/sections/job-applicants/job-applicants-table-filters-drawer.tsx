@@ -146,11 +146,17 @@ export function JobApplicantsTableFiltersDrawer({
                 }}
             >
                 <MenuItem value="all">All</MenuItem>
-                {jobOpenings.map((job) => (
-                    <MenuItem key={job.name} value={job.name}>
-                        {job.job_title || job.name}
+                {jobOpenings.length === 0 ? (
+                    <MenuItem disabled value="">
+                        No Openings
                     </MenuItem>
-                ))}
+                ) : (
+                    jobOpenings.map((job) => (
+                        <MenuItem key={job.name} value={job.name}>
+                            {job.job_title || job.name}
+                        </MenuItem>
+                    ))
+                )}
             </TextField>
         </Stack>
     );

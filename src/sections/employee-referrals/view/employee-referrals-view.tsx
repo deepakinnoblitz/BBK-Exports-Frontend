@@ -27,6 +27,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchOpenJobs, fetchMyReferrals, createJobApplicant } from 'src/api/referrals';
 
 import { Label } from 'src/components/label';
+import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { TableEmptyRows } from 'src/components/table';
 import { EmptyContent } from 'src/components/empty-content';
@@ -53,8 +54,6 @@ export function EmployeeReferralsView() {
     user?.permissions?.actions?.employee_referral_list;
   const hasCustomPerms = !!user?.permissions?.custom_permissions_assigned && !!actionPerms;
   const canCreateReferral = hasCustomPerms ? !!actionPerms?.create : true;
-  const canEditReferral = hasCustomPerms ? !!actionPerms?.edit : true;
-  const canDeleteReferral = hasCustomPerms ? !!actionPerms?.delete : true;
 
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -63,6 +62,7 @@ export function EmployeeReferralsView() {
   const [currentTab, setCurrentTab] = useState('jobs');
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState<any[]>([]);
+  const [allJobOptions, setAllJobOptions] = useState<any[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
 
   const [openModal, setOpenModal] = useState(false);
@@ -144,7 +144,12 @@ export function EmployeeReferralsView() {
 
   // Special fetch for job options (to populate filters when in other tabs)
   useEffect(() => {
-    fetchOpenJobs().then(setJobs).catch(console.error);
+    fetchOpenJobs()
+      .then((data) => {
+        setAllJobOptions(data || []);
+        setJobs(data || []);
+      })
+      .catch(console.error);
   }, []);
 
   const handleChangeTab = useCallback((event: React.SyntheticEvent, newValue: string) => {
@@ -194,7 +199,7 @@ export function EmployeeReferralsView() {
     (filters.job_opening !== 'all' ? 1 : 0) +
     (filters.location !== 'all' ? 1 : 0);
 
-  const handleReferClick = (jobName: string) => {
+  const handleReferClick = (jobName?: string) => {
     if (!canCreateReferral) return;
     setSelectedJob(jobName);
     setOpenModal(true);
@@ -224,6 +229,16 @@ export function EmployeeReferralsView() {
     <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={{ xs: 3, md: 1 }}>
         <Typography variant="h4">{viewType === 'hr' ? 'Referral Management' : 'Employee Referrals'}</Typography>
+        {canCreateReferral && (
+          <Button
+            variant="contained"
+            sx={{ bgcolor: '#059669', color: 'common.white', '&:hover': { bgcolor: '#047857' } }}
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={() => handleReferClick(undefined)}
+          >
+            Add Referral
+          </Button>
+        )}
       </Stack>
 
       <Tabs
@@ -544,7 +559,7 @@ export function EmployeeReferralsView() {
         }}
         onError={(msg) => setSnackbar({ open: true, message: msg, severity: 'error' })}
         selectedJob={selectedJob}
-        jobOptions={jobs}
+        jobOptions={allJobOptions.length > 0 ? allJobOptions : jobs}
       />
 
       <JobOpeningDetailsDialog

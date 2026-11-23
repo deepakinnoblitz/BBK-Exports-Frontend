@@ -1,4 +1,5 @@
 
+import { MuiTelInput } from 'mui-tel-input';
 import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
@@ -17,6 +18,7 @@ import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TableContainer from '@mui/material/TableContainer';
@@ -135,7 +137,7 @@ export function JobApplicantsView() {
       setPermissions(perms);
 
       const jobs = await getDoctypeList('Job Opening', ['name', 'job_title']);
-      setJobOpenings(jobs);
+      setJobOpenings(Array.isArray(jobs) ? jobs : []);
     };
     fetchData();
   }, []);
@@ -157,6 +159,13 @@ export function JobApplicantsView() {
   const handleOpenCreate = () => {
     setEditApplicant(null);
     setResumeAttachments([]);
+    setErrors({
+      applicant_name: '',
+      email_id: '',
+      resume_attachment: '',
+      phone_number: '',
+      job_title: '',
+    });
     setFormData({
       applicant_name: '',
       email_id: '',
@@ -178,6 +187,13 @@ export function JobApplicantsView() {
     setOpenCreate(false);
     setEditApplicant(null);
     setResumeAttachments([]);
+    setErrors({
+      applicant_name: '',
+      email_id: '',
+      resume_attachment: '',
+      phone_number: '',
+      job_title: '',
+    });
   };
 
   const handleEditRow = useCallback(async (row: any) => {
@@ -390,6 +406,8 @@ export function JobApplicantsView() {
     applicant_name: '',
     email_id: '',
     resume_attachment: '',
+    phone_number: '',
+    job_title: '',
   });
 
   const validateForm = () => {
@@ -397,6 +415,8 @@ export function JobApplicantsView() {
       applicant_name: '',
       email_id: '',
       resume_attachment: '',
+      phone_number: '',
+      job_title: '',
     };
 
     let valid = true;
@@ -408,6 +428,22 @@ export function JobApplicantsView() {
 
     if (!formData.email_id?.trim()) {
       newErrors.email_id = 'Email ID is required';
+      valid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_id.trim())) {
+      newErrors.email_id = 'Please enter a valid email address';
+      valid = false;
+    }
+
+    if (formData.phone_number?.trim()) {
+      const cleanDigits = formData.phone_number.replace(/\D/g, '');
+      if (cleanDigits.length > 0 && (cleanDigits.length < 7 || cleanDigits.length > 15)) {
+        newErrors.phone_number = 'Please enter a valid phone number';
+        valid = false;
+      }
+    }
+
+    if (!formData.job_title?.trim()) {
+      newErrors.job_title = 'Job Opening is required';
       valid = false;
     }
 
@@ -517,7 +553,7 @@ export function JobApplicantsView() {
                           <EmptyContent
                             title="No applicants found"
                             description="There are no candidates for your job openings yet."
-                            icon="solar:user-resume-bold-duotone"
+                            icon="solar:users-group-rounded-bold-duotone"
                           />
                         </TableCell>
                       </TableRow>
@@ -612,41 +648,96 @@ export function JobApplicantsView() {
                 label="Email ID"
                 value={formData.email_id}
                 onChange={(e) => {
-                    setFormData({
-                        ...formData,
-                        email_id: e.target.value,
-                    });
+                  const val = e.target.value;
+                  setFormData({
+                    ...formData,
+                    email_id: val,
+                  });
 
-                    if (errors.email_id) {
-                        setErrors({
-                            ...errors,
-                            email_id: '',
-                        });
+                  if (errors.email_id) {
+                    if (!val.trim()) {
+                      setErrors((prev) => ({ ...prev, email_id: 'Email ID is required' }));
+                    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())) {
+                      setErrors((prev) => ({ ...prev, email_id: 'Please enter a valid email address' }));
+                    } else {
+                      setErrors((prev) => ({ ...prev, email_id: '' }));
                     }
+                  }
+                }}
+                onBlur={() => {
+                  if (!formData.email_id?.trim()) {
+                    setErrors((prev) => ({ ...prev, email_id: 'Email ID is required' }));
+                  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_id.trim())) {
+                    setErrors((prev) => ({ ...prev, email_id: 'Please enter a valid email address' }));
+                  } else {
+                    setErrors((prev) => ({ ...prev, email_id: '' }));
+                  }
                 }}
                 error={!!errors.email_id}
                 helperText={errors.email_id}
                 required
               />
-              <TextField
+              <MuiTelInput
                 fullWidth
                 label="Phone Number"
-                value={formData.phone_number}
-                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                defaultCountry="IN"
+                value={formData.phone_number || ''}
+                onChange={(newValue) => {
+                  setFormData({ ...formData, phone_number: newValue });
+                  if (errors.phone_number) {
+                    setErrors((prev) => ({ ...prev, phone_number: '' }));
+                  }
+                }}
+                onBlur={() => {
+                  if (formData.phone_number?.trim()) {
+                    const cleanDigits = formData.phone_number.replace(/\D/g, '');
+                    if (cleanDigits.length > 0 && (cleanDigits.length < 7 || cleanDigits.length > 15)) {
+                      setErrors((prev) => ({ ...prev, phone_number: 'Please enter a valid phone number' }));
+                    } else {
+                      setErrors((prev) => ({ ...prev, phone_number: '' }));
+                    }
+                  }
+                }}
+                error={!!errors.phone_number}
+                helperText={errors.phone_number}
               />
-              <TextField
-                select
+              <Autocomplete
                 fullWidth
-                label="Job Opening"
-                value={formData.job_title}
-                onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
-              >
-                {jobOpenings.map((job) => (
-                  <MenuItem key={job.name} value={job.name}>
-                    {job.job_title || job.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+                options={jobOpenings}
+                getOptionLabel={(option: any) => {
+                  if (typeof option === 'string') return option;
+                  return option?.job_title || option?.name || '';
+                }}
+                value={
+                  jobOpenings.find(
+                    (job: any) => job.name === formData.job_title || job.job_title === formData.job_title
+                  ) || (formData.job_title ? { name: formData.job_title, job_title: formData.job_title } : null)
+                }
+                onChange={(_event, newValue: any) => {
+                  setFormData({
+                    ...formData,
+                    job_title: newValue ? newValue.name : '',
+                  });
+                  if (errors.job_title) {
+                    setErrors((prev: any) => ({ ...prev, job_title: '' }));
+                  }
+                }}
+                isOptionEqualToValue={(option: any, value: any) =>
+                  option?.name === value?.name || option?.name === value
+                }
+                noOptionsText="No Openings"
+                openOnFocus
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Job Opening"
+                    required
+                    error={!!errors.job_title}
+                    helperText={errors.job_title}
+                    placeholder={jobOpenings.length === 0 ? 'No Openings' : 'Select Job Opening'}
+                  />
+                )}
+              />
 
               <TextField
                 select
