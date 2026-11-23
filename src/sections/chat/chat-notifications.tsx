@@ -11,12 +11,10 @@ import { useAuth } from 'src/auth/auth-context';
 
 // ----------------------------------------------------------------------
 
-type Props = {
-    children: React.ReactNode;
-};
-
-export default function ChatNotifications({ children }: Props) {
-    const theme = useTheme();
+/**
+ * Hook to retrieve and subscribe to real-time chat unread message count.
+ */
+export function useChatUnreadCount() {
     const { user } = useAuth();
     const [unreadCount, setUnreadCount] = useState(0);
 
@@ -29,7 +27,10 @@ export default function ChatNotifications({ children }: Props) {
             const data = await chatApi.getChannelsList(user.email);
             const channelList = data?.message?.results || [];
 
-            const total = channelList.reduce((sum: number, channel: any) => sum + (channel.user_unread_messages || 0), 0);
+            const total = channelList.reduce(
+                (sum: number, channel: any) => sum + (channel.user_unread_messages || 0),
+                0
+            );
             setUnreadCount(total);
 
             // Subscribe to all rooms for real-time updates
@@ -74,6 +75,19 @@ export default function ChatNotifications({ children }: Props) {
         }
         return undefined;
     }, [socket, user?.email, fetchUnreadCount]);
+
+    return unreadCount;
+}
+
+// ----------------------------------------------------------------------
+
+type Props = {
+    children: React.ReactNode;
+};
+
+export default function ChatNotifications({ children }: Props) {
+    const theme = useTheme();
+    const unreadCount = useChatUnreadCount();
 
     return (
         <Badge

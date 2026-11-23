@@ -9,19 +9,15 @@ import Fade from '@mui/material/Fade';
 import Alert from '@mui/material/Alert';
 import { useTheme } from '@mui/material/styles';
 
-import { RouterLink } from 'src/routes/components';
-
 import { useSocket } from 'src/hooks/use-socket';
 import { useSettingsContext } from 'src/hooks/settings-context';
 import { useDashboardView } from 'src/hooks/dashboard-view-context';
 import { useUnreadCountsContext } from 'src/hooks/unread-counts-context';
 
-import { CONFIG } from 'src/config-global';
-
 import { Label } from 'src/components/label';
+import { InnochatTypingButton } from 'src/components/innochat-button';
 
 import { CallProvider } from 'src/sections/chat/call-context';
-import ChatNotifications from 'src/sections/chat/chat-notifications';
 import { UserStatusBar } from 'src/sections/overview/user-status-bar';
 import { DashboardSwitcher } from 'src/sections/overview/dashboard-switcher';
 
@@ -349,37 +345,7 @@ export function DashboardLayout({
             <UserStatusBar />
           </Box>
 
-          <ChatNotifications>
-            <Box
-              component={RouterLink as any}
-              href="/chat"
-              sx={{
-                lineHeight: 0,
-                display: 'inline-flex',
-                mr: { xs: 1, sm: 3 },
-                transition: theme.transitions.create(['all'], {
-                  duration: theme.transitions.duration.shorter,
-                }),
-                '&:hover': {
-                  transform: 'translateY(-1px)',
-                  filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))',
-                },
-                '&:active': {
-                  transform: 'translateY(0) scale(0.98)',
-                },
-              }}
-            >
-              <Box
-                component="img"
-                src={`${CONFIG.assetsDir}/icons/Innochat_button.png`}
-                sx={{
-                  width: { xs: 110, sm: 140 },
-                  height: 'auto',
-                  display: 'block',
-                }}
-              />
-            </Box>
-          </ChatNotifications>
+          <InnochatTypingButton />
 
 
           {/** @slot Account drawer */}
