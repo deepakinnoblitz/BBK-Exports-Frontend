@@ -259,7 +259,7 @@ export function JobApplicantsView() {
         severity: 'error',
       });
     }
-  }, []);
+  }, [allJobTitlesMap, jobOpenings]);
 
   const handleDeleteRow = useCallback((name: string) => {
     setDeleteTarget(name);
