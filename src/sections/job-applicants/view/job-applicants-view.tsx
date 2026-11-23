@@ -90,6 +90,16 @@ export function JobApplicantsView() {
   const [permissions, setPermissions] = useState({ read: false, write: false, delete: false });
   const [jobOpenings, setJobOpenings] = useState<any[]>([]);
   const [allJobTitlesMap, setAllJobTitlesMap] = useState<Record<string, string>>({});
+  const [existingApplicants, setExistingApplicants] = useState<any[]>([]);
+
+  const loadExistingApplicants = useCallback(async () => {
+    try {
+      const res = await getDoctypeList('Job Applicant', ['name', 'job_title', 'email_id', 'phone_number'], undefined, 1000);
+      setExistingApplicants(res || []);
+    } catch (err) {
+      console.error('Failed to load existing applicants for duplicate validation:', err);
+    }
+  }, []);
 
   // Dialog states
   const [openCreate, setOpenCreate] = useState(false);
@@ -148,9 +158,11 @@ export function JobApplicantsView() {
         const openJobs = allJobs.filter((j: any) => !j.status || j.status === 'Open');
         setJobOpenings(openJobs);
       }
+
+      await loadExistingApplicants();
     };
     fetchData();
-  }, []);
+  }, [loadExistingApplicants]);
 
   const handleSelectAllRows = (checked: boolean) => {
     if (checked) {
@@ -167,6 +179,7 @@ export function JobApplicantsView() {
   };
 
   const handleOpenCreate = () => {
+    loadExistingApplicants();
     setEditApplicant(null);
     setResumeAttachments([]);
     setErrors({
@@ -208,6 +221,7 @@ export function JobApplicantsView() {
 
   const handleEditRow = useCallback(async (row: any) => {
     try {
+      loadExistingApplicants();
       const fullData = await getJobApplicant(row.name);
       setEditApplicant(fullData);
       setFormData({
@@ -238,7 +252,7 @@ export function JobApplicantsView() {
         severity: 'error',
       });
     }
-  }, []);
+  }, [loadExistingApplicants]);
 
   const handleViewRow = useCallback(async (row: any) => {
     try {
@@ -272,6 +286,7 @@ export function JobApplicantsView() {
       await deleteJobApplicant(deleteTarget);
       setSnackbar({ open: true, message: 'Deleted successfully', severity: 'success' });
       refetch();
+      loadExistingApplicants();
     } catch (error: any) {
       setSnackbar({ open: true, message: error.message || 'Delete failed', severity: 'error' });
     } finally {
@@ -290,6 +305,7 @@ export function JobApplicantsView() {
       setSnackbar({ open: true, message: 'Deleted successfully', severity: 'success' });
       setSelected([]);
       refetch();
+      loadExistingApplicants();
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -348,8 +364,17 @@ export function JobApplicantsView() {
       }
       handleCloseCreate();
       refetch();
+      loadExistingApplicants();
     } catch (error: any) {
-      setSnackbar({ open: true, message: error.message || 'Action failed', severity: 'error' });
+      const errMsg = error.message || 'Action failed';
+      const lower = errMsg.toLowerCase();
+      if (lower.includes('email') && (lower.includes('already exists') || lower.includes('unique'))) {
+        setErrors((prev: any) => ({ ...prev, email_id: 'An applicant with this email already exists for this job opening' }));
+      }
+      if (lower.includes('phone') && (lower.includes('already exists') || lower.includes('unique'))) {
+        setErrors((prev: any) => ({ ...prev, phone_number: 'An applicant with this phone number already exists for this job opening' }));
+      }
+      setSnackbar({ open: true, message: errMsg, severity: 'error' });
     }
   };
 
@@ -427,6 +452,51 @@ export function JobApplicantsView() {
     job_title: '',
   });
 
+  const normalizePhoneKey = (phone: string) => {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    return digits.length >= 10 ? digits.slice(-10) : digits;
+  };
+
+  const isSameJobTitle = useCallback(
+    (job1: string, job2: string) => {
+      if (!job1 || !job2) return false;
+      if (job1 === job2) return true;
+      const title1 = (allJobTitlesMap[job1] || job1).trim().toLowerCase();
+      const title2 = (allJobTitlesMap[job2] || job2).trim().toLowerCase();
+      return title1 === title2;
+    },
+    [allJobTitlesMap]
+  );
+
+  const checkDuplicateEmail = useCallback(
+    (email: string, jobTitle: string, excludeId?: string) => {
+      const cleanEmail = (email || '').trim().toLowerCase();
+      if (!cleanEmail || !jobTitle) return false;
+
+      return existingApplicants.some((applicant) => {
+        if (excludeId && applicant.name === excludeId) return false;
+        if (!isSameJobTitle(applicant.job_title, jobTitle)) return false;
+        return (applicant.email_id || '').trim().toLowerCase() === cleanEmail;
+      });
+    },
+    [existingApplicants, isSameJobTitle]
+  );
+
+  const checkDuplicatePhone = useCallback(
+    (phone: string, jobTitle: string, excludeId?: string) => {
+      const phoneKey = normalizePhoneKey(phone);
+      if (!phoneKey || phoneKey.length < 10 || !jobTitle) return false;
+
+      return existingApplicants.some((applicant) => {
+        if (excludeId && applicant.name === excludeId) return false;
+        if (!isSameJobTitle(applicant.job_title, jobTitle)) return false;
+        return normalizePhoneKey(applicant.phone_number) === phoneKey;
+      });
+    },
+    [existingApplicants, isSameJobTitle]
+  );
+
   const validateForm = () => {
     const newErrors = {
       applicant_name: '',
@@ -449,6 +519,9 @@ export function JobApplicantsView() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_id.trim())) {
       newErrors.email_id = 'Please enter a valid email address';
       valid = false;
+    } else if (formData.job_title && checkDuplicateEmail(formData.email_id, formData.job_title, editApplicant?.name)) {
+      newErrors.email_id = 'An applicant with this email already exists for this job opening';
+      valid = false;
     }
 
     const cleanDigits = (formData.phone_number || '').replace(/\D/g, '');
@@ -457,6 +530,9 @@ export function JobApplicantsView() {
       valid = false;
     } else if (cleanDigits.length < 10 || cleanDigits.length > 15) {
       newErrors.phone_number = 'Please enter a valid phone number';
+      valid = false;
+    } else if (formData.job_title && checkDuplicatePhone(formData.phone_number, formData.job_title, editApplicant?.name)) {
+      newErrors.phone_number = 'An applicant with this phone number already exists for this job opening';
       valid = false;
     }
 
@@ -683,6 +759,8 @@ export function JobApplicantsView() {
                       setErrors((prev) => ({ ...prev, email_id: 'Email ID is required' }));
                     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())) {
                       setErrors((prev) => ({ ...prev, email_id: 'Please enter a valid email address' }));
+                    } else if (formData.job_title && checkDuplicateEmail(val, formData.job_title, editApplicant?.name)) {
+                      setErrors((prev) => ({ ...prev, email_id: 'An applicant with this email already exists for this job opening' }));
                     } else {
                       setErrors((prev) => ({ ...prev, email_id: '' }));
                     }
@@ -693,6 +771,8 @@ export function JobApplicantsView() {
                     setErrors((prev) => ({ ...prev, email_id: 'Email ID is required' }));
                   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_id.trim())) {
                     setErrors((prev) => ({ ...prev, email_id: 'Please enter a valid email address' }));
+                  } else if (formData.job_title && checkDuplicateEmail(formData.email_id, formData.job_title, editApplicant?.name)) {
+                    setErrors((prev) => ({ ...prev, email_id: 'An applicant with this email already exists for this job opening' }));
                   } else {
                     setErrors((prev) => ({ ...prev, email_id: '' }));
                   }
@@ -711,7 +791,11 @@ export function JobApplicantsView() {
                   setFormData({ ...formData, phone_number: newValue });
                   if (errors.phone_number) {
                     const cleanDigits = (newValue || '').replace(/\D/g, '');
-                    if (cleanDigits.length >= 10 && cleanDigits.length <= 15) {
+                    if (cleanDigits.length < 10 || cleanDigits.length > 15) {
+                      setErrors((prev: any) => ({ ...prev, phone_number: 'Please enter a valid phone number' }));
+                    } else if (formData.job_title && checkDuplicatePhone(newValue, formData.job_title, editApplicant?.name)) {
+                      setErrors((prev: any) => ({ ...prev, phone_number: 'An applicant with this phone number already exists for this job opening' }));
+                    } else {
                       setErrors((prev: any) => ({ ...prev, phone_number: '' }));
                     }
                   }
@@ -722,6 +806,8 @@ export function JobApplicantsView() {
                     setErrors((prev: any) => ({ ...prev, phone_number: 'Phone Number is required' }));
                   } else if (cleanDigits.length < 10 || cleanDigits.length > 15) {
                     setErrors((prev: any) => ({ ...prev, phone_number: 'Please enter a valid phone number' }));
+                  } else if (formData.job_title && checkDuplicatePhone(formData.phone_number, formData.job_title, editApplicant?.name)) {
+                    setErrors((prev: any) => ({ ...prev, phone_number: 'An applicant with this phone number already exists for this job opening' }));
                   } else {
                     setErrors((prev: any) => ({ ...prev, phone_number: '' }));
                   }
@@ -742,12 +828,28 @@ export function JobApplicantsView() {
                   ) || (formData.job_title ? { name: formData.job_title, job_title: formData.job_title } : null)
                 }
                 onChange={(_event, newValue: any) => {
+                  const newJobTitle = newValue ? newValue.name : '';
                   setFormData({
                     ...formData,
-                    job_title: newValue ? newValue.name : '',
+                    job_title: newJobTitle,
                   });
                   if (errors.job_title) {
                     setErrors((prev: any) => ({ ...prev, job_title: '' }));
+                  }
+                  if (formData.email_id?.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_id.trim())) {
+                    if (checkDuplicateEmail(formData.email_id, newJobTitle, editApplicant?.name)) {
+                      setErrors((prev: any) => ({ ...prev, email_id: 'An applicant with this email already exists for this job opening' }));
+                    } else if (errors.email_id?.includes('already exists')) {
+                      setErrors((prev: any) => ({ ...prev, email_id: '' }));
+                    }
+                  }
+                  const phoneDigits = (formData.phone_number || '').replace(/\D/g, '');
+                  if (phoneDigits.length >= 10 && phoneDigits.length <= 15) {
+                    if (checkDuplicatePhone(formData.phone_number, newJobTitle, editApplicant?.name)) {
+                      setErrors((prev: any) => ({ ...prev, phone_number: 'An applicant with this phone number already exists for this job opening' }));
+                    } else if (errors.phone_number?.includes('already exists')) {
+                      setErrors((prev: any) => ({ ...prev, phone_number: '' }));
+                    }
                   }
                 }}
                 isOptionEqualToValue={(option: any, value: any) =>
