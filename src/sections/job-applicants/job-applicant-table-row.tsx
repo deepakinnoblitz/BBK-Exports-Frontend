@@ -125,30 +125,33 @@ export function JobApplicantTableRow({
             )}
 
             <TableCell>
-                <Stack direction="row" alignItems="center" spacing={2}>
-                    {/* <Avatar alt={row.applicant_name} sx={{ bgcolor: 'primary.main', color: 'common.white' }}>
-                        {row.applicant_name.charAt(0).toUpperCase()}
-                    </Avatar> */}
-                    <Box>
-                        <Typography
-                            variant="subtitle2"
-                            noWrap
-                            sx={{ cursor: 'pointer', fontWeight: 600 }}
-                            onClick={onView}
-                        >
-                            {row.applicant_name}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                            {row.email_id}
-                        </Typography>
-                    </Box>
-                </Stack>
+                <Typography
+                    variant="subtitle2"
+                    noWrap
+                    sx={{ cursor: 'pointer', fontWeight: 600 }}
+                    onClick={onView}
+                >
+                    {row.applicant_name}
+                </Typography>
             </TableCell>
 
-            <TableCell>{row.job_title || '-'}</TableCell>
+            <TableCell>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
+                    {row.email_id || '-'}
+                </Typography>
+            </TableCell>
 
-            <TableCell>{row.phone_number || '-'}</TableCell>
+            <TableCell>
+                <Typography variant="body2" noWrap>
+                    {row.phone_number || '-'}
+                </Typography>
+            </TableCell>
 
+            <TableCell>
+                <Typography variant="body2" noWrap>
+                    {row.job_title || '-'}
+                </Typography>
+            </TableCell>
 
             <TableCell>{renderStatus(row.status)}</TableCell>
 

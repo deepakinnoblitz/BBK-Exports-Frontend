@@ -89,6 +89,7 @@ export function JobApplicantsView() {
 
   const [permissions, setPermissions] = useState({ read: false, write: false, delete: false });
   const [jobOpenings, setJobOpenings] = useState<any[]>([]);
+  const [allJobTitlesMap, setAllJobTitlesMap] = useState<Record<string, string>>({});
 
   // Dialog states
   const [openCreate, setOpenCreate] = useState(false);
@@ -136,8 +137,17 @@ export function JobApplicantsView() {
       const perms = await getJobApplicantPermissions();
       setPermissions(perms);
 
-      const jobs = await getDoctypeList('Job Opening', ['name', 'job_title']);
-      setJobOpenings(Array.isArray(jobs) ? jobs : []);
+      const allJobs = await getDoctypeList('Job Opening', ['name', 'job_title', 'status']);
+      if (Array.isArray(allJobs)) {
+        const titleMap: Record<string, string> = {};
+        allJobs.forEach((j: any) => {
+          titleMap[j.name] = j.job_title || j.name;
+        });
+        setAllJobTitlesMap(titleMap);
+
+        const openJobs = allJobs.filter((j: any) => !j.status || j.status === 'Open');
+        setJobOpenings(openJobs);
+      }
     };
     fetchData();
   }, []);
@@ -233,7 +243,14 @@ export function JobApplicantsView() {
   const handleViewRow = useCallback(async (row: any) => {
     try {
       const fullData = await getJobApplicant(row.name);
-      setViewApplicant(fullData);
+      const displayJobTitle = allJobTitlesMap[fullData.job_title] ||
+        jobOpenings.find((j: any) => j.name === fullData.job_title || j.job_title === fullData.job_title)?.job_title ||
+        fullData.job_title;
+
+      setViewApplicant({
+        ...fullData,
+        job_title: displayJobTitle,
+      });
       setOpenView(true);
     } catch (error: any) {
       setSnackbar({
@@ -434,12 +451,13 @@ export function JobApplicantsView() {
       valid = false;
     }
 
-    if (formData.phone_number?.trim()) {
-      const cleanDigits = formData.phone_number.replace(/\D/g, '');
-      if (cleanDigits.length > 0 && (cleanDigits.length < 7 || cleanDigits.length > 15)) {
-        newErrors.phone_number = 'Please enter a valid phone number';
-        valid = false;
-      }
+    const cleanDigits = (formData.phone_number || '').replace(/\D/g, '');
+    if (!formData.phone_number?.trim() || cleanDigits.length <= 2) {
+      newErrors.phone_number = 'Phone Number is required';
+      valid = false;
+    } else if (cleanDigits.length < 10 || cleanDigits.length > 15) {
+      newErrors.phone_number = 'Please enter a valid phone number';
+      valid = false;
     }
 
     if (!formData.job_title?.trim()) {
@@ -515,41 +533,47 @@ export function JobApplicantsView() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
                       <CircularProgress sx={{ color: '#059669' }} />
                     </TableCell>
                   </TableRow>
                 ) : (
                   <>
-                    {data.map((row, index) => (
-                      <JobApplicantTableRow
-                        key={row.name}
-                        index={page * rowsPerPage + index}
-                        row={{
-                          id: row.name,
-                          applicant_name: row.applicant_name,
-                          email_id: row.email_id,
-                          phone_number: row.phone_number,
-                          job_title: row.job_title,
-                          status: row.status,
-                          modified: row.modified
-                        }}
-                        selected={selected.includes(row.name)}
-                        onSelectRow={() => handleSelectRow(row.name)}
-                        hideCheckbox
-                        onView={() => handleViewRow(row)}
-                        onEdit={() => handleEditRow(row)}
-                        onDelete={() => handleDeleteRow(row.name)}
-                        canEdit={permissions.write && canEditApplicant}
-                        canDelete={permissions.delete && canDeleteApplicant}
-                      />
-                    ))}
+                    {data.map((row, index) => {
+                      const displayJobTitle = allJobTitlesMap[row.job_title] ||
+                        jobOpenings.find((j: any) => j.name === row.job_title || j.job_title === row.job_title)?.job_title ||
+                        row.job_title;
+
+                      return (
+                        <JobApplicantTableRow
+                          key={row.name}
+                          index={page * rowsPerPage + index}
+                          row={{
+                            id: row.name,
+                            applicant_name: row.applicant_name,
+                            email_id: row.email_id,
+                            phone_number: row.phone_number,
+                            job_title: displayJobTitle,
+                            status: row.status,
+                            modified: row.modified
+                          }}
+                          selected={selected.includes(row.name)}
+                          onSelectRow={() => handleSelectRow(row.name)}
+                          hideCheckbox
+                          onView={() => handleViewRow(row)}
+                          onEdit={() => handleEditRow(row)}
+                          onDelete={() => handleDeleteRow(row.name)}
+                          canEdit={permissions.write && canEditApplicant}
+                          canDelete={permissions.delete && canDeleteApplicant}
+                        />
+                      );
+                    })}
 
                     {notFound && <TableNoData searchQuery={filterName} />}
 
                     {empty && (
                       <TableRow>
-                        <TableCell colSpan={6}>
+                        <TableCell colSpan={7}>
                           <EmptyContent
                             title="No applicants found"
                             description="There are no candidates for your job openings yet."
@@ -679,23 +703,27 @@ export function JobApplicantsView() {
               />
               <MuiTelInput
                 fullWidth
-                label="Phone Number"
+                label="Phone Number *"
+                required
                 defaultCountry="IN"
                 value={formData.phone_number || ''}
                 onChange={(newValue) => {
                   setFormData({ ...formData, phone_number: newValue });
                   if (errors.phone_number) {
-                    setErrors((prev) => ({ ...prev, phone_number: '' }));
+                    const cleanDigits = (newValue || '').replace(/\D/g, '');
+                    if (cleanDigits.length >= 10 && cleanDigits.length <= 15) {
+                      setErrors((prev: any) => ({ ...prev, phone_number: '' }));
+                    }
                   }
                 }}
                 onBlur={() => {
-                  if (formData.phone_number?.trim()) {
-                    const cleanDigits = formData.phone_number.replace(/\D/g, '');
-                    if (cleanDigits.length > 0 && (cleanDigits.length < 7 || cleanDigits.length > 15)) {
-                      setErrors((prev) => ({ ...prev, phone_number: 'Please enter a valid phone number' }));
-                    } else {
-                      setErrors((prev) => ({ ...prev, phone_number: '' }));
-                    }
+                  const cleanDigits = (formData.phone_number || '').replace(/\D/g, '');
+                  if (!formData.phone_number?.trim() || cleanDigits.length <= 2) {
+                    setErrors((prev: any) => ({ ...prev, phone_number: 'Phone Number is required' }));
+                  } else if (cleanDigits.length < 10 || cleanDigits.length > 15) {
+                    setErrors((prev: any) => ({ ...prev, phone_number: 'Please enter a valid phone number' }));
+                  } else {
+                    setErrors((prev: any) => ({ ...prev, phone_number: '' }));
                   }
                 }}
                 error={!!errors.phone_number}
