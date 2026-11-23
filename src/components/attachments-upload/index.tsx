@@ -39,7 +39,7 @@ export function AttachmentsUpload({
     >
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
         <Stack spacing={0.25}>
-          <Typography variant="h6">Resume Attachment</Typography>
+          <Typography variant="h6">Resume Attachment *</Typography>
           {error && helperText && (
             <Typography variant="caption" color="error">
               {helperText}
