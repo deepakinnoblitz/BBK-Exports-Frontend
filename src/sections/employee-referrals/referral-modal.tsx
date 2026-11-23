@@ -6,11 +6,11 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import { alpha } from '@mui/material/styles';
-import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -50,10 +50,20 @@ export function ReferralModal({ open, onClose, onSuccess, onError, selectedJob, 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (selectedJob) {
-      setFormData((prev) => ({ ...prev, job_opening: selectedJob }));
+    if (open) {
+      setFormData({
+        candidate_name: '',
+        candidate_email: '',
+        candidate_phone: '',
+        job_opening: selectedJob || '',
+        resume: null,
+        relationship: '',
+        notes: '',
+      });
+      setFileName(null);
+      setErrors({});
     }
-  }, [selectedJob]);
+  }, [open, selectedJob]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -255,23 +265,48 @@ export function ReferralModal({ open, onClose, onSuccess, onError, selectedJob, 
             onChange={handlePhoneChange}
             fullWidth
           />
-          <TextField
-            select
-            name="job_opening"
-            label="Job Opening *"
-            value={formData.job_opening}
-            onChange={handleChange}
+          <Autocomplete
             fullWidth
             disabled={!!selectedJob}
-            error={!!errors.job_opening}
-            helperText={errors.job_opening}
-          >
-            {jobOptions.map((option) => (
-              <MenuItem key={option.name} value={option.name}>
-                {option.job_title}
-              </MenuItem>
-            ))}
-          </TextField>
+            options={jobOptions}
+            openOnFocus
+            getOptionLabel={(option: any) => {
+              if (typeof option === 'string') return option;
+              return option?.job_title || option?.name || '';
+            }}
+            value={
+              jobOptions.find(
+                (job: any) => job.name === formData.job_opening || job.job_title === formData.job_opening
+              ) || (formData.job_opening ? { name: formData.job_opening, job_title: formData.job_opening } : null)
+            }
+            onChange={(_event, newValue: any) => {
+              setFormData((prev) => ({
+                ...prev,
+                job_opening: newValue ? newValue.name : '',
+              }));
+              if (errors.job_opening) {
+                setErrors((prev) => {
+                  const newErrors = { ...prev };
+                  delete newErrors.job_opening;
+                  return newErrors;
+                });
+              }
+            }}
+            isOptionEqualToValue={(option: any, value: any) =>
+              option?.name === value?.name || option?.name === value
+            }
+            noOptionsText="No Openings"
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                name="job_opening"
+                label="Job Opening *"
+                placeholder={jobOptions.length === 0 ? 'No Openings' : 'Select Job Opening'}
+                error={!!errors.job_opening}
+                helperText={errors.job_opening}
+              />
+            )}
+          />
           
           <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>

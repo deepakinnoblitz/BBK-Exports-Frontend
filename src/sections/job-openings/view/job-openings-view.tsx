@@ -105,6 +105,7 @@ export function JobOpeningsView() {
 
     const [designations, setDesignations] = useState<any[]>([]);
     const [openDesignationCreate, setOpenDesignationCreate] = useState(false);
+    const [shifts, setShifts] = useState<any[]>([]);
 
     // Form state
     const [formData, setFormData] = useState<any>({
@@ -144,9 +145,19 @@ export function JobOpeningsView() {
             const dests = await getDoctypeList('Designation', ['name']);
             setDesignations(dests);
         };
+        const fetchShifts = async () => {
+            try {
+                const shiftList = await getDoctypeList('Shift', ['name', 'shift_name', 'status']);
+                const activeShifts = (shiftList || []).filter((s: any) => !s.status || s.status === 'Active');
+                setShifts(activeShifts);
+            } catch (err) {
+                console.error('Failed to load shifts', err);
+            }
+        };
         fetchPermissions();
         fetchLocations();
         fetchDesignations();
+        fetchShifts();
     }, []);
 
     const handleSelectAllRows = (checked: boolean) => {
@@ -165,10 +176,14 @@ export function JobOpeningsView() {
 
     const handleOpenCreate = () => {
         setEditJob(null);
+        const defaultShift = shifts.length > 0
+            ? (shifts.find((s: any) => s.name === 'General Shift')?.name || shifts[0].name)
+            : 'General Shift';
+
         setFormData({
             job_title: '',
             designation: '',
-            shift: 'General Shift',
+            shift: defaultShift,
             location: '',
             experience: '',
             status: 'Open',
@@ -660,17 +675,38 @@ export function JobOpeningsView() {
                                 handleHomeEndKeys
                             />
                             <Stack direction="row" spacing={2}>
-                                <TextField
-                                    select
+                                <Autocomplete
                                     fullWidth
-                                    label="Shift"
-                                    value={formData.shift}
-                                    onChange={(e) => setFormData({ ...formData, shift: e.target.value })}
-                                >
-                                    <MenuItem value="General Shift">General Shift</MenuItem>
-                                    <MenuItem value="Night Shift">Night Shift</MenuItem>
-                                    <MenuItem value="WFH">WFH</MenuItem>
-                                </TextField>
+                                    options={shifts}
+                                    openOnFocus
+                                    getOptionLabel={(option: any) => {
+                                        if (typeof option === 'string') return option;
+                                        return option?.shift_name || option?.name || '';
+                                    }}
+                                    value={
+                                        shifts.find(
+                                            (s: any) => s.name === formData.shift || s.shift_name === formData.shift
+                                        ) || (formData.shift ? { name: formData.shift, shift_name: formData.shift } : null)
+                                    }
+                                    onChange={(_e, newValue: any) => {
+                                        setFormData({
+                                            ...formData,
+                                            shift: newValue ? newValue.name : '',
+                                        });
+                                    }}
+                                    isOptionEqualToValue={(option: any, val: any) =>
+                                        option?.name === val?.name || option?.name === val
+                                    }
+                                    noOptionsText="No Shifts found"
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="Shift"
+                                            placeholder="Select Shift"
+                                            InputLabelProps={{ shrink: true }}
+                                        />
+                                    )}
+                                />
                                 <TextField
                                     select
                                     fullWidth
