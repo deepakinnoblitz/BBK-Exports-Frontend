@@ -17,6 +17,7 @@ type Props = {
         id: string;
         job_title: string;
         designation: string;
+        shift: string;
         posted_on: string;
         status: string;
         location: string;
@@ -107,6 +108,8 @@ export function JobOpeningTableRow({
                     {row.designation}
                 </Typography>
             </TableCell>
+
+            <TableCell>{row.shift}</TableCell>
 
             <TableCell>{row.location}</TableCell>
 

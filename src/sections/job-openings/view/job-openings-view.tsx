@@ -142,8 +142,13 @@ export function JobOpeningsView() {
             setLocations(locs);
         };
         const fetchDesignations = async () => {
-            const dests = await getDoctypeList('Designation', ['name']);
-            setDesignations(dests);
+            try {
+                const dests = await getDoctypeList('Designation', ['name', 'designation_name', 'status'], { status: 'Active' });
+                const activeDesignations = (dests || []).filter((d: any) => !d.status || d.status === 'Active');
+                setDesignations(activeDesignations);
+            } catch (err) {
+                console.error('Failed to load designations', err);
+            }
         };
         const fetchShifts = async () => {
             try {
@@ -450,6 +455,7 @@ export function JobOpeningsView() {
                                 showIndex
                                 headLabel={[
                                     { id: 'job_title', label: 'Job Title' },
+                                    { id: 'shift', label: 'Shift' },
                                     { id: 'location', label: 'Location' },
                                     { id: 'posted_on', label: 'Posted Date' },
                                     { id: 'status', label: 'Status' },
@@ -473,6 +479,7 @@ export function JobOpeningsView() {
                                                 row={{
                                                     id: row.name,
                                                     job_title: row.job_title,
+                                                    shift: row.shift,
                                                     designation: row.designation,
                                                     posted_on: row.posted_on,
                                                     status: row.status,
