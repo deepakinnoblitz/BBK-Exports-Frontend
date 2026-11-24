@@ -560,6 +560,7 @@ export function EmployeeReferralsView() {
         onError={(msg) => setSnackbar({ open: true, message: msg, severity: 'error' })}
         selectedJob={selectedJob}
         jobOptions={allJobOptions.length > 0 ? allJobOptions : jobs}
+        isHR={viewType === 'hr'}
       />
 
       <JobOpeningDetailsDialog
