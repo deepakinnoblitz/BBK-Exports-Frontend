@@ -112,6 +112,8 @@ export function AssetsView() {
     const [description, setDescription] = useState('');
     const [touched, setTouched] = useState(false);
 
+    const isStatusDisabled = Boolean(isEdit && currentAsset?.current_status === 'Assigned');
+
     // attachment upload state
     const [assetAttachment, setAssetAttachment] = useState('');
     const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -339,7 +341,7 @@ export function AssetsView() {
             category: category.trim(),
             purchase_date: purchaseDate,
             purchase_cost: parseFloat(purchaseCost) || 0,
-            current_status: currentStatus,
+            current_status: isStatusDisabled ? currentAsset.current_status : currentStatus,
             description: description.trim(),
             asset_attachment: finalAttachmentUrl
         };
@@ -811,15 +813,21 @@ export function AssetsView() {
                                 )}
                             />
 
-                            <FormControl fullWidth required>
+                            <FormControl fullWidth required disabled={isStatusDisabled}>
                                 <InputLabel>Status</InputLabel>
                                 <Select
                                     value={currentStatus}
                                     onChange={(e) => setCurrentStatus(e.target.value)}
                                     label="Status"
+                                    disabled={isStatusDisabled}
+                                    sx={{
+                                        '& .MuiInputBase-input.Mui-disabled': {
+                                            WebkitTextFillColor: (theme) => theme.palette.text.primary,
+                                        },
+                                    }}
                                 >
                                     <MenuItem value="Available">Available</MenuItem>
-                                    <MenuItem value="Assigned">Assigned</MenuItem>
+                                    {isEdit && <MenuItem value="Assigned">Assigned</MenuItem>}
                                     <MenuItem value="Maintenance">Maintenance</MenuItem>
                                     <MenuItem value="Disposed">Disposed</MenuItem>
                                 </Select>
