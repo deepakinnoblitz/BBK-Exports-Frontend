@@ -124,13 +124,22 @@ export function ReferralModal({ open, onClose, onSuccess, onError, selectedJob, 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Reset input value so selecting the same file triggers onChange
+      e.target.value = '';
+
       const fileNameLower = (file.name || '').toLowerCase();
       const isVideo = file.type?.toLowerCase().startsWith('video/') || [
         '.mp4', '.webm', '.mkv', '.mov', '.avi', '.flv', '.wmv', '.m4v', '.3gp', '.ogg', '.ogv', '.ts'
       ].some((ext) => fileNameLower.endsWith(ext));
 
       if (isVideo) {
-        setErrors((prev) => ({ ...prev, resume: 'Video files are not allowed. Please upload a PDF or DOCX file.' }));
+        setErrors((prev) => ({ ...prev, resume: 'Video files are not allowed. Please upload a PDF, DOC, DOCX, JPG, or PNG file.' }));
+        return;
+      }
+
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+      if (file.size > MAX_FILE_SIZE) {
+        setErrors((prev) => ({ ...prev, resume: 'File size exceeds 5MB limit. Please upload a file smaller than 5MB.' }));
         return;
       }
 
@@ -491,7 +500,7 @@ export function ReferralModal({ open, onClose, onSuccess, onError, selectedJob, 
                   <>
                     <Iconify icon={fileName ? "solar:document-bold-duotone" : "solar:upload-minimalistic-bold"} width={32} />
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {fileName || "Click to upload Resume (PDF, DOCX)"}
+                      {fileName || "Click to upload Resume (PDF, DOCX, JPG, PNG - Max 5MB)"}
                     </Typography>
                   </>
                 )}
@@ -504,7 +513,7 @@ export function ReferralModal({ open, onClose, onSuccess, onError, selectedJob, 
                     <Iconify icon="mingcute:close-line" width={16} />
                   </IconButton>
                 )}
-                <input type="file" hidden accept=".pdf,.doc,.docx" onChange={handleFileUpload} disabled={uploading} />
+                <input type="file" hidden accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={handleFileUpload} disabled={uploading} />
               </Button>
               {errors.resume && (
                 <Typography variant="caption" sx={{ color: 'error.main', mt: 0.5, display: 'block' }}>

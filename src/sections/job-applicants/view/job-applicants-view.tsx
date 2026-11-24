@@ -353,6 +353,20 @@ export function JobApplicantsView() {
     // Reset input so selecting the same file triggers onChange
     event.target.value = '';
 
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_FILE_SIZE) {
+      setErrors((prev: any) => ({
+        ...prev,
+        resume_attachment: 'File size exceeds 5MB limit. Please upload a file smaller than 5MB.',
+      }));
+      setSnackbar({
+        open: true,
+        message: 'File size exceeds 5MB limit. Please upload a file smaller than 5MB.',
+        severity: 'error',
+      });
+      return;
+    }
+
     if (isVideoFile(file)) {
       setErrors((prev: any) => ({
         ...prev,
@@ -622,7 +636,10 @@ export function JobApplicantsView() {
     } else {
       const firstAttachment = resumeAttachments[0];
       if (firstAttachment instanceof File) {
-        if (isVideoFile(firstAttachment)) {
+        if (firstAttachment.size > 5 * 1024 * 1024) {
+          newErrors.resume_attachment = 'File size exceeds 5MB limit. Please upload a file smaller than 5MB.';
+          valid = false;
+        } else if (isVideoFile(firstAttachment)) {
           newErrors.resume_attachment = 'Video files are not allowed for resume. Please upload a valid document (PDF, DOC, DOCX, JPG, PNG).';
           valid = false;
         } else if (!isAllowedResumeFile(firstAttachment)) {
