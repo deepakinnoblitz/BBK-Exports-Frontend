@@ -338,6 +338,7 @@ export function EmployeeView() {
     const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null);
     const [openDetails, setOpenDetails] = useState(false);
     const [detailsId, setDetailsId] = useState<string | null>(null);
+    const [userEmployeeMap, setUserEmployeeMap] = useState<Record<string, { employeeId: string; employeeName: string }>>({});
 
     // Line change confirmation dialog states
     const [originalEmployeeLine, setOriginalEmployeeLine] = useState('');
@@ -534,9 +535,15 @@ export function EmployeeView() {
             });
             setFieldMap(map);
 
-            // Fetch Link options
+            // Fetch Link options (excluding explicitly handled doctypes)
             meta.fields.forEach((field: any) => {
-                if (field.fieldtype === 'Link' && field.options && field.fieldname !== 'user') {
+                if (
+                    field.fieldtype === 'Link' &&
+                    field.options &&
+                    field.fieldname !== 'user' &&
+                    field.fieldname !== 'department' &&
+                    field.fieldname !== 'designation'
+                ) {
                     getDoctypeList(field.options, ['name'])
                         .then((options) => {
                             setFieldOptions(prev => ({ ...prev, [field.fieldname]: options }));
@@ -545,12 +552,37 @@ export function EmployeeView() {
                 }
             });
 
-            // Explicitly fetch options for user (User Login Email) with full_name, email, and roles
-            getDoctypeList('User', ['name', 'full_name', 'email'], { enabled: 1 })
+            // Explicitly fetch options for Department with status: 'Active'
+            getDoctypeList('Department', ['name', 'department_name', 'status'], { status: 'Active' })
                 .then((options) => {
-                    setFieldOptions(prev => ({ ...prev, 'user': options }));
+                    setFieldOptions(prev => ({ ...prev, 'department': options }));
                 })
                 .catch(console.error);
+
+            // Explicitly fetch options for Designation with status: 'Active'
+            getDoctypeList('Designation', ['name', 'designation_name', 'status'], { status: 'Active' })
+                .then((options) => {
+                    setFieldOptions(prev => ({ ...prev, 'designation': options }));
+                })
+                .catch(console.error);
+
+            // Explicitly fetch options for user (User Login Email) and build employee assignment map
+            Promise.all([
+                getDoctypeList('User', ['name', 'full_name', 'email'], { enabled: 1 }),
+                getDoctypeList('Employee', ['name', 'employee_name', 'user'])
+            ]).then(([users, employees]) => {
+                const userAssignedMap: Record<string, { employeeId: string; employeeName: string }> = {};
+                (employees || []).forEach((emp: any) => {
+                    if (emp.user && String(emp.user).trim()) {
+                        userAssignedMap[String(emp.user).trim()] = {
+                            employeeId: emp.name,
+                            employeeName: emp.employee_name || emp.name,
+                        };
+                    }
+                });
+                setUserEmployeeMap(userAssignedMap);
+                setFieldOptions(prev => ({ ...prev, 'user': users }));
+            }).catch(console.error);
 
             // Explicitly fetch initial 50 rich options for bank_account
             loadBankAccounts('');
@@ -566,13 +598,6 @@ export function EmployeeView() {
             getDoctypeList('Qualification', ['name', 'qualification'])
                 .then((options) => {
                     setFieldOptions(prev => ({ ...prev, 'qualification': options }));
-                })
-                .catch(console.error);
-
-            // Explicitly fetch options for designation
-            getDoctypeList('Designation', ['name', 'designation_name'])
-                .then((options) => {
-                    setFieldOptions(prev => ({ ...prev, 'designation': options }));
                 })
                 .catch(console.error);
 
@@ -712,6 +737,13 @@ export function EmployeeView() {
         const check = await checkEmployeeFieldAvailable(fieldname, normalized, currentEmployeeId);
         if (!check.valid || !check.available) {
             setFormErrors((prev) => ({ ...prev, [fieldname]: check.message }));
+        } else {
+            setFormErrors((prev) => {
+                if (!prev[fieldname]) return prev;
+                const next = { ...prev };
+                delete next[fieldname];
+                return next;
+            });
         }
     };
 
@@ -1277,15 +1309,29 @@ export function EmployeeView() {
             errors.office_phone_number = officePhoneErr;
         }
 
-        for (const idField of ['aadhar_number', 'pan_number', 'uan_number', 'esi_no'] as const) {
+        for (const idField of ['aadhar_number', 'pan_number', 'uan_number', 'esi_no', 'pf_number'] as const) {
             const idErr = validateIdentityFieldFormat(idField, formData[idField]);
             if (idErr) {
                 errors[idField] = idErr;
             }
         }
 
-        if (formData.status === 'Inactive' && formData.date_of_leaving && formData.date_of_joining) {
-            if (new Date(formData.date_of_leaving) < new Date(formData.date_of_joining)) {
+        if (formErrors.bank_account) {
+            errors.bank_account = formErrors.bank_account;
+        }
+
+        if (formErrors.user) {
+            errors.user = formErrors.user;
+        }
+
+        if (formData.bus_travel_route && !formData.bus_route_point) {
+            errors.bus_route_point = 'Bus Route Point is required when Bus - Travel Route is selected';
+        }
+
+        if (formData.status === 'Inactive') {
+            if (!formData.date_of_leaving) {
+                errors.date_of_leaving = 'Date of Leaving (DOL) is required when status is Inactive';
+            } else if (formData.date_of_joining && new Date(formData.date_of_leaving) < new Date(formData.date_of_joining)) {
                 errors.date_of_leaving = 'Date of Leaving cannot be before Joining Date';
             }
         }
@@ -1305,12 +1351,22 @@ export function EmployeeView() {
         }
 
         // Document Table Validation (Tab 2)
+        const FORBIDDEN_DOC_EXTS = ['.mp3', '.wav', '.aac', '.m4a', '.ogg', '.wma', '.flac', '.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv', '.webm', '.gif'];
         const documents = formData.documents || [];
         for (let i = 0; i < documents.length; i++) {
             const doc = documents[i];
             if (!doc.title || (!doc.attachment && !doc.pendingFile)) {
                 if (Object.keys(errors).length === 0) errorTab = 2;
                 errors.documents = `Please complete Title and Attachment for all document rows (Row ${i + 1})`;
+                break;
+            }
+            const file = doc.pendingFile;
+            const attachName = (doc.attachment || '').split('?')[0].split('#')[0];
+            const checkName = file?.name || attachName;
+            const ext = checkName ? `.${checkName.split('.').pop()?.toLowerCase()}` : '';
+            if (FORBIDDEN_DOC_EXTS.includes(ext) || file?.type?.startsWith('audio/') || file?.type?.startsWith('video/') || file?.type === 'image/gif') {
+                if (Object.keys(errors).length === 0) errorTab = 2;
+                errors.documents = `Audio, video, and GIF files are not allowed in Documents (Row ${i + 1}: ${checkName})`;
                 break;
             }
         }
@@ -1472,6 +1528,23 @@ export function EmployeeView() {
                 if (lineChanged) {
                     if (!newLine) {
                         dataToSave.line_order = null;
+                        try {
+                            const activeLineAssignments: any = await fetchFrappeList('Employee Line Roster', {
+                                page: 1,
+                                page_size: 20,
+                                filters: [
+                                    ['employee', '=', targetId],
+                                    ['status', '=', 'Active'],
+                                ],
+                                fields: ['name'],
+                            });
+                            for (const assignment of activeLineAssignments?.data || []) {
+                                await deleteOrCancelLineRosterAssignment(assignment.name, 'Line order cleared via Edit Employee', true);
+                            }
+                            setEmployeeLineHistory((prev) => prev.map((item) => item.status === 'Active' ? { ...item, status: 'Cancelled' } : item));
+                        } catch (lineCancelErr) {
+                            console.error('Failed to cancel active line roster assignments:', lineCancelErr);
+                        }
                     } else {
                         setPendingEmployeeData(dataToSave);
                         setOpenLineChangeConfirm(true);
@@ -1594,6 +1667,11 @@ export function EmployeeView() {
                 ['uan', 'uan_number'],
                 ['esi', 'esi_no'],
                 ['pf number', 'pf_number'],
+                ['bank account', 'bank_account'],
+                ['user login', 'user'],
+                ['user', 'user'],
+                ['bus route point', 'bus_route_point'],
+                ['document', 'documents'],
                 ['personal phone', 'phone'],
                 ['office phone', 'office_phone_number'],
                 ['personal email', 'personal_email'],
@@ -1607,7 +1685,11 @@ export function EmployeeView() {
             const matched = fieldErrorMatchers.find(([needle]) => lower.includes(needle));
             if (matched) {
                 setFormErrors((prev) => ({ ...prev, [matched[1]]: msg }));
-                focusValidationField(matched[1], 0);
+                if (matched[1] === 'documents') {
+                    setCurrentTab(2);
+                } else {
+                    focusValidationField(matched[1], 0);
+                }
             } else if (lower.includes('duplicate entry')) {
                 setCurrentTab(0);
             }
@@ -1752,6 +1834,26 @@ export function EmployeeView() {
                     ? { line_order: originalEmployeeLine }
                     : (newLine !== defaultLine && !newLine ? { line_order: null } : {})),
             };
+
+            if (newLine !== defaultLine && !newLine) {
+                try {
+                    const activeLineAssignments: any = await fetchFrappeList('Employee Line Roster', {
+                        page: 1,
+                        page_size: 20,
+                        filters: [
+                            ['employee', '=', currentEmployeeId],
+                            ['status', '=', 'Active'],
+                        ],
+                        fields: ['name'],
+                    });
+                    for (const assignment of activeLineAssignments?.data || []) {
+                        await deleteOrCancelLineRosterAssignment(assignment.name, 'Line order cleared via Edit Employee', true);
+                    }
+                    setEmployeeLineHistory((prev) => prev.map((item) => item.status === 'Active' ? { ...item, status: 'Cancelled' } : item));
+                } catch (lineCancelErr) {
+                    console.error('Failed to cancel active line roster assignments on shift confirm:', lineCancelErr);
+                }
+            }
 
             if (employeeData._faceBiometricsPendingClear) {
                 try {
@@ -1939,6 +2041,28 @@ export function EmployeeView() {
                     loadBankAccounts('');
                 }
 
+                if (cleanedRow.department) {
+                    setFieldOptions(prev => {
+                        const existing = prev['department'] || [];
+                        const hasDept = existing.some((d: any) => (typeof d === 'string' ? d : (d.department_name || d.name)) === cleanedRow.department);
+                        if (!hasDept) {
+                            return { ...prev, department: [{ name: cleanedRow.department, department_name: cleanedRow.department }, ...existing] };
+                        }
+                        return prev;
+                    });
+                }
+
+                if (cleanedRow.designation) {
+                    setFieldOptions(prev => {
+                        const existing = prev['designation'] || [];
+                        const hasDesig = existing.some((d: any) => (typeof d === 'string' ? d : (d.designation_name || d.name)) === cleanedRow.designation);
+                        if (!hasDesig) {
+                            return { ...prev, designation: [{ name: cleanedRow.designation, designation_name: cleanedRow.designation }, ...existing] };
+                        }
+                        return prev;
+                    });
+                }
+
                 // Fetch states if country exists
                 if (cleanedRow.country) {
                     const states = await getStates(cleanedRow.country);
@@ -2047,6 +2171,25 @@ export function EmployeeView() {
                         } else {
                             const value = typeof newValue === 'object' && newValue?.name ? newValue.name : newValue;
                             handleInputChange(fieldname, value || '');
+                            if (value) {
+                                checkEmployeeFieldAvailable('bank_account', value, currentEmployeeId).then((check) => {
+                                    if (!check.valid || !check.available) {
+                                        setFormErrors((prev) => ({ ...prev, bank_account: check.message }));
+                                    } else {
+                                        setFormErrors((prev) => {
+                                            const next = { ...prev };
+                                            delete next.bank_account;
+                                            return next;
+                                        });
+                                    }
+                                });
+                            } else {
+                                setFormErrors((prev) => {
+                                    const next = { ...prev };
+                                    delete next.bank_account;
+                                    return next;
+                                });
+                            }
                         }
                     }}
                     onInputChange={(event, newInputValue, reason) => {
@@ -2186,6 +2329,13 @@ export function EmployeeView() {
                     onChange={(event, newValue: any) => {
                         const val = typeof newValue === 'object' && newValue ? (newValue.point_name || newValue.name || '') : (newValue || '');
                         handleInputChange(fieldname, val);
+                        if (val) {
+                            setFormErrors((prev) => {
+                                const next = { ...prev };
+                                delete next.bus_route_point;
+                                return next;
+                            });
+                        }
                     }}
                     getOptionLabel={(option: any) => {
                         if (typeof option === 'string') return option;
@@ -2248,6 +2398,30 @@ export function EmployeeView() {
                     onChange={(event, newValue: any) => {
                         const value = typeof newValue === 'object' && newValue ? (newValue.name || newValue.email || '') : (newValue || '');
                         handleInputChange('user', value || '');
+                        if (value) {
+                            checkEmployeeFieldAvailable('user', value, currentEmployeeId).then((check) => {
+                                if (!check.valid || !check.available) {
+                                    setFormErrors((prev) => ({ ...prev, user: check.message }));
+                                } else {
+                                    setFormErrors((prev) => {
+                                        const next = { ...prev };
+                                        delete next.user;
+                                        return next;
+                                    });
+                                }
+                            });
+                        } else {
+                            setFormErrors((prev) => {
+                                const next = { ...prev };
+                                delete next.user;
+                                return next;
+                            });
+                        }
+                    }}
+                    getOptionDisabled={(option: any) => {
+                        const optUser = typeof option === 'object' ? (option.name || option.email) : option;
+                        const mapping = userEmployeeMap[optUser];
+                        return Boolean(mapping && mapping.employeeId !== currentEmployeeId);
                     }}
                     getOptionLabel={(option) => {
                         if (typeof option === 'string') return option;
@@ -2293,6 +2467,10 @@ export function EmployeeView() {
                             }
                         }
 
+                        const optKey = typeof option === 'object' ? (option.name || option.email) : option;
+                        const mapping = userEmployeeMap[optKey];
+                        const isAssignedOther = Boolean(mapping && mapping.employeeId !== currentEmployeeId);
+
                         return (
                             <Box component="li" key={key || email} {...optionProps}>
                                 <Stack spacing={0.5} sx={{ width: '100%', py: 0.5 }}>
@@ -2314,6 +2492,11 @@ export function EmployeeView() {
                                     <Typography variant="caption" sx={{ color: 'primary.main', display: 'block', fontSize: '13px' }}>
                                         {rolesDisplay}
                                     </Typography>
+                                    {isAssignedOther && (
+                                        <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600, display: 'block' }}>
+                                            Already assigned to {mapping.employeeName} ({mapping.employeeId})
+                                        </Typography>
+                                    )}
                                 </Stack>
                             </Box>
                         );
@@ -3578,10 +3761,29 @@ export function EmployeeView() {
                                         <Box component="label" sx={{ display: 'flex', alignItems: 'center', width: '100%', cursor: 'pointer' }}>
                                             <input
                                                 type="file"
+                                                accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png"
                                                 hidden
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0];
                                                     if (file) {
+                                                        const FORBIDDEN_DOC_EXTS = ['.mp3', '.wav', '.aac', '.m4a', '.ogg', '.wma', '.flac', '.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv', '.webm', '.gif'];
+                                                        const fileExt = file.name ? `.${file.name.split('.').pop()?.toLowerCase()}` : '';
+                                                        const isForbidden =
+                                                            FORBIDDEN_DOC_EXTS.includes(fileExt) ||
+                                                            file.type.startsWith('audio/') ||
+                                                            file.type.startsWith('video/') ||
+                                                            file.type === 'image/gif';
+
+                                                        if (isForbidden) {
+                                                            setSnackbar({
+                                                                open: true,
+                                                                message: 'Audio, video, and GIF files are not allowed. Please upload documents (PDF, Word, Excel) or images (JPG, PNG).',
+                                                                severity: 'error',
+                                                            });
+                                                            e.target.value = '';
+                                                            return;
+                                                        }
+
                                                         handleDocumentRowChange(index, 'pendingFile', file);
                                                         if (!row.title) {
                                                             handleDocumentRowChange(index, 'title', file.name.split('.')[0]);
@@ -3753,7 +3955,7 @@ export function EmployeeView() {
                         setPage(0);
                     }}
                     onDelete={handleBulkDelete}
-                    searchPlaceholder="Search employees by name, ID, department..."
+                    searchPlaceholder="Search employees by name, Employee ID..."
                     sortOptions={sortOptions}
                     sortBy={getSortByValue()}
                     onSortChange={handleSortChange}
@@ -4000,11 +4202,11 @@ export function EmployeeView() {
                                             {renderField('line_order', 'Line Order', 'link', fieldOptions['line_order'] || [])}
                                             {renderField('shift', 'Shift', 'link', fieldOptions['shift'] || [])}
                                             {renderField('bus_travel_route', 'Bus - Travel Route', 'link', fieldOptions['bus_travel_route'] || [])}
-                                            {formData.bus_travel_route && renderField('bus_route_point', 'Bus Route Point', 'autocomplete', busRoutePoints)}
+                                            {formData.bus_travel_route && renderField('bus_route_point', 'Bus Route Point', 'autocomplete', busRoutePoints, {}, true)}
                                             {renderField('date_of_joining', 'Joining Date', 'date', [], {}, true)}
                                             {renderField('user', 'User Login (Email)', 'autocomplete', fieldOptions['user'] || [], {}, false)}
                                             {renderField('status', 'Status', 'select', ['Active', 'Inactive'], {}, true)}
-                                            {formData.status === 'Inactive' && renderField('date_of_leaving', 'Date of Leaving (DOL)', 'date', [], {}, false)}
+                                            {formData.status === 'Inactive' && renderField('date_of_leaving', 'Date of Leaving (DOL)', 'date', [], {}, true)}
                                             {renderField('skip_probation', 'Skip Probation', 'checkbox')}
                                         </Box>
                                     </>
@@ -4448,14 +4650,20 @@ export function EmployeeView() {
             <DepartmentCreateDialog
                 open={openDepartmentCreate}
                 onClose={() => setOpenDepartmentCreate(false)}
-                onCreate={(newDepartment) => {
-                    // Optimistically add to options and set value
-                    setFieldOptions(prev => ({
-                        ...prev,
-                        department: [...(prev['department'] || []), { name: newDepartment }]
-                    }));
+                onCreate={async (newDepartment) => {
                     // Update form data
                     handleInputChange('department', newDepartment);
+
+                    // Re-fetch Department options from backend filtered by Active status
+                    try {
+                        const freshOptions = await getDoctypeList('Department', ['name', 'department_name', 'status'], { status: 'Active' });
+                        setFieldOptions(prev => ({
+                            ...prev,
+                            department: freshOptions
+                        }));
+                    } catch (err) {
+                        console.error('Failed to re-fetch department options:', err);
+                    }
 
                     setSnackbar({ open: true, message: 'Department created successfully', severity: 'success' });
                 }}
@@ -4549,9 +4757,9 @@ export function EmployeeView() {
                     // Update form data with newly created designation
                     handleInputChange('designation', newDesignation);
 
-                    // Re-fetch Designation options from backend
+                    // Re-fetch Designation options from backend filtered by Active status
                     try {
-                        const freshOptions = await getDoctypeList('Designation', ['name', 'designation_name']);
+                        const freshOptions = await getDoctypeList('Designation', ['name', 'designation_name', 'status'], { status: 'Active' });
                         setFieldOptions(prev => ({
                             ...prev,
                             designation: freshOptions
@@ -4721,6 +4929,17 @@ export function EmployeeView() {
 
                     if (accountName) {
                         handleInputChange('bank_account', accountName);
+                        checkEmployeeFieldAvailable('bank_account', accountName, currentEmployeeId).then((check) => {
+                            if (!check.valid || !check.available) {
+                                setFormErrors((prev) => ({ ...prev, bank_account: check.message }));
+                            } else {
+                                setFormErrors((prev) => {
+                                    const next = { ...prev };
+                                    delete next.bank_account;
+                                    return next;
+                                });
+                            }
+                        });
                     }
 
                     setSnackbar({ open: true, message: 'Bank Account created successfully', severity: 'success' });

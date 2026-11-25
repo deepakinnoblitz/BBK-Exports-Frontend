@@ -1,5 +1,13 @@
 import dayjs from 'dayjs';
 import { useMemo, useState, useEffect, useCallback } from 'react';
+import {
+    FaFileAlt,
+    FaFilePdf,
+    FaFileWord,
+    FaFileImage,
+    FaFileExcel,
+    FaExternalLinkAlt
+} from 'react-icons/fa';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -9,9 +17,10 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Switch from '@mui/material/Switch';
+import Divider from '@mui/material/Divider';
 import Snackbar from '@mui/material/Snackbar';
 import TableRow from '@mui/material/TableRow';
-import TableCell from '@mui/material/TableCell'
+import TableCell from '@mui/material/TableCell';
 import TableBody from '@mui/material/TableBody';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -34,8 +43,10 @@ import { useSocket } from 'src/hooks/use-socket';
 import { useReimbursementClaims } from 'src/hooks/useReimbursementClaims';
 
 import { frappeRequest } from 'src/utils/csrf';
+import { fCurrency } from 'src/utils/format-number';
 import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
+import { COMMON_COLORS } from 'src/theme';
 import { fetchEmployees } from 'src/api/employees';
 import { markAsRead } from 'src/api/unread-counts';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -49,6 +60,7 @@ import {
     applyReimbursementClaimWorkflowAction
 } from 'src/api/reimbursement-claims';
 
+import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
@@ -90,6 +102,83 @@ const Android12Switch = styled(Switch)(({ theme }) => ({
         margin: 2,
     },
 }));
+
+const renderCurrency = (amount: any, symbolFontSize: string = '15px') => {
+    const formatted = fCurrency(amount);
+    if (!formatted) return '—';
+    const index = formatted.indexOf('₹');
+    if (index !== -1) {
+        return (
+            <>
+                {formatted.substring(0, index)}
+                <span style={{ fontFamily: 'Arial', fontSize: symbolFontSize, display: 'inline-block', verticalAlign: 'baseline', lineHeight: 'normal' }}>₹</span>{' '}
+                {formatted.substring(index + 1)}
+            </>
+        );
+    }
+    return formatted;
+};
+
+function getFileIcon(url: string) {
+    const ext = url.split('.').pop()?.toLowerCase() || '';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+        return <FaFileImage size={20} />;
+    }
+    if (ext === 'pdf') {
+        return <FaFilePdf size={20} />;
+    }
+    if (['xls', 'xlsx'].includes(ext)) {
+        return <FaFileExcel size={20} />;
+    }
+    if (['doc', 'docx'].includes(ext)) {
+        return <FaFileWord size={20} />;
+    }
+    return <FaFileAlt size={20} />;
+}
+
+function SectionHeader({ title, icon }: { title: string; icon?: string }) {
+    return (
+        <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                {icon && <Iconify icon={icon as any} width={20} sx={{ mr: 1, color: 'text.secondary' }} />}
+                <Typography variant="subtitle2" sx={{ color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.25, fontWeight: 700, fontSize: '13px' }}>
+                    {title}
+                </Typography>
+            </Box>
+            <Divider sx={{ mb: 2 }} />
+        </Box>
+    );
+}
+
+function DetailItem({ label, value, icon }: { label: string; value: React.ReactNode; icon: string }) {
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+            <Box
+                sx={{
+                    p: 1.3,
+                    mr: 2,
+                    borderRadius: 1,
+                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                    color: COMMON_COLORS.emerald.main,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                }}
+            >
+                <Iconify icon={icon as any} width={18} />
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                    {label}
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {value || '-'}
+                </Typography>
+            </Box>
+        </Box>
+    );
+}
 
 // ----------------------------------------------------------------------
 
@@ -367,7 +456,7 @@ export function ReimbursementClaimsView() {
     };
 
 
-    const isApprovedOrPaid = isEdit && currentClaim && (currentClaim.workflow_state === 'Approved' || currentClaim.workflow_state === 'Paid');
+    const isApprovedOrPaid = isEdit && currentClaim && (currentClaim.workflow_state === 'Approved' || currentClaim.workflow_state === 'Paid' || currentClaim.paid === 1);
 
     const validateForm = () => {
         const errors: Record<string, string> = {};
@@ -378,8 +467,35 @@ export function ReimbursementClaimsView() {
         if (!isApprovedOrPaid && !receipt && !receiptFile) {
             errors.receipt = 'Receipt is required';
         }
-        if (paid && !paidDate) {
-            errors.paid_date = 'Paid Date is required';
+        if (receiptFile) {
+            const fileNameLower = (receiptFile.name || '').toLowerCase();
+            const isVideo = receiptFile.type?.toLowerCase().startsWith('video/') || [
+                '.mp4', '.webm', '.mkv', '.mov', '.avi', '.flv', '.wmv', '.m4v', '.3gp', '.ogg', '.ogv', '.ts'
+            ].some((ext) => fileNameLower.endsWith(ext));
+
+            if (isVideo) {
+                errors.receipt = 'Video files are not allowed for receipt. Please upload an image or document (PDF, PNG, JPG, JPEG).';
+            } else if (receiptFile.size > 5 * 1024 * 1024) {
+                errors.receipt = 'File size exceeds 5MB limit. Please upload a file smaller than 5MB.';
+            }
+        } else if (receipt) {
+            const urlLower = receipt.split('?')[0].toLowerCase();
+            const isVideo = ['.mp4', '.webm', '.mkv', '.mov', '.avi', '.flv', '.wmv', '.m4v', '.3gp', '.ogg', '.ogv', '.ts'].some((ext) => urlLower.endsWith(ext));
+            if (isVideo) {
+                errors.receipt = 'Video files are not allowed for receipt. Please upload an image or document (PDF, PNG, JPG, JPEG).';
+            }
+        }
+        if (paid) {
+            if (!paidDate) {
+                errors.paid_date = 'Paid Date is required';
+            } else {
+                const minAllowedDate = dateOfExpense && dayjs(dateOfExpense).isValid()
+                    ? dayjs(dateOfExpense).startOf('day')
+                    : dayjs().startOf('day');
+                if (dayjs(paidDate).startOf('day').isBefore(minAllowedDate)) {
+                    errors.paid_date = `Paid Date cannot be before Date of Expense (${dayjs(minAllowedDate).format('DD-MM-YYYY')})`;
+                }
+            }
         }
 
         setFormErrors(errors);
@@ -396,8 +512,29 @@ export function ReimbursementClaimsView() {
             if (!isApprovedOrPaid && !receipt && !receiptFile) {
                 errors.receipt = 'Receipt';
             }
-            if (paid && !paidDate) {
-                errors.paid_date = 'Paid Date';
+            if (paid) {
+                if (!paidDate) {
+                    errors.paid_date = 'Paid Date';
+                } else {
+                    const minAllowedDate = dateOfExpense && dayjs(dateOfExpense).isValid()
+                        ? dayjs(dateOfExpense).startOf('day')
+                        : dayjs().startOf('day');
+                    if (dayjs(paidDate).startOf('day').isBefore(minAllowedDate)) {
+                        errors.paid_date = `Paid Date (cannot be before ${dayjs(minAllowedDate).format('DD-MM-YYYY')})`;
+                    }
+                }
+            }
+
+            const minAllowedDate = dateOfExpense && dayjs(dateOfExpense).isValid()
+                ? dayjs(dateOfExpense).startOf('day')
+                : dayjs().startOf('day');
+            if (paid && paidDate && dayjs(paidDate).startOf('day').isBefore(minAllowedDate)) {
+                setSnackbar({
+                    open: true,
+                    message: `Paid Date cannot be before Date of Expense (${dayjs(minAllowedDate).format('DD-MM-YYYY')})`,
+                    severity: 'error'
+                });
+                return;
             }
 
             const missingFields = Object.values(errors).join(', ');
@@ -411,18 +548,20 @@ export function ReimbursementClaimsView() {
 
         // For approved/paid claims, only send settlement details
         if (isApprovedOrPaid) {
-            const settlementData = {
-                payment_reference: paymentReference,
-                paid_date: paidDate || undefined,
-                paid: paid ? 1 : 0,
-                approved_by: approvedBy,
-                paid_by: paidBy,
-                approver_comments: approverComments
-            };
+            const updatePayload: any = {};
+
+            if (user?.roles.some(r => ['System Manager', 'HR', 'HR User', 'HR Manager', 'Accounts Manager'].includes(r))) {
+                if (paymentReference !== undefined) updatePayload.payment_reference = paymentReference;
+                if (paidDate) updatePayload.paid_date = paidDate;
+                updatePayload.paid = paid ? 1 : 0;
+                if (approvedBy) updatePayload.approved_by = approvedBy;
+                if (paidBy) updatePayload.paid_by = paidBy;
+                if (approverComments) updatePayload.approver_comments = approverComments;
+            }
 
             try {
                 setSubmitting(true);
-                await updateReimbursementClaim(currentClaim.name, settlementData);
+                await updateReimbursementClaim(currentClaim.name, updatePayload);
 
                 const wasAlreadyPaid = currentClaim?.paid === 1 || currentClaim?.workflow_state === 'Paid';
                 const isPaidToggledOn = paid && !wasAlreadyPaid;
@@ -430,7 +569,12 @@ export function ReimbursementClaimsView() {
                 if (currentClaim.workflow_state === 'Approved' && isPaidToggledOn) {
                     setPendingPayClaim(currentClaim);
                     if (!paymentReference) setPaymentReference('');
-                    if (!paidDate) setPaidDate(dayjs().format('YYYY-MM-DD'));
+                    if (!paidDate) {
+                        const defaultDate = dateOfExpense && dayjs(dateOfExpense).isAfter(dayjs())
+                            ? dateOfExpense
+                            : dayjs().format('YYYY-MM-DD');
+                        setPaidDate(defaultDate);
+                    }
                     setConfirmMarkPaidOpen(true);
                 }
 
@@ -717,13 +861,23 @@ export function ReimbursementClaimsView() {
 
         if (fieldname === 'date_of_expense' || fieldname === 'paid_date') {
             const dateValue = fieldname === 'date_of_expense' ? (dateOfExpense ? dayjs(dateOfExpense) : null) : (paidDate ? dayjs(paidDate) : null);
+            const isFieldDisabled = Boolean(extraProps.disabled);
+            const isFieldReadOnly = Boolean(extraProps.readOnly || extraProps.inputProps?.readOnly);
+
             return (
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <DatePicker
                         label={label}
                         value={dateValue}
                         format="DD-MM-YYYY"
+                        disabled={isFieldDisabled}
+                        readOnly={isFieldReadOnly}
+                        minDate={extraProps.minDate}
+                        maxDate={extraProps.maxDate}
+                        disablePast={extraProps.disablePast}
+                        shouldDisableDate={extraProps.shouldDisableDate}
                         onChange={(newValue) => {
+                            if (isFieldDisabled || isFieldReadOnly) return;
                             const val = newValue && dayjs(newValue).isValid() ? dayjs(newValue).format('YYYY-MM-DD') : '';
                             if (fieldname === 'date_of_expense') {
                                 setDateOfExpense(val);
@@ -737,13 +891,35 @@ export function ReimbursementClaimsView() {
                             textField: {
                                 fullWidth: true,
                                 required,
+                                disabled: isFieldDisabled,
                                 error: !!formErrors[fieldname === 'date_of_expense' ? 'dateOfExpense' : fieldname],
                                 helperText: formErrors[fieldname === 'date_of_expense' ? 'dateOfExpense' : fieldname],
                                 InputLabelProps: { shrink: true },
+                                inputProps: {
+                                    ...extraProps.inputProps,
+                                    readOnly: isFieldReadOnly,
+                                },
                                 sx: {
                                     '& .MuiFormLabel-asterisk': {
                                         color: 'red',
                                     },
+                                    '& .MuiInputBase-input.Mui-disabled': {
+                                        WebkitTextFillColor: 'unset',
+                                        color: 'text.primary',
+                                        opacity: 1,
+                                        pointerEvents: 'none',
+                                    },
+                                    '& .MuiInputLabel-root.Mui-disabled': {
+                                        color: 'text.secondary',
+                                    },
+                                    '& .MuiOutlinedInput-root.Mui-disabled .MuiOutlinedInput-notchedOutline': {
+                                        borderColor: 'rgba(0, 0, 0, 0.23)',
+                                    },
+                                    '& .MuiInputBase-input[readonly]': {
+                                        cursor: 'default',
+                                        pointerEvents: 'none',
+                                    },
+                                    ...extraProps.sx,
                                 },
                             },
                         }}
@@ -851,10 +1027,11 @@ export function ReimbursementClaimsView() {
                                                 onEdit={() => handleEditRow(row)}
                                                 onDelete={() => handleDeleteRow(row.name)}
                                                 onApplyAction={(action) => handleApplyAction(row.name, action)}
-                                                canEdit={permissions.write && canEditClaim && (
+                                                canEdit={permissions.write && canEditClaim && row.workflow_state !== 'Rejected' && (
                                                     (isHR && row.employee !== user?.employee) ||
                                                     (row.workflow_state === 'Clarification Requested') ||
-                                                    (row.workflow_state === 'Submitted' && row.employee === user?.employee)
+                                                    (row.workflow_state === 'Submitted' && row.employee === user?.employee) ||
+                                                    (row.workflow_state === 'Paid' || row.paid === 1)
                                                 )}
                                                 canDelete={permissions.delete && canDeleteClaim}
                                                 isHR={isHR}
@@ -935,198 +1112,395 @@ export function ReimbursementClaimsView() {
                 </DialogTitle>
 
                 <DialogContent dividers sx={{ flexGrow: 1, overflowY: 'auto', p: 3 }}>
-                    <Box sx={{ display: 'grid', gap: 3, p: 2 }}>
-                        <Autocomplete
-                            fullWidth
-                            options={employees}
-                            filterOptions={filterEmployeeOptions}
-                            getOptionLabel={(option) => option.employee_name || option.name || option.employee_id || ''}
-                            value={employees.find((emp) => emp.name === employee) || null}
-                            disabled={isEdit || !isHR}
-                            onChange={(event, newValue) => {
-                                setEmployee(newValue?.name || '');
-                                if (formErrors.employee) {
-                                    setFormErrors((prev) => ({ ...prev, employee: '' }));
-                                }
-                            }}
-                            renderOption={(props, option) => {
-                                const { key, ...optionProps } = props as any;
-                                return (
-                                    <li key={key} {...optionProps}>
-                                        <Stack spacing={0.5}>
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                {option.employee_name || option.name}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                                                ID: {option.name || option.employee_id}
-                                            </Typography>
-                                        </Stack>
-                                    </li>
-                                );
-                            }}
-                            renderInput={(params) => (
-                                <TextField
-                                    {...params}
-                                    label="Employee"
-                                    required
-                                    error={!!formErrors.employee}
-                                    helperText={formErrors.employee}
-                                    InputLabelProps={{ shrink: true }}
-                                    sx={{
-                                        '& .MuiFormLabel-asterisk': {
-                                            color: 'red',
-                                        },
-                                        '& .MuiInputBase-input.Mui-disabled': {
-                                            WebkitTextFillColor: 'unset',
-                                            color: 'text.primary',
-                                            opacity: 1,
-                                            pointerEvents: 'none',
-                                        },
-                                        '& .MuiInputLabel-root.Mui-disabled': {
-                                            color: 'text.secondary',
-                                        },
-                                        '& .MuiOutlinedInput-root.Mui-disabled .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: 'rgba(0, 0, 0, 0.23)',
-                                        },
-                                    }}
-                                />
-                            )}
-                        />
-                        <Autocomplete
-                            fullWidth
-                            options={claimTypes}
-                            getOptionLabel={(option) => option.name || ''}
-                            value={claimTypes.find((item) => item.name === claimType) || null}
-                            disabled={isApprovedOrPaid}
-                            onChange={(event, newValue) => {
-                                setClaimType(newValue?.name || '');
-
-                                if (formErrors.claim_type) {
-                                    setFormErrors((prev) => ({
-                                        ...prev,
-                                        claim_type: '',
-                                    }));
-                                }
-                            }}
-                            renderOption={(props, option) => {
-                                const { key, ...optionProps } = props as any;
-
-                                return (
-                                    <li key={key} {...optionProps}>
-                                        <Typography variant="body2">
-                                            {option.name}
-                                        </Typography>
-                                    </li>
-                                );
-                            }}
-                            renderInput={(params) => (
-                                <TextField
-                                    {...params}
-                                    label="Claim Type"
-                                    required
-                                    error={!!formErrors.claim_type}
-                                    helperText={formErrors.claim_type}
-                                    InputLabelProps={{ shrink: true }}
-                                    sx={{
-                                        '& .MuiFormLabel-asterisk': {
-                                            color: 'red',
-                                        },
-                                        '& .MuiInputBase-input.Mui-disabled': {
-                                            WebkitTextFillColor: 'unset',
-                                            color: 'text.primary',
-                                            opacity: 1,
-                                            pointerEvents: 'none',
-                                        },
-                                        '& .MuiInputLabel-root.Mui-disabled': {
-                                            color: 'text.secondary',
-                                        },
-                                        '& .MuiOutlinedInput-root.Mui-disabled .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: 'rgba(0,0,0,0.23)',
-                                        },
-                                    }}
-                                />
-                            )}
-                        />
-                        {renderField('date_of_expense', 'Date of Expense', 'date', [], { inputProps: { readOnly: isApprovedOrPaid }, disabled: isApprovedOrPaid }, true)}
-                        {renderField('amount', 'Amount', 'number', [], { placeholder: 'Enter amount', inputProps: { step: '0.01', min: '0' }, disabled: isApprovedOrPaid }, true)}
-                        {renderField('claim_details', 'Claim Details', 'textarea', [], { placeholder: 'Enter claim details', disabled: isApprovedOrPaid })}
-
-                        <Box
-                            sx={{
-                                p: 3,
-                                borderRadius: 2,
-                                bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04),
-                                border: (theme) => `1px dashed ${formErrors.receipt ? theme.palette.error.main : alpha(theme.palette.grey[500], 0.2)}`,
-                            }}
-                        >
-                            <Stack
-                                direction={{ xs: 'column', sm: 'row' }}
-                                alignItems={{ xs: 'flex-start', sm: 'center' }}
-                                justifyContent="space-between"
-                                spacing={2}
-                                sx={{ mb: 2.5 }}
+                    {isApprovedOrPaid ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            {/* Header card same like Details View */}
+                            <Box
+                                sx={{
+                                    p: 2.5,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.04),
+                                    borderRadius: 2,
+                                    border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.12)}`,
+                                }}
                             >
-                                <Typography variant="h6">
-                                    Receipt{' '}
-                                    <Box component="span" sx={{ color: 'red' }}>
-                                        *
-                                    </Box>
-                                </Typography>
-
-                                <Button
-                                    variant="contained"
-                                    component="label"
-                                    color="primary"
-                                    size="small"
-                                    startIcon={<Iconify icon="solar:upload-bold" />}
-                                    disabled={isApprovedOrPaid}
-                                    sx={{ minWidth: { xs: 1, sm: 'auto' } }}
+                                <Box
+                                    sx={{
+                                        width: 56,
+                                        height: 56,
+                                        borderRadius: 2,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        bgcolor: alpha(COMMON_COLORS.emerald.main, 0.12),
+                                        color: COMMON_COLORS.emerald.main,
+                                        mr: 2.5,
+                                        flexShrink: 0,
+                                    }}
                                 >
-                                    Upload File
-                                    <input
-                                        type="file"
-                                        hidden
-                                        disabled={isApprovedOrPaid}
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (!file) return;
-                                            setReceiptFileError('');
-                                            if (file.size > 10 * 1024 * 1024) {
-                                                setReceiptFileError('File size exceeds 10MB limit.');
-                                                return;
-                                            }
-                                            setReceiptFile(file);
-                                            setReceipt('');
-                                            if (formErrors.receipt) {
-                                                setFormErrors(prev => ({ ...prev, receipt: '' }));
-                                            }
-                                        }}
-                                    />
-                                </Button>
-                            </Stack>
+                                    <Iconify icon={"solar:wallet-money-bold-duotone" as any} width={28} />
+                                </Box>
 
-                            <Stack spacing={1}>
-                                {!receipt && !receiptFile ? (
-                                    <Stack alignItems="center" justifyContent="center" sx={{ py: 3, color: 'text.disabled' }}>
-                                        <Iconify icon="solar:file-bold" width={40} height={40} sx={{ mb: 1, opacity: 0.48 }} />
-                                        <Typography variant="body2">No file attached</Typography>
-                                    </Stack>
-                                ) : (
+                                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                    <Typography variant="h6" noWrap>{currentClaim?.employee_name || currentClaim?.employee || employee}</Typography>
+                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                        {currentClaim?.claim_type || claimType} • {dayjs(currentClaim?.date_of_expense || dateOfExpense).format('DD/MM/YYYY')}
+                                    </Typography>
+                                </Box>
+
+                                <Stack spacing={0.5} alignItems="flex-end" sx={{ flexShrink: 0, ml: 2 }}>
+                                    <Typography variant="h6" sx={{ color: COMMON_COLORS.emerald.main, fontWeight: 700 }}>
+                                        {renderCurrency(currentClaim?.amount || amount, '18px')}
+                                    </Typography>
+                                    <Label
+                                        variant="soft"
+                                        color={
+                                            currentClaim?.paid === 1 || ['Approved', 'Paid'].includes(currentClaim?.workflow_state)
+                                                ? 'success'
+                                                : (['Rejected', 'Cancelled'].includes(currentClaim?.workflow_state) ? 'error' : 'warning')
+                                        }
+                                    >
+                                        {currentClaim?.workflow_state || (currentClaim?.paid === 1 ? 'Paid' : 'Pending')}
+                                    </Label>
+                                </Stack>
+                            </Box>
+
+                            {/* Claim Information */}
+                            <Box>
+                                <SectionHeader title="Claim Information" />
+                                <Box
+                                    sx={{
+                                        display: 'grid',
+                                        gap: 3,
+                                        gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)' },
+                                    }}
+                                >
+                                    <DetailItem label="Employee" value={currentClaim?.employee_name || currentClaim?.employee || employee} icon="solar:user-bold" />
+                                    <DetailItem label="Claim Type" value={currentClaim?.claim_type || claimType} icon="solar:tag-bold" />
+                                    <DetailItem label="Date of Expense" value={dayjs(currentClaim?.date_of_expense || dateOfExpense).format('DD/MM/YYYY')} icon="solar:calendar-bold" />
+                                    <DetailItem label="Amount" value={renderCurrency(currentClaim?.amount || amount)} icon="solar:wad-of-money-bold" />
+
+                                </Box>
+                            </Box>
+
+                            {/* Claim Details / Notes */}
+                            {Boolean(currentClaim?.claim_details || claimDetails) && (
+                                <Box>
+                                    <SectionHeader title="Claim Details" />
+                                    <Box
+                                        sx={{
+                                            p: 2.5,
+                                            bgcolor: alpha(COMMON_COLORS.emerald.main, 0.04),
+                                            borderRadius: 2,
+                                            border: `1px solid ${alpha(COMMON_COLORS.emerald.main, 0.12)}`,
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{ fontWeight: 500, whiteSpace: 'pre-wrap' }}>
+                                            {currentClaim?.claim_details || claimDetails}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            )}
+
+                            {/* Attachment */}
+                            {Boolean(currentClaim?.receipt || receipt) && (
+                                <Box>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', mb: 1.5, display: 'block', fontSize: '13px', letterSpacing: 0.25 }}>
+                                        ATTACHMENT
+                                    </Typography>
+                                    <Divider sx={{ mb: 2 }} />
                                     <Stack
                                         direction="row"
                                         alignItems="center"
+                                        justifyContent="space-between"
                                         sx={{
-                                            px: 1.5,
-                                            py: 0.75,
+                                            p: 2,
                                             borderRadius: 1.5,
-                                            bgcolor: (theme) => alpha(theme.palette.grey[500], 0.08),
+                                            border: (themeVar) => `1px solid ${alpha(themeVar.palette.grey[500], 0.2)}`,
+                                            bgcolor: (themeVar) => alpha(themeVar.palette.grey[500], 0.02),
                                         }}
                                     >
-                                        <Iconify icon="solar:link-bold" width={20} sx={{ mr: 1, color: 'text.secondary', flexShrink: 0 }} />
-                                        <Typography variant="body2" noWrap sx={{ flexGrow: 1, fontWeight: 'fontWeightMedium' }}>
-                                            {receiptFile ? receiptFile.name : (receipt.split('/').pop() || receipt)}
+                                        <Stack direction="row" alignItems="center" spacing={2} sx={{ minWidth: 0, flexGrow: 1, mr: 2 }}>
+                                            <Box
+                                                sx={{
+                                                    width: 40,
+                                                    height: 40,
+                                                    borderRadius: 1,
+                                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                                    color: COMMON_COLORS.emerald.main,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                {getFileIcon(currentClaim?.receipt || receipt)}
+                                            </Box>
+                                            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600, color: 'text.primary' }}>
+                                                {decodeURIComponent((currentClaim?.receipt || receipt).split('/').pop()?.split('?')[0] || 'Expense Receipt')}
+                                            </Typography>
+                                        </Stack>
+                                        <Button
+                                            href={currentClaim?.receipt || receipt}
+                                            target="_blank"
+                                            variant="text"
+                                            endIcon={<FaExternalLinkAlt size={14} />}
+                                            sx={{
+                                                color: COMMON_COLORS.emerald.main,
+                                                fontWeight: 700,
+                                                textTransform: 'none',
+                                                fontSize: '0.875rem',
+                                                flexShrink: 0,
+                                                '&:hover': {
+                                                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                                                }
+                                            }}
+                                        >
+                                            View Attachment
+                                        </Button>
+                                    </Stack>
+                                </Box>
+                            )}
+
+                            {/* Settlement Details */}
+                            {isEdit && user?.roles.some(r => ['System Manager', 'HR', 'HR User', 'HR Manager', 'Accounts Manager'].includes(r)) && (
+                                <Box sx={{ pt: 1 }}>
+                                    <SectionHeader title="Settlement Details" />
+
+                                    <FormControlLabel
+                                        control={<Android12Switch checked={paid} onChange={(e) => {
+                                            const isChecked = e.target.checked;
+                                            setPaid(isChecked);
+                                            if (isChecked && !paidDate) {
+                                                const defaultDate = dateOfExpense && dayjs(dateOfExpense).isAfter(dayjs())
+                                                    ? dateOfExpense
+                                                    : dayjs().format('YYYY-MM-DD');
+                                                setPaidDate(defaultDate);
+                                            }
+                                            if (!isChecked && formErrors.paid_date) {
+                                                setFormErrors(prev => ({ ...prev, paid_date: '' }));
+                                            }
+                                        }} />}
+                                        label="Paid"
+                                        sx={{ mb: 2 }}
+                                    />
+
+                                    {paid && (
+                                        <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, mt: 1 }}>
+                                            {renderField(
+                                                'paid_date',
+                                                'Paid Date',
+                                                'date',
+                                                [],
+                                                {
+                                                    minDate: dateOfExpense && dayjs(dateOfExpense).isValid()
+                                                        ? dayjs(dateOfExpense).startOf('day')
+                                                        : dayjs().startOf('day'),
+                                                    shouldDisableDate: (date: any) => {
+                                                        const minAllowed = dateOfExpense && dayjs(dateOfExpense).isValid()
+                                                            ? dayjs(dateOfExpense).startOf('day')
+                                                            : dayjs().startOf('day');
+                                                        return dayjs(date).startOf('day').isBefore(minAllowed);
+                                                    },
+                                                },
+                                                true
+                                            )}
+
+                                            {renderField('payment_reference', 'Payment Reference', 'text', [], { placeholder: 'Enter payment reference' })}
+
+                                            <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}>
+                                                {renderField('approver_comments', 'Notes', 'textarea', [], { placeholder: 'Enter notes' })}
+                                            </Box>
+                                        </Box>
+                                    )}
+                                </Box>
+                            )}
+                        </Box>
+                    ) : (
+                        <Box sx={{ display: 'grid', gap: 3, p: 2 }}>
+                            <Autocomplete
+                                fullWidth
+                                options={employees}
+                                filterOptions={filterEmployeeOptions}
+                                getOptionLabel={(option) => option.employee_name || option.name || option.employee_id || ''}
+                                value={employees.find((emp) => emp.name === employee) || null}
+                                disabled={isEdit || !isHR}
+                                onChange={(event, newValue) => {
+                                    setEmployee(newValue?.name || '');
+                                    if (formErrors.employee) {
+                                        setFormErrors((prev) => ({ ...prev, employee: '' }));
+                                    }
+                                }}
+                                renderOption={(props, option) => {
+                                    const { key, ...optionProps } = props as any;
+                                    return (
+                                        <li key={key} {...optionProps}>
+                                            <Stack spacing={0.5}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                                    {option.employee_name || option.name}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                                                    ID: {option.name || option.employee_id}
+                                                </Typography>
+                                            </Stack>
+                                        </li>
+                                    );
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Employee"
+                                        required
+                                        error={!!formErrors.employee}
+                                        helperText={formErrors.employee}
+                                        InputLabelProps={{ shrink: true }}
+                                        sx={{
+                                            '& .MuiFormLabel-asterisk': {
+                                                color: 'red',
+                                            },
+                                        }}
+                                    />
+                                )}
+                            />
+                            <Autocomplete
+                                fullWidth
+                                options={claimTypes}
+                                getOptionLabel={(option) => option.name || ''}
+                                value={claimTypes.find((item) => item.name === claimType) || null}
+                                onChange={(event, newValue) => {
+                                    setClaimType(newValue?.name || '');
+
+                                    if (formErrors.claim_type) {
+                                        setFormErrors((prev) => ({
+                                            ...prev,
+                                            claim_type: '',
+                                        }));
+                                    }
+                                }}
+                                renderOption={(props, option) => {
+                                    const { key, ...optionProps } = props as any;
+
+                                    return (
+                                        <li key={key} {...optionProps}>
+                                            <Typography variant="body2">
+                                                {option.name}
+                                            </Typography>
+                                        </li>
+                                    );
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Claim Type"
+                                        required
+                                        error={!!formErrors.claim_type}
+                                        helperText={formErrors.claim_type}
+                                        InputLabelProps={{ shrink: true }}
+                                        sx={{
+                                            '& .MuiFormLabel-asterisk': {
+                                                color: 'red',
+                                            },
+                                        }}
+                                    />
+                                )}
+                            />
+                            {renderField('date_of_expense', 'Date of Expense', 'date', [], {}, true)}
+                            {renderField('amount', 'Amount', 'number', [], { placeholder: 'Enter amount', inputProps: { step: '0.01', min: '0' } }, true)}
+                            {renderField('claim_details', 'Claim Details', 'textarea', [], { placeholder: 'Enter claim details' })}
+
+                            <Box
+                                sx={{
+                                    p: 3,
+                                    borderRadius: 2,
+                                    bgcolor: (theme) => alpha(theme.palette.grey[500], 0.04),
+                                    border: (theme) => `1px dashed ${formErrors.receipt ? theme.palette.error.main : alpha(theme.palette.grey[500], 0.2)}`,
+                                }}
+                            >
+                                <Stack
+                                    direction={{ xs: 'column', sm: 'row' }}
+                                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                                    justifyContent="space-between"
+                                    spacing={2}
+                                    sx={{ mb: 2.5 }}
+                                >
+                                    <Stack spacing={0.25}>
+                                        <Typography variant="h6">
+                                            Receipt{' '}
+                                            <Box component="span" sx={{ color: 'red' }}>
+                                                *
+                                            </Box>
                                         </Typography>
-                                        {!isApprovedOrPaid && (
+                                        <Typography variant="caption" color="text.secondary">
+                                            Allowed: PDF, PNG, JPG, JPEG, DOC, DOCX (Max 5MB)
+                                        </Typography>
+                                    </Stack>
+
+                                    <Button
+                                        variant="contained"
+                                        component="label"
+                                        color="primary"
+                                        size="small"
+                                        startIcon={<Iconify icon="solar:upload-bold" />}
+                                        sx={{ minWidth: { xs: 1, sm: 'auto' } }}
+                                    >
+                                        Upload File
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+                                                e.target.value = '';
+                                                setReceiptFileError('');
+
+                                                const fileNameLower = (file.name || '').toLowerCase();
+                                                const isVideo = file.type?.toLowerCase().startsWith('video/') || [
+                                                    '.mp4', '.webm', '.mkv', '.mov', '.avi', '.flv', '.wmv', '.m4v', '.3gp', '.ogg', '.ogv', '.ts'
+                                                ].some((ext) => fileNameLower.endsWith(ext));
+
+                                                if (isVideo) {
+                                                    setReceiptFileError('Video files are not allowed for receipt. Please upload an image or document (PDF, PNG, JPG, JPEG).');
+                                                    return;
+                                                }
+
+                                                if (file.size > 5 * 1024 * 1024) {
+                                                    setReceiptFileError('File size exceeds 5MB limit. Please upload a file smaller than 5MB.');
+                                                    return;
+                                                }
+
+                                                setReceiptFile(file);
+                                                setReceipt('');
+                                                if (formErrors.receipt) {
+                                                    setFormErrors(prev => ({ ...prev, receipt: '' }));
+                                                }
+                                            }}
+                                        />
+                                    </Button>
+                                </Stack>
+
+                                <Stack spacing={1}>
+                                    {!receipt && !receiptFile ? (
+                                        <Stack alignItems="center" justifyContent="center" sx={{ py: 3, color: 'text.disabled' }}>
+                                            <Iconify icon="solar:file-bold" width={40} height={40} sx={{ mb: 1, opacity: 0.48 }} />
+                                            <Typography variant="body2">No file attached</Typography>
+                                        </Stack>
+                                    ) : (
+                                        <Stack
+                                            direction="row"
+                                            alignItems="center"
+                                            sx={{
+                                                px: 1.5,
+                                                py: 0.75,
+                                                borderRadius: 1.5,
+                                                bgcolor: (theme) => alpha(theme.palette.grey[500], 0.08),
+                                            }}
+                                        >
+                                            <Iconify icon="solar:link-bold" width={20} sx={{ mr: 1, color: 'text.secondary', flexShrink: 0 }} />
+                                            <Typography variant="body2" noWrap sx={{ flexGrow: 1, fontWeight: 'fontWeightMedium' }}>
+                                                {receiptFile ? receiptFile.name : (receipt.split('/').pop() || receipt)}
+                                            </Typography>
                                             <Button
                                                 size="small"
                                                 color="inherit"
@@ -1150,51 +1524,22 @@ export function ReimbursementClaimsView() {
                                             >
                                                 Remove
                                             </Button>
-                                        )}
-                                    </Stack>
-                                )}
-                            </Stack>
-                            {formErrors.receipt && (
-                                <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                                    {formErrors.receipt}
-                                </Typography>
-                            )}
-                            {receiptFileError && (
-                                <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                                    {receiptFileError}
-                                </Typography>
-                            )}
-                        </Box>
-
-                        {isEdit && user?.roles.some(r => ['System Manager', 'HR', 'HR User', 'HR Manager', 'Accounts Manager'].includes(r)) &&
-                            (currentClaim?.workflow_state === 'Approved' || currentClaim?.workflow_state === 'Paid') && (
-                                <>
-                                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', mt: 1, gridColumn: { md: 'span 2' } }}>Settlement Details</Typography>
-
-                                    <FormControlLabel
-                                        control={<Android12Switch checked={paid} onChange={(e) => {
-                                            const isChecked = e.target.checked;
-                                            setPaid(isChecked);
-                                            if (!isChecked && formErrors.paid_date) {
-                                                setFormErrors(prev => ({ ...prev, paid_date: '' }));
-                                            }
-                                        }} />}
-                                        label="Paid"
-                                        sx={{ gridColumn: { md: 'span 2' } }}
-                                    />
-
-                                    {paid && (
-                                        <>
-                                            {renderField('paid_date', 'Paid Date', 'date', [], {}, true)}
-
-                                            {renderField('payment_reference', 'Payment Reference', 'text', [], { placeholder: 'Enter payment reference' })}
-
-                                            {renderField('approver_comments', 'Notes', 'textarea', [], { placeholder: 'Enter notes', sx: { gridColumn: { sm: 'span 2' } } })}
-                                        </>
+                                        </Stack>
                                     )}
-                                </>
-                            )}
-                    </Box>
+                                </Stack>
+                                {formErrors.receipt && (
+                                    <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+                                        {formErrors.receipt}
+                                    </Typography>
+                                )}
+                                {receiptFileError && (
+                                    <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+                                        {receiptFileError}
+                                    </Typography>
+                                )}
+                            </Box>
+                        </Box>
+                    )}
                 </DialogContent>
 
                 <DialogActions sx={{ p: 1.5 }}>

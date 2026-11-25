@@ -188,7 +188,7 @@ export function ReimbursementClaimTableRow({
 
                 <TableCell align="right">
                     <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end', alignItems: 'center' }}>
-                        {canEdit && row.workflow_state !== 'Paid' && (
+                        {canEdit && row.workflow_state !== 'Rejected' && (
                             <IconButton onClick={(e) => handleClick(e, onEdit)} color="primary">
                                 <Iconify icon="solar:pen-bold" />
                             </IconButton>
@@ -248,7 +248,7 @@ export function ReimbursementClaimTableRow({
                     />
                     {actionPending === 'Approve' ? 'Approving...' : 'Approve'}
                 </MenuItem>
- 
+
                 <MenuItem
                     onClick={() => !actionPending && handleAction('Reject')}
                     disabled={!!actionPending}
