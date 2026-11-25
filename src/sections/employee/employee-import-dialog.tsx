@@ -48,6 +48,7 @@ import {
 
 import { COMMON_COLORS } from 'src/theme';
 import { getDoctypeList } from 'src/api/leads';
+import { getBankDetailsByIfsc } from 'src/api/masters';
 import { bulkImportEmployees } from 'src/api/employees';
 import { fetchSalaryComponents } from 'src/api/hr-management';
 
@@ -205,10 +206,6 @@ const validateImportEmployeeRow = (
         errors.push('Missing Employee Name');
     }
 
-    if (!empRecord.email?.trim()) {
-        errors.push('Missing Email');
-    }
-
     const hasBankDetails = Boolean(
         empRecord.bank_details ||
         (empRecord.bank_account && String(empRecord.bank_account).trim() !== '') ||
@@ -220,7 +217,11 @@ const validateImportEmployeeRow = (
             empRecord.bank_account,
             masterBankOptions
         );
-        if (!matchedMaster) {
+        const hasNewBankCreateInfo = Boolean(
+            empRecord.bank_details &&
+            String(empRecord.bank_details.account_number || empRecord.account_number || '').trim()
+        );
+        if (!matchedMaster && !hasNewBankCreateInfo) {
             const displayBank =
                 (empRecord.bank_details?.bank_name && empRecord.bank_details?.account_number
                     ? `${empRecord.bank_details.bank_name} (${empRecord.bank_details.account_number})`
@@ -322,7 +323,7 @@ const STANDARD_TARGET_FIELDS = [
     { value: 'name', label: 'Employee ID (Document Name) *', reqd: true },
     { value: 'employee_id', label: 'Employee ID (Legacy)', reqd: false },
     { value: 'employee_name', label: 'Employee Name *', reqd: true },
-    { value: 'email', label: 'Email *', reqd: true },
+    { value: 'email', label: 'Email', reqd: false },
     { value: 'date_of_joining', label: 'Joining Date *', reqd: true },
     { value: 'status', label: 'Status *', reqd: true },
     { value: 'father_husband_name', label: 'Father/Husband Name' },
@@ -538,7 +539,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
         setError('');
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const data = new Uint8Array(e.target?.result as ArrayBuffer);
                 const workbook = XLSX.read(data, { type: 'array', cellDates: true });
@@ -605,7 +606,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                             const rowText = row.map((c) => String(c || '').toLowerCase().trim()).join(' ');
                             if (
                                 nonBlankCells.length >= 3 &&
-                                (rowText.includes('referral') || rowText.includes('account number') || rowText.includes('ifsc'))
+                                (rowText.includes('employee id') || rowText.includes('referral') || rowText.includes('account number') || rowText.includes('ifsc'))
                             ) {
                                 bHeaderRowIdx = r;
                                 break;
@@ -669,6 +670,47 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                         }
                     }
                 }
+                const uniqueIfscs = Array.from(
+                    new Set(
+                        Object.values(bankMap)
+                            .filter((item: any) => item.ifsc_code && (!item.bank_name || !item.branch))
+                            .map((item: any) => String(item.ifsc_code).trim().toUpperCase())
+                            .filter((ifsc) => /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc))
+                    )
+                );
+
+                if (uniqueIfscs.length > 0) {
+                    const ifscDetailsMap: Record<string, { bank_name: string; branch: string }> = {};
+                    await Promise.all(
+                        uniqueIfscs.map(async (ifsc) => {
+                            try {
+                                const res = await getBankDetailsByIfsc(ifsc);
+                                if (res?.success && res.data) {
+                                    ifscDetailsMap[ifsc] = {
+                                        bank_name: res.data.bank_name || '',
+                                        branch: res.data.branch || '',
+                                    };
+                                }
+                            } catch {
+                                // Backend import will also attempt IFSC resolution
+                            }
+                        })
+                    );
+
+                    Object.values(bankMap).forEach((item: any) => {
+                        const code = String(item.ifsc_code || '').trim().toUpperCase();
+                        const resolved = ifscDetailsMap[code];
+                        if (resolved) {
+                            if (!item.bank_name && resolved.bank_name) {
+                                item.bank_name = resolved.bank_name;
+                            }
+                            if (!item.branch && resolved.branch) {
+                                item.branch = resolved.branch;
+                            }
+                        }
+                    });
+                }
+
                 setParsedBankMap(bankMap);
 
                 // Helper to detect category row above column headers
@@ -822,10 +864,9 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
         const mappedTargets = Object.values(columnMapping);
         const hasId = mappedTargets.includes('name') || mappedTargets.includes('employee_id');
         const hasName = mappedTargets.includes('employee_name');
-        const hasEmail = mappedTargets.includes('email');
 
-        if (!hasId || !hasName || !hasEmail) {
-            setError('Please ensure Employee ID, Employee Name, and Email columns are mapped.');
+        if (!hasId || !hasName) {
+            setError('Please ensure Employee ID and Employee Name columns are mapped.');
             return;
         }
 
@@ -919,6 +960,8 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                 empRecord.bank_account = matchedMaster.name || matchedMaster.account_number;
                 empRecord.account_number = matchedMaster.account_number || empRecord.account_number;
                 empRecord.bank_account_name = matchedMaster.bank_account_name || empRecord.bank_account_name;
+                empRecord.bank_name = matchedMaster.bank_name || empRecord.bank_name;
+                empRecord.branch = matchedMaster.branch || empRecord.branch;
             }
 
             processedRows.push(empRecord);
@@ -1245,7 +1288,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
         <Box sx={{ mt: 2 }}>
             {hasRowErrors && (
                 <Alert severity="error" sx={{ mb: 2 }}>
-                    Some records have validation errors (e.g., bank details not found in master Bank Account List). Please edit or remove invalid rows before starting the import.
+                    Some records have validation errors. Please edit or remove invalid rows before starting the import.
                 </Alert>
             )}
 
@@ -2069,12 +2112,10 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                         helperText={!editForm.employee_name?.trim() ? 'Required' : ''}
                                     />
                                     <TextField
-                                        label="Email *"
+                                        label="Email"
                                         size="small"
                                         value={editForm.email || ''}
                                         onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                                        error={!editForm.email?.trim()}
-                                        helperText={!editForm.email?.trim() ? 'Required' : ''}
                                     />
                                     <TextField
                                         label="Joining Date (YYYY-MM-DD)"
