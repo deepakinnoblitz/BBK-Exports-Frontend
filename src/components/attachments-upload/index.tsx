@@ -15,6 +15,7 @@ interface AttachmentsUploadProps {
   onRemove: (index: number) => void;
   error?: boolean;
   helperText?: string;
+  accept?: string;
 }
 
 export function AttachmentsUpload({
@@ -24,6 +25,7 @@ export function AttachmentsUpload({
   onRemove,
   error,
   helperText,
+  accept = '.pdf,.doc,.docx,.png,.jpg,.jpeg',
 }: AttachmentsUploadProps) {
   return (
     <Box
@@ -40,11 +42,9 @@ export function AttachmentsUpload({
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
         <Stack spacing={0.25}>
           <Typography variant="h6">Resume Attachment *</Typography>
-          {error && helperText && (
-            <Typography variant="caption" color="error">
-              {helperText}
-            </Typography>
-          )}
+          <Typography variant="caption" color={error && helperText ? 'error' : 'text.secondary'}>
+            {error && helperText ? helperText : 'Allowed: PDF, DOC, DOCX, JPG, PNG (Max 5MB)'}
+          </Typography>
         </Stack>
 
         <Button
@@ -57,7 +57,7 @@ export function AttachmentsUpload({
           disabled={uploading}
         >
           {uploading ? 'Uploading...' : 'Upload File'}
-          <input type="file" hidden onChange={onFileChange} />
+          <input type="file" hidden accept={accept} onChange={onFileChange} />
         </Button>
       </Stack>
 
