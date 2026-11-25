@@ -669,7 +669,7 @@ export function FaceLineChangeView() {
 
   // Initialize Face Models (face-api.js), Native FaceDetector & Offscreen Canvas
   useEffect(() => {
-    loadFaceRecognitionModels('/models').catch(() => {});
+    loadFaceRecognitionModels().catch(() => {});
 
     if (typeof window !== 'undefined' && 'FaceDetector' in window) {
       try {
