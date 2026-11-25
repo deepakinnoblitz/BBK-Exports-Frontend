@@ -30,7 +30,7 @@ import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
-const MEAL_TYPES = ['Lunch', 'Breakfast', 'Dinner', 'Snacks', 'Tea'];
+const MEAL_TYPES = ['Lunch', 'Breakfast'];
 
 type Props = {
   open: boolean;
