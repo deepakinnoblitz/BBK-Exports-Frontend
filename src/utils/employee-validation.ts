@@ -18,6 +18,8 @@ export const UNIQUE_EMPLOYEE_FIELDS = [
     'uan_number',
     'esi_no',
     'pf_number',
+    'bank_account',
+    'user',
 ] as const;
 
 export const VALIDATED_EMPLOYEE_PHONE_FIELDS = ['phone', 'office_phone_number'] as const;
@@ -30,6 +32,8 @@ export const EMPLOYEE_IDENTITY_FIELD_LABELS: Record<string, string> = {
     uan_number: 'UAN Number',
     esi_no: 'ESI No',
     pf_number: 'PF Number',
+    bank_account: 'Bank Account',
+    user: 'User Login (Email)',
 };
 
 function cleanSpreadsheetNumericString(rawVal: unknown): string {
@@ -169,6 +173,9 @@ export function normalizeIdentityField(fieldname: string, val: unknown): string 
     if (fieldname === 'pan_number' || fieldname === 'pf_number') {
         return s.replace(/\s+/g, '').toUpperCase();
     }
+    if (fieldname === 'bank_account' || fieldname === 'user') {
+        return s.trim();
+    }
     return s;
 }
 
@@ -193,6 +200,12 @@ export function validateIdentityFieldFormat(fieldname: string, val: unknown): st
             return /^\d{10,17}$/.test(normalized)
                 ? null
                 : 'ESI No must be a valid 10 to 17-digit number.';
+        case 'pf_number': {
+            const pfPattern = /^([A-Z]{2}[A-Z]{3}\d{7}\d{3}\d{7}|[A-Z]{2}\/[A-Z]{3}\/\d{1,7}(?:\/\d{1,3})?\/\d{1,7})$/;
+            return pfPattern.test(normalized)
+                ? null
+                : 'PF Number must follow valid EPFO format (e.g., TN/MAS/10036/0000265 or 22-character Member ID).';
+        }
         default:
             return null;
     }
