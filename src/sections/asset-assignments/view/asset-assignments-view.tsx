@@ -287,6 +287,15 @@ export function AssetAssignmentsView() {
             return;
         }
 
+        if (returnedOn && dayjs(returnedOn).isBefore(dayjs(assignedOn), 'day')) {
+            setSnackbar({
+                open: true,
+                message: 'Returned On date cannot be earlier than Assigned On date',
+                severity: 'error',
+            });
+            return;
+        }
+
         // Pre-validation: Check if asset is already assigned
         try {
             const checkUrl = `/api/method/company.company.frontend_api.check_asset_availability?asset=${selectedAsset.name}${isEdit && currentAssignment ? `&name=${currentAssignment.name}` : ''}`;
@@ -601,7 +610,13 @@ export function AssetAssignmentsView() {
                                     label="Assigned On"
                                     format="DD-MM-YYYY"
                                     value={assignedOn ? dayjs(assignedOn) : null}
-                                    onChange={(newValue) => setAssignedOn(newValue?.format('YYYY-MM-DD') || '')}
+                                    onChange={(newValue) => {
+                                        const formatted = newValue && newValue.isValid() ? newValue.format('YYYY-MM-DD') : '';
+                                        setAssignedOn(formatted);
+                                        if (formatted && returnedOn && dayjs(returnedOn).isBefore(dayjs(formatted), 'day')) {
+                                            setReturnedOn('');
+                                        }
+                                    }}
                                     slotProps={{
                                         textField: {
                                             fullWidth: true,
@@ -618,8 +633,25 @@ export function AssetAssignmentsView() {
                                 <DatePicker
                                     label="Returned On"
                                     format="DD-MM-YYYY"
+                                    minDate={assignedOn && dayjs(assignedOn).isValid() ? dayjs(assignedOn) : dayjs()}
                                     value={returnedOn ? dayjs(returnedOn) : null}
-                                    onChange={(newValue) => setReturnedOn(newValue?.format('YYYY-MM-DD') || '')}
+                                    onChange={(newValue) => {
+                                        if (!newValue) {
+                                            setReturnedOn('');
+                                            return;
+                                        }
+                                        if (!newValue.isValid()) return;
+                                        const minAllowed = assignedOn && dayjs(assignedOn).isValid() ? dayjs(assignedOn) : dayjs();
+                                        if (newValue.isBefore(minAllowed, 'day')) {
+                                            setSnackbar({
+                                                open: true,
+                                                message: 'Returned On date cannot be earlier than Assigned On date',
+                                                severity: 'error',
+                                            });
+                                            return;
+                                        }
+                                        setReturnedOn(newValue.format('YYYY-MM-DD'));
+                                    }}
                                     slotProps={{
                                         textField: {
                                             fullWidth: true,

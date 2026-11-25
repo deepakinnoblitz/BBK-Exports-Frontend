@@ -79,7 +79,7 @@ export const PERSONAL_FIELDS = [
     { label: 'Employee ID *', key: 'name', sample: 'BEPL00001', width: 18, type: 'text' },
     { label: 'Employee Name *', key: 'employee_name', sample: 'Rajesh Kumar', width: 22, type: 'text' },
     { label: 'Father/Husband Name', key: 'father_husband_name', sample: 'Suresh Kumar', width: 20, type: 'text' },
-    { label: 'Email *', key: 'email', sample: 'rajesh.kumar@bbkexports.com', width: 28, type: 'text' },
+    { label: 'Email', key: 'email', sample: 'rajesh.kumar@bbkexports.com', width: 28, type: 'text' },
     { label: 'Personal Email', key: 'personal_email', sample: 'rajesh.personal@gmail.com', width: 26, type: 'text' },
     { label: 'Personal Phone', key: 'phone', sample: '9876543210', width: 16, type: 'text' },
     { label: 'Office Phone', key: 'office_phone_number', sample: '044-2345678', width: 16, type: 'text' },
@@ -119,13 +119,11 @@ export const BANK_FIELDS = [
 ];
 
 export const BANK_ACCOUNT_SHEET_FIELDS = [
-    { label: 'Referral No. *', key: 'referral_no', sample: 'BEPL00001', width: 18, type: 'text' },
+    { label: 'Employee ID *', key: 'referral_no', sample: 'BEPL00001', width: 18, type: 'text' },
     { label: 'Bank Account Name *', key: 'bank_account_name', sample: 'Salary Account', width: 24, type: 'text' },
     { label: 'Account Number *', key: 'account_number', sample: '123456789012', width: 22, type: 'text' },
     { label: 'Account Type', key: 'account_type', sample: 'Savings', width: 18, type: 'text' },
     { label: 'IFSC Code *', key: 'ifsc_code', sample: 'BARB0AMBATT', width: 18, type: 'text' },
-    { label: 'Bank Name *', key: 'bank_name', sample: 'Bank of Baroda', width: 24, type: 'text' },
-    { label: 'Branch *', key: 'branch', sample: 'Ambattur Branch', width: 22, type: 'text' },
 ];
 
 export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
@@ -419,7 +417,7 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
         views: [{ showGridLines: true }],
     });
 
-    const bankCols = BANK_ACCOUNT_SHEET_FIELDS.length; // 7 columns
+    const bankCols = BANK_ACCOUNT_SHEET_FIELDS.length; // 5 columns
 
     // Row 1: Company Banner
     bankSheet.mergeCells(1, 1, 1, bankCols);
@@ -437,7 +435,7 @@ export async function generateEmployeeExcelTemplate(options: TemplateOptions) {
     // Row 2: Sub-header / Title
     bankSheet.mergeCells(2, 1, 2, bankCols);
     const bankRow2 = bankSheet.getCell('A2');
-    bankRow2.value = 'EMPLOYEE BANK ACCOUNT IMPORT TEMPLATE (Referral No. must match Employee ID)';
+    bankRow2.value = 'EMPLOYEE BANK ACCOUNT IMPORT TEMPLATE (Employee ID must match Employee Import)';
     bankRow2.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1E293B' } };
     bankRow2.fill = {
         type: 'pattern',

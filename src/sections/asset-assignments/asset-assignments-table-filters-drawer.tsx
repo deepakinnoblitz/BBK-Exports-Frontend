@@ -77,11 +77,24 @@ export function AssetAssignmentsTableFiltersDrawer({
     };
 
     const handleFilterStartDate = (newValue: dayjs.Dayjs | null) => {
-        onFilters({ startDate: newValue ? newValue.format('YYYY-MM-DD') : null });
+        const formattedStart = newValue && newValue.isValid() ? newValue.format('YYYY-MM-DD') : null;
+        const updates: Partial<FiltersProps> = { startDate: formattedStart };
+        if (!formattedStart || (filters.endDate && dayjs(filters.endDate).isBefore(newValue, 'day'))) {
+            updates.endDate = null;
+        }
+        onFilters(updates);
     };
 
     const handleFilterEndDate = (newValue: dayjs.Dayjs | null) => {
-        onFilters({ endDate: newValue ? newValue.format('YYYY-MM-DD') : null });
+        if (!newValue) {
+            onFilters({ endDate: null });
+            return;
+        }
+        if (!newValue.isValid()) return;
+        if (filters.startDate && newValue.isBefore(dayjs(filters.startDate), 'day')) {
+            return;
+        }
+        onFilters({ endDate: newValue.format('YYYY-MM-DD') });
     };
 
     const renderHead = (
@@ -249,12 +262,15 @@ export function AssetAssignmentsTableFiltersDrawer({
                 <DatePicker
                     label="End Date"
                     format="DD-MM-YYYY"
+                    disabled={!filters.startDate}
+                    minDate={filters.startDate ? dayjs(filters.startDate) : undefined}
                     value={filters.endDate ? dayjs(filters.endDate) : null}
                     onChange={handleFilterEndDate}
                     slotProps={{
                         textField: {
                             fullWidth: true,
                             size: 'small',
+                            helperText: !filters.startDate ? 'Select start date first' : undefined,
                             sx: {
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: 1.5,
