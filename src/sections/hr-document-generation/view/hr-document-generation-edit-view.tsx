@@ -82,7 +82,7 @@ export function HRDocumentGenerationEditView({ id }: Props) {
             try {
                 const [empList, tplRes, doc] = await Promise.all([
                     fetchEmployeesList(),
-                    fetchHRDocumentTemplates({ page: 1, page_size: 200 }),
+                    fetchHRDocumentTemplates({ page: 1, page_size: 200, filters: { is_active: 'yes' } }),
                     getHRDocumentGeneration(id),
                 ]);
 

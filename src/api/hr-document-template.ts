@@ -222,13 +222,17 @@ export async function fetchHRDocumentTemplateVariables(
 // Fetch HR Document Categories
 // ----------------------------------------------------------------------
 
-export async function fetchHRDocumentCategories(): Promise<HRDocumentCategory[]> {
-    const query = new URLSearchParams({
+export async function fetchHRDocumentCategories(activeOnly = false): Promise<HRDocumentCategory[]> {
+    const params: Record<string, string> = {
         doctype: 'HR Document Category',
         fields: JSON.stringify(['name', 'category_name', 'is_active', 'description']),
         order_by: 'category_name asc',
         limit_page_length: '0',
-    });
+    };
+    if (activeOnly) {
+        params.filters = JSON.stringify([['HR Document Category', 'is_active', '=', 1]]);
+    }
+    const query = new URLSearchParams(params);
 
     const res = await frappeRequest(`/api/method/frappe.client.get_list?${query.toString()}`);
     if (!res.ok) {

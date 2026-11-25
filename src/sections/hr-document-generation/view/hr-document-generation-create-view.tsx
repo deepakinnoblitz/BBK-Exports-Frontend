@@ -73,7 +73,7 @@ export function HRDocumentGenerationCreateView() {
             try {
                 const [empList, tplRes] = await Promise.all([
                     fetchEmployeesList(),
-                    fetchHRDocumentTemplates({ page: 1, page_size: 200 }),
+                    fetchHRDocumentTemplates({ page: 1, page_size: 200, filters: { is_active: 'yes' } }),
                 ]);
                 setEmployees(empList);
                 setTemplates(tplRes.data);
