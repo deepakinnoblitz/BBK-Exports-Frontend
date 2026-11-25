@@ -154,7 +154,7 @@ export function EmployeeFaceEnrollmentDialog({
   // Start camera on open & preload face models
   useEffect(() => {
     if (open) {
-      loadFaceRecognitionModels('/models').catch(() => {});
+      loadFaceRecognitionModels().catch(() => {});
     }
     if (open && captureMethod === 'camera' && !capturedImage && !isCropping && !rawImage) {
       startCamera();

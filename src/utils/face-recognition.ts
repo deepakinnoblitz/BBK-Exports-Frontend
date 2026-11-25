@@ -8,30 +8,61 @@ export function areFaceRecognitionModelsLoaded(): boolean {
 }
 
 /**
- * Load face-api neural network models from local /models directory
+ * Determine candidate URLs for face-api models depending on environment:
+ * - Vite dev server (Local): /models
+ * - Production Vite base: /assets/company/crm/models
+ * - Standard Frappe public assets: /assets/company/models
  */
-export async function loadFaceRecognitionModels(modelPath = '/models'): Promise<boolean> {
+function getCandidateModelPaths(customPath?: string): string[] {
+  if (customPath) {
+    return [customPath];
+  }
+  const baseUrl = (import.meta as any)?.env?.BASE_URL || '/';
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+
+  const candidates = [
+    `${normalizedBase}/models`,
+    '/assets/company/crm/models',
+    '/assets/company/models',
+    '/models',
+  ];
+
+  return Array.from(new Set(candidates.filter(Boolean)));
+}
+
+/**
+ * Load face-api neural network models from candidate paths
+ */
+export async function loadFaceRecognitionModels(customPath?: string): Promise<boolean> {
   if (modelsLoaded) return true;
   if (modelLoadingPromise) return modelLoadingPromise;
 
   modelLoadingPromise = (async () => {
-    try {
-      await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri(modelPath),
-        faceapi.nets.ssdMobilenetv1.loadFromUri(modelPath),
-        faceapi.nets.faceLandmark68Net.loadFromUri(modelPath),
-        faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelPath),
-        faceapi.nets.faceRecognitionNet.loadFromUri(modelPath),
-      ]);
-      modelsLoaded = true;
-      return true;
-    } catch (err) {
-      console.error('Failed to load face-api models:', err);
-      return false;
-    } finally {
-      modelLoadingPromise = null;
+    const candidatePaths = getCandidateModelPaths(customPath);
+    let lastError: any = null;
+
+    for (const path of candidatePaths) {
+      try {
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(path),
+          faceapi.nets.ssdMobilenetv1.loadFromUri(path),
+          faceapi.nets.faceLandmark68Net.loadFromUri(path),
+          faceapi.nets.faceLandmark68TinyNet.loadFromUri(path),
+          faceapi.nets.faceRecognitionNet.loadFromUri(path),
+        ]);
+        modelsLoaded = true;
+        return true;
+      } catch (err) {
+        lastError = err;
+        console.warn(`[FaceAPI] Failed loading models from "${path}", checking fallback path...`);
+      }
     }
-  })();
+
+    console.error('Failed to load face-api models from all candidate paths:', lastError);
+    return false;
+  })().finally(() => {
+    modelLoadingPromise = null;
+  });
 
   return modelLoadingPromise;
 }
