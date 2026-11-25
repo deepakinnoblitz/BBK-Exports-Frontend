@@ -157,12 +157,34 @@ export async function createHRDocumentTemplate(data: Partial<HRDocumentTemplate>
 
 export async function updateHRDocumentTemplate(name: string, data: Partial<HRDocumentTemplate>) {
     const headers = await getAuthHeaders();
-    const latestDoc = await getHRDocumentTemplate(name);
+    let targetName = name;
+    const requestedName = data.template_name?.trim();
+
+    if (requestedName && requestedName !== name) {
+        const renameRes = await frappeRequest('/api/method/frappe.client.rename_doc', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                doctype: 'HR Document Template',
+                old_name: name,
+                new_name: requestedName,
+                merge: false,
+            }),
+        });
+        const renameJson = await renameRes.json();
+        if (!renameRes.ok) {
+            throw new Error(handleFrappeError(renameJson, 'Failed to rename HR document template'));
+        }
+        targetName = renameJson.message || requestedName;
+    }
+
+    const latestDoc = await getHRDocumentTemplate(targetName);
     const mergedDoc = {
         ...latestDoc,
         ...data,
         doctype: 'HR Document Template',
-        name,
+        name: targetName,
+        template_name: targetName,
     };
 
     const res = await frappeRequest('/api/method/frappe.client.save', {
