@@ -115,6 +115,7 @@ export function LeavesView() {
     const [halfDayDate, setHalfDayDate] = useState('');
     const [permissionHours, setPermissionHours] = useState<string>('');
     const [attachments, setAttachments] = useState<any[]>([]);
+    const [attachmentError, setAttachmentError] = useState('');
     const [uploading, setUploading] = useState(false);
     const [totalDays, setTotalDays] = useState(0);
     const [balanceInfo, setBalanceInfo] = useState<{ remaining: number, unit: string } | null>(null);
@@ -252,6 +253,7 @@ export function LeavesView() {
         setHalfDayDate('');
         setPermissionHours('');
         setAttachments([]);
+        setAttachmentError('');
         setTotalDays(0);
         setBalanceInfo(null);
         setAppliedDates([]);
@@ -318,12 +320,38 @@ export function LeavesView() {
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
+        event.target.value = '';
         if (!file) return;
+
+        const fileNameLower = file.name.toLowerCase();
+        const isVideo =
+            file.type?.toLowerCase().startsWith('video/') ||
+            ['.mp4', '.webm', '.mkv', '.mov', '.avi', '.flv', '.wmv', '.m4v', '.3gp', '.ogg', '.ogv', '.ts'].some(
+                (ext) => fileNameLower.endsWith(ext)
+            );
+
+        if (isVideo) {
+            const msg = 'Video files are not allowed for attachments. Please upload an image or document (PDF, PNG, JPG, JPEG, DOC, DOCX).';
+            setAttachmentError(msg);
+            setSnackbar({ open: true, message: msg, severity: 'error' });
+            return;
+        }
+
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
+        if (file.size > MAX_FILE_SIZE) {
+            const msg = 'File size exceeds 5MB limit. Please upload a file smaller than 5MB.';
+            setAttachmentError(msg);
+            setSnackbar({ open: true, message: msg, severity: 'error' });
+            return;
+        }
+
+        setAttachmentError('');
         setAttachments([file]);
     };
 
     const handleRemoveAttachment = (index: number) => {
         setAttachments((prev) => prev.filter((_, i) => i !== index));
+        setAttachmentError('');
     };
 
     const handleCreate = async () => {
@@ -998,7 +1026,12 @@ export function LeavesView() {
                                         spacing={2}
                                         sx={{ mb: 2.5 }}
                                     >
-                                        <Typography variant="h6">Attachments</Typography>
+                                        <Box>
+                                            <Typography variant="h6">Attachments</Typography>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                Allowed: PDF, PNG, JPG, JPEG, DOC, DOCX (Max 5MB)
+                                            </Typography>
+                                        </Box>
 
                                         <Button
                                             variant="contained"
@@ -1010,9 +1043,20 @@ export function LeavesView() {
                                             sx={{ minWidth: { xs: 1, sm: 'auto' } }}
                                         >
                                             {uploading ? 'Uploading...' : 'Upload File'}
-                                            <input type="file" hidden onChange={handleFileUpload} />
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,image/*"
+                                                onChange={handleFileUpload}
+                                            />
                                         </Button>
                                     </Stack>
+
+                                    {attachmentError && (
+                                        <Typography variant="caption" color="error" sx={{ display: 'block', mb: 1.5 }}>
+                                            {attachmentError}
+                                        </Typography>
+                                    )}
 
                                     <Stack spacing={1}>
                                         {attachments.length === 0 ? (
