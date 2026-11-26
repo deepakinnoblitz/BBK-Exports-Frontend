@@ -43,9 +43,6 @@ import { CanteenTableFiltersDrawer } from '../canteen-table-filters-drawer';
 const MEAL_COLORS: Record<string, string> = {
   Lunch: COMMON_COLORS.emerald.main,
   Breakfast: '#F59E0B',
-  Dinner: '#10B981',
-  Snacks: '#0D9488',
-  Tea: '#06B6D4',
   Holiday: '#EF4444',
   Default: COMMON_COLORS.emerald.main,
 };
@@ -393,8 +390,6 @@ export function CanteenCalendarView({
     } else {
       const mealType = eventInfo.event.extendedProps?.meal_type;
       if (mealType === 'Breakfast') icon = 'solar:cup-paper-bold';
-      else if (mealType === 'Dinner') icon = 'solar:moon-stars-bold';
-      else if (mealType === 'Snacks' || mealType === 'Tea') icon = 'solar:cup-hot-bold';
       else icon = 'solar:chef-hat-bold-duotone';
     }
 

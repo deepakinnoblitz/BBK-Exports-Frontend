@@ -56,9 +56,6 @@ const MEAL_TYPE_OPTIONS = [
   { value: 'all', label: 'All Meal Types' },
   { value: 'Lunch', label: 'Lunch' },
   { value: 'Breakfast', label: 'Breakfast' },
-  { value: 'Dinner', label: 'Dinner' },
-  { value: 'Snacks', label: 'Snacks' },
-  { value: 'Tea', label: 'Tea' },
 ];
 
 export function CanteenTableFiltersDrawer({
