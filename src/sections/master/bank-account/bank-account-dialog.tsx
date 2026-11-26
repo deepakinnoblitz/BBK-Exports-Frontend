@@ -75,6 +75,7 @@ export function BankAccountDialog({ open, onClose, onSuccess, id }: Props) {
     const [branch, setBranch] = useState('');
     const [ifscCode, setIfscCode] = useState('');
     const [accountType, setAccountType] = useState<BankAccount['account_type']>('Savings');
+    const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -144,6 +145,7 @@ export function BankAccountDialog({ open, onClose, onSuccess, id }: Props) {
                         setBranch(data.branch || '');
                         setIfscCode(data.ifsc_code || '');
                         setAccountType(data.account_type || 'Savings');
+                        setStatus(data.status === 'Inactive' ? 'Inactive' : 'Active');
 
                         if (data.ifsc_code && data.ifsc_code.length === 11) {
                             try {
@@ -187,6 +189,7 @@ export function BankAccountDialog({ open, onClose, onSuccess, id }: Props) {
                     setBranch('');
                     setIfscCode('');
                     setAccountType('Savings');
+                    setStatus('Active');
                     setIfscVerified(null);
                     setIfscErrorMsg('');
                     setVerifiedBankDetails(null);
@@ -354,6 +357,7 @@ export function BankAccountDialog({ open, onClose, onSuccess, id }: Props) {
                 branch: brn,
                 ifsc_code: ifsc,
                 account_type: accountType,
+                status,
             };
 
             let res: any = null;
@@ -580,6 +584,19 @@ export function BankAccountDialog({ open, onClose, onSuccess, id }: Props) {
                             />
                         )}
                     />
+
+                    <TextField
+                        select
+                        fullWidth
+                        label="Status"
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive')}
+                        disabled={loading}
+                        InputLabelProps={{ shrink: true }}
+                    >
+                        <MenuItem value="Active">Active</MenuItem>
+                        <MenuItem value="Inactive">Inactive</MenuItem>
+                    </TextField>
                 </Stack>
             </DialogContent>
 

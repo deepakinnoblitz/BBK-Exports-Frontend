@@ -97,7 +97,7 @@ export const PERSONAL_FIELDS = [
 export const EMPLOYMENT_FIELDS = [
     { label: 'Department', key: 'department', sample: 'Production', width: 18, type: 'text' },
     { label: 'Designation', key: 'designation', sample: 'Staff Member', width: 18, type: 'text' },
-    { label: 'Employee Type', key: 'employee_type', sample: 'Staff - CTC', width: 18, type: 'text' },
+    { label: 'Employee Type *', key: 'employee_type', sample: 'Staff - CTC', width: 18, type: 'text' },
     { label: 'Production Type', key: 'production_type', sample: 'Production', width: 16, type: 'text' },
     { label: 'Line Order', key: 'line_order', sample: '', width: 14, type: 'text' },
     { label: 'Shift', key: 'shift', sample: 'General Shift', width: 16, type: 'text' },

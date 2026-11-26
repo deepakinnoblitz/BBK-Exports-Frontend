@@ -41,6 +41,7 @@ export interface BankAccount {
     branch?: string;
     ifsc_code?: string;
     account_type: 'Savings' | 'Current' | 'Salary Account' | 'Other';
+    status?: 'Active' | 'Inactive';
     creation?: string;
     modified?: string;
 }

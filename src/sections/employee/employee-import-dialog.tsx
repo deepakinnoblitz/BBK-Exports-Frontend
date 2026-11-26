@@ -209,6 +209,10 @@ const validateImportEmployeeRow = (
         errors.push('Missing Email');
     }
 
+    if (!empRecord.employee_type?.trim()) {
+        errors.push('Missing Employee Type');
+    }
+
     const hasBankDetails = Boolean(
         empRecord.bank_details ||
         (empRecord.bank_account && String(empRecord.bank_account).trim() !== '') ||
@@ -340,7 +344,7 @@ const STANDARD_TARGET_FIELDS = [
     { value: 'city', label: 'City' },
     { value: 'department', label: 'Department' },
     { value: 'designation', label: 'Designation' },
-    { value: 'employee_type', label: 'Employee Type' },
+    { value: 'employee_type', label: 'Employee Type *', reqd: true },
     { value: 'production_type', label: 'Production Type' },
     { value: 'line_order', label: 'Line Order' },
     { value: 'shift', label: 'Shift' },
@@ -369,6 +373,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
 
     const [activeStep, setActiveStep] = useState(0);
     const [file, setFile] = useState<File | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [openTemplateDialog, setOpenTemplateDialog] = useState(false);
@@ -511,6 +516,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
         setEditForm(null);
         setProgress(0);
         setImportResult(null);
+        setIsDragging(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
@@ -524,12 +530,51 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
     // ----------------------------------------------------
     // STEP 0: Upload & Parse File
     // ----------------------------------------------------
+    const validateAndSetFile = (selected?: File | null) => {
+        if (!selected) return;
+        const ext = selected.name.split('.').pop()?.toLowerCase() || '';
+        if (!['csv', 'xlsx', 'xls'].includes(ext)) {
+            setError('Please upload a valid CSV or Excel (.csv, .xlsx, .xls) file.');
+            return;
+        }
+        setFile(selected);
+        setError('');
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selected = e.target.files?.[0];
-        if (selected) {
-            setFile(selected);
-            setError('');
+        validateAndSetFile(selected);
+    };
+
+    const handleDragEnter = (e: React.DragEvent<HTMLElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDragging) {
+            setIsDragging(true);
         }
+    };
+
+    const handleDragLeave = (e: React.DragEvent<HTMLElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.currentTarget.contains(e.relatedTarget as Node)) {
+            return;
+        }
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        const droppedFile = e.dataTransfer?.files?.[0];
+        validateAndSetFile(droppedFile);
     };
 
     const handleUpload = () => {
@@ -1105,20 +1150,24 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
     const renderUpload = (
         <Box sx={{ py: 4, display: 'flex', flexFlow: 'column', alignItems: 'center' }}>
             <Box
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
                 sx={{
                     p: 5,
                     width: '100%',
                     maxWidth: 400,
                     border: '2px dashed',
-                    borderColor: 'divider',
+                    borderColor: isDragging ? 'primary.main' : 'divider',
                     borderRadius: 1.5,
                     cursor: 'pointer',
-                    bgcolor: 'background.neutral',
+                    bgcolor: isDragging ? 'action.hover' : 'background.neutral',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    transition: (theme) => theme.transitions.create('opacity'),
+                    transition: (theme) => theme.transitions.create(['opacity', 'border-color', 'background-color']),
                     '&:hover': { opacity: 0.72 },
                     position: 'relative',
                     overflow: 'hidden',
@@ -1831,7 +1880,7 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                             </TableCell>
                                             <TableCell sx={{ fontSize: '0.75rem' }}>
                                                 <Typography variant="caption" color="error" sx={{ whiteSpace: 'pre-wrap' }}>
-                                                    {msg}
+                                                    {String(msg).replace(/\bSex\b/g, 'Gender')}
                                                 </Typography>
                                             </TableCell>
                                         </TableRow>
@@ -2342,9 +2391,13 @@ export function EmployeeImportDialog({ open, onClose, onSuccess }: Props) {
                                         renderInput={(params) => (
                                             <TextField
                                                 {...params}
+                                                required
                                                 label="Employee Type"
                                                 size="small"
                                                 placeholder="Select Employee Type"
+                                                error={!editForm.employee_type?.trim()}
+                                                helperText={!editForm.employee_type?.trim() ? 'Employee Type is required' : ''}
+                                                sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
                                             />
                                         )}
                                     />
