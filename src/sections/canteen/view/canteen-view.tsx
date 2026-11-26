@@ -38,6 +38,13 @@ export function CanteenView() {
   );
   const isRestrictedEmployee = user?.roles?.includes('Employee') && !isHRUser;
 
+  const actionPerms = (user?.permissions?.actions as any)?.canteen;
+  const hasCustomPerms = !!user?.permissions?.custom_permissions_assigned && !!actionPerms;
+  const canCreate = hasCustomPerms ? !!actionPerms?.create : !isRestrictedEmployee;
+  const canEdit = hasCustomPerms ? !!actionPerms?.edit : !isRestrictedEmployee;
+  const canDelete = hasCustomPerms ? !!actionPerms?.delete : !isRestrictedEmployee;
+  const canImport = hasCustomPerms ? !!actionPerms?.import : !isRestrictedEmployee;
+
   const urlView = searchParams.get('view');
   const [currentView, setCurrentView] = useState<'list' | 'calendar' | 'monthly'>(
     urlView === 'list' ? 'list' : urlView === 'calendar' ? 'calendar' : 'monthly'
@@ -95,34 +102,38 @@ export function CanteenView() {
 
           <Stack direction="row" spacing={1.5} alignItems="center">
             {/* Per user request: Refresh button is REMOVED. Bulk Assign is REPLACED with Import button. */}
-            <Button
-              variant="outlined"
-              startIcon={<Iconify icon="solar:upload-bold" />}
-              onClick={() => setOpenImportDialog(true)}
-              sx={{
-                color: COMMON_COLORS.emerald.main,
-                borderColor: COMMON_COLORS.emerald.main,
-                '&:hover': {
-                  borderColor: COMMON_COLORS.emerald.dark,
-                  bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
-                },
-              }}
-            >
-              Import
-            </Button>
+            {canImport && (
+              <Button
+                variant="outlined"
+                startIcon={<Iconify icon="solar:upload-bold" />}
+                onClick={() => setOpenImportDialog(true)}
+                sx={{
+                  color: COMMON_COLORS.emerald.main,
+                  borderColor: COMMON_COLORS.emerald.main,
+                  '&:hover': {
+                    borderColor: COMMON_COLORS.emerald.dark,
+                    bgcolor: alpha(COMMON_COLORS.emerald.main, 0.08),
+                  },
+                }}
+              >
+                Import
+              </Button>
+            )}
 
-            <Button
-              variant="contained"
-              startIcon={<Iconify icon="mingcute:add-line" />}
-              onClick={() => setOpenCreateDialog(true)}
-              sx={{
-                bgcolor: COMMON_COLORS.primaryButton.bg,
-                color: COMMON_COLORS.primaryButton.color,
-                '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
-              }}
-            >
-              New Entry
-            </Button>
+            {canCreate && (
+              <Button
+                variant="contained"
+                startIcon={<Iconify icon="mingcute:add-line" />}
+                onClick={() => setOpenCreateDialog(true)}
+                sx={{
+                  bgcolor: COMMON_COLORS.primaryButton.bg,
+                  color: COMMON_COLORS.primaryButton.color,
+                  '&:hover': { bgcolor: COMMON_COLORS.primaryButton.hoverBg },
+                }}
+              >
+                New Entry
+              </Button>
+            )}
           </Stack>
         </Stack>
 
@@ -179,9 +190,9 @@ export function CanteenView() {
         {currentView === 'list' && (
           <CanteenListView
             onCreateNew={() => setOpenCreateDialog(true)}
-            canCreate={!isRestrictedEmployee}
-            canEdit={!isRestrictedEmployee}
-            canDelete={!isRestrictedEmployee}
+            canCreate={canCreate}
+            canEdit={canEdit}
+            canDelete={canDelete}
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
             isHR={isHRUser}
@@ -190,7 +201,7 @@ export function CanteenView() {
 
         {currentView === 'monthly' && (
           <CanteenMonthlyView
-            canEdit={!isRestrictedEmployee}
+            canEdit={canEdit}
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
             refreshTrigger={refreshTrigger}
@@ -202,8 +213,8 @@ export function CanteenView() {
 
         {currentView === 'calendar' && (
           <CanteenCalendarView
-            canCreate={!isRestrictedEmployee}
-            canEdit={!isRestrictedEmployee}
+            canCreate={canCreate}
+            canEdit={canEdit}
             selectedEmployees={selectedEmployees}
             onSelectEmployees={setSelectedEmployees}
             refreshTrigger={refreshTrigger}
