@@ -6,6 +6,7 @@ import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 
+import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
@@ -31,7 +32,7 @@ export function BankAccountTableRow({
   canEdit = true,
   canDelete = true,
 }: Props) {
-  const { bank_account_name, account_number, bank_name, account_type, branch, ifsc_code } = row;
+  const { bank_account_name, account_number, bank_name, account_type, branch, ifsc_code, status } = row;
 
   return (
     <TableRow
@@ -107,6 +108,15 @@ export function BankAccountTableRow({
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {ifsc_code || '-'}
         </Typography>
+      </TableCell>
+
+      <TableCell>
+        <Label
+          variant="soft"
+          color={status === 'Inactive' ? 'default' : 'success'}
+        >
+          {status || 'Active'}
+        </Label>
       </TableCell>
 
       <TableCell align="right">

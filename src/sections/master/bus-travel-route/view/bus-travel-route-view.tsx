@@ -54,7 +54,7 @@ const SORT_OPTIONS = [
 
 export function BusTravelRouteView() {
   const { user } = useAuth();
-  const actionPerms = user?.permissions?.actions?.bus_travel_route;
+  const actionPerms = (user?.permissions?.actions as any)?.['bus_-_travel_route'] || (user?.permissions?.actions as any)?.master_bus_travel_route || user?.permissions?.actions?.bus_travel_route;
   const hasCustomPerms = !!user?.permissions?.custom_permissions_assigned && !!actionPerms;
   const canCreate = hasCustomPerms ? !!actionPerms?.create : true;
   const canEdit = hasCustomPerms ? !!actionPerms?.edit : true;

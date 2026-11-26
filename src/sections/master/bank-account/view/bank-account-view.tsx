@@ -43,6 +43,7 @@ const TABLE_HEAD = [
   { id: 'bank_name', label: 'Bank Name' },
   { id: 'branch', label: 'Branch' },
   { id: 'ifsc_code', label: 'IFSC' },
+  { id: 'status', label: 'Status' },
   { id: 'actions', label: 'Actions', align: 'right' },
 ];
 
@@ -199,7 +200,7 @@ export function BankAccountView() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
                       <CircularProgress sx={{ color: '#059669' }} />
                     </TableCell>
                   </TableRow>
@@ -231,7 +232,7 @@ export function BankAccountView() {
                     {empty && (
                       <MasterEmptyState
                         masterName="Bank Account"
-                        colSpan={7}
+                        colSpan={8}
                       />
                     )}
                   </>

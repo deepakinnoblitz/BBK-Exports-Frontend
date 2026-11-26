@@ -47,9 +47,10 @@ export function LineRosterTableRow({
   canDelete = true,
 }: Props) {
   const { user } = useAuth();
-  const hasCustomPerms = user?.permissions?.custom_permissions_assigned && user?.permissions?.actions?.line_roster;
-  const displayEdit = hasCustomPerms ? !!user?.permissions?.actions?.line_roster?.edit : canEdit;
-  const displayDelete = hasCustomPerms ? !!user?.permissions?.actions?.line_roster?.delete : canDelete;
+  const actionPerms = (user?.permissions?.actions as any)?.employee_line_assignment || user?.permissions?.actions?.line_roster;
+  const hasCustomPerms = user?.permissions?.custom_permissions_assigned && actionPerms;
+  const displayEdit = hasCustomPerms ? !!actionPerms?.edit : canEdit;
+  const displayDelete = hasCustomPerms ? !!actionPerms?.delete : canDelete;
 
   const {
     employee,

@@ -228,5 +228,5 @@ export async function fetchEmployeesList(): Promise<EmployeeOption[]> {
 }
 
 export function getHRDocumentGenerationPrintUrl(name: string) {
-    return `/api/method/frappe.utils.print_format.download_pdf?doctype=HR Document Generation&name=${encodeURIComponent(name)}`;
+    return `/api/method/company.company.doctype.hr_document_generation.hr_document_generation.download_rendered_pdf?name=${encodeURIComponent(name)}`;
 }

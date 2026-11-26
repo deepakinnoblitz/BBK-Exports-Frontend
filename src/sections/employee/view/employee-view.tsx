@@ -412,7 +412,8 @@ export function EmployeeView() {
             const res = await fetchBankAccounts({
                 page: 1,
                 page_size: 50,
-                fields: ['name', 'bank_account_name', 'account_number'],
+                fields: ['name', 'bank_account_name', 'account_number', 'status'],
+                filters: [['Bank Account', 'status', '!=', 'Inactive']],
                 search: query.trim() || undefined,
                 orderBy: 'name',
                 order: 'asc'
@@ -615,8 +616,8 @@ export function EmployeeView() {
                 })
                 .catch(console.error);
 
-            // Explicitly fetch options for bus_travel_route
-            getDoctypeList('Bus Travel Route', ['name', 'route_name'])
+            // Explicitly fetch options for bus_travel_route (Active only)
+            getDoctypeList('Bus Travel Route', ['name', 'route_name', 'status'], { status: 'Active' })
                 .then((options) => {
                     setFieldOptions(prev => ({ ...prev, 'bus_travel_route': options }));
                 })
@@ -629,8 +630,8 @@ export function EmployeeView() {
                 })
                 .catch(console.error);
 
-            // Explicitly fetch options for skill
-            getDoctypeList('Skill', ['name', 'skill_name'])
+            // Explicitly fetch options for skill (Active only: is_active = 1)
+            getDoctypeList('Skill', ['name', 'skill_name', 'is_active'], { is_active: 1 })
                 .then((options) => {
                     setFieldOptions(prev => ({ ...prev, 'skill': options }));
                 })
@@ -1095,6 +1096,12 @@ export function EmployeeView() {
         setBusRoutePoints([]);
         setFormErrors({});
         loadBankAccounts('');
+        getDoctypeList('Skill', ['name', 'skill_name', 'is_active'], { is_active: 1 })
+            .then((options) => setFieldOptions(prev => ({ ...prev, skill: options })))
+            .catch(console.error);
+        getDoctypeList('Bus Travel Route', ['name', 'route_name', 'status'], { status: 'Active' })
+            .then((options) => setFieldOptions(prev => ({ ...prev, bus_travel_route: options })))
+            .catch(console.error);
         setOpenCreate(true);
         setCurrentTab(0);
 
@@ -1273,6 +1280,8 @@ export function EmployeeView() {
 
         const requiredFields = [
             { name: 'employee_name', label: 'Employee Name' },
+            { name: 'email', label: 'Email' },
+            { name: 'employee_type', label: 'Employee Type' },
             { name: 'date_of_joining', label: 'Joining Date' },
             { name: 'status', label: 'Status' }
         ];
@@ -2061,6 +2070,28 @@ export function EmployeeView() {
                         const hasDesig = existing.some((d: any) => (typeof d === 'string' ? d : (d.designation_name || d.name)) === cleanedRow.designation);
                         if (!hasDesig) {
                             return { ...prev, designation: [{ name: cleanedRow.designation, designation_name: cleanedRow.designation }, ...existing] };
+                        }
+                        return prev;
+                    });
+                }
+
+                if (cleanedRow.skill) {
+                    setFieldOptions(prev => {
+                        const existing = prev['skill'] || [];
+                        const hasSkill = existing.some((s: any) => (typeof s === 'string' ? s : (s.skill_name || s.name)) === cleanedRow.skill);
+                        if (!hasSkill) {
+                            return { ...prev, skill: [{ name: cleanedRow.skill, skill_name: cleanedRow.skill }, ...existing] };
+                        }
+                        return prev;
+                    });
+                }
+
+                if (cleanedRow.bus_travel_route) {
+                    setFieldOptions(prev => {
+                        const existing = prev['bus_travel_route'] || [];
+                        const hasRoute = existing.some((r: any) => (typeof r === 'string' ? r : (r.route_name || r.name)) === cleanedRow.bus_travel_route);
+                        if (!hasRoute) {
+                            return { ...prev, bus_travel_route: [{ name: cleanedRow.bus_travel_route, route_name: cleanedRow.bus_travel_route }, ...existing] };
                         }
                         return prev;
                     });
@@ -4198,7 +4229,7 @@ export function EmployeeView() {
                                         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={3} sx={{ mb: 4 }}>
                                             {renderField('department', 'Department', 'link', fieldOptions['department'] || [])}
                                             {renderField('designation', 'Designation', 'link', fieldOptions['designation'] || [])}
-                                            {renderField('employee_type', 'Employee Type', 'link', fieldOptions['employee_type'] || [])}
+                                            {renderField('employee_type', 'Employee Type', 'link', fieldOptions['employee_type'] || [], {}, true)}
                                             {(String(formData.employee_type || '').toLowerCase().includes('security') || String(formData.department || '').toLowerCase().includes('security')) && renderField('weekly_off', 'Weekly Off', 'select', ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])}
                                             {renderField('skill', 'Skill', 'link', fieldOptions['skill'] || [])}
                                             {renderField('production_type', 'Production Type', 'select', ['Production', 'Non Production'])}

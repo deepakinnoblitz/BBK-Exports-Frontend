@@ -14,6 +14,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { normalizeRenderedHtml } from 'src/utils/html';
+
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRDocumentTemplate } from 'src/api/hr-document-template';
 
@@ -261,7 +263,9 @@ export function HRDocumentTemplateDetailsView({ id }: Props) {
                                                 minHeight: 150,
                                             }}
                                             dangerouslySetInnerHTML={{
-                                                __html: doc.template_content || '<p style="color: gray; margin: 0;">No content</p>',
+                                                __html:
+                                                    normalizeRenderedHtml(doc.template_content) ||
+                                                    '<p style="color: gray; margin: 0;">No content</p>',
                                             }}
                                         />
                                     </Stack>

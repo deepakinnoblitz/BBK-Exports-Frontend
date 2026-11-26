@@ -52,7 +52,7 @@ const SORT_OPTIONS = [
 
 export function LineOrderView() {
   const { user } = useAuth();
-  const actionPerms = user?.permissions?.actions?.line_order;
+  const actionPerms = (user?.permissions?.actions as any)?.line || (user?.permissions?.actions as any)?.master_line_order || user?.permissions?.actions?.line_order;
   const hasCustomPerms = !!user?.permissions?.custom_permissions_assigned && !!actionPerms;
   const canCreate = hasCustomPerms ? !!actionPerms?.create : true;
   const canEdit = hasCustomPerms ? !!actionPerms?.edit : true;

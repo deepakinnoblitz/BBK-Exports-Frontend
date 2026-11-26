@@ -37,7 +37,7 @@ export function LineRosterView() {
 
   const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
 
-  const actionPerms = user?.permissions?.actions?.line_roster;
+  const actionPerms = (user?.permissions?.actions as any)?.employee_line_assignment || user?.permissions?.actions?.line_roster;
   const hasCustomPerms = !!user?.permissions?.custom_permissions_assigned && !!actionPerms;
   const canCreate = hasCustomPerms ? !!actionPerms?.create : true;
   const canEdit = hasCustomPerms ? !!actionPerms?.edit : true;
