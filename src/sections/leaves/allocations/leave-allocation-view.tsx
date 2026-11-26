@@ -1,5 +1,6 @@
 import type {
-    AutoLeaveAllocationLog} from 'src/api/leave-allocations';
+    AutoLeaveAllocationLog
+} from 'src/api/leave-allocations';
 
 import dayjs from 'dayjs';
 import { useState, useEffect, useCallback } from 'react';
@@ -244,7 +245,7 @@ export function LeaveAllocationView() {
     useEffect(() => {
         getHRPermissions('Leave Allocation').then(setPermissions);
         getDoctypeList('Employee', ['name', 'employee_name']).then(setEmployeeOptions);
-        getDoctypeList('Leave Type', ['name']).then(setLeaveTypeOptions);
+        getDoctypeList('Leave Type', ['name'], { status: 'Active' }).then(setLeaveTypeOptions);
     }, []);
 
     const fetchLogs = useCallback(async () => {
@@ -407,7 +408,7 @@ export function LeaveAllocationView() {
     };
 
     return (
-        <DashboardContent maxWidth={false} sx={{mt: 2}}>
+        <DashboardContent maxWidth={false} sx={{ mt: 2 }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: { xs: 3, md: 5 } }}>
                 <Stack spacing={1}>
                     <Typography variant="h4" sx={{ fontWeight: 800 }}>
@@ -417,7 +418,7 @@ export function LeaveAllocationView() {
 
 
                 <Stack direction="row" spacing={2}>
-                    {permissions.write && canCreateLeaveAllocation &&(
+                    {permissions.write && canCreateLeaveAllocation && (
                         <Button
                             variant="outlined"
                             startIcon={<Iconify icon="solar:calendar-add-bold" />}
@@ -434,7 +435,7 @@ export function LeaveAllocationView() {
                             Allocate Monthly Leave
                         </Button>
                     )}
-                    {permissions.write && canCreateLeaveAllocation &&(
+                    {permissions.write && canCreateLeaveAllocation && (
                         <Button
                             variant="contained"
                             startIcon={<Iconify icon="mingcute:add-line" />}
@@ -483,137 +484,137 @@ export function LeaveAllocationView() {
             </Stack>
 
             {currentTab === 'allocations' && (
-            <Card>
-                <LeavesTableToolbar
-                    numSelected={selected.length}
-                    filterName={filterName}
-                    onFilterName={(e) => {
-                        setFilterName(e.target.value);
-                        setPage(0);
-                    }}
-                    onBulkEdit={permissions.write ? () => setOpenBulkEdit(true) : undefined}
-                    onDelete={permissions.delete ? () => setConfirmBulkDelete(true) : undefined}
-                    searchPlaceholder="Search allocations..."
-                    sortBy={`${orderBy}_${order}`}
-                    onSortChange={(val) => {
-                        const index = val.lastIndexOf('_');
-                        const f = val.substring(0, index);
-                        const d = val.substring(index + 1);
-                        setOrderBy(f);
-                        setOrder(d as any);
-                    }}
+                <Card>
+                    <LeavesTableToolbar
+                        numSelected={selected.length}
+                        filterName={filterName}
+                        onFilterName={(e) => {
+                            setFilterName(e.target.value);
+                            setPage(0);
+                        }}
+                        onBulkEdit={permissions.write ? () => setOpenBulkEdit(true) : undefined}
+                        onDelete={permissions.delete ? () => setConfirmBulkDelete(true) : undefined}
+                        searchPlaceholder="Search allocations..."
+                        sortBy={`${orderBy}_${order}`}
+                        onSortChange={(val) => {
+                            const index = val.lastIndexOf('_');
+                            const f = val.substring(0, index);
+                            const d = val.substring(index + 1);
+                            setOrderBy(f);
+                            setOrder(d as any);
+                        }}
 
-                    sortOptions={SORT_OPTIONS}
-                    onOpenFilter={() => setOpenFilters(true)}
-                    canReset={filters.status !== 'all' || filters.leave_type !== 'all' || filters.employee !== null || filters.startDate !== null || filters.endDate !== null || !!filterName}
-                />
+                        sortOptions={SORT_OPTIONS}
+                        onOpenFilter={() => setOpenFilters(true)}
+                        canReset={filters.status !== 'all' || filters.leave_type !== 'all' || filters.employee !== null || filters.startDate !== null || filters.endDate !== null || !!filterName}
+                    />
 
-                <Scrollbar>
-                    <TableContainer sx={{ overflow: 'unset' }}>
-                        <Table sx={{ minWidth: 800 }}>
-                            <LeavesTableHead
-                                order={order}
-                                orderBy={orderBy}
-                                rowCount={data.length}
-                                numSelected={data.filter((row) => selected.includes(row.name)).length}
-                                onSelectAllRows={(checked: boolean) => handleSelectAllRows(checked)}
-                                hideCheckbox={!permissions.delete}
-                                showIndex
-                                headLabel={[
-                                    { id: 'employee', label: 'Employee' },
-                                    { id: 'leave_type', label: 'Leave Type' },
-                                    { id: 'allocation_source', label: 'Source' },
-                                    { id: 'from_date', label: 'Period' },
-                                    { id: 'total_leaves_allocated', label: 'Allocated', align: 'center' },
-                                    { id: 'total_leaves_taken', label: 'Taken', align: 'center' },
-                                    { id: 'status', label: 'Status' },
-                                    { id: '', label: '' },
-                                ]}
-                            />
+                    <Scrollbar>
+                        <TableContainer sx={{ overflow: 'unset' }}>
+                            <Table sx={{ minWidth: 800 }}>
+                                <LeavesTableHead
+                                    order={order}
+                                    orderBy={orderBy}
+                                    rowCount={data.length}
+                                    numSelected={data.filter((row) => selected.includes(row.name)).length}
+                                    onSelectAllRows={(checked: boolean) => handleSelectAllRows(checked)}
+                                    hideCheckbox={!permissions.delete}
+                                    showIndex
+                                    headLabel={[
+                                        { id: 'employee', label: 'Employee' },
+                                        { id: 'leave_type', label: 'Leave Type' },
+                                        { id: 'allocation_source', label: 'Source' },
+                                        { id: 'from_date', label: 'Period' },
+                                        { id: 'total_leaves_allocated', label: 'Allocated', align: 'center' },
+                                        { id: 'total_leaves_taken', label: 'Taken', align: 'center' },
+                                        { id: 'status', label: 'Status' },
+                                        { id: '', label: '' },
+                                    ]}
+                                />
 
-                            <TableBody>
-                                {loading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
-                                            <CircularProgress sx={{ color: '#059669' }} />
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    <>
-                                        {data.map((row, index) => (
-                                            <LeaveAllocationTableRow
-                                                key={row.name}
-                                                index={page * rowsPerPage + index}
-                                                hideCheckbox={!permissions.delete}
-                                                row={{
-                                                    id: row.name,
-                                                    employee: row.employee,
-                                                    employeeName: row.employee_name,
-                                                    leaveType: row.leave_type,
-                                                    allocationSource: row.allocation_source || 'Manual',
-                                                    fromDate: row.from_date,
-                                                    toDate: row.to_date,
-                                                    totalLeaves: row.total_leaves_allocated,
-                                                    leavesTaken: row.total_leaves_taken,
-                                                    status: row.workflow_state || row.status,
-                                                }}
-                                                selected={selected.includes(row.name)}
-                                                onSelectRow={() => handleSelectRow(row.name)}
-                                                onView={() => {
-                                                    setSelectedAllocationId(row.name);
-                                                    setOpenDetails(true);
-                                                }}
-                                                onEdit={() => handleEdit(row)}
-                                                onDelete={() => setConfirmDelete({ open: true, id: row.name })}
-                                                canEdit={permissions.write}
-                                                canDelete={permissions.delete}
-                                            />
-                                        ))}
+                                <TableBody>
+                                    {loading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
+                                                <CircularProgress sx={{ color: '#059669' }} />
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        <>
+                                            {data.map((row, index) => (
+                                                <LeaveAllocationTableRow
+                                                    key={row.name}
+                                                    index={page * rowsPerPage + index}
+                                                    hideCheckbox={!permissions.delete}
+                                                    row={{
+                                                        id: row.name,
+                                                        employee: row.employee,
+                                                        employeeName: row.employee_name,
+                                                        leaveType: row.leave_type,
+                                                        allocationSource: row.allocation_source || 'Manual',
+                                                        fromDate: row.from_date,
+                                                        toDate: row.to_date,
+                                                        totalLeaves: row.total_leaves_allocated,
+                                                        leavesTaken: row.total_leaves_taken,
+                                                        status: row.workflow_state || row.status,
+                                                    }}
+                                                    selected={selected.includes(row.name)}
+                                                    onSelectRow={() => handleSelectRow(row.name)}
+                                                    onView={() => {
+                                                        setSelectedAllocationId(row.name);
+                                                        setOpenDetails(true);
+                                                    }}
+                                                    onEdit={() => handleEdit(row)}
+                                                    onDelete={() => setConfirmDelete({ open: true, id: row.name })}
+                                                    canEdit={permissions.write}
+                                                    canDelete={permissions.delete}
+                                                />
+                                            ))}
 
-                                        {data.length > 0 && data.length < 5 && (
-                                            <>
-                                                {Array.from({ length: 5 - data.length }).map((_, i) => (
-                                                    <TableRow
-                                                        key={`empty-${i}`}
-                                                        sx={{
-                                                            height: 68,
-                                                            '& td': { borderBottom: 'none' },
-                                                        }}
-                                                    >
-                                                        <TableCell colSpan={10} />
-                                                    </TableRow>
-                                                ))}
-                                            </>
-                                        )}
+                                            {data.length > 0 && data.length < 5 && (
+                                                <>
+                                                    {Array.from({ length: 5 - data.length }).map((_, i) => (
+                                                        <TableRow
+                                                            key={`empty-${i}`}
+                                                            sx={{
+                                                                height: 68,
+                                                                '& td': { borderBottom: 'none' },
+                                                            }}
+                                                        >
+                                                            <TableCell colSpan={10} />
+                                                        </TableRow>
+                                                    ))}
+                                                </>
+                                            )}
 
-                                        {filterName && !data.length && (
-                                            <TableNoData searchQuery={filterName} />
-                                        )}
+                                            {filterName && !data.length && (
+                                                <TableNoData searchQuery={filterName} />
+                                            )}
 
-                                        {!data.length && !filterName && (
-                                            <TableRow>
-                                                <TableCell colSpan={10}>
-                                                    <EmptyContent title="No Leave Allocation Found" sx={{ py: 16 }} />
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                </Scrollbar>
+                                            {!data.length && !filterName && (
+                                                <TableRow>
+                                                    <TableCell colSpan={10}>
+                                                        <EmptyContent title="No Leave Allocation Found" sx={{ py: 16 }} />
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    </Scrollbar>
 
-                <TablePagination
-                    component="div"
-                    count={total}
-                    page={page}
-                    rowsPerPage={rowsPerPage}
-                    onPageChange={(_: any, p: number) => setPage(p)}
-                    onRowsPerPageChange={(e: any) => setRowsPerPage(parseInt(e.target.value, 10))}
-                    rowsPerPageOptions={[10, 25, 50]}
-                />
-            </Card>
+                    <TablePagination
+                        component="div"
+                        count={total}
+                        page={page}
+                        rowsPerPage={rowsPerPage}
+                        onPageChange={(_: any, p: number) => setPage(p)}
+                        onRowsPerPageChange={(e: any) => setRowsPerPage(parseInt(e.target.value, 10))}
+                        rowsPerPageOptions={[10, 25, 50]}
+                    />
+                </Card>
             )}
 
             {currentTab === 'logs' && (
@@ -645,7 +646,7 @@ export function LeaveAllocationView() {
                                     headLabel={LOG_TABLE_HEAD}
                                     rowCount={logData.length}
                                     numSelected={0}
-                                    onSelectAllRows={() => {}}
+                                    onSelectAllRows={() => { }}
                                     hideCheckbox
                                     showIndex
                                 />
@@ -851,7 +852,7 @@ export function LeaveAllocationView() {
                                 helperText={formErrors.totalLeaves}
                                 sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
                             />
-                            
+
                             <TextField
                                 fullWidth
                                 label="Total Leaves Taken"
@@ -969,9 +970,8 @@ export function LeaveAllocationView() {
                         fetchLogs();
                         setSnackbar({
                             open: true,
-                            message: `Allocated leaves for ${summary.created} record(s)${
-                                summary.skipped > 0 ? ` (${summary.skipped} skipped)` : ''
-                            }`,
+                            message: `Allocated leaves for ${summary.created} record(s)${summary.skipped > 0 ? ` (${summary.skipped} skipped)` : ''
+                                }`,
                             severity: summary.failed > 0 ? 'error' : 'success',
                         });
                     }}
