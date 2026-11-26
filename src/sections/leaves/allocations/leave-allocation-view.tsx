@@ -772,27 +772,55 @@ export function LeaveAllocationView() {
                             )}
                         />
 
-                        <Autocomplete
-                            fullWidth
-                            options={leaveTypeOptions}
-                            getOptionLabel={(opt) => opt.name}
-                            value={leaveTypeOptions.find((opt) => opt.name === leaveType) || null}
-                            onChange={(event, newValue) => {
-                                setLeaveType(newValue ? newValue.name : '');
-                                if (formErrors.leaveType) setFormErrors((prev) => ({ ...prev, leaveType: '' }));
-                            }}
-                            renderInput={(params) => (
-                                <TextField
-                                    {...params}
-                                    label="Leave Type"
-                                    required
-                                    error={!!formErrors.leaveType}
-                                    helperText={formErrors.leaveType}
-                                    InputLabelProps={{ shrink: true }}
-                                    sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
-                                />
-                            )}
-                        />
+                        {isEdit ? (
+                            <TextField
+                                fullWidth
+                                label="Leave Type"
+                                required
+                                value={leaveType}
+                                InputLabelProps={{ shrink: true }}
+                                InputProps={{
+                                    readOnly: true,
+                                }}
+                                inputProps={{
+                                    tabIndex: -1,
+                                }}
+                                sx={{
+                                    pointerEvents: 'none',
+                                    userSelect: 'none',
+                                    '& .MuiFormLabel-asterisk': { color: 'red' },
+                                    '& .MuiOutlinedInput-root': {
+                                        bgcolor: 'action.hover',
+                                        cursor: 'default',
+                                    },
+                                    '& .MuiInputBase-input': {
+                                        cursor: 'default',
+                                    },
+                                }}
+                            />
+                        ) : (
+                            <Autocomplete
+                                fullWidth
+                                options={leaveTypeOptions}
+                                getOptionLabel={(opt) => opt.name}
+                                value={leaveTypeOptions.find((opt) => opt.name === leaveType) || null}
+                                onChange={(event, newValue) => {
+                                    setLeaveType(newValue ? newValue.name : '');
+                                    if (formErrors.leaveType) setFormErrors((prev) => ({ ...prev, leaveType: '' }));
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Leave Type"
+                                        required
+                                        error={!!formErrors.leaveType}
+                                        helperText={formErrors.leaveType}
+                                        InputLabelProps={{ shrink: true }}
+                                        sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
+                                    />
+                                )}
+                            />
+                        )}
 
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <Box display="grid" gridTemplateColumns="1fr 1fr" gap={2}>
