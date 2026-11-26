@@ -16,6 +16,7 @@ import { useRouter } from 'src/routes/hooks';
 
 import { fDateTime } from 'src/utils/format-time';
 import { handleDirectPrint } from 'src/utils/print';
+import { normalizeRenderedHtml } from 'src/utils/html';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { getHRDocumentGeneration, getHRDocumentGenerationPrintUrl } from 'src/api/hr-document-generation';
@@ -397,7 +398,9 @@ export function HRDocumentGenerationDetailsView({ id }: Props) {
                                                 >
                                                     {doc.rendered_content || doc.template_content ? (
                                                         <Box
-                                                            dangerouslySetInnerHTML={{ __html: doc.rendered_content || doc.template_content || '' }}
+                                                            dangerouslySetInnerHTML={{
+                                                                __html: normalizeRenderedHtml(doc.rendered_content || doc.template_content),
+                                                            }}
                                                             sx={{
                                                                 '& p': { my: 0.5 },
                                                                 '& h1, & h2, & h3': { my: 1 },

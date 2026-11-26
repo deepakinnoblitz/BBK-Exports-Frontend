@@ -78,14 +78,40 @@ export async function createHolidayList(data: Partial<HolidayList>) {
 
 export async function updateHolidayList(name: string, data: Partial<HolidayList>) {
     const headers = await getAuthHeaders();
+    let targetName = name;
+    const requestedName = data.holiday_list_name?.trim();
+
+    if (requestedName && requestedName !== name) {
+        const renameRes = await frappeRequest("/api/method/frappe.client.rename_doc", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                doctype: "Holiday List",
+                old_name: name,
+                new_name: requestedName,
+                merge: false
+            })
+        });
+
+        if (!renameRes.ok) {
+            const error = await renameRes.json();
+            throw new Error(handleFrappeError(error, "Failed to rename holiday list"));
+        }
+
+        const renameJson = await renameRes.json();
+        targetName = renameJson.message || requestedName;
+    }
+
+    const { holiday_list_name, ...restData } = data;
+    const payload = targetName !== name ? restData : data;
 
     const res = await frappeRequest("/api/method/frappe.client.set_value", {
         method: "POST",
         headers,
         body: JSON.stringify({
             doctype: "Holiday List",
-            name,
-            fieldname: data
+            name: targetName,
+            fieldname: payload
         })
     });
 

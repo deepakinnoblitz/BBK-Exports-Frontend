@@ -84,7 +84,7 @@ export function HRDocumentTemplateEditView({ id }: Props) {
         try {
             const [doc, cats, vars] = await Promise.all([
                 getHRDocumentTemplate(id),
-                fetchHRDocumentCategories(),
+                fetchHRDocumentCategories(true),
                 fetchHRDocumentTemplateVariables('Employee'),
             ]);
 
@@ -117,7 +117,7 @@ export function HRDocumentTemplateEditView({ id }: Props) {
         setCreatingCategory(true);
         try {
             const created = await createHRDocumentCategory(newCategoryName.trim());
-            const categories = await fetchHRDocumentCategories();
+            const categories = await fetchHRDocumentCategories(true);
             setCategoryOptions(categories);
             setCategory(created.name);
             setDocumentType(created.category_name || created.name);

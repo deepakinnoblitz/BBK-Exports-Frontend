@@ -33,18 +33,6 @@ const waveShadowAnimation = keyframes`
   }
 `;
 
-// Fluid wave bounce animation for typing dots (chat wave style)
-const typingWaveAnimation = keyframes`
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.35;
-  }
-  30% {
-    transform: translateY(-3.5px);
-    opacity: 1;
-  }
-`;
-
 // Friendly nod & hop animation for the chat icon in normal state (faster, lively pace)
 const chatIconIdleAnimation = keyframes`
   0%, 60%, 100% {
@@ -79,7 +67,6 @@ export type InnochatTypingButtonProps = {
 
 export function InnochatTypingButton({
   unreadCountOverride,
-  showDotsAlways = false,
   label = 'InnoChat',
   sx,
 }: InnochatTypingButtonProps) {
@@ -88,7 +75,6 @@ export function InnochatTypingButton({
   const unreadCount = unreadCountOverride !== undefined ? unreadCountOverride : liveUnreadCount;
 
   const hasUnread = unreadCount > 0;
-  const shouldShowDots = showDotsAlways || hasUnread;
   const displayBadgeText = unreadCount > 99 ? '99+' : unreadCount;
 
   return (
@@ -197,36 +183,6 @@ export function InnochatTypingButton({
         >
           {label}
         </Typography>
-
-        {/* 3. Typing Wave Dots (Active only when unread messages exist) */}
-        {shouldShowDots && (
-          <Box
-            component="span"
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '3.5px',
-              ml: 0.35,
-              height: 14,
-            }}
-          >
-            {[0, 0.16, 0.32].map((delay, index) => (
-              <Box
-                key={index}
-                component="span"
-                sx={{
-                  display: 'inline-block',
-                  width: '4.5px',
-                  height: '4.5px',
-                  borderRadius: '50%',
-                  backgroundColor: '#FFFFFF',
-                  animation: `${typingWaveAnimation} 1.3s infinite ease-in-out`,
-                  animationDelay: `${delay}s`,
-                }}
-              />
-            ))}
-          </Box>
-        )}
       </Box>
 
       {/* 4. Floating Badge (Option 15: .cnt.fl) - Only visible when unread messages exist */}

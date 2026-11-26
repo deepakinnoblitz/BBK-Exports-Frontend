@@ -267,11 +267,11 @@ export function RolePermissionEditView({ name, onBack }: RolePermissionEditViewP
         }
         if (module.startsWith('asset_')) return 'Asset';
         if (module === 'expense_tracker' || module === 'reimbursement_claims') return 'Expenses';
-        if (module === 'crm_expenses') return 'CRM Expense Tracker';
-        if (module === 'employee_evaluation' || module === 'badges' || module === 'employee_monthly_award') return 'Employee Performance';
-        if (module === 'job_openings' || module === 'job_applicants' || module === 'interviews' || module === 'employee_referrals') return 'Recruitment';
-        if (module === 'attendance_list' || module === 'daily_log' || module === 'wfh_attendance') return 'Attendance';
-        if (module.startsWith('meta_') || module === 'webhook_logs') return 'Lead Integration';
+        if (module === 'job_openings' || module === 'job_applicants' || module === 'employee_referrals') return 'Recruitment';
+        if (module === 'attendance_list') return 'Attendance';
+        if (module === 'shift_roster' || module === 'shift_rotation') return 'Shift Management';
+        if (module === 'line_roster' || module === 'line_rotation') return 'Line Management';
+        if (module === 'hr_document_templates') return 'Document Generator';
         if (module.startsWith('master_')) return 'Masters';
         if (module.startsWith('report_')) return 'Reports';
         return module.split('_').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
@@ -462,7 +462,6 @@ export function RolePermissionEditView({ name, onBack }: RolePermissionEditViewP
                             >
                                 <MenuItem value="HR">HR</MenuItem>
                                 <MenuItem value="Employee">Employee</MenuItem>
-                                <MenuItem value="CRM And Sales">CRM And Sales</MenuItem>
                             </Select>
                         </FormControl>
 

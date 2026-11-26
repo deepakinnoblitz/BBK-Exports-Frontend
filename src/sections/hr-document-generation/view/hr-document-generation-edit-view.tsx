@@ -23,6 +23,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { normalizeRenderedHtml } from 'src/utils/html';
 import { filterEmployeeOptions } from 'src/utils/filter-employees';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -82,7 +83,7 @@ export function HRDocumentGenerationEditView({ id }: Props) {
             try {
                 const [empList, tplRes, doc] = await Promise.all([
                     fetchEmployeesList(),
-                    fetchHRDocumentTemplates({ page: 1, page_size: 200 }),
+                    fetchHRDocumentTemplates({ page: 1, page_size: 200, filters: { is_active: 'yes' } }),
                     getHRDocumentGeneration(id),
                 ]);
 
@@ -503,7 +504,9 @@ export function HRDocumentGenerationEditView({ id }: Props) {
                                             >
                                                 {renderedContent || templateContent ? (
                                                     <Box
-                                                        dangerouslySetInnerHTML={{ __html: renderedContent || templateContent || '' }}
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: normalizeRenderedHtml(renderedContent || templateContent),
+                                                        }}
                                                         sx={{
                                                             typography: 'body2',
                                                             '& p': { my: 0.5 },

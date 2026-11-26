@@ -535,41 +535,33 @@ export function getNavData(user: any = null, view?: 'HR' | 'CRM', settings?: any
   const filterItem = (item: NavItem): NavItem | null => {
     // Check permission for current item
     if (user?.permissions?.custom_permissions_assigned) {
-      const getFormattedKey = (title: string) => {
+      const getFormattedKey = (title: string, path: string = '') => {
         const lower = title.trim().toLowerCase();
         if (lower === 'connect account') return 'meta_account';
-        if (lower === 'company expenses') return 'expense_tracker';
+        if (lower === 'company expenses') return 'company_expenses';
         if (lower === 'expense tracker') return 'crm_expenses';
         if (lower === 'expenses') return 'expense_tracker'; // HR parent fallback
         if (lower === 'document generator') return 'hr_document_templates'; // HR parent fallback
-        if (lower === 'document templates') return 'hr_document_templates';
+        if (lower === 'document templates') return 'document_templates';
         if (lower === 'document generation') return 'document_generation';
-        if (lower === 'asset list' || lower === 'my asset list') return 'asset_list';
+        if (lower === 'asset list' || lower === 'my asset list') return lower.replace(/\s+/g, '_');
         if (lower === 'asset assignments') return 'asset_assignments';
-        if (lower === 'asset requests' || lower === 'my asset requests') return 'asset_requests';
-        if (lower === 'reimbursement claim list' || lower === 'my reimbursement claim') return 'reimbursement_claims';
-        if (lower === 'employee evaluation') return 'employee_evaluation';
-        if (lower === 'badges') return 'badges';
-        if (lower === 'employee monthly award') return 'employee_monthly_award';
-        if (lower === 'job opening list') return 'job_openings';
-        if (lower === 'job applicant list') return 'job_applicants';
-        if (lower === 'interview list') return 'interviews';
-        if (lower === 'employee referral list' || lower === 'refer a friend') return 'employee_referrals';
-        if (lower === 'attendance list' || lower === 'my attendance') return 'attendance_list';
-        if (lower === 'daily log' || lower === 'my daily log') return 'daily_log';
-        if (lower === 'wfh attendance' || lower === 'my wfh attendance') return 'wfh_attendance';
-        if (lower === 'sales target entry') return 'sales_target_entry';
-        if (lower === 'calendar') return 'events';
-        if (lower === 'shift management' || lower === 'employee shift roster' || lower === 'employee shift assignment' || lower === 'monthly roster') return 'shift_roster';
-        if (lower === 'shift rotation') return 'shift_rotation';
-        if (lower === 'shift master') return 'master_shift';
-        if (lower === 'line management' || lower === 'employee line roster' || lower === 'employee line assignment' || lower === 'monthly line roster') return 'line_roster';
-        if (lower === 'line rotation') return 'line_rotation';
-        if (lower === 'line order' || lower === 'line' || lower === 'line master') return 'master_line_order';
+        if (lower === 'asset requests' || lower === 'my asset requests') return lower.replace(/\s+/g, '_');
+        if (lower === 'reimbursement claim list' || lower === 'my reimbursement claim') return lower.replace(/\s+/g, '_');
+        if (lower === 'job opening list') return 'job_opening_list';
+        if (lower === 'job applicant list') return 'job_applicant_list';
+        if (lower === 'employee referral list' || lower === 'refer a friend') return lower.replace(/\s+/g, '_');
+        if (lower === 'attendance list' || lower === 'my attendance') return lower.replace(/\s+/g, '_');
+        if (lower === 'shift management') return 'shift_roster';
+        if (lower === 'monthly roster' && path === '/monthly-roster') return 'monthly_shift_roster';
+        if (lower === 'monthly roster' && path === '/monthly-line-roster') return 'monthly_line_roster';
+        if (lower === 'shift master') return 'shift';
+        if (lower === 'line management') return 'line_roster';
+        if (lower === 'line order' || lower === 'line master') return 'line';
         return lower.replace(/\s+/g, '_');
       };
 
-      const moduleKey = getFormattedKey(item.title || '');
+      const moduleKey = getFormattedKey(item.title || '', item.path || '');
       const menuMapping = user?.permissions?.menu_mapping || {};
       const checkKey = menuMapping[moduleKey] || moduleKey;
 
