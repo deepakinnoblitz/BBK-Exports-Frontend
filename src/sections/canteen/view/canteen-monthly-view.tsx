@@ -10,6 +10,7 @@ import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Badge from '@mui/material/Badge';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
@@ -18,7 +19,10 @@ import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import DialogTitle from '@mui/material/DialogTitle';
 import { alpha, useTheme } from '@mui/material/styles';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -87,6 +91,12 @@ export function CanteenMonthlyView({
   const [searchEmployee, setSearchEmployee] = useState('');
   const [openFilters, setOpenFilters] = useState(false);
   const [internalEmployees, setInternalEmployees] = useState<any[]>([]);
+  const [dayEntriesDialog, setDayEntriesDialog] = useState<{
+    open: boolean;
+    emp: any;
+    date: string;
+    entries: any[];
+  }>({ open: false, emp: null, date: '', entries: [] });
 
   const selectedEmployees: any[] = useMemo(() => {
     if (isRestrictedEmployee && user?.employee) {
@@ -282,17 +292,30 @@ export function CanteenMonthlyView({
     if (!canEdit) return;
     const entry = emp.entries?.[d.date];
     if (entry?.availed) {
+      const dayEntries = Array.isArray(entry.entries) ? entry.entries : [];
+      if (dayEntries.length > 1) {
+        setDayEntriesDialog({
+          open: true,
+          emp,
+          date: d.date,
+          entries: dayEntries,
+        });
+        return;
+      }
+
+      const single = dayEntries[0] || {};
       setSelectedEntry({
-        name: entry.entry_id || '',
+        name: single.name || entry.entry_id || '',
         employee: emp.employee,
         employee_name: emp.employee_name,
         department: emp.department,
         designation: emp.designation,
         canteen_date: d.date,
-        meal_type: entry.meal_type || 'Lunch',
-        meal_count: entry.meal_count ?? 1,
-        status: 'Availed',
-        source: entry.source || 'Manual',
+        meal_type: single.meal_type || entry.meal_type || 'Lunch',
+        meal_count: single.meal_count ?? entry.meal_count ?? 1,
+        status: single.status || 'Availed',
+        source: single.source || entry.source || 'Manual',
+        remarks: single.remarks || '',
       });
       setTargetEmployee(undefined);
       setTargetDate(undefined);
@@ -945,6 +968,104 @@ export function CanteenMonthlyView({
         hideStatusFilter
         isHR={isHRUser}
       />
+
+      {/* Select Meal Entry Dialog when multiple entries exist for a date */}
+      <Dialog
+        open={dayEntriesDialog.open}
+        onClose={() => setDayEntriesDialog({ open: false, emp: null, date: '', entries: [] })}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              Meal Entries
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {dayEntriesDialog.emp?.employee_name} •{' '}
+              {dayEntriesDialog.date ? dayjs(dayEntriesDialog.date).format('DD-MM-YYYY') : ''}
+            </Typography>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => setDayEntriesDialog({ open: false, emp: null, date: '', entries: [] })}
+          >
+            <Iconify icon="mingcute:close-line" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={1.5}>
+            {dayEntriesDialog.entries.map((item: any) => (
+              <Box
+                key={item.name}
+                sx={{
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  border: (t) => `1px solid ${t.palette.divider}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1.5,
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    {item.meal_type || 'Lunch'}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Count: {item.meal_count ?? 1}
+                    {item.remarks ? ` • ${item.remarks}` : ''}
+                  </Typography>
+                </Box>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<Iconify icon="solar:pen-bold" width={16} />}
+                  onClick={() => {
+                    const { emp, date } = dayEntriesDialog;
+                    setDayEntriesDialog({ open: false, emp: null, date: '', entries: [] });
+                    setSelectedEntry({
+                      name: item.name,
+                      employee: emp.employee,
+                      employee_name: emp.employee_name,
+                      department: emp.department,
+                      designation: emp.designation,
+                      canteen_date: date,
+                      meal_type: item.meal_type || 'Lunch',
+                      meal_count: item.meal_count ?? 1,
+                      status: item.status || 'Availed',
+                      source: item.source || 'Manual',
+                      remarks: item.remarks || '',
+                    });
+                    setTargetEmployee(undefined);
+                    setTargetDate(undefined);
+                    setOpenDialog(true);
+                  }}
+                >
+                  Edit
+                </Button>
+              </Box>
+            ))}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={() => {
+              const { emp, date } = dayEntriesDialog;
+              setDayEntriesDialog({ open: false, emp: null, date: '', entries: [] });
+              setSelectedEntry(null);
+              setTargetEmployee(emp?.employee);
+              setTargetDate(date);
+              setOpenDialog(true);
+            }}
+            sx={{ bgcolor: COMMON_COLORS.emerald.main, '&:hover': { bgcolor: COMMON_COLORS.emerald.dark } }}
+          >
+            Add Meal
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Add / Edit Entry Dialog for clicked cell */}
       {openDialog && (

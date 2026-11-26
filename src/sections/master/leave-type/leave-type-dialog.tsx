@@ -48,7 +48,7 @@ type Props = {
 };
 
 const STATUS_OPTIONS = ['Active', 'Inactive'];
-const RESET_FREQUENCY_OPTIONS = ['', 'Every 3 months', 'Every 4 months', 'Every 6 months', 'Whole year'];
+const RESET_FREQUENCY_OPTIONS = ['Every 3 months', 'Every 4 months', 'Every 6 months', 'Whole year'];
 const ALLOCATION_BASIS_OPTIONS = [
     'Fixed / Unconditional',
     'Full Month Present (100% Attendance)',
@@ -177,7 +177,7 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         setMaxLeaves(data.max_leaves ?? '');
                         setStatus(data.status || 'Active');
                         setCarryForward(!!data.carry_forward);
-                        setResetFrequency(data.reset_frequency || '');
+                        setResetFrequency(data.carry_forward ? (data.reset_frequency || '') : '');
                         setRestrictDuringProbation(!!data.restrict_during_probation);
                         setProbationPeriodMonths(data.probation_period_months || 3);
                         setProbationError(false);
@@ -295,7 +295,7 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         : (maxLeaves ? Number(maxLeaves) : 0),
                 status,
                 carry_forward: carryForward ? 1 : 0,
-                reset_frequency: resetFrequency as any,
+                reset_frequency: (carryForward ? resetFrequency : '') as any,
 
                 restrict_during_probation: restrictDuringProbation ? 1 : 0,
                 probation_period_months: restrictDuringProbation
@@ -390,20 +390,6 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                             InputLabelProps={{ shrink: true }}
                         />
                         <FormControl fullWidth disabled={loading}>
-                            <InputLabel id="reset-frequency-label" shrink>Reset Frequency</InputLabel>
-                            <Select
-                                labelId="reset-frequency-label"
-                                value={resetFrequency}
-                                onChange={(e) => setResetFrequency(e.target.value as string)}
-                                label="Reset Frequency"
-                                displayEmpty
-                            >
-                                {RESET_FREQUENCY_OPTIONS.map((opt) => (
-                                    <MenuItem key={opt} value={opt}>{opt || 'None'}</MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        <FormControl fullWidth disabled={loading}>
                             <InputLabel id="status-label" shrink>Status</InputLabel>
                             <Select
                                 labelId="status-label"
@@ -418,7 +404,7 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         </FormControl>
                     </Box>
 
-                    <Stack direction="row" spacing={3}>
+                    <Stack direction="row" spacing={3} flexWrap="wrap">
                         <FormControlLabel
                             control={
                                 <CustomSwitch
@@ -439,18 +425,20 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         <FormControlLabel
                             control={
                                 <CustomSwitch
-                                    checked={carryForward}
-                                    onChange={(e) => setCarryForward(e.target.checked)}
+                                    checked={restrictDuringProbation}
+                                    onChange={(e) =>
+                                        setRestrictDuringProbation(e.target.checked)
+                                    }
                                     disabled={loading}
                                 />
                             }
-                            label="Carry Forward"
+                            label="Restrict During Probation"
                             sx={{
-                            m: 0,
-                            '& .MuiFormControlLabel-label': {
-                                ml: 1,
-                            },
-                        }}
+                                m: 0,
+                                '& .MuiFormControlLabel-label': {
+                                    ml: 1,
+                                },
+                            }}
                         />
 
                         <FormControlLabel
@@ -470,24 +458,6 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         }}
                         />
                     </Stack>
-                    
-                    <FormControlLabel
-                        control={
-                            <CustomSwitch
-                                checked={restrictDuringProbation}
-                                onChange={(e) =>
-                                    setRestrictDuringProbation(e.target.checked)
-                                }
-                            />
-                        }
-                        label="Restrict During Probation"
-                        sx={{
-                            m: 0,
-                            '& .MuiFormControlLabel-label': {
-                                ml: 1,
-                            },
-                        }}
-                    />
 
                     {restrictDuringProbation && (
                     <TextField
@@ -513,6 +483,56 @@ export function LeaveTypeDialog({ open, onClose, onSuccess, id }: Props) {
                         inputProps={{ min: 1 }}
                     />
                     )}
+
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                        <FormControlLabel
+                            control={
+                                <CustomSwitch
+                                    checked={carryForward}
+                                    onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setCarryForward(checked);
+                                        if (!checked) {
+                                            setResetFrequency('');
+                                        }
+                                    }}
+                                    disabled={loading}
+                                />
+                            }
+                            label="Carry Forward"
+                            sx={{
+                                m: 0,
+                                flexShrink: 0,
+                                '& .MuiFormControlLabel-label': {
+                                    ml: 1,
+                                },
+                            }}
+                        />
+
+                        {carryForward && (
+                            <FormControl disabled={loading} sx={{ minWidth: { xs: '100%', sm: 280 } }}>
+                                <InputLabel id="reset-frequency-label" shrink>Reset Frequency</InputLabel>
+                                <Select
+                                    labelId="reset-frequency-label"
+                                    value={resetFrequency}
+                                    onChange={(e) => setResetFrequency(e.target.value as string)}
+                                    label="Reset Frequency"
+                                    displayEmpty
+                                    renderValue={(selected) =>
+                                        selected || (
+                                            <Box component="span" sx={{ color: 'text.disabled' }}>
+                                                Select Reset Frequency
+                                            </Box>
+                                        )
+                                    }
+                                >
+                                    {RESET_FREQUENCY_OPTIONS.map((opt) => (
+                                        <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
+                    </Stack>
 
                     {/* Attendance & Service-Day Criteria Section */}
                     <Box sx={{ pt: 3, borderTop: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 2 }}>

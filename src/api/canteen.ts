@@ -35,6 +35,7 @@ export interface MonthlyCanteenCell {
   meal_type?: string;
   entry_id?: string;
   source?: string;
+  entries?: Array<Partial<CanteenEntry>>;
   is_holiday?: boolean;
   is_weekend?: boolean;
   holiday_name?: string;

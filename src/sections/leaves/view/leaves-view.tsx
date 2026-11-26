@@ -173,7 +173,7 @@ export function LeavesView() {
     useEffect(() => {
         getHRPermissions('Leave Application').then(setPermissions);
         getDoctypeList('Employee', ['name', 'employee_name']).then(setEmployeeOptions).catch(console.error);
-        getDoctypeList('Leave Type', ['name', 'leave_type_name', 'is_permission']).then(setLeaveTypeOptions).catch(console.error);
+        getDoctypeList('Leave Type', ['name', 'leave_type_name', 'is_permission'], { status: 'Active' }).then(setLeaveTypeOptions).catch(console.error);
     }, []);
 
 

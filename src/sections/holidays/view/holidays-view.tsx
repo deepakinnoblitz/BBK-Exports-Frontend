@@ -538,8 +538,10 @@ export function HolidaysView() {
                                     views={['year']}
                                     openTo="year"
                                     format="YYYY"
+                                    readOnly={isEdit}
                                     value={year ? dayjs(`${year}-01-01`) : null}
                                     onChange={(newValue) => {
+                                        if (isEdit) return;
                                         setYear(newValue ? newValue.format('YYYY') : '');
                                         if (formErrors.year) setFormErrors(prev => ({ ...prev, year: '' }));
                                     }}
@@ -550,7 +552,12 @@ export function HolidaysView() {
                                             error: !!formErrors.year,
                                             helperText: formErrors.year,
                                             InputLabelProps: { shrink: true },
-                                            sx: { '& .MuiFormLabel-asterisk': { color: 'red' } }
+                                            sx: {
+                                                '& .MuiFormLabel-asterisk': { color: 'red' },
+                                                ...(isEdit && {
+                                                    '& .MuiOutlinedInput-root': { bgcolor: 'action.hover' },
+                                                }),
+                                            }
                                         },
                                     }}
                                 />
@@ -564,14 +571,21 @@ export function HolidaysView() {
                                 label="Month"
                                 value={month}
                                 onChange={(e) => {
+                                    if (isEdit) return;
                                     setMonth(e.target.value);
                                     if (formErrors.month) setFormErrors(prev => ({ ...prev, month: '' }));
                                 }}
                                 InputLabelProps={{ shrink: true }}
+                                InputProps={{ readOnly: isEdit }}
                                 required
                                 error={!!formErrors.month}
                                 helperText={formErrors.month}
-                                sx={{ '& .MuiFormLabel-asterisk': { color: 'red' } }}
+                                sx={{
+                                    '& .MuiFormLabel-asterisk': { color: 'red' },
+                                    ...(isEdit && {
+                                        '& .MuiOutlinedInput-root': { bgcolor: 'action.hover' },
+                                    }),
+                                }}
                             >
                                 <MenuItem value="" disabled>Select Month</MenuItem>
                                 {MONTH_OPTIONS.map((option) => (

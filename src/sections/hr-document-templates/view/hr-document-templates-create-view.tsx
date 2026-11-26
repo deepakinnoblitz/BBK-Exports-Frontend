@@ -69,7 +69,7 @@ export function HRDocumentTemplateCreateView() {
         async function loadInitialData() {
             try {
                 const [cats, vars] = await Promise.all([
-                    fetchHRDocumentCategories(),
+                    fetchHRDocumentCategories(true),
                     fetchHRDocumentTemplateVariables('Employee'),
                 ]);
                 setCategoryOptions(cats);
@@ -86,7 +86,7 @@ export function HRDocumentTemplateCreateView() {
         setCreatingCategory(true);
         try {
             const created = await createHRDocumentCategory(newCategoryName.trim());
-            const categories = await fetchHRDocumentCategories();
+            const categories = await fetchHRDocumentCategories(true);
             setCategoryOptions(categories);
             setCategory(created.name);
             setDocumentType(created.category_name || created.name);
