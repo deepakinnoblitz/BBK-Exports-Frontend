@@ -1405,7 +1405,11 @@ export function EmployeeView() {
             const dataToSave: any = { ...formData, ...totals };
             if (dataToSave.employee_name) dataToSave.employee_name = dataToSave.employee_name.trim();
             if (dataToSave.employee_id) dataToSave.employee_id = dataToSave.employee_id.trim();
-            if (dataToSave.email) dataToSave.email = dataToSave.email.trim();
+            if (dataToSave.email && dataToSave.email.trim()) {
+                dataToSave.email = dataToSave.email.trim();
+            } else {
+                dataToSave.email = null;
+            }
             if (dataToSave.personal_email) dataToSave.personal_email = dataToSave.personal_email.trim();
 
             dataToSave.phone = normalizePhoneForStorage(dataToSave.phone);
@@ -4198,7 +4202,7 @@ export function EmployeeView() {
                                             </Box>
                                             {renderField('employee_name', 'Employee Name', 'text', [], {}, true)}
                                             {renderField('father_husband_name', 'Father/Husband Name')}
-                                            {renderField('email', 'Email', 'text', [], {}, true)}
+                                            {renderField('email', 'Email')}
                                             {renderField('personal_email', 'Personal Email')}
                                             {renderField('phone', 'Personal Phone Number', 'phone')}
                                             {renderField('office_phone_number', 'Office Phone', 'phone')}
