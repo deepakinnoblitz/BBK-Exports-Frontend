@@ -1030,7 +1030,7 @@ export function LeaveAllocationView() {
                     });
                 }}
                 options={{
-                    statuses: ['Approved', 'Pending', 'Rejected'],
+                    statuses: ['Approved', 'Draft', 'Cancelled'],
                     leaveTypes: leaveTypeOptions.map((type) => type.name),
                     employees: employeeOptions,
                 }}
