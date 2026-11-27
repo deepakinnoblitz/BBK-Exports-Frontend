@@ -101,8 +101,8 @@ export const hrNavData = [
     path: '/leaves',
     icon: <RiAppsLine size={18} />,
     children: [
-      { title: 'Leave Application', path: '/leaves' },
       { title: 'Leave Allocate', path: '/leave-allocations' },
+      { title: 'Leave Application', path: '/leaves' }
     ],
   },
   /*

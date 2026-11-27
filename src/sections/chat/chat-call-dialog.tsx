@@ -226,8 +226,33 @@ export default function ChatCallDialog({
     const [isExplicitDisconnect, setIsExplicitDisconnect] = useState(false);
     const participantsCountRef = useRef(0);
 
-    const localVideoRef = useRef<HTMLVideoElement>(null);
-    const remoteVideoRef = useRef<HTMLVideoElement>(null);
+    const localVideoRef = useRef<HTMLVideoElement | null>(null);
+    const remoteVideoRef = useRef<HTMLMediaElement | null>(null);
+
+    const attachStream = useCallback((el: HTMLMediaElement | null, stream: MediaStream | null, mutedFallback: boolean = false) => {
+        if (!el || !stream) return;
+        if (el.srcObject !== stream) {
+            el.srcObject = stream;
+        }
+        el.play().catch((err: any) => {
+            if (mutedFallback && err?.name === 'NotAllowedError') {
+                el.muted = true;
+                el.play().catch((e) => console.error('Error playing muted remote video:', e));
+            } else {
+                console.error('Error playing media:', err);
+            }
+        });
+    }, []);
+
+    const setLocalVideoRef = useCallback((el: HTMLVideoElement | null) => {
+        localVideoRef.current = el;
+        attachStream(el, localStream);
+    }, [attachStream, localStream]);
+
+    const setRemoteVideoRef = useCallback((el: HTMLMediaElement | null) => {
+        remoteVideoRef.current = el;
+        attachStream(el, remoteStream, true);
+    }, [attachStream, remoteStream]);
 
     useEffect(() => {
         if (open && liveKitToken) {
@@ -236,18 +261,12 @@ export default function ChatCallDialog({
     }, [liveKitToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        if (localVideoRef.current && localStream) {
-            localVideoRef.current.srcObject = localStream;
-            localVideoRef.current.play().catch(e => console.error('Error playing local video:', e));
-        }
-    }, [localStream, callState, callType]);
+        attachStream(localVideoRef.current, localStream);
+    }, [attachStream, localStream, callState, callType]);
 
     useEffect(() => {
-        if (remoteVideoRef.current && remoteStream) {
-            remoteVideoRef.current.srcObject = remoteStream;
-            remoteVideoRef.current.play().catch(e => console.error('Error playing remote video:', e));
-        }
-    }, [remoteStream, callState, callType]);
+        attachStream(remoteVideoRef.current, remoteStream, true);
+    }, [attachStream, remoteStream, callState, callType]);
 
     const handleLkConnected = useCallback(() => {
         // console.log('LIVEKIT: Successfully connected to room');
@@ -470,14 +489,14 @@ export default function ChatCallDialog({
             >
                 {callType === 'video' ? (
                     <video
-                        ref={remoteVideoRef}
+                        ref={setRemoteVideoRef}
                         autoPlay
                         playsInline
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                 ) : (
                     <>
-                        <audio ref={remoteVideoRef as any} autoPlay style={{ display: 'none' }} />
+                        <audio ref={setRemoteVideoRef as any} autoPlay style={{ display: 'none' }} />
                         <Stack alignItems="center" justifyContent="center" sx={{ height: '100%' }}>
                             <Avatar sx={{ width: 120, height: 120, fontSize: 48 }}>
                                 {remoteUser?.charAt(0).toUpperCase()}
@@ -511,7 +530,7 @@ export default function ChatCallDialog({
                         }}
                     >
                         <video
-                            ref={localVideoRef}
+                            ref={setLocalVideoRef}
                             autoPlay
                             muted
                             playsInline
