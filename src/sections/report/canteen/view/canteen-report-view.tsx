@@ -62,9 +62,7 @@ import { CanteenDetailsDialog } from '../canteen-details-dialog';
 
 const MEAL_TYPE_COLORS: Record<string, { bg: string; color: string; border: string }> = {
   Lunch: { bg: 'rgba(16, 185, 129, 0.12)', color: '#047857', border: '#10b981' },
-  Dinner: { bg: 'rgba(99, 102, 241, 0.12)', color: '#4338ca', border: '#6366f1' },
   Breakfast: { bg: 'rgba(245, 158, 11, 0.12)', color: '#b45309', border: '#f59e0b' },
-  Snacks: { bg: 'rgba(168, 85, 247, 0.12)', color: '#7e22ce', border: '#a855f7' },
 };
 
 function getMealBadgeColors(mealType: string) {
@@ -1196,22 +1194,10 @@ export function CanteenReportView() {
                     <Typography variant="body2" sx={{ fontWeight: 600, color: '#059669' }}>Lunch</Typography>
                   </Stack>
                 </MenuItem>
-                <MenuItem value="Dinner">
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#6366f1' }} />
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#4338ca' }}>Dinner</Typography>
-                  </Stack>
-                </MenuItem>
                 <MenuItem value="Breakfast">
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#f59e0b' }} />
                     <Typography variant="body2" sx={{ fontWeight: 600, color: '#d97706' }}>Breakfast</Typography>
-                  </Stack>
-                </MenuItem>
-                <MenuItem value="Snacks">
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#a855f7' }} />
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#7e22ce' }}>Snacks</Typography>
                   </Stack>
                 </MenuItem>
               </Select>
@@ -1535,9 +1521,7 @@ export function CanteenReportView() {
                 <Stack direction="row" spacing={2} sx={{ mb: 2.5, flexWrap: 'wrap', gap: 1 }}>
                   {[
                     { label: 'Lunch Availed', color: 'rgba(16, 185, 129, 0.14)', textColor: '#047857', badge: 'L' },
-                    { label: 'Dinner Availed', color: 'rgba(99, 102, 241, 0.14)', textColor: '#4338ca', badge: 'D' },
                     { label: 'Breakfast Availed', color: 'rgba(245, 158, 11, 0.14)', textColor: '#b45309', badge: 'B' },
-                    { label: 'Snacks Availed', color: 'rgba(168, 85, 247, 0.14)', textColor: '#7e22ce', badge: 'S' },
                     { label: 'Holiday', color: 'rgba(244, 63, 94, 0.14)', textColor: '#9f1239', badge: 'H' },
                     { label: 'Weekend', color: 'rgba(100, 116, 139, 0.14)', textColor: '#334155', badge: 'WO' },
                   ].map((item) => (
