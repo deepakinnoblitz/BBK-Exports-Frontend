@@ -58,7 +58,7 @@ const MONTHS = [
   { value: 12, label: 'December' },
 ];
 
-const MEAL_TYPES = ['Lunch', 'Breakfast', 'Dinner', 'Snacks', 'Tea'];
+const MEAL_TYPES = ['Lunch', 'Breakfast'];
 
 type ParsedRow = {
   emp_number: string;

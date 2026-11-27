@@ -29,23 +29,11 @@ const MEAL_COLORS: Record<string, { border: string; bg: string; text: string; mo
     text: '#047857',
     monthBg: 'rgba(16, 185, 129, 0.14)',
   },
-  Dinner: {
-    border: '#6366f1',
-    bg: 'rgba(99, 102, 241, 0.08)',
-    text: '#4338ca',
-    monthBg: 'rgba(99, 102, 241, 0.14)',
-  },
   Breakfast: {
     border: '#f59e0b',
     bg: 'rgba(245, 158, 11, 0.08)',
     text: '#b45309',
     monthBg: 'rgba(245, 158, 11, 0.14)',
-  },
-  Snacks: {
-    border: '#a855f7',
-    bg: 'rgba(168, 85, 247, 0.08)',
-    text: '#7e22ce',
-    monthBg: 'rgba(168, 85, 247, 0.14)',
   },
 };
 
